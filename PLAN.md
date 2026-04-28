@@ -3738,7 +3738,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Social-Login-Provider
 - [x] MCP-Server-Modul (`@modelcontextprotocol/sdk`)
 - [x] `@McpTool`/`@McpResource`-Decorators + Auto-Discovery
-- [ ] MCP-Auth via Better-Auth-OAuth-Provider (Authorization-Code-Flow + PKCE)
+- [x] MCP-Auth via Better-Auth-OAuth-Provider (Authorization-Code-Flow + PKCE)
 
 ### Phase 7 – Reliability, Template-Tooling & Polish (Sprint 12)
 - [ ] **Test-First (Stories):** Setup-Wizard (Idempotenz, abbrechbar, korrektes `.env`-Output), Schema-Konkatenation (nur aktive Features kombiniert), `sync:from-template` (lässt `src/modules/` unangetastet), `sync:to-template` (Patch aus `src/core/`-Diff korrekt) — eigene Stories
