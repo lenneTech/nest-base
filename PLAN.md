@@ -3689,7 +3689,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Postgres-Adapter (Large Objects + `FileBlob`-Modell + RLS)
 - [x] File/Folder Models + CRUD-Endpoints
 - [x] Multipart-Upload + TUS
-- [ ] Asset-Endpoint mit Transformations + Cache (`sharp`)
+- [x] Asset-Endpoint mit Transformations + Cache (`sharp`)
 - [ ] Asset-Presets
 
 ### Phase 5 – Realtime, Search, Webhooks (Sprint 9-10)
