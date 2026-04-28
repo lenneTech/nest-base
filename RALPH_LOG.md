@@ -399,3 +399,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 95.83/88.49/97.56/97.12, src/modules 0/0
 - Commits: <red 5 files> · <green 6 modules> · <log>
 - Blocker: none
+
+## Iteration 49 · 2026-04-28T19:06:00Z
+- Phase: 5 (Realtime/Search/Webhooks, Slice 2)
+- Slice: pg-boss Job-Queue + Worker-Setup
+- Tests: `tests/stories/job-queue.story.test.ts` rot (Modul fehlt) → grün (8 Tests; register+handler runs, enqueue-before-start, unknown-handler-throws, multi-handler, error capture, completed status, idempotent start, stop+restart)
+- Coverage: src/core 95.75/88.39/97.36/97.05, src/modules 0/0
+- Commits: 279a69d (test red) · 63d76ca (feat green) · <log>
+- Blocker: none. pg-boss-Bindung folgt im Storage-Module-Wiring; Surface ist identisch.
