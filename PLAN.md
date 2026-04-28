@@ -3758,7 +3758,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] **Realtime-Inspector** (Active Sockets + Live-Stream)
 - [x] **Audit-Browser** (Filter + Diff-Anzeige)
 - [x] **Search-Tester** (FTS-Probier-UI)
-- [ ] **Diagnostik-Endpoint** `/dev/diagnostics`
+- [x] **Diagnostik-Endpoint** `/dev/diagnostics`
 - [ ] **`.vscode/` Defaults** (Extensions, Launch-Configs, Tasks)
 - [ ] **`bun run onboard`** Skript für neue Entwickler
 - [ ] **SDK-Generation** (`bun run sdk:generate` via kubb)
