@@ -3753,7 +3753,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] **Scalar** als API-UI (statt Swagger UI) — `@scalar/nestjs-api-reference`
 - [x] **NestJS DevTools** Integration (`@nestjs/devtools-integration` + Snapshot-Mode)
 - [x] **Dev-Hub** Landing-Page `/dev` mit Auto-Discovery aktiver Tools
-- [ ] **Permission-Tester** UI (`/admin/permissions/test`)
+- [x] **Permission-Tester** UI (`/admin/permissions/test`)
 - [ ] **Webhook-Inspector** (Delivery-Log + Re-Deliver)
 - [ ] **Realtime-Inspector** (Active Sockets + Live-Stream)
 - [ ] **Audit-Browser** (Filter + Diff-Anzeige)
