@@ -3732,7 +3732,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] `sync-rules.yaml` mit User/Tenant-Buckets
 - [x] Better-Auth JWT-Plugin: `audience: powersync` + JWKS-Endpoint
 - [x] PowerSync-Upload-Controller (`POST /powersync/crud`)
-- [ ] Konflikt-Resolution-Hook in BaseRepository
+- [x] Konflikt-Resolution-Hook in BaseRepository
 - [ ] Encrypted-Fields explizit aus Sync-Rules ausschließen
 - [ ] React-Native Demo-Client + Upload-Backend-Test
 
