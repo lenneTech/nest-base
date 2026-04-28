@@ -118,16 +118,16 @@ describe('Story · GDPR', () => {
     it('anonymise email is deterministic per userId (same input, same hash)', () => {
       const a = planGdprErasure({ userId: 'u-1', mode: 'anonymise', piiFields: piiFields() });
       const b = planGdprErasure({ userId: 'u-1', mode: 'anonymise', piiFields: piiFields() });
-      const aEmail = (a.operations[0] as { updates: { email: string } }).updates.email;
-      const bEmail = (b.operations[0] as { updates: { email: string } }).updates.email;
+      const aEmail = (a.operations[0] as unknown as { updates: { email: string } }).updates.email;
+      const bEmail = (b.operations[0] as unknown as { updates: { email: string } }).updates.email;
       expect(aEmail).toBe(bEmail);
     });
 
     it('anonymise hashes differ across users (no collision)', () => {
       const a = planGdprErasure({ userId: 'u-1', mode: 'anonymise', piiFields: piiFields() });
       const b = planGdprErasure({ userId: 'u-2', mode: 'anonymise', piiFields: piiFields() });
-      const aEmail = (a.operations[0] as { updates: { email: string } }).updates.email;
-      const bEmail = (b.operations[0] as { updates: { email: string } }).updates.email;
+      const aEmail = (a.operations[0] as unknown as { updates: { email: string } }).updates.email;
+      const bEmail = (b.operations[0] as unknown as { updates: { email: string } }).updates.email;
       expect(aEmail).not.toBe(bEmail);
     });
 

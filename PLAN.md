@@ -3767,7 +3767,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Cursor-Pagination zusätzlich zu page/limit
 - [x] `@nestjs/throttler` mit Postgres-Store, Multi-Window
 - [x] Per-API-Key Rate-Limit-Bucket
-- [ ] GDPR-Endpoints (`/me/export`, `/me/account`, Anonymisierung)
+- [x] GDPR-Endpoints (`/me/export`, `/me/account`, Anonymisierung)
 - [ ] Audit-Log-Extension (mit Encryption-Awareness)
 - [ ] Error-Code-Registry + i18n-Endpoint
 - [ ] OpenAPI-Doku komplett (inkl. RFC 7807 Schemas)
