@@ -1,4 +1,5 @@
-import { type BetterAuthOptions, betterAuth } from 'better-auth';
+import { passkey } from '@better-auth/passkey';
+import { type BetterAuthOptions, type BetterAuthPlugin, betterAuth } from 'better-auth';
 import { twoFactor } from 'better-auth/plugins/two-factor';
 
 import { resolveBetterAuthMountPath } from './better-auth-config.js';
@@ -23,6 +24,13 @@ export interface TwoFactorOptions {
   issuer: string;
 }
 
+export interface PasskeyOptions {
+  /** Human-readable relying-party label shown to users during registration. */
+  rpName: string;
+  /** WebAuthn relying-party id; defaults to the host of `baseUrl`. */
+  rpID?: string;
+}
+
 export interface BuildBetterAuthInput {
   secret: string;
   baseUrl: string;
@@ -31,6 +39,8 @@ export interface BuildBetterAuthInput {
   basePath?: string;
   /** Switch on the TOTP plugin (PLAN.md §32 Phase 6 / 2FA-Endpunkte). */
   twoFactor?: TwoFactorOptions;
+  /** Switch on the Passkey/WebAuthn plugin (PLAN.md §32 Phase 6 / Passkey-Endpunkte). */
+  passkey?: PasskeyOptions;
 }
 
 export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof betterAuth> {
@@ -43,9 +53,22 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
   if (input.twoFactor && !input.twoFactor.issuer) {
     throw new Error('Better-Auth twoFactor.issuer must be a non-empty string');
   }
+  if (input.passkey) {
+    if (!input.passkey.rpName) {
+      throw new Error('Better-Auth passkey.rpName must be a non-empty string');
+    }
+    if (input.passkey.rpID !== undefined && !input.passkey.rpID) {
+      throw new Error('Better-Auth passkey.rpID must be a non-empty string when provided');
+    }
+  }
 
   const basePath = resolveBetterAuthMountPath(input.basePath);
-  const plugins = input.twoFactor ? [twoFactor({ issuer: input.twoFactor.issuer })] : undefined;
+  const plugins: BetterAuthPlugin[] = [];
+  if (input.twoFactor) plugins.push(twoFactor({ issuer: input.twoFactor.issuer }));
+  if (input.passkey) {
+    const rpID = input.passkey.rpID ?? new URL(input.baseUrl).hostname;
+    plugins.push(passkey({ rpName: input.passkey.rpName, rpID, origin: input.baseUrl }));
+  }
   const options: BetterAuthOptions = {
     secret: input.secret,
     baseURL: input.baseUrl,
@@ -54,7 +77,7 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
     session: {
       expiresIn: input.sessionExpiresInSeconds,
     },
-    ...(plugins ? { plugins } : {}),
+    ...(plugins.length > 0 ? { plugins } : {}),
   };
   return betterAuth(options);
 }
