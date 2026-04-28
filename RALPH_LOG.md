@@ -541,5 +541,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Setup-Wizard (`bun run setup`) für interaktive Projekt-Initialisierung
 - Tests: `tests/stories/setup-wizard.story.test.ts` rot (Modul fehlt) → grün (20 Tests; Feature-Mapping mobile/webhooks/search/mcp/fieldEncryption/realtime/multiTenant/email, envExample inkl. conditional BREVO_API_KEY + FIELD_ENCRYPTION_KEK, idempotency, featuresSource render + empty-name rejection)
 - Coverage: src/core 95.86/88.84/97.51/97.40, src/modules 0/0
-- Commits: 55c534f (test red) · fb2fdea (feat green) · <log>
+- Commits: 55c534f (test red) · fb2fdea (feat green) · 0105135 (log)
 - Blocker: none. Wizard ist als Pure-Planner umgesetzt; CLI-Prompt-Loop + File-Writer folgt als Sub-Slice/Phase-7-Folge-Iteration.
+
+## Iteration 67 · 2026-04-28T19:59:00Z
+- Phase: 7 (Reliability, Template-Tooling & Polish, Slice 2)
+- Slice: Schema-Konkatenations-Skript (`bun run prepare:schema`)
+- Tests: `tests/stories/schema-concat.story.test.ts` rot (Modul fehlt) → grün (9 Tests; empty-case nur core, single-feature, multi-feature alphabetisch deterministisch, skip wenn deaktiviert, MissingFeatureSchemaError, Generated-by-Header, Idempotenz, Section-Banner, alle 7 Toggleable-Features)
+- Coverage: src/core 95.91/88.78/97.53/97.43, src/modules 0/0
+- Commits: bcbbf2e (test red) · fbc07c8 (feat green) · <log>
+- Blocker: none. Pure-Planner; CLI-Runner (Disk-Reads + Schreiben nach `prisma/schema.generated.prisma`) folgt als Hilfsskript-Slice.
