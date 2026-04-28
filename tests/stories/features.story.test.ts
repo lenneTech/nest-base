@@ -83,6 +83,30 @@ describe('Story · Feature-Flag-System', () => {
       const b = loadFeatures({ FEATURE_FILES_ENABLED: 'no' });
       expect(b.files.enabled).toBe(false);
     });
+
+    it('throws on a non-boolean value where boolean is expected', () => {
+      expect(() => loadFeatures({ FEATURE_WEBHOOKS_ENABLED: 'maybe' })).toThrow(/boolean/i);
+    });
+
+    it('ignores empty-string env-vars', () => {
+      const features = loadFeatures({ FEATURE_WEBHOOKS_ENABLED: '' });
+      expect(features.webhooks.enabled).toBe(false);
+    });
+
+    it('ignores env-vars without the FEATURE_ prefix', () => {
+      const features = loadFeatures({ NODE_ENV: 'production', SOMETHING_ELSE: 'true' });
+      expect(features.webhooks.enabled).toBe(false);
+    });
+
+    it('ignores FEATURE_<UNKNOWN> sections', () => {
+      const features = loadFeatures({ FEATURE_GRAVITY_ENABLED: 'true' });
+      expect(features.webhooks.enabled).toBe(false);
+    });
+
+    it('parses comma-separated socialProviders into an array', () => {
+      const features = loadFeatures({ FEATURE_AUTH_METHODS_SOCIAL_PROVIDERS: 'google,github' });
+      expect(features.authMethods.socialProviders).toEqual(['google', 'github']);
+    });
   });
 
   describe('validateFeatureDependencies()', () => {

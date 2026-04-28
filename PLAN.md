@@ -3644,7 +3644,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Adaptierte Stories aus nest-server: `error-code.story.test.ts`, `cookies-cors-config.spec.ts`, `cookies-security-property.e2e-spec.ts`, `system-setup.e2e-spec.ts`, `server.e2e-spec.ts`
 - [x] Projekt-Skeleton (Bun + NestJS + Prisma + Postgres)
 - [x] ENV-Validation (Zod) + Config-Modul
-- [ ] Feature-Flag-System (`features.ts` + Conditional-Imports + Validierung von Abhängigkeiten)
+- [x] Feature-Flag-System (`features.ts` + Conditional-Imports + Validierung von Abhängigkeiten)
 - [ ] Logger (Pino) + OpenTelemetry-Integration
 - [ ] Helmet + CSP-Middleware
 - [ ] Request-Context-Middleware (W3C Trace Context)
