@@ -343,3 +343,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 96.15/88.48/98.03/97.32, src/modules 0/0
 - Commits: f92de82 (test red) · e5fba87 (feat green) · <log>
 - Blocker: none. Echtes AwsS3Operations (mit @aws-sdk/client-s3 + presigner) folgt im Storage-Module-Wiring; durch Operations-Interface bleibt Adapter Unit-testbar.
+
+## Iteration 42 · 2026-04-28T18:45:00Z
+- Phase: 4 (Files, Slice 4)
+- Slice: Local-Adapter
+- Tests: `tests/stories/local-storage-adapter.story.test.ts` rot (Modul fehlt) → grün (11 Tests; put/get/exists/delete/signUrl/list, NotFound, TTL/empty-key reject, Path-Traversal-Defense)
+- Coverage: src/core 95.84/88.36/97.77/97.08, src/modules 0/0
+- Commits: 01f51bd (test red) · da7efd2 (feat green) · <log>
+- Blocker: none. Mime-Type via Sidecar-File `<file>.meta.json`; Path-Traversal-Schutz via normalize+relative gegen root.
