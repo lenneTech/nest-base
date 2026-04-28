@@ -3730,7 +3730,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Replication-Role + Publication für PowerSync
 - [x] PowerSync Service in Docker-Compose
 - [x] `sync-rules.yaml` mit User/Tenant-Buckets
-- [ ] Better-Auth JWT-Plugin: `audience: powersync` + JWKS-Endpoint
+- [x] Better-Auth JWT-Plugin: `audience: powersync` + JWKS-Endpoint
 - [ ] PowerSync-Upload-Controller (`POST /powersync/crud`)
 - [ ] Konflikt-Resolution-Hook in BaseRepository
 - [ ] Encrypted-Fields explizit aus Sync-Rules ausschließen
