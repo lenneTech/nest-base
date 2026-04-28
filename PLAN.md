@@ -3735,7 +3735,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Email-Templates (verify, reset, welcome, invitation)
 - [x] 2FA-Endpunkte aktivieren
 - [x] Passkey-Endpunkte aktivieren
-- [ ] Social-Login-Provider
+- [x] Social-Login-Provider
 - [ ] MCP-Server-Modul (`@modelcontextprotocol/sdk`)
 - [ ] `@McpTool`/`@McpResource`-Decorators + Auto-Discovery
 - [ ] MCP-Auth via Better-Auth-OAuth-Provider (Authorization-Code-Flow + PKCE)

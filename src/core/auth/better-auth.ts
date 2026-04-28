@@ -31,6 +31,15 @@ export interface PasskeyOptions {
   rpID?: string;
 }
 
+export interface SocialProviderCredentials {
+  clientId: string;
+  clientSecret: string;
+}
+
+export type SocialProviderId = 'google' | 'github' | 'apple' | 'discord';
+
+export type SocialProviderConfig = Partial<Record<SocialProviderId, SocialProviderCredentials>>;
+
 export interface BuildBetterAuthInput {
   secret: string;
   baseUrl: string;
@@ -41,6 +50,8 @@ export interface BuildBetterAuthInput {
   twoFactor?: TwoFactorOptions;
   /** Switch on the Passkey/WebAuthn plugin (PLAN.md §32 Phase 6 / Passkey-Endpunkte). */
   passkey?: PasskeyOptions;
+  /** Wire OAuth providers (PLAN.md §32 Phase 6 / Social-Login-Provider). */
+  socialProviders?: SocialProviderConfig;
 }
 
 export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof betterAuth> {
@@ -61,6 +72,17 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
       throw new Error('Better-Auth passkey.rpID must be a non-empty string when provided');
     }
   }
+  if (input.socialProviders) {
+    for (const [id, credentials] of Object.entries(input.socialProviders)) {
+      if (!credentials) continue;
+      if (!credentials.clientId) {
+        throw new Error(`Better-Auth socialProviders.${id}.clientId must be a non-empty string`);
+      }
+      if (!credentials.clientSecret) {
+        throw new Error(`Better-Auth socialProviders.${id}.clientSecret must be a non-empty string`);
+      }
+    }
+  }
 
   const basePath = resolveBetterAuthMountPath(input.basePath);
   const plugins: BetterAuthPlugin[] = [];
@@ -78,6 +100,9 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
       expiresIn: input.sessionExpiresInSeconds,
     },
     ...(plugins.length > 0 ? { plugins } : {}),
+    ...(input.socialProviders && Object.keys(input.socialProviders).length > 0
+      ? { socialProviders: input.socialProviders as BetterAuthOptions['socialProviders'] }
+      : {}),
   };
   return betterAuth(options);
 }
