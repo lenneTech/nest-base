@@ -23,11 +23,11 @@ describe('Story · ENV-Validation + Config Module', () => {
       expect(cfg.cookies.httpOnly).toBe(true);
     });
 
-    it('reads PORT/HOST/BASE_URL/NODE_ENV into server config', () => {
+    it('reads PORT/HOST/APP_BASE_URL/NODE_ENV into server config', () => {
       const cfg = loadAppConfig({
         PORT: '4000',
         HOST: '1.2.3.4',
-        BASE_URL: 'https://api.example.com',
+        APP_BASE_URL: 'https://api.example.com',
         NODE_ENV: 'production',
       });
       expect(cfg.server.port).toBe(4000);
@@ -61,8 +61,13 @@ describe('Story · ENV-Validation + Config Module', () => {
       expect(() => loadAppConfig({ PORT: 'abc' })).toThrow();
     });
 
-    it('throws fail-fast on a malformed BASE_URL', () => {
-      expect(() => loadAppConfig({ BASE_URL: 'not-a-url' })).toThrow();
+    it('throws fail-fast on a malformed APP_BASE_URL', () => {
+      expect(() => loadAppConfig({ APP_BASE_URL: 'not-a-url' })).toThrow();
+    });
+
+    it('falls back to the default when BASE_URL is set to "/" (Vite/Vitest sentinel)', () => {
+      const cfg = loadAppConfig({ BASE_URL: '/' });
+      expect(cfg.server.baseUrl).toBe('http://localhost:3000');
     });
 
     it('throws fail-fast on a partial system-setup env (email without password)', () => {
@@ -77,7 +82,7 @@ describe('Story · ENV-Validation + Config Module', () => {
   describe('ConfigService (NestJS DI)', () => {
     it('is provided globally and exposes typed sub-configs', async () => {
       const moduleRef = await Test.createTestingModule({
-        imports: [ConfigModule.forRoot({ env: { NODE_ENV: 'production', BASE_URL: 'https://api.example.com' } })],
+        imports: [ConfigModule.forRoot({ env: { NODE_ENV: 'production', APP_BASE_URL: 'https://api.example.com' } })],
       }).compile();
 
       const config = moduleRef.get(ConfigService);

@@ -52,11 +52,11 @@ describe('Server config', () => {
     expect(ServerConfigSchema.safeParse(cfg).success).toBe(true);
   });
 
-  it('serverConfigFromEnv() prefers PORT/HOST/BASE_URL/NODE_ENV over defaults', () => {
+  it('serverConfigFromEnv() prefers PORT/HOST/APP_BASE_URL/NODE_ENV over defaults', () => {
     const cfg = serverConfigFromEnv({
       PORT: '4000',
       HOST: '1.2.3.4',
-      BASE_URL: 'https://api.example.com',
+      APP_BASE_URL: 'https://api.example.com',
       NODE_ENV: 'production',
     });
     expect(cfg.port).toBe(4000);

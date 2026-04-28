@@ -3643,7 +3643,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] **Coverage-Gate** (≥ 90 % auf `src/core/`, ≥ 80 % auf `src/modules/`) in `.gitlab-ci.yml`
 - [x] Adaptierte Stories aus nest-server: `error-code.story.test.ts`, `cookies-cors-config.spec.ts`, `cookies-security-property.e2e-spec.ts`, `system-setup.e2e-spec.ts`, `server.e2e-spec.ts`
 - [x] Projekt-Skeleton (Bun + NestJS + Prisma + Postgres)
-- [ ] ENV-Validation (Zod) + Config-Modul
+- [x] ENV-Validation (Zod) + Config-Modul
 - [ ] Feature-Flag-System (`features.ts` + Conditional-Imports + Validierung von Abhängigkeiten)
 - [ ] Logger (Pino) + OpenTelemetry-Integration
 - [ ] Helmet + CSP-Middleware
