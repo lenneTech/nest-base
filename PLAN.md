@@ -3760,7 +3760,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] **Search-Tester** (FTS-Probier-UI)
 - [x] **Diagnostik-Endpoint** `/dev/diagnostics`
 - [x] **`.vscode/` Defaults** (Extensions, Launch-Configs, Tasks)
-- [ ] **`bun run onboard`** Skript für neue Entwickler
+- [x] **`bun run onboard`** Skript für neue Entwickler
 - [ ] **SDK-Generation** (`bun run sdk:generate` via kubb)
 - [ ] Idempotency-Key Interceptor + Tabelle
 - [ ] ETag / If-Match Optimistic-Concurrency-Pipe
