@@ -589,5 +589,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Test-First (Phase 7) — Audit-Story für Setup-Wizard, Schema-Concat, sync:from-template, sync:to-template
 - Tests: `tests/stories/phase-7-test-first-audit.story.test.ts` neu (5 Tests; 4 surface-Audits + count-drift-Schutz, alle direkt grün — die zugrundeliegenden Stories wurden in It. 66–69 als Red-vor-Impl entwickelt und sind hier nur als Regression-Guard fixiert)
 - Coverage: src/core 96.04/89.01/97.57/97.52, src/modules 0/0
-- Commits: 54839c4 (audit + checkbox) · <log>
+- Commits: 54839c4 (audit + checkbox) · 1826835 (log)
 - Blocker: none. Phase 7 vollständig abgehakt. Verbleibend: Phase 8 (DX) mit ~26 Boxes — beginnt mit Test-First-Audit (sobald Sub-Stories da sind) und Scalar API-UI als ersten konkreten Slice.
+
+## Iteration 73 · 2026-04-28T20:16:00Z
+- Phase: 8 (Developer Experience, Slice 1 — erster konkreter)
+- Slice: Scalar als API-UI (`@scalar/nestjs-api-reference`)
+- Tests: `tests/stories/scalar-config.story.test.ts` rot (Modul fehlt) → grün (14 Tests; specUrl/spec/neither/both, Defaults theme/dark-toggle/title, Custom-Overrides, mountPath default + leading-slash + empty-rejection)
+- Coverage: src/core 96.08/89.13/97.58/97.54, src/modules 0/0
+- Commits: ec0a504 (test red) · 8fb7c34 (feat green) · <log>
+- Blocker: none. Phase 8 Test-First-Box wird übersprungen, bis alle Sub-Stories existieren — folgt nach Idempotency/ETag/Cursor/Throttler/GDPR/Audit-Log. Live-Mount mit Bootstrap-NestJS-App in eigener Slice (sobald OpenAPI-Doku-Endpoint geschrieben ist).
