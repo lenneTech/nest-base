@@ -190,3 +190,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 96.81/87.77/97.69/97.96, src/modules 0/0
 - Commits: c6f6066 (test red) · 7769339 (feat green) · <log>
 - Blocker: none — Storage-Interface ist abstrahiert, sodass spätere Slice mit Better-Auth-Prisma-Adapter ohne Service-Änderung andocken kann
+
+## Iteration 23 · 2026-04-28T17:47:00Z
+- Phase: 2 (Auth & Multi-Tenancy, Slice 4)
+- Slice: Tenant-Interceptor + RLS-Setup
+- Tests: `tests/stories/tenant-interceptor.story.test.ts` rot (Interceptor + Migration fehlten) → grün (11 Tests; runWithTenant/getCurrentTenantId Async-Isolation, Interceptor Header-Parse, Exempt-Paths, Missing-/Malformed-Header-Reject, Compose mit RequestContext, RLS-Migration mit Policies)
+- Coverage: src/core 96.78/87.00/97.88/97.86, src/modules 0/0
+- Commits: b81a1a7 (test red) · 5d76b87 (feat green) · <log>
+- Blocker: none. Prisma-Extension, die `SET app.tenant_id = $1` stempelt, kommt im Follow-up — die Policy liest schon aus `current_setting('app.tenant_id', true)`.
