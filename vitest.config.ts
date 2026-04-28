@@ -1,5 +1,7 @@
 import { defineConfig } from 'vitest/config';
 
+import { coverageThresholds } from './src/core/testing/coverage-gate';
+
 export default defineConfig({
   test: {
     globals: true,
@@ -21,20 +23,7 @@ export default defineConfig({
         'src/**/index.ts',
         'src/main.ts',
       ],
-      thresholds: {
-        'src/core/**': {
-          lines: 90,
-          functions: 90,
-          statements: 90,
-          branches: 85,
-        },
-        'src/modules/**': {
-          lines: 80,
-          functions: 80,
-          statements: 80,
-          branches: 75,
-        },
-      },
+      thresholds: coverageThresholds,
     },
     reporters: process.env.CI ? ['default', 'junit'] : ['default'],
     outputFile: {
