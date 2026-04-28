@@ -295,3 +295,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 95.82/87.65/97.76/97.01, src/modules 0/0
 - Commits: 5ca818a (test red) · fabc139 (feat green) · <log>
 - Blocker: none. NestJS-DiscoveryService-Bridge bleibt separater Slice — die statische `fromInstances()`-Factory hält die Registry in Unit-Tests verwendbar.
+
+## Iteration 36 · 2026-04-28T18:30:00Z
+- Phase: 3 (Permissions & Output-Pipeline, Slice 10)
+- Slice: Secret-Safety-Net mit globaler Liste + Regex-Patterns
+- Tests: `tests/unit/safety-net-patterns.spec.ts` rot (Pattern + valuePatterns-Option fehlten) → grün (7 Tests; DEFAULT_SECRET_VALUE_PATTERNS, JWT/nst_pk_/long-hex, containsSecretValue, applySafetyNet throw/mask + extra Pattern)
+- Coverage: src/core 95.86/87.88/97.79/96.99, src/modules 0/0
+- Commits: a3a218a (test red) · 872d40c (feat green) · <log>
+- Blocker: none. Pattern für `nst_pk_` auf {8,} statt {32,} gelockert um Prefix-Form früh zu erfassen (das echte Secret ist 64 Chars, aber kürzere Hex-Suffixe sollen auch leak-detected werden).
