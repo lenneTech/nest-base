@@ -533,5 +533,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: MCP-Auth via Better-Auth-OAuth-Provider (Authorization-Code-Flow + PKCE)
 - Tests: `tests/stories/mcp-auth.story.test.ts` rot (Modul fehlt) → grün (13 Tests; extractBearerToken-Parsing-Edges, McpAuthGuard rejects fehlenden/leeren Header, propagiert Validator-Resultate, propagiert Schema-Errors, StdioBootstrapMcpValidator + `allowEmptyHeader`-Bypass für stdio-Transport)
 - Coverage: src/core 95.79/88.72/97.48/97.35, src/modules 0/0
-- Commits: 31b292c (test red) · e13fb25 (feat green) · <log>
+- Commits: 31b292c (test red) · e13fb25 (feat green) · fb6b7c2 (log)
 - Blocker: none. Phase 6 (User-Toggle: Email + 2FA + Passkey + MCP) vollständig abgehakt. Better-Auth-OIDC-Provider-Validator hängt sich später hinter dasselbe `McpAuthValidator`-Interface; Unit-Tests bleiben über Fake-Validator DB-frei.
+
+## Iteration 66 · 2026-04-28T19:57:00Z
+- Phase: 7 (Reliability, Template-Tooling & Polish, Slice 1)
+- Slice: Setup-Wizard (`bun run setup`) für interaktive Projekt-Initialisierung
+- Tests: `tests/stories/setup-wizard.story.test.ts` rot (Modul fehlt) → grün (20 Tests; Feature-Mapping mobile/webhooks/search/mcp/fieldEncryption/realtime/multiTenant/email, envExample inkl. conditional BREVO_API_KEY + FIELD_ENCRYPTION_KEK, idempotency, featuresSource render + empty-name rejection)
+- Coverage: src/core 95.86/88.84/97.51/97.40, src/modules 0/0
+- Commits: 55c534f (test red) · fb2fdea (feat green) · <log>
+- Blocker: none. Wizard ist als Pure-Planner umgesetzt; CLI-Prompt-Loop + File-Writer folgt als Sub-Slice/Phase-7-Folge-Iteration.
