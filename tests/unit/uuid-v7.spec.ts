@@ -42,11 +42,13 @@ describe('UUID v7', () => {
       expect(ts).toBeLessThanOrEqual(after + 5);
     });
 
-    it('is monotonic across consecutive calls in the same millisecond (within tolerance)', () => {
-      const a = uuidV7();
-      const b = uuidV7();
-      // Lexical ordering on UUID strings == temporal ordering for v7 within
-      // the same ms; allow equality because two calls can land in the same ms.
+    it('is monotonic across consecutive calls at the timestamp resolution', () => {
+      // The 48-bit timestamp prefix is non-decreasing across calls; the
+      // random suffix may flip ordering for two UUIDs minted in the same
+      // millisecond, so we compare only the time-bytes.
+      const tsOf = (u: string): bigint => BigInt('0x' + u.replaceAll('-', '').slice(0, 12));
+      const a = tsOf(uuidV7());
+      const b = tsOf(uuidV7());
       expect(b >= a).toBe(true);
     });
   });

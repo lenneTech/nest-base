@@ -46,7 +46,7 @@ describe('Story · Field-Encryption (AES-256-GCM)', () => {
       const svc = new FieldEncryptionService(provider);
       const ct = svc.encrypt('hello');
       expect(ct.startsWith('v1:')).toBe(true);
-      expect(ct.slice(3)).toMatch(/^[A-Za-z0-9_\-]+$/);
+      expect(ct.slice(3)).toMatch(/^[A-Za-z0-9_-]+$/);
     });
   });
 
