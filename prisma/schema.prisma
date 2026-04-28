@@ -34,6 +34,8 @@ model Tenant {
   roles      Role[]
   members    TenantMember[]
   fileBlobs  FileBlob[]
+  folders    Folder[]
+  files      File[]
 
   @@map("tenants")
 }
@@ -107,6 +109,44 @@ model FileBlob {
 
   @@unique([tenantId, key])
   @@map("file_blobs")
+}
+
+model Folder {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  parentId  String?  @map("parent_id") @db.Uuid
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  parent   Folder?  @relation("FolderTree", fields: [parentId], references: [id])
+  children Folder[] @relation("FolderTree")
+  files    File[]
+
+  @@map("folders")
+}
+
+model File {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  folderId      String?  @map("folder_id") @db.Uuid
+  filename      String
+  mimeType      String   @map("mime_type")
+  sizeBytes     Int      @map("size_bytes")
+  sha256        String
+  storageDriver String   @map("storage_driver")
+  storageKey    String   @map("storage_key")
+  uploaderId    String   @map("uploader_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  folder Folder? @relation(fields: [folderId], references: [id])
+
+  @@map("files")
 }
 
 model Role {

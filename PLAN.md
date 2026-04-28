@@ -3687,7 +3687,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] S3-Adapter (RustFS-getestet)
 - [x] Local-Adapter
 - [x] Postgres-Adapter (Large Objects + `FileBlob`-Modell + RLS)
-- [ ] File/Folder Models + CRUD-Endpoints
+- [x] File/Folder Models + CRUD-Endpoints
 - [ ] Multipart-Upload + TUS
 - [ ] Asset-Endpoint mit Transformations + Cache (`sharp`)
 - [ ] Asset-Presets
