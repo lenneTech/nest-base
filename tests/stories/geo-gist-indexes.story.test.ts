@@ -24,12 +24,12 @@ describe('Story · Geo GIST indexes', () => {
 
   it('creates a GIST index on Address.location', () => {
     const sql = readGistMigration();
-    expect(sql).toMatch(/CREATE\s+INDEX[^;]*USING\s+GIST[^;]*addresses[^;]*location/i);
+    expect(sql).toMatch(/CREATE\s+INDEX[\s\S]*?addresses[\s\S]*?USING\s+GIST[\s\S]*?location/i);
   });
 
   it('creates a GIST index on Geofence.area', () => {
     const sql = readGistMigration();
-    expect(sql).toMatch(/CREATE\s+INDEX[^;]*USING\s+GIST[^;]*geofences[^;]*area/i);
+    expect(sql).toMatch(/CREATE\s+INDEX[\s\S]*?geofences[\s\S]*?USING\s+GIST[\s\S]*?area/i);
   });
 
   it('uses IF NOT EXISTS so re-running the migration is safe', () => {

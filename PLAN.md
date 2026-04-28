@@ -3715,7 +3715,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [ ] **Test-First (Stories):** Geocoding-Provider-Switch (Mapbox/Nominatim/Local-Stub), GeoJSON-Output-Mapping (Stage 3a der Output-Pipeline), `findNearby`/`withinGeofence`-Queries auf GIST-Indizes, GeocodingCache-TTL + DSGVO-Erasure, Address-PII-Encryption-Roundtrip — eigene Stories, keine 1:1-Übernahmen aus nest-server (kein Geo-Modul dort)
 - [x] PostGIS-Extension via Migration aktivieren
 - [x] Geo-Schema (`prisma/features/geo.prisma`) mit `Address`, `Geofence`, `GeocodingCache`
-- [ ] GIST-Indizes via raw-SQL-Migration
+- [x] GIST-Indizes via raw-SQL-Migration
 - [ ] `GeocodingProvider` Interface + Adapter (Mapbox, Nominatim, Google, Local-Stub)
 - [ ] `GeoService` (geocode, reverseGeocode, findNearby, withinGeofence, distance)
 - [ ] REST-Endpunkte (`/geo/*`, `/addresses`, `/geofences`, generisches `/places/nearby`)
