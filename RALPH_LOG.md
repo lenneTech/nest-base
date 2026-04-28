@@ -391,3 +391,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 95.76/88.12/97.45/96.98, src/modules 0/0
 - Commits: b6c76f3 (test red) · 6c26feb (feat green) · <log>
 - Blocker: none
+
+## Iteration 48 · 2026-04-28T19:03:00Z
+- Phase: 5 (Realtime/Search/Webhooks, Slice 1) **— Phase 5 startet**
+- Slice: Test-First Stories (Webhook-Delivery, Webhook-Fanout, FTS-Search, Realtime-Channel-Permission, Outbox)
+- Tests: 5 Test-Files rot (6 Module fehlten) → grün (40 neue Tests; HMAC sign+verify+replay-tolerance, retry-backoff+auto-disable, fanout matching, FTS sanitize+to_tsquery, channel parsing+permission match, outbox record+claim+markProcessed+seq)
+- Coverage: src/core 95.83/88.49/97.56/97.12, src/modules 0/0
+- Commits: <red 5 files> · <green 6 modules> · <log>
+- Blocker: none
