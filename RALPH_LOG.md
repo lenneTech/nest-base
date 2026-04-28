@@ -741,5 +741,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Audit-Log-Extension (mit Encryption-Awareness)
 - Tests: `tests/stories/audit-log-extension.story.test.ts` rot (Modul fehlt) → grün (15 Tests; Envelope-Shape, ISO-Timestamp, unknown-action-Rejection, create-only-after / delete-only-before / update-both, Encryption-Maskierung in beiden Halves + bei einseitig-vorhandenen Feldern + No-Op bei leerer encryptedFields-Liste, Determinismus)
 - Coverage: src/core 96.45/89.59/97.76/97.81, src/modules 0/0
-- Commits: 6161ae7 (test red) · 3bfa52a (feat green) · <log>
+- Commits: 6161ae7 (test red) · 3bfa52a (feat green) · 1794b66 (log)
 - Blocker: none. `[encrypted]`-Placeholder in `before`+`after`; Klartext lebt nur in der verschlüsselten Spalte der Source-Tabelle, nie im Audit-Log.
+
+## Iteration 92 · 2026-04-28T21:49:00Z
+- Phase: 8 (Developer Experience, Slice 20)
+- Slice: Error-Code-Registry + i18n-Endpoint
+- Tests: `tests/stories/error-code-registry.story.test.ts` rot (Modul fehlt) → grün (14 Tests; register/get/list mit alphabetisch-deterministisch + duplicate/unknown-code/no-en-rejection, resolve mit locale-Override + en-Fallback + Multi-Placeholder-Substitution + Missing-Var-Verhalten + Detail-Optional + ErrorCodeNotFoundError, listLocales sorted+deduped)
+- Coverage: src/core 96.49/89.72/97.81/97.84, src/modules 0/0
+- Commits: f419699 (test red) · bfe18be (feat green) · <log>
+- Blocker: none. Mustache-Placeholder bleibt unsubstituiert wenn Var fehlt — Dev-friendly (sichtbarer Fehlerhinweis statt leerer Slot).
