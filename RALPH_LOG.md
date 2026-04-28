@@ -509,5 +509,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Social-Login-Provider
 - Tests: `tests/stories/better-auth-social.story.test.ts` rot (Type-Error: socialProviders-Option fehlt) → grün (7 Tests; default-off, single-google, all-four-multi, leerer clientId/clientSecret rejected mit provider-bezogener Message, Secret-Length-Invarianten, Koexistenz mit twoFactor + passkey)
 - Coverage: src/core 95.75/88.56/97.56/97.28, src/modules 0/0
-- Commits: e799735 (test red) · bee5c52 (feat green) · <log>
+- Commits: e799735 (test red) · bee5c52 (feat green) · 4854655 (log)
 - Blocker: none. Vier Provider (google · github · apple · discord) typisiert via `SocialProviderId`-Union; weitere Better-Auth-Provider bleiben über direkte Optionen-Passthrough erreichbar, aber außerhalb der Factory-Surface, um den Vertrag klein zu halten.
+
+## Iteration 63 · 2026-04-28T19:49:00Z
+- Phase: 6 (Email + 2FA + Passkey + MCP, Slice 6)
+- Slice: MCP-Server-Modul (`@modelcontextprotocol/sdk`)
+- Tests: `tests/stories/mcp-server.story.test.ts` rot (Modul fehlt) → grün (16 Tests; construction-validation, registerTool/registerResource happy + duplicate + missing-name/uri/handler, listTools/listResources, getTool, invokeTool dispatch + unknown-tool + Zod-input-validation, server getter)
+- Coverage: src/core 95.78/88.68/97.39/97.27, src/modules 0/0
+- Commits: 37fc7ec (test red) · 7c56efa (feat green) · <log>
+- Blocker: none. SDK 1.29.0 installiert; Decorator-Auto-Discovery und OAuth-aware Transport folgen als eigene Slices.
