@@ -3678,7 +3678,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Output-Pipeline-Interceptor (4-Stage)
 - [x] Filter-Service Pattern: `@FilterFor()` + Registry + Auto-Discovery
 - [x] Secret-Safety-Net mit globaler Liste + Regex-Patterns
-- [ ] Admin-CRUD-Endpoints für Roles/Policies/Permissions + Test-Endpunkt
+- [x] Admin-CRUD-Endpoints für Roles/Policies/Permissions + Test-Endpunkt
 - [ ] Soft-Delete Prisma-Extension (inkl. `RESTORE`/`HARD_DELETE` Actions)
 
 ### Phase 4 – Files (Sprint 7-8)
