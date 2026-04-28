@@ -3655,7 +3655,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] [portless](https://github.com/vercel-labs/portless) integriert: `portless.yml` mit `<service>.<project>.localhost`-Routing, Auto-HTTPS (mkcert), `bun run dev` startet portless implizit; Fallback auf dynamischen Port wenn portless fehlt
 - [x] Repo-Layout: `src/core/` (Template-Owned, Sync-Target) + `src/modules/` (Projekt-Owned) + `src/shared/` (gemeinsame Types)
 - [x] Prisma-Schema v1 (User, Tenant, Role) mit `@@map`/`@map` snake_case
-- [ ] UUID v7 Setup (Postgres-Extension `pg_uuidv7`)
+- [x] UUID v7 Setup (Postgres-Extension `pg_uuidv7`)
 - [ ] Field-Encryption-Service (AES-256-GCM, KEK aus ENV)
 
 ### Phase 2 – Auth & Multi-Tenancy (Sprint 3-4)
