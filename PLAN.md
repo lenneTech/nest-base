@@ -3645,7 +3645,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Projekt-Skeleton (Bun + NestJS + Prisma + Postgres)
 - [x] ENV-Validation (Zod) + Config-Modul
 - [x] Feature-Flag-System (`features.ts` + Conditional-Imports + Validierung von Abhängigkeiten)
-- [ ] Logger (Pino) + OpenTelemetry-Integration
+- [x] Logger (Pino) + OpenTelemetry-Integration
 - [ ] Helmet + CSP-Middleware
 - [ ] Request-Context-Middleware (W3C Trace Context)
 - [ ] Health-Check (Liveness + Readiness)
