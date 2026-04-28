@@ -174,3 +174,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 96.70/87.78/97.63/97.88, src/modules 0/0
 - Commits: <red 11 tests> · <green 9 modules> · <log>
 - Blocker: none. Initial-Defaults: signUp 30/h war strenger als signIn 5/min — angepasst zu 10/min, damit signIn als strengster Endpoint dem typischen Credential-Stuffing-Threat-Modell entspricht.
+
+## Iteration 21 · 2026-04-28T17:42:00Z
+- Phase: 2 (Auth & Multi-Tenancy, Slice 2)
+- Slice: Better-Auth Integration (Email/PW, Session, JWT)
+- Tests: `tests/stories/better-auth-build.story.test.ts` rot (Modul fehlt) → grün (4 Tests; Factory liefert Auth-Instance mit handler, basePath, baseURL-Validation, Secret-Length ≥ 32)
+- Coverage: src/core 96.74/87.87/97.65/97.91, src/modules 0/0
+- Commits: 94f5d28 (test red) · c9163e1 (feat green) · <log>
+- Blocker: none. Storage-Adapter ist Memory-only in dieser Slice — Prisma-Adapter folgt sobald Better-Auths Schema-Migrationen mit User/Tenant/Role gemerged sind (separate Slice).
