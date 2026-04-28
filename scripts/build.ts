@@ -19,6 +19,23 @@ const result = await Bun.build({
   entrypoints: [entry],
   outdir: resolve(process.cwd(), 'dist'),
   target: 'bun',
+  // NestJS pulls in optional integrations (class-transformer, class-validator,
+  // platform-fastify, microservice transports, websockets, …) lazily; we use
+  // Zod and the Express platform, so the rest stays as runtime-resolved
+  // externals to avoid bundle-time resolution errors.
+  external: [
+    'class-transformer',
+    'class-validator',
+    '@nestjs/microservices',
+    '@nestjs/websockets',
+    '@nestjs/platform-fastify',
+    '@nestjs/platform-socket.io',
+    '@nestjs/platform-ws',
+    '@apollo/gateway',
+    '@apollo/subgraph',
+    '@nestjs/graphql',
+    'cache-manager',
+  ],
 });
 
 if (!result.success) {

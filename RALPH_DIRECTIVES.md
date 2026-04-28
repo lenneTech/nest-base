@@ -24,6 +24,15 @@ Beispiel:
 - Tests für Realtime: Postgres-NOTIFY-Trigger müssen in `tests/global-setup.ts` aktiviert werden.
 -->
 
+### Stack-Overrides gegen PLAN.md §33
+
+- **2026-04-28 · Prisma 7 statt Prisma 6** *(User-Directive: „prisma 7 bitte")*. Prisma 7 verlangt
+  die Connection-URL in `prisma.config.ts` (nicht mehr in `schema.prisma`). Der `PrismaClient`
+  bekommt einen `adapter` (`@prisma/adapter-pg`) statt direkter URL.
+- **2026-04-28 · Postgres 18 statt Postgres 17** *(User-Directive: „postgres 18")*. Image
+  `postgres:18-alpine` in `docker-compose.yml`, `tests/global-setup.ts` (testcontainers) und
+  `.gitlab-ci.yml`.
+
 ## Stop-Bedingungen (zusätzlich zur Default-Done-Logik)
 
 ```yaml

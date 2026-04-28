@@ -1,0 +1,22 @@
+// Prisma 7 schema for nest-server-template.
+//
+// Connection URL lives in `prisma.config.ts` (Prisma 7 moved it out of
+// the schema). The `_HealthPing` stub model exists so `prisma generate`
+// has something to target until real domain models land in later slices
+// (Phase 1: User/Tenant/Role).
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model HealthPing {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("_health_ping")
+}

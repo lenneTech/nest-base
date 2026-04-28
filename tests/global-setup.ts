@@ -18,7 +18,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   process.env.NODE_ENV = 'test';
 
   if (!process.env.DATABASE_URL) {
-    container = await new PostgreSqlContainer('postgres:17-alpine')
+    container = await new PostgreSqlContainer('postgres:18-alpine')
       .withDatabase('nst_test')
       .withUsername('nst_test')
       .withPassword('nst_test')
