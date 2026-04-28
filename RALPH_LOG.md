@@ -565,5 +565,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Core-PR-Workflow `bun run sync:to-template`
 - Tests: `tests/stories/sync-to-template.story.test.ts` rot (Modul fehlt) → grün (10 Tests; add-Bucket für lokale-only Dateien, modify-Bucket mit unified-diff body, skip bei equal content, remove für template-only Dateien, non-core Pfade ignoriert auf local-Seite, ProtectedPathTouchedError für non-core in templateCore, Summary-Counts, mixed Pass, alphabetisch deterministisch, renderUnifiedPatch konkateniert mit `diff --git a/<path> b/<path>` Header)
 - Coverage: src/core 96.04/89.01/97.57/97.52, src/modules 0/0
-- Commits: f44ac37 (test red) · d3b6e44 (feat green) · <log>
+- Commits: f44ac37 (test red) · d3b6e44 (feat green) · 73fe69b (log)
 - Blocker: none. Pure-Planner mit minimalem Eigenbau-Unified-Diff-Renderer (kein `diff`-npm-Paket); `git apply --check`-konform. CLI-Runner (Klone Template-Repo, Schreibe core-pr.patch) ist eigene Hilfsskript-Slice.
+
+## Iteration 70 · 2026-04-28T20:08:00Z
+- Phase: 7 (Reliability, Template-Tooling & Polish, Slice 5 — abschließend)
+- Slice: Dokumentation: Template-Update-Workflow, Pro-Projekt-Customization-Guide, Core-Contribution-Guide
+- Tests: `tests/stories/template-docs.story.test.ts` rot (13 fehlende Sektionen) → grün (13 Tests; sync:from-template-Doku, src/core vs src/modules-Boundary, Bucket-Vokabular, prepare:schema-Hinweis, FeaturesSchema-Pointer, Resource-Anlage-Pattern, sync:to-template-Doku, core-pr.patch-Artefakt, add/modify/skip/remove-Buckets, Upstream-Template-Hinweis, README-Cross-Links)
+- Coverage: src/core 96.04/89.01/97.57/97.52, src/modules 0/0
+- Commits: 8a63fb7 (test red) · 47a8832 (feat green) · <log>
+- Blocker: none. Phase 7 (Reliability, Template-Tooling & Polish) vollständig abgehakt. Verbleibend: Phase 8 (DX) mit ~26 Boxes (Scalar UI, NestJS DevTools, Dev-Hub, Permission-Tester UI, Webhook-Inspector, Realtime-Inspector, Audit-Browser, Search-Tester, Diagnostik-Endpoint, .vscode, onboard-Skript, kubb SDK, Idempotency, ETag, Cursor-Pagination, Throttler, GDPR, Audit-Log, Error-Code-Registry, OpenAPI-Doku, CI-Pipeline, k6, Docs).
