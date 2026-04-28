@@ -230,3 +230,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 96.19/87.36/97.83/97.58, src/modules 0/0
 - Commits: <red 6 files> · <green 5 modules> · <log>
 - Blocker: none
+
+## Iteration 28 · 2026-04-28T18:08:00Z
+- Phase: 3 (Permissions & Output-Pipeline, Slice 2)
+- Slice: Role / Policy / Permission Models (Directus-style)
+- Tests: `tests/unit/permission-models.spec.ts` rot (Models fehlen) → grün (11 Tests; Role-Enrichment, Hierarchy, Policy + RolePolicy join, Permission inkl. itemFilter/fields/validation/presets, PermissionAction-Enum)
+- Coverage: src/core 96.19/87.36/97.83/97.58 (Schema-Slice — keine neuen TS-Pfade), src/modules 0/0
+- Commits: 2d68d0b (test red) · 845dc39 (feat green) · <log>
+- Blocker: none
