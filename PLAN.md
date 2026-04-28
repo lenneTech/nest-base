@@ -3639,7 +3639,7 @@ model Setting { id String @id; key String @unique; value Json }
 
 ### Phase 1 – Foundation (Sprint 1-2)
 - [x] **Test-Infrastruktur:** `tests/`-Layout (`stories/`, `unit/`, `types/`, `migrate/`, `k6/`), `global-setup.ts` mit `testcontainers`-Postgres, Vitest-Config, npm-Scripts (`test`, `test:watch`, `test:unit`, `test:e2e`, `test:types`, `test:coverage`)
-- [ ] **TestHelper** (Builder für authentifizierte Test-Requests, parallel-sichere Test-User mit UUID-Suffix, ID-basiertes Cleanup)
+- [x] **TestHelper** (Builder für authentifizierte Test-Requests, parallel-sichere Test-User mit UUID-Suffix, ID-basiertes Cleanup)
 - [ ] **Coverage-Gate** (≥ 90 % auf `src/core/`, ≥ 80 % auf `src/modules/`) in `.gitlab-ci.yml`
 - [ ] Adaptierte Stories aus nest-server: `error-code.story.test.ts`, `cookies-cors-config.spec.ts`, `cookies-security-property.e2e-spec.ts`, `system-setup.e2e-spec.ts`, `server.e2e-spec.ts`
 - [ ] Projekt-Skeleton (Bun + NestJS + Prisma + Postgres)

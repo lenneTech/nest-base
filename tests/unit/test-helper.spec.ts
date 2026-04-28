@@ -100,5 +100,22 @@ describe('TestHelper', () => {
       expect(deleted).toEqual([id]);
       expect(helper.trackedIds('User')).toEqual([]);
     });
+
+    it('trackId() groups multiple IDs under the same resource', async () => {
+      const deleted: string[] = [];
+      const a = helper.uniqueId();
+      const b = helper.uniqueId();
+
+      helper.trackId('User', a, async (entityId) => {
+        deleted.push(entityId);
+      });
+      helper.trackId('User', b, async (entityId) => {
+        deleted.push(entityId);
+      });
+
+      expect(helper.trackedIds('User')).toEqual([a, b]);
+      await helper.cleanup();
+      expect(deleted.sort()).toEqual([a, b].sort());
+    });
   });
 });
