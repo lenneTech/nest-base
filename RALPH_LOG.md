@@ -549,5 +549,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Schema-Konkatenations-Skript (`bun run prepare:schema`)
 - Tests: `tests/stories/schema-concat.story.test.ts` rot (Modul fehlt) → grün (9 Tests; empty-case nur core, single-feature, multi-feature alphabetisch deterministisch, skip wenn deaktiviert, MissingFeatureSchemaError, Generated-by-Header, Idempotenz, Section-Banner, alle 7 Toggleable-Features)
 - Coverage: src/core 95.91/88.78/97.53/97.43, src/modules 0/0
-- Commits: bcbbf2e (test red) · fbc07c8 (feat green) · <log>
+- Commits: bcbbf2e (test red) · fbc07c8 (feat green) · 2ad39fa (log)
 - Blocker: none. Pure-Planner; CLI-Runner (Disk-Reads + Schreiben nach `prisma/schema.generated.prisma`) folgt als Hilfsskript-Slice.
+
+## Iteration 68 · 2026-04-28T20:02:00Z
+- Phase: 7 (Reliability, Template-Tooling & Polish, Slice 3)
+- Slice: Template-Sync-Skript `bun run sync:from-template`
+- Tests: `tests/stories/sync-from-template.story.test.ts` rot (Modul fehlt) → grün (10 Tests; create/update/skip/delete-Buckets, src/modules/ unangetastet, non-core-Pfade in local ignoriert, ProtectedPathTouchedError für non-core-Pfade im template-Snapshot, Summary-Counts, mixed-pass, deterministische alphabetische Reihenfolge)
+- Coverage: src/core 95.96/88.90/97.55/97.47, src/modules 0/0
+- Commits: f8452c4 (test red) · 94a2c3e (feat green) · <log>
+- Blocker: none. Pure-Planner; Defense-in-Depth via ProtectedPathTouchedError verhindert, dass ein kompromittiertes Template-Snapshot Schreibzugriffe in `src/modules/` schmuggelt.
