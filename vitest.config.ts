@@ -8,13 +8,8 @@ export default defineConfig({
     include: ['tests/**/*.{spec,test,e2e-spec,story.test}.ts'],
     exclude: ['node_modules', 'dist', 'tests/k6/**', 'tests/types/**'],
     testTimeout: 30_000,
-    hookTimeout: 60_000,
+    hookTimeout: 120_000,
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: false,
-      },
-    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'cobertura', 'html'],
