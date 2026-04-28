@@ -613,5 +613,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Dev-Hub Landing-Page `/dev` mit Auto-Discovery aktiver Tools
 - Tests: `tests/stories/dev-hub.story.test.ts` rot (Modul fehlt) → grün (19 Tests; immer-Scalar/OpenAPI/PermissionTester/ActiveFeatures, DevTools conditional + Port-in-URL, Webhook/Realtime/Search-Inspector feature-gated, Audit-Browser unconditional, 4 Categories api/architecture/data/async, prod/test=empty, deterministisch nach Category dann Label sortiert)
 - Coverage: src/core 96.14/89.27/97.60/97.59, src/modules 0/0
-- Commits: b95763b (test red) · 6a604eb (feat green) · <log>
+- Commits: b95763b (test red) · 6a604eb (feat green) · 2f57c8f (log)
 - Blocker: none. Pure-Planner; `/dev`-Controller (thin wrapper, HTML render) ist eigene Sub-Slice im Bootstrap-Wiring.
+
+## Iteration 76 · 2026-04-28T20:25:00Z
+- Phase: 8 (Developer Experience, Slice 4)
+- Slice: Permission-Tester UI (`/admin/permissions/test`)
+- Tests: `tests/stories/permission-tester-ui.story.test.ts` rot (Modul fehlt) → grün (13 Tests; Form mit Echo, leeres Result-Section ohne Report, Resources alphabetisch, Superset-Badge, Empty-State, XSS-Escaping in Form/Report/Resource-Names, vollständiges HTML-Dokument, Back-Link zu /dev)
+- Coverage: src/core 96.18/89.37/97.62/97.61, src/modules 0/0
+- Commits: b523c43 (test red) · 6e257fd (feat green) · <log>
+- Blocker: none. Pure HTML-Renderer; Live-Controller (Permission-Service-Abruf + HTML-Response) ist Sub-Slice. ECONNRESET in einem anderen Test war flaky, beim Re-Run grün.
