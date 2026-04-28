@@ -3734,7 +3734,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] PowerSync-Upload-Controller (`POST /powersync/crud`)
 - [x] Konflikt-Resolution-Hook in BaseRepository
 - [x] Encrypted-Fields explizit aus Sync-Rules ausschließen
-- [ ] React-Native Demo-Client + Upload-Backend-Test
+- [x] React-Native Demo-Client + Upload-Backend-Test
 
 ### Phase 6 – Email, 2FA, Passkey, MCP (Sprint 11)
 - [x] **Test-First (Stories):** `email-service.e2e-spec.ts` adaptiert (Mailpit-Trap), 2FA-Story (TOTP-Setup + Verify), Passkey-Story (WebAuthn-Register/Login), MCP-OAuth-Story (Authorization-Code + PKCE, Tool-Call mit Permission-Filter)
