@@ -3638,7 +3638,7 @@ model Setting { id String @id; key String @unique; value Json }
 > **TDD-Pflicht (Kap. 28b):** Jede Phase beginnt mit dem Anlegen der Tests. Für jedes Feature in den Checklisten unten gilt: **erst Story-/E2E-Test (`tests/stories/<feature>.story.test.ts` oder `tests/<feature>.e2e-spec.ts`) schreiben (Red), dann implementieren (Green), dann refactoren.** Pro Phase ist ein expliziter „Test-Setup"-Bullet gelistet.
 
 ### Phase 1 – Foundation (Sprint 1-2)
-- [ ] **Test-Infrastruktur:** `tests/`-Layout (`stories/`, `unit/`, `types/`, `migrate/`, `k6/`), `global-setup.ts` mit `testcontainers`-Postgres, Vitest-Config, npm-Scripts (`test`, `test:watch`, `test:unit`, `test:e2e`, `test:types`, `test:coverage`)
+- [x] **Test-Infrastruktur:** `tests/`-Layout (`stories/`, `unit/`, `types/`, `migrate/`, `k6/`), `global-setup.ts` mit `testcontainers`-Postgres, Vitest-Config, npm-Scripts (`test`, `test:watch`, `test:unit`, `test:e2e`, `test:types`, `test:coverage`)
 - [ ] **TestHelper** (Builder für authentifizierte Test-Requests, parallel-sichere Test-User mit UUID-Suffix, ID-basiertes Cleanup)
 - [ ] **Coverage-Gate** (≥ 90 % auf `src/core/`, ≥ 80 % auf `src/modules/`) in `.gitlab-ci.yml`
 - [ ] Adaptierte Stories aus nest-server: `error-code.story.test.ts`, `cookies-cors-config.spec.ts`, `cookies-security-property.e2e-spec.ts`, `system-setup.e2e-spec.ts`, `server.e2e-spec.ts`
