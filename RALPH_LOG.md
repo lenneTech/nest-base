@@ -182,3 +182,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 96.74/87.87/97.65/97.91, src/modules 0/0
 - Commits: 94f5d28 (test red) · c9163e1 (feat green) · <log>
 - Blocker: none. Storage-Adapter ist Memory-only in dieser Slice — Prisma-Adapter folgt sobald Better-Auths Schema-Migrationen mit User/Tenant/Role gemerged sind (separate Slice).
+
+## Iteration 22 · 2026-04-28T17:44:00Z
+- Phase: 2 (Auth & Multi-Tenancy, Slice 3)
+- Slice: System-Setup (Initial-Admin)
+- Tests: `tests/stories/system-setup.story.test.ts` rot (Service fehlt) → grün (5 Tests; created, already_exists, disabled, external-existing-admin, storage-error wrap)
+- Coverage: src/core 96.81/87.77/97.69/97.96, src/modules 0/0
+- Commits: c6f6066 (test red) · 7769339 (feat green) · <log>
+- Blocker: none — Storage-Interface ist abstrahiert, sodass spätere Slice mit Better-Auth-Prisma-Adapter ohne Service-Änderung andocken kann
