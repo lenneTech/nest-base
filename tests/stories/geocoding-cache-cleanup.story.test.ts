@@ -43,8 +43,8 @@ describe('Story · GeocodingCache cleanup', () => {
         now: Date.parse('2026-04-28T12:00:00Z'),
         retentionDays: 90,
       });
-      expect(plan.where).toMatch(/createdAt\s*<\s*\$1/i);
-      expect(plan.where).toMatch(/expiresAt\s*<\s*\$2/i);
+      expect(plan.where).toMatch(/createdAt"?\s*<\s*\$1/i);
+      expect(plan.where).toMatch(/expiresAt"?\s*<\s*\$2/i);
       expect(plan.where).toMatch(/OR/i);
     });
 
