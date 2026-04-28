@@ -3682,7 +3682,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Soft-Delete Prisma-Extension (inkl. `RESTORE`/`HARD_DELETE` Actions)
 
 ### Phase 4 – Files (Sprint 7-8)
-- [ ] **Test-First (Stories):** `file.e2e-spec.ts`, `tus-upload.story.test.ts`, `tus-file-type-validation.spec.ts` — vor jeder Implementation
+- [x] **Test-First (Stories):** `file.e2e-spec.ts`, `tus-upload.story.test.ts`, `tus-file-type-validation.spec.ts` — vor jeder Implementation
 - [ ] Storage-Adapter-Interface
 - [ ] S3-Adapter (RustFS-getestet)
 - [ ] Local-Adapter
