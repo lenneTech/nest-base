@@ -461,5 +461,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Socket.IO-Gateway + Auth-Handshake + Room-Subscriptions
 - Tests: `tests/stories/socket-gateway.story.test.ts` rot (Modul fehlt) → grün (12 Tests; handshake empty/unknown token rejection, valid session resolution, subscribe allow/deny via canSubscribeToChannel, tenant-scoped conditions, unsubscribe, dispatch emits to joined sockets only)
 - Coverage: src/core 95.67/87.98/97.39/97.06, src/modules 0/0
-- Commits: c8af21e (test red) · d4df23c (feat green) · <log>
+- Commits: c8af21e (test red) · d4df23c (feat green) · 224fd83 (log)
 - Blocker: none. Socket.IO-Library-Binding folgt im Realtime-Module-Wiring; Tests bleiben über FakeSocket/FakeServer-Stubs frei vom Netzlayer.
+
+## Iteration 57 · 2026-04-28T19:31:00Z
+- Phase: 5 (Realtime/Search/Webhooks, Slice 10 — abschließend)
+- Slice: Permission-Aware Channel-Filter
+- Tests: `tests/stories/channel-filter.story.test.ts` rot (Modul fehlt) → grün (12 Tests; register idempotent, unregister single/ghost, unregisterAll across channels, broadcast allow/deny by tenant/ownerId, no-cross-channel leak, empty channel no-op, subject-type isolation, malformed channel rejection)
+- Coverage: src/core 95.68/87.97/97.42/97.11, src/modules 0/0
+- Commits: 62c08b9 (test red) · 7f6cd61 (feat green) · <log>
+- Blocker: none. Phase 5 (Realtime/Search/Webhooks) Pflicht-Slices vollständig abgehakt; Phase 5b (Mobile-Offline-Sync) und Phase 5c (Geo) sind als Optional in `RALPH_DIRECTIVES.md` hinterlegt — der Loop springt jetzt zu Phase 6 (User-Toggles) bzw. zur nächsten aktiven Pflicht-Phase.
