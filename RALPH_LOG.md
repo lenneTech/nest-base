@@ -621,5 +621,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Permission-Tester UI (`/admin/permissions/test`)
 - Tests: `tests/stories/permission-tester-ui.story.test.ts` rot (Modul fehlt) → grün (13 Tests; Form mit Echo, leeres Result-Section ohne Report, Resources alphabetisch, Superset-Badge, Empty-State, XSS-Escaping in Form/Report/Resource-Names, vollständiges HTML-Dokument, Back-Link zu /dev)
 - Coverage: src/core 96.18/89.37/97.62/97.61, src/modules 0/0
-- Commits: b523c43 (test red) · 6e257fd (feat green) · <log>
+- Commits: b523c43 (test red) · 6e257fd (feat green) · beeab82 (log)
 - Blocker: none. Pure HTML-Renderer; Live-Controller (Permission-Service-Abruf + HTML-Response) ist Sub-Slice. ECONNRESET in einem anderen Test war flaky, beim Re-Run grün.
+
+## Iteration 77 · 2026-04-28T21:07:00Z
+- Phase: 8 (Developer Experience, Slice 5)
+- Slice: Webhook-Inspector (Delivery-Log + Re-Deliver)
+- Tests: `tests/stories/webhook-inspector-ui.story.test.ts` rot (Modul fehlt) → grün (17 Tests; Document-Chrome, Empty-State, List-Render mit data-status="FAILED" Hook, Attempt-Count, Error-Message, Redeliver-Form per row + optional CSRF, Status-Filter mit selected, XSS-Escape auf endpointId/eventType/errorMessage/CSRF, Order-Preservation)
+- Coverage: src/core 96.22/89.25/97.66/97.64, src/modules 0/0
+- Commits: c83f052 (test red) · a4cefe3 (feat green) · <log>
+- Blocker: none. Pure HTML-Renderer mit eigenem `DeliveryListEntry`-Read-Model (nicht an `DeliveryRecord` gekoppelt — unterschiedliche Anforderungen Persistenz vs. Anzeige).
