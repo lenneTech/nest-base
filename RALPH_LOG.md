@@ -76,3 +76,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 96.49/88.39/97.22/97.10 (Stmts/Branch/Funcs/Lines), src/modules 0/0
 - Commits: 70fa102 (test red) · <green> · <log>
 - Blocker: none. `defaultSdkFactory` wirft, wenn observability=true aber kein SDK injiziert — bewusst loud-fail, damit Konsumenten den ungewünschten Stub-Boot bemerken.
+
+## Iteration 9 · 2026-04-28T17:06:00Z
+- Phase: 1 (Foundation, Slice 9)
+- Slice: Helmet + CSP-Middleware
+- Tests: `tests/security-headers.e2e-spec.ts` rot (Modul fehlt) → grün (9 Tests; nosniff, X-Frame-Options, CSP default-src, no X-Powered-By, Referrer-Policy, env-aware CSP/HSTS)
+- Coverage: src/core 96.99/87.93/97.26/97.60, src/modules 0/0
+- Commits: c513a64 (test red) · 69ca011 (feat green) · <log>
+- Blocker: none
