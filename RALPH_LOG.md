@@ -597,5 +597,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Scalar als API-UI (`@scalar/nestjs-api-reference`)
 - Tests: `tests/stories/scalar-config.story.test.ts` rot (Modul fehlt) → grün (14 Tests; specUrl/spec/neither/both, Defaults theme/dark-toggle/title, Custom-Overrides, mountPath default + leading-slash + empty-rejection)
 - Coverage: src/core 96.08/89.13/97.58/97.54, src/modules 0/0
-- Commits: ec0a504 (test red) · 8fb7c34 (feat green) · <log>
+- Commits: ec0a504 (test red) · 8fb7c34 (feat green) · 937dd1b (log)
 - Blocker: none. Phase 8 Test-First-Box wird übersprungen, bis alle Sub-Stories existieren — folgt nach Idempotency/ETag/Cursor/Throttler/GDPR/Audit-Log. Live-Mount mit Bootstrap-NestJS-App in eigener Slice (sobald OpenAPI-Doku-Endpoint geschrieben ist).
+
+## Iteration 74 · 2026-04-28T20:18:00Z
+- Phase: 8 (Developer Experience, Slice 2)
+- Slice: NestJS DevTools Integration (`@nestjs/devtools-integration` + Snapshot-Mode)
+- Tests: `tests/stories/devtools-config.story.test.ts` rot (Modul fehlt) → grün (15 Tests; env-Defaults dev=on/prod=off/test=off, Override beidseitig, Port-Range/Integer-Validation, http-Default true + Override, Snapshot-Default true + off, Unknown-env-Rejection, Fresh-Object pro Call)
+- Coverage: src/core 96.09/89.30/97.59/97.55, src/modules 0/0
+- Commits: 0c08db8 (test red) · 8ce6019 (feat green) · <log>
+- Blocker: none. @nestjs/devtools-integration 0.2.1 installiert; Live-Mount + NestFactory-snapshot-Flag im Bootstrap-Wiring-Slice.
