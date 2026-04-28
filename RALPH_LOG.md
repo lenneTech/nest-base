@@ -238,3 +238,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 96.19/87.36/97.83/97.58 (Schema-Slice — keine neuen TS-Pfade), src/modules 0/0
 - Commits: 2d68d0b (test red) · 845dc39 (feat green) · <log>
 - Blocker: none
+
+## Iteration 29 · 2026-04-28T18:11:00Z
+- Phase: 3 (Permissions & Output-Pipeline, Slice 3)
+- Slice: CASL Integration (@casl/ability, @casl/prisma)
+- Tests: `tests/stories/casl-ability.story.test.ts` rot (Modul fehlt) → grün (6 Tests; can/cannot, conditions via mongoQueryMatcher, manage als Wildcard, field-allowlist, empty rules, frozen ability)
+- Coverage: src/core 95.99/86.42/97.87/97.34, src/modules 0/0
+- Commits: 8b61200 (test red) · 1055623 (feat green) · <log>
+- Blocker: none. mongoQueryMatcher + fieldPatternMatcher gewählt damit Conditions später `accessibleBy()` mit Prisma kompatibel laufen.
