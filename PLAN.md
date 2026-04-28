@@ -3768,7 +3768,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] `@nestjs/throttler` mit Postgres-Store, Multi-Window
 - [x] Per-API-Key Rate-Limit-Bucket
 - [x] GDPR-Endpoints (`/me/export`, `/me/account`, Anonymisierung)
-- [ ] Audit-Log-Extension (mit Encryption-Awareness)
+- [x] Audit-Log-Extension (mit Encryption-Awareness)
 - [ ] Error-Code-Registry + i18n-Endpoint
 - [ ] OpenAPI-Doku komplett (inkl. RFC 7807 Schemas)
 - [ ] CI-Pipeline (`.gitlab-ci.yml`: lint, test, audit, build) — **kein** Container-Build, -Signing oder Deploy auf Template-Ebene
