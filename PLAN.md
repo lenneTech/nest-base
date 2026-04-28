@@ -3675,7 +3675,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] PermissionService.abilityFor() + Cache (LRU, 60s TTL)
 - [x] `@Can()` Decorator + Guard, `@Ability()` Param-Decorator
 - [x] PostgREST-Query-Parser → Prisma-WHERE (kombiniert mit `accessibleBy`)
-- [ ] Output-Pipeline-Interceptor (4-Stage)
+- [x] Output-Pipeline-Interceptor (4-Stage)
 - [ ] Filter-Service Pattern: `@FilterFor()` + Registry + Auto-Discovery
 - [ ] Secret-Safety-Net mit globaler Liste + Regex-Patterns
 - [ ] Admin-CRUD-Endpoints für Roles/Policies/Permissions + Test-Endpunkt
