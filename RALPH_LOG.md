@@ -100,3 +100,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 95.77/85.52/96.77/97.26, src/modules 0/0
 - Commits: b834492 (test red) · <green> · <log>
 - Blocker: none — Branch-Coverage 85.52 % knapp über 85 % Threshold (Failure-Pfade in HealthService noch nicht ausgetestet, kommen wenn Prisma-Mocking landet)
+
+## Iteration 12 · 2026-04-28T17:13:00Z
+- Phase: 1 (Foundation, Slice 12)
+- Slice: RFC 7807 Problem-Details Exception-Filter
+- Tests: `tests/problem-details.e2e-spec.ts` rot (Filter fehlt) → grün (16 Tests inkl. parametrisierter Status→Code-Map: HttpException, ZodError, Unknown Error, Success-Pass-Through, Bad-Request/Unauthorized/Conflict/Rate-Limit/5xx, String-/Array-Body)
+- Coverage: src/core 96.20/86.17/96.93/97.56, src/modules 0/0
+- Commits: b405667 (test red) · e183f9e (feat green) · <log>
+- Blocker: none
