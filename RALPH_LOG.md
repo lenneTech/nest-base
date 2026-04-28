@@ -351,3 +351,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 95.84/88.36/97.77/97.08, src/modules 0/0
 - Commits: 01f51bd (test red) · da7efd2 (feat green) · <log>
 - Blocker: none. Mime-Type via Sidecar-File `<file>.meta.json`; Path-Traversal-Schutz via normalize+relative gegen root.
+
+## Iteration 43 · 2026-04-28T18:48:00Z
+- Phase: 4 (Files, Slice 5)
+- Slice: Postgres-Adapter (Large Objects + FileBlob-Modell + RLS)
+- Tests: `tests/stories/postgres-storage-adapter.story.test.ts` rot (Modul + Schema fehlten) → grün (13 Tests; put/get/exists/delete/signUrl/list contract via FileBlobOperations stub, NotFound, TTL/empty-key-reject, Schema-Pin: FileBlob model + (tenant_id, key) unique + Bytes body)
+- Coverage: src/core 95.92/88.51/97.84/97.14, src/modules 0/0
+- Commits: f1f16eb (test red) · 821291c (feat green) · <log>
+- Blocker: none. RLS-Policy auf file_blobs folgt eigener Migration (analog users/roles aus Iteration 23). Production AwsS3Operations und Prisma-FileBlobOperations werden im Storage-Module-Wiring eingehängt.
