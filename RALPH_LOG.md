@@ -725,5 +725,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Per-API-Key Rate-Limit-Bucket
 - Tests: `tests/stories/throttle-bucket-key.story.test.ts` rot (Modul fehlt) → grün (12 Tests; identity-priority apiKey>user>ip + Missing-Error, Route-Participation method+path, Method-Upper-Case, deterministisch, Shape colon-separated mit Tier-Prefix)
 - Coverage: src/core 96.38/89.45/97.74/97.77, src/modules 0/0
-- Commits: 2f17402 (test red) · 71f06bc (feat green) · <log>
+- Commits: 2f17402 (test red) · 71f06bc (feat green) · b23976f (log)
 - Blocker: none. Bucket-Builder pickt EINEN Tier, mischt nicht — sonst könnte Angreifer Bucket via API-Key+IP-Wechsel verdünnen.
+
+## Iteration 90 · 2026-04-28T21:43:00Z
+- Phase: 8 (Developer Experience, Slice 18)
+- Slice: GDPR-Endpoints (`/me/export`, `/me/account`, Anonymisierung)
+- Tests: `tests/stories/gdpr.story.test.ts` rot (Modul fehlt) → grün (13 Tests; export-Envelope kind/version/exportedAt + user verbatim + relatedResources, hard-delete-Op, anonymise mit hash/null/mask-Strategien, Determinismus per userId, no-collision, mode-Validation, leere userId/piiFields-Footgun)
+- Coverage: src/core 96.42/89.50/97.75/97.79, src/modules 0/0
+- Commits: d48223f (test red) · 5afdbeb (feat green) · <log>
+- Blocker: none. Anonymise-Hash ist deterministisch per userId (idempotent + re-identifikationssicher), Email-Spezialfall gibt `anon-...@anonymous.invalid` für Email-Uniqueness-Constraints.
