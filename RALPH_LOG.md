@@ -303,3 +303,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 95.86/87.88/97.79/96.99, src/modules 0/0
 - Commits: a3a218a (test red) · 872d40c (feat green) · <log>
 - Blocker: none. Pattern für `nst_pk_` auf {8,} statt {32,} gelockert um Prefix-Form früh zu erfassen (das echte Secret ist 64 Chars, aber kürzere Hex-Suffixe sollen auch leak-detected werden).
+
+## Iteration 37 · 2026-04-28T18:32:00Z
+- Phase: 3 (Permissions & Output-Pipeline, Slice 11)
+- Slice: Admin-CRUD-Endpoints für Roles/Policies/Permissions + Test-Endpunkt
+- Tests: `tests/stories/permission-test-endpoint.story.test.ts` rot (Service fehlt) → grün (4 Tests; userId/tenantId echo, byResource grouping, CRUD→superset promotion, empty report)
+- Coverage: src/core 95.87/87.54/97.83/97.07, src/modules 0/0
+- Commits: a4c25d8 (test red) · 6db7b19 (feat green) · <log>
+- Blocker: none. CRUD-Surfaces für Role/Policy/Permission decken sich mit dem BaseRepository-Pattern aus Iteration 26 — diese Slice fügt nur den fehlenden Test-Endpunkt-Service hinzu.
