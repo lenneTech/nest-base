@@ -271,3 +271,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 95.80/87.23/97.53/97.08, src/modules 0/0
 - Commits: 950b136 (test red) · ea81990 (feat green) · <log>
 - Blocker: none
+
+## Iteration 33 · 2026-04-28T18:22:00Z
+- Phase: 3 (Permissions & Output-Pipeline, Slice 7)
+- Slice: PostgREST-Query-Parser → Prisma-WHERE (kombiniert mit accessibleBy)
+- Tests: `tests/stories/postgrest-query.story.test.ts` rot (Modul fehlt) → grün (12 Tests; eq/neq/lt/lte/gt/gte, in.(...), is.null, like/ilike, Boolean+Number-Coerce, Unknown-Op-Reject, combineWithAccessible)
+- Coverage: src/core 95.54/87.01/97.60/96.82, src/modules 0/0
+- Commits: 534c184 (test red) · f2f3940 (feat green) · <log>
+- Blocker: none
