@@ -485,5 +485,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Email-Templates (verify, reset, welcome, invitation)
 - Tests: `tests/stories/email-templates.story.test.ts` rot (Modul fehlt) → grün (14 Tests; registry locale-fallback, renderer <%=/<%-/<%# tag-types, dotted-paths, missing-var error, unknown-template error, alle vier Built-ins mit ihren kanonischen Variablen-Verträgen)
 - Coverage: src/core 95.76/88.25/97.56/97.25, src/modules 0/0
-- Commits: 816f9e3 (test red) · 44472a4 (feat green) · <log>
+- Commits: 816f9e3 (test red) · 44472a4 (feat green) · ee21773 (log)
 - Blocker: none. EJS-Subset deckt die vier Built-Ins ab; vollständiges `ejs`-Paket bleibt für später, falls Templates Loops/Includes brauchen.
+
+## Iteration 60 · 2026-04-28T19:39:00Z
+- Phase: 6 (Email + 2FA + Passkey + MCP, Slice 3)
+- Slice: 2FA-Endpunkte aktivieren
+- Tests: `tests/stories/better-auth-two-factor.story.test.ts` rot (Type-Error: twoFactor-Option fehlt) → grün (4 Tests; default-off, plugin-mounted-when-configured, leerer Issuer rejected, Secret-Length-Invarianten bleiben aktiv)
+- Coverage: src/core 95.77/88.36/97.56/97.25, src/modules 0/0
+- Commits: 6104b01 (test red) · a3f6db7 (feat green) · <log>
+- Blocker: none. Live-HTTP-Exercise der `/two-factor/*`-Routes folgt erst, wenn der Prisma-Adapter für Better-Auth gewired ist (heute Memory-Adapter); Story prüft die API-Surface über `auth.api.enableTwoFactor/verifyTOTP/disableTwoFactor`.
