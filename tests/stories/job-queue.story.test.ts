@@ -19,14 +19,6 @@ import {
  *   - drain()                    — test-only helper (await empty)
  */
 describe('Story · Job-Queue', () => {
-  function asyncDeferred(): { promise: Promise<void>; resolve: () => void } {
-    let resolve!: () => void;
-    const promise = new Promise<void>((r) => {
-      resolve = r;
-    });
-    return { promise, resolve };
-  }
-
   it('enqueue() runs registered handlers with the payload after start()', async () => {
     const queue = new InMemoryJobQueue();
     const seen: string[] = [];
