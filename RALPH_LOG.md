@@ -246,3 +246,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 95.99/86.42/97.87/97.34, src/modules 0/0
 - Commits: 8b61200 (test red) · 1055623 (feat green) · <log>
 - Blocker: none. mongoQueryMatcher + fieldPatternMatcher gewählt damit Conditions später `accessibleBy()` mit Prisma kompatibel laufen.
+
+## Iteration 30 · 2026-04-28T18:13:00Z
+- Phase: 3 (Permissions & Output-Pipeline, Slice 4)
+- Slice: DB-Rule → CASL-Rule Resolver (mit Variablen-Substitution)
+- Tests: `tests/stories/db-rule-resolver.story.test.ts` rot (Resolver fehlt) → grün (12 Tests; Action-Lower, _eq/_neq/_in/_nin/_lt/_lte/_gt/_gte, $CURRENT_USER, $NOW, fields-Allowlist, Unknown-Operator-Reject)
+- Coverage: src/core 95.91/86.63/97.93/97.17, src/modules 0/0
+- Commits: 36d23ab (test red) · 10d78bb (feat green) · <log>
+- Blocker: none. _eq wird zur bare value short-form übersetzt damit CASL's field-equality match greift; alle anderen Operatoren bleiben in `{ $op: value }`-Form.
