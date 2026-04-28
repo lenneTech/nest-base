@@ -214,3 +214,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 96.36/86.97/97.50/97.58, src/modules 0/0
 - Commits: 4fcf2be (test red) · 33e80d7 (feat green) · <log>
 - Blocker: none. Bun.password ist im Vitest-Node-Runner undefined → @node-rs/argon2 als plattform-portable Lösung (funktioniert unter Node + Bun).
+
+## Iteration 26 · 2026-04-28T18:00:00Z
+- Phase: 2 (Auth & Multi-Tenancy, Slice 7) **— Phase 2 abgeschlossen**
+- Slice: Repository-Pattern als Standard etablieren
+- Tests: `tests/stories/base-repository.story.test.ts` rot (Modul fehlt) → grün (11 Tests; findById, Soft-Delete-Filter, includeDeleted-Opt-Out, list, create/update/softDelete/hardDelete, RepositoryNotFoundError)
+- Coverage: src/core 95.91/86.37/97.63/97.50, src/modules 0/0
+- Commits: 7f7a3de (test red) · b8c5f55 (feat green) · <log>
+- Blocker: none. Tenant-Scoping-Hook wird in späterer Slice plugged in (sobald Prisma-Extension `SET app.tenant_id` stempelt).
