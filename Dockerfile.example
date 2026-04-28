@@ -21,6 +21,13 @@ RUN bun run build
 FROM oven/bun:1.1-alpine AS runtime
 WORKDIR /app
 
+# OCI image labels (consumers override or extend in their own Dockerfile).
+LABEL org.opencontainers.image.title="nest-server-template" \
+      org.opencontainers.image.description="Bun + NestJS + Prisma + Postgres template" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.source="https://github.com/lenneTech/nest-server-template" \
+      org.opencontainers.image.documentation="https://github.com/lenneTech/nest-server-template#readme"
+
 # non-root user
 RUN addgroup -S app && adduser -S app -G app
 
