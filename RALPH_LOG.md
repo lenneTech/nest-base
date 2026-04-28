@@ -198,3 +198,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 96.78/87.00/97.88/97.86, src/modules 0/0
 - Commits: b81a1a7 (test red) · 5d76b87 (feat green) · <log>
 - Blocker: none. Prisma-Extension, die `SET app.tenant_id = $1` stempelt, kommt im Follow-up — die Policy liest schon aus `current_setting('app.tenant_id', true)`.
+
+## Iteration 24 · 2026-04-28T17:51:00Z
+- Phase: 2 (Auth & Multi-Tenancy, Slice 5)
+- Slice: Tenant-Member-CRUD
+- Tests: `tests/stories/tenant-member.story.test.ts` rot (Modul + Schema-Updates fehlten) → grün (12 Tests; add() inkl. INVITED-default, Duplicate-Reject, listByTenant, activate/suspend, remove, NotFound-Errors, Schema-Pin: TenantMember + TenantMemberStatus + @@unique)
+- Coverage: src/core 96.91/87.10/98.00/97.94, src/modules 0/0
+- Commits: 30b7c3d (test red) · 1fc6281 (feat green) · <log>
+- Blocker: none — Service ist storage-agnostic; Prisma-Adapter folgt zusammen mit Better-Auth-Session-Tabelle in späterer Slice
