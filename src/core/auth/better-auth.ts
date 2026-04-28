@@ -1,4 +1,5 @@
 import { type BetterAuthOptions, betterAuth } from 'better-auth';
+import { twoFactor } from 'better-auth/plugins/two-factor';
 
 import { resolveBetterAuthMountPath } from './better-auth-config.js';
 
@@ -17,12 +18,19 @@ import { resolveBetterAuthMountPath } from './better-auth-config.js';
 
 const MIN_SECRET_LEN = 32;
 
+export interface TwoFactorOptions {
+  /** Issuer label embedded in the TOTP URI shown in authenticator apps. */
+  issuer: string;
+}
+
 export interface BuildBetterAuthInput {
   secret: string;
   baseUrl: string;
   sessionExpiresInSeconds: number;
   /** Optional override; defaults to /api/auth via `resolveBetterAuthMountPath()`. */
   basePath?: string;
+  /** Switch on the TOTP plugin (PLAN.md §32 Phase 6 / 2FA-Endpunkte). */
+  twoFactor?: TwoFactorOptions;
 }
 
 export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof betterAuth> {
@@ -32,7 +40,12 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
   // throws when not a parseable URL — sealed contract for the caller
   new URL(input.baseUrl);
 
+  if (input.twoFactor && !input.twoFactor.issuer) {
+    throw new Error('Better-Auth twoFactor.issuer must be a non-empty string');
+  }
+
   const basePath = resolveBetterAuthMountPath(input.basePath);
+  const plugins = input.twoFactor ? [twoFactor({ issuer: input.twoFactor.issuer })] : undefined;
   const options: BetterAuthOptions = {
     secret: input.secret,
     baseURL: input.baseUrl,
@@ -41,6 +54,7 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
     session: {
       expiresIn: input.sessionExpiresInSeconds,
     },
+    ...(plugins ? { plugins } : {}),
   };
   return betterAuth(options);
 }

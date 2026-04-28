@@ -3733,7 +3733,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [ ] **Test-First (Stories):** `email-service.e2e-spec.ts` adaptiert (Mailpit-Trap), 2FA-Story (TOTP-Setup + Verify), Passkey-Story (WebAuthn-Register/Login), MCP-OAuth-Story (Authorization-Code + PKCE, Tool-Call mit Permission-Filter)
 - [x] Email-Service (Nodemailer + Brevo)
 - [x] Email-Templates (verify, reset, welcome, invitation)
-- [ ] 2FA-Endpunkte aktivieren
+- [x] 2FA-Endpunkte aktivieren
 - [ ] Passkey-Endpunkte aktivieren
 - [ ] Social-Login-Provider
 - [ ] MCP-Server-Modul (`@modelcontextprotocol/sdk`)
