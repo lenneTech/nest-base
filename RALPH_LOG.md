@@ -645,5 +645,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Audit-Browser (Filter + Diff-Anzeige)
 - Tests: `tests/stories/audit-browser-ui.story.test.ts` rot (Modul fehlt) → grün (15 Tests; Document-Chrome, 5-input-Filter mit Echo, Empty-State, per-row data-action-Hook, Order-Preservation, before/after-Diff für update/create/delete, full XSS-Escape inkl. Filter-Echo)
 - Coverage: src/core 96.24/89.11/97.74/97.68, src/modules 0/0
-- Commits: c024b41 (test red) · ffc74c2 (feat green) · <log>
+- Commits: c024b41 (test red) · ffc74c2 (feat green) · ae089d5 (log)
 - Blocker: none. Diff ist server-rendered (JSON.stringify pretty-printed, line-prefix `-`/`+`), kein JS-side diff library nötig.
+
+## Iteration 80 · 2026-04-28T21:15:00Z
+- Phase: 8 (Developer Experience, Slice 8)
+- Slice: Search-Tester (FTS-Probier-UI)
+- Tests: `tests/stories/search-tester-ui.story.test.ts` rot (Modul fehlt) → grün (15 Tests; Document-Chrome, Query-Form mit Echo + autofocus, optional tsquery-Hint, drei Result-States idle/no-results/hits, Snippet `<b>` highlights raw, Order-Preservation, XSS-Escape außer Snippet)
+- Coverage: src/core 96.26/89.21/97.77/97.69, src/modules 0/0
+- Commits: 92ce339 (test red) · 78feda2 (feat green) · <log>
+- Blocker: none. Snippet aus `ts_headline` ist trusted (server-emitted, nur `<b>` Tags); Query-Echo + Resource/ID/Title weiterhin escaped.
