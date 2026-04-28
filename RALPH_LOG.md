@@ -477,5 +477,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Email-Service (Nodemailer + Brevo)
 - Tests: `tests/stories/email-service.story.test.ts` rot (Modul fehlt) → grün (13 Tests; send() default-from + explicit-from + dev-whitelist + rate-limit + driver-error; sendTemplate() EJS-renderer-path + Brevo-template-id-routing + transactional-driver-missing + default-locale + rate-limit-record)
 - Coverage: src/core 95.67/88.04/97.49/97.19, src/modules 0/0
-- Commits: 5414aea (test red) · 1f5117c (feat green) · <log>
+- Commits: 5414aea (test red) · 1f5117c (feat green) · 6ee2723 (log)
 - Blocker: none. Renderer und Driver-Implementierungen (NodemailerDriver, BrevoDriver) folgen als eigene Slices; Service ist driver-agnostisch und testbar mit FakeDriver/FakeRenderer.
+
+## Iteration 59 · 2026-04-28T19:36:00Z
+- Phase: 6 (Email + 2FA + Passkey + MCP, Slice 2)
+- Slice: Email-Templates (verify, reset, welcome, invitation)
+- Tests: `tests/stories/email-templates.story.test.ts` rot (Modul fehlt) → grün (14 Tests; registry locale-fallback, renderer <%=/<%-/<%# tag-types, dotted-paths, missing-var error, unknown-template error, alle vier Built-ins mit ihren kanonischen Variablen-Verträgen)
+- Coverage: src/core 95.76/88.25/97.56/97.25, src/modules 0/0
+- Commits: 816f9e3 (test red) · 44472a4 (feat green) · <log>
+- Blocker: none. EJS-Subset deckt die vier Built-Ins ab; vollständiges `ejs`-Paket bleibt für später, falls Templates Loops/Includes brauchen.
