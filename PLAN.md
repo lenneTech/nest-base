@@ -3712,7 +3712,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Permission-Aware Channel-Filter
 
 ### Phase 5c – Geo & Standortdaten (PostGIS, optional, nur wenn `features.geo` aktiv)
-- [ ] **Test-First (Stories):** Geocoding-Provider-Switch (Mapbox/Nominatim/Local-Stub), GeoJSON-Output-Mapping (Stage 3a der Output-Pipeline), `findNearby`/`withinGeofence`-Queries auf GIST-Indizes, GeocodingCache-TTL + DSGVO-Erasure, Address-PII-Encryption-Roundtrip — eigene Stories, keine 1:1-Übernahmen aus nest-server (kein Geo-Modul dort)
+- [x] **Test-First (Stories):** Geocoding-Provider-Switch (Mapbox/Nominatim/Local-Stub), GeoJSON-Output-Mapping (Stage 3a der Output-Pipeline), `findNearby`/`withinGeofence`-Queries auf GIST-Indizes, GeocodingCache-TTL + DSGVO-Erasure, Address-PII-Encryption-Roundtrip — eigene Stories, keine 1:1-Übernahmen aus nest-server (kein Geo-Modul dort)
 - [x] PostGIS-Extension via Migration aktivieren
 - [x] Geo-Schema (`prisma/features/geo.prisma`) mit `Address`, `Geofence`, `GeocodingCache`
 - [x] GIST-Indizes via raw-SQL-Migration
