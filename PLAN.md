@@ -3763,7 +3763,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] **`bun run onboard`** Skript für neue Entwickler
 - [x] **SDK-Generation** (`bun run sdk:generate` via kubb)
 - [x] Idempotency-Key Interceptor + Tabelle
-- [ ] ETag / If-Match Optimistic-Concurrency-Pipe
+- [x] ETag / If-Match Optimistic-Concurrency-Pipe
 - [ ] Cursor-Pagination zusätzlich zu page/limit
 - [ ] `@nestjs/throttler` mit Postgres-Store, Multi-Window
 - [ ] Per-API-Key Rate-Limit-Bucket
