@@ -3688,7 +3688,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Local-Adapter
 - [x] Postgres-Adapter (Large Objects + `FileBlob`-Modell + RLS)
 - [x] File/Folder Models + CRUD-Endpoints
-- [ ] Multipart-Upload + TUS
+- [x] Multipart-Upload + TUS
 - [ ] Asset-Endpoint mit Transformations + Cache (`sharp`)
 - [ ] Asset-Presets
 
