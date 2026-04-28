@@ -799,3 +799,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 96.50/89.74/97.81/97.85, src/modules 0/0
 - Commits: <pending> (PLAN.md §6.3 + OPEN_QUESTIONS.md update + log)
 - Blocker: none. User wählte Option 3 (Spec an Implementierung angleichen). PLAN.md §6.3 dokumentiert jetzt explizit, dass `[]` synonym zu „keine Field-Level-Restriction" ist; OPEN_QUESTIONS.md hat nur noch eine Beantwortet-Sektion. **Done-Check-Voraussetzungen alle erfüllt** — alle Pflicht-Phasen `[x]`, alle Optional-Phasen mit `true`-Direktive `[x]`, alle Quality-Gates grün, OPEN_QUESTIONS.md ohne offene Punkte.
+
+## Iteration 99 · 2026-04-28T22:59:00Z (Phase 5c — Geo & Standortdaten, 11 Slices)
+- Phase: 5c (Geo & Standortdaten, optional, features.geo)
+- Slices: 5c-1..5c-11 — PostGIS-Extension, Address/Geofence/GeocodingCache-Schema, GIST-Indizes, GeocodingProvider×4 (Nominatim/Mapbox/Google/LocalStub), GeoService (geocode, reverseGeocode, findNearby ST_DWithin, withinGeofence ST_Contains, haversine), Geo-DTOs (Zod), GeoJSON-Output-Mapper Stage 3a, GeocodingCache-Cleanup-Planner (90 d TTL), Address-PII-Encryption (street, zip), src/shared/geo-types, Phase-5c Test-First-Audit
+- Tests: 22 commits (red→green pro Slice), Story-Files unter tests/stories/{geocoding-providers,geo-service,geo-dtos,geojson-output-mapper,geocoding-cache-cleanup,address-pii-encryption,geo-shared-types,geo-postgis-extension,geo-prisma-schema,geo-gist-indexes,phase-5c-test-first-audit}.story.test.ts — 117 Story-Files, 1113 Tests grün
+- Coverage: src/core 95.91/88.86/97.44/97.30 — über Threshold (≥ 90%)
+- Commits: c9a88f3..6de343e (22 atomare Commits), HEAD=6de343e
+- Blocker: none. Phase 5c ist vollständig abgehakt in PLAN.md (alle Boxen [x]). Done-Check (alle Pflicht-Phasen [x] + Phase 5c als optional [x] mit Direktive=true) erfordert noch Phase 5b.
