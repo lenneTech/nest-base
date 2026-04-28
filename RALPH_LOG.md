@@ -781,5 +781,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Dokumentation für Konsumenten + API-Stability-Promise + Webhook-Spec
 - Tests: `tests/stories/consumer-docs.story.test.ts` rot (15 fehlende Sektionen) → grün (15 Tests; consumer-guide.md mit setup/env-contract/CI-gates/customization-link, api-stability-promise.md mit semver/public-surface/deprecation-window/migration, webhook-spec.md mit HMAC-SHA256/Standard-Webhooks/`t=,v1=`/Retry+Auto-Disable/Replay-Skew/Inspector-Pointer, README-Cross-Links)
 - Coverage: src/core 96.50/89.74/97.81/97.85, src/modules 0/0
-- Commits: 5d7bd77 (test red) · f543fcd (feat green) · <log>
+- Commits: 5d7bd77 (test red) · f543fcd (feat green) · 2ff3924 (log)
 - Blocker: none. Phase 8 hat noch ~2 Boxes übrig (Test-First-Audit). Verbleibend nach diesem: Phase 8 Test-First-Audit-Bookkeeping.
+
+## Iteration 97 · 2026-04-28T22:03:00Z
+- Phase: 8 (Developer Experience, Slice 25 — abschließend)
+- Slice: Test-First (Phase 8) — Audit-Story für Idempotency, ETag, Cursor-Pagination, Throttler, GDPR, Audit-Log
+- Tests: `tests/stories/phase-8-test-first-audit.story.test.ts` neu (7 Tests; 6 surface-Audits + count-drift-Schutz, alle direkt grün — die zugrundeliegenden Stories wurden in It. 85–91 als Red-vor-Impl entwickelt und sind hier als Regression-Guard fixiert)
+- Coverage: src/core 96.50/89.74/97.81/97.85, src/modules 0/0
+- Commits: 43c17a9 (audit + checkbox) · <log>
+- Blocker: none. Phase 8 vollständig abgehakt. Pflicht-Phasen 1, 2, 3, 4, 5, 7, 8 + Optional-Phase 6 (per directives) = ALLE komplett.
