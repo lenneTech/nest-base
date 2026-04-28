@@ -3696,7 +3696,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] **Test-First (Stories):** Webhook-Delivery (HMAC-Sig, Retry, Auto-Disable), Webhook-Master/Sub-Job-Fanout, FTS-Search-Edge-Cases, Realtime-Permission-aware-Channels, Outbox-Pattern — eigene Stories pro Feature, keine direkten 1:1-Übernahmen aus nest-server (dort fehlen vergleichbare Tests)
 - [x] pg-boss Job-Queue + Worker-Setup
 - [x] Outbox-Pattern (Events)
-- [ ] Webhooks: `WebhookEndpoint` + `WebhookDelivery` Models
+- [x] Webhooks: `WebhookEndpoint` + `WebhookDelivery` Models
 - [ ] Webhook-Dispatcher (HMAC-SHA256, Retries, Auto-Disable)
 - [ ] Search: `Searchable`-Decorator + Migration-Generator (tsvector + GIN)
 - [ ] Cross-Resource-Search-Endpoint
