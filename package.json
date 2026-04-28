@@ -9,7 +9,7 @@
     "bun": ">=1.1.0"
   },
   "scripts": {
-    "dev": "bun --watch src/main.ts",
+    "dev": "bun run scripts/dev.ts",
     "build": "bun run scripts/build.ts",
     "lint": "oxlint src tests",
     "lint:fix": "oxlint --fix src tests",

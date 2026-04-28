@@ -48,10 +48,10 @@ describe('docker-compose.yml (dev dependencies only)', () => {
     expect(yaml).toMatch(/pg_isready/);
   });
 
-  it('package.json `dev` script runs the server natively via bun --watch', () => {
+  it('package.json `dev` script runs the server natively (no docker exec on api/server)', () => {
     const pkg = JSON.parse(readFileSync(PACKAGE, 'utf8')) as { scripts: Record<string, string> };
     expect(pkg.scripts.dev).toBeDefined();
-    expect(pkg.scripts.dev).toMatch(/bun\s+--watch/);
+    expect(pkg.scripts.dev).toMatch(/bun\s+(?:--watch|run\s+scripts\/dev\.ts)/);
     expect(pkg.scripts.dev).not.toMatch(/docker(?:-compose)?\s+(?:up|run|exec)\s+(?:api|server)/);
   });
 
