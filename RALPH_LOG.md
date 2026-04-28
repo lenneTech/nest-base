@@ -517,5 +517,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: MCP-Server-Modul (`@modelcontextprotocol/sdk`)
 - Tests: `tests/stories/mcp-server.story.test.ts` rot (Modul fehlt) → grün (16 Tests; construction-validation, registerTool/registerResource happy + duplicate + missing-name/uri/handler, listTools/listResources, getTool, invokeTool dispatch + unknown-tool + Zod-input-validation, server getter)
 - Coverage: src/core 95.78/88.68/97.39/97.27, src/modules 0/0
-- Commits: 37fc7ec (test red) · 7c56efa (feat green) · <log>
+- Commits: 37fc7ec (test red) · 7c56efa (feat green) · f3496ca (log)
 - Blocker: none. SDK 1.29.0 installiert; Decorator-Auto-Discovery und OAuth-aware Transport folgen als eigene Slices.
+
+## Iteration 64 · 2026-04-28T19:51:00Z
+- Phase: 6 (Email + 2FA + Passkey + MCP, Slice 7)
+- Slice: `@McpTool`/`@McpResource`-Decorators + Auto-Discovery
+- Tests: `tests/stories/mcp-decorators.story.test.ts` rot (Modul fehlt) → grün (13 Tests; @McpTool-Metadata, @McpResource-Metadata, undecorated returns undefined, single tool/resource, instance-bound this, mehrere Tools+Resources auf einer Klasse, no-op auf undecorated, Object.prototype-Skip, Aggregation über mehrere Instanzen, Duplicate-Error-Propagation)
+- Coverage: src/core 95.73/88.61/97.44/97.31, src/modules 0/0
+- Commits: 12b56e8 (test red) · 55b9aa9 (feat green) · <log>
+- Blocker: none. Decorators nutzen reflect-metadata (gleiche Mechanik wie @Can()/CanGuard); Handler werden via `.bind(instance)` an die Instanz gebunden, sodass Service-`this` beim Invoke weiter funktioniert.
