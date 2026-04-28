@@ -453,5 +453,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Realtime-Service (Postgres LISTEN-Connection)
 - Tests: `tests/stories/realtime-service.story.test.ts` rot (Modul fehlt) → grün (9 Tests; subscribe-publish loopback, channel-isolation, unsubscribe handle, sibling-runs-despite-throw, publish-before-start, subscribe-before-start, transport contract, cross-instance NOTIFY)
 - Coverage: src/core 95.62/87.89/97.34/97.03, src/modules 0/0
-- Commits: 1622b3c (test red) · 6ff151a (feat green) · <log>
+- Commits: 1622b3c (test red) · 6ff151a (feat green) · 5e72699 (log)
 - Blocker: none. Postgres-Transport folgt im Realtime-Module-Wiring; In-Memory-Transport mirrort die Postgres-NOTIFY-Loopback-Semantik.
+
+## Iteration 56 · 2026-04-28T19:28:00Z
+- Phase: 5 (Realtime/Search/Webhooks, Slice 9)
+- Slice: Socket.IO-Gateway + Auth-Handshake + Room-Subscriptions
+- Tests: `tests/stories/socket-gateway.story.test.ts` rot (Modul fehlt) → grün (12 Tests; handshake empty/unknown token rejection, valid session resolution, subscribe allow/deny via canSubscribeToChannel, tenant-scoped conditions, unsubscribe, dispatch emits to joined sockets only)
+- Coverage: src/core 95.67/87.98/97.39/97.06, src/modules 0/0
+- Commits: c8af21e (test red) · d4df23c (feat green) · <log>
+- Blocker: none. Socket.IO-Library-Binding folgt im Realtime-Module-Wiring; Tests bleiben über FakeSocket/FakeServer-Stubs frei vom Netzlayer.
