@@ -1,0 +1,73 @@
+// Geo schema (PLAN.md §15.3 + §32 Phase 5c).
+//
+// Loaded by `bun run prepare:schema` only when `features.geo.enabled === true`.
+// Depends on the PostGIS extension migration shipping first
+// (prisma/migrations/*postgis*) — without it, the `Unsupported("geometry(...)")`
+// columns fail to migrate.
+//
+// Three models:
+//   - Address           geocoded address with structured fields + PostGIS Point.
+//                       Address-PII fields (street, zip) are encrypted at the
+//                       application layer (features.fieldEncryption); the audit
+//                       log replaces them with `[encrypted]` automatically.
+//   - Geofence          named region (Polygon) for delivery zones / service areas.
+//   - GeocodingCache    upstream-API result memoisation. Keyed by
+//                       (provider, queryHash) so different providers don't
+//                       cross-contaminate.
+
+model Address {
+  id                String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  // Structured address fields (encrypted-at-rest where applicable).
+  street            String
+  zip               String
+  city              String
+  country           String                                       // ISO 3166-1 alpha-2 (DE, AT, US, ...)
+  state             String?                                      // Bundesland / region
+  // Geocoding provenance.
+  formattedAddress  String?
+  location          Unsupported("geometry(Point, 4326)")?
+  geocodingProvider String?                                      // 'mapbox' / 'nominatim' / ...
+  geocodedAt        DateTime?
+  metadata          Json?                                        // place_id, components, accuracy, …
+  // Tenant + ownership.
+  tenantId          String?  @db.Uuid
+  ownedBy           String?  @db.Uuid
+  // Audit.
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([country, zip])
+  @@index([tenantId])
+  @@map("addresses")
+}
+
+model Geofence {
+  id          String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  name        String
+  description String?
+  area        Unsupported("geometry(Polygon, 4326)")
+  category    String?                                            // 'delivery_zone', 'service_area', ...
+  tenantId    String?  @db.Uuid
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([category])
+  @@map("geofences")
+}
+
+model GeocodingCache {
+  id         String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  provider   String                                              // 'mapbox' / 'nominatim' / 'google' / 'local'
+  queryHash  String                                              // sha256 of normalised query string
+  // The full response payload as the provider returned it; downstream code
+  // re-parses based on `provider` so a cache miss + hit produce the same shape.
+  payload    Json
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  @@unique([provider, queryHash])
+  @@index([expiresAt])
+  @@map("geocoding_cache")
+}
