@@ -557,5 +557,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Template-Sync-Skript `bun run sync:from-template`
 - Tests: `tests/stories/sync-from-template.story.test.ts` rot (Modul fehlt) → grün (10 Tests; create/update/skip/delete-Buckets, src/modules/ unangetastet, non-core-Pfade in local ignoriert, ProtectedPathTouchedError für non-core-Pfade im template-Snapshot, Summary-Counts, mixed-pass, deterministische alphabetische Reihenfolge)
 - Coverage: src/core 95.96/88.90/97.55/97.47, src/modules 0/0
-- Commits: f8452c4 (test red) · 94a2c3e (feat green) · <log>
+- Commits: f8452c4 (test red) · 94a2c3e (feat green) · 484afbb (log)
 - Blocker: none. Pure-Planner; Defense-in-Depth via ProtectedPathTouchedError verhindert, dass ein kompromittiertes Template-Snapshot Schreibzugriffe in `src/modules/` schmuggelt.
+
+## Iteration 69 · 2026-04-28T20:05:00Z
+- Phase: 7 (Reliability, Template-Tooling & Polish, Slice 4)
+- Slice: Core-PR-Workflow `bun run sync:to-template`
+- Tests: `tests/stories/sync-to-template.story.test.ts` rot (Modul fehlt) → grün (10 Tests; add-Bucket für lokale-only Dateien, modify-Bucket mit unified-diff body, skip bei equal content, remove für template-only Dateien, non-core Pfade ignoriert auf local-Seite, ProtectedPathTouchedError für non-core in templateCore, Summary-Counts, mixed Pass, alphabetisch deterministisch, renderUnifiedPatch konkateniert mit `diff --git a/<path> b/<path>` Header)
+- Coverage: src/core 96.04/89.01/97.57/97.52, src/modules 0/0
+- Commits: f44ac37 (test red) · d3b6e44 (feat green) · <log>
+- Blocker: none. Pure-Planner mit minimalem Eigenbau-Unified-Diff-Renderer (kein `diff`-npm-Paket); `git apply --check`-konform. CLI-Runner (Klone Template-Repo, Schreibe core-pr.patch) ist eigene Hilfsskript-Slice.
