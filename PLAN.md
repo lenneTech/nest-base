@@ -3756,7 +3756,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] **Permission-Tester** UI (`/admin/permissions/test`)
 - [x] **Webhook-Inspector** (Delivery-Log + Re-Deliver)
 - [x] **Realtime-Inspector** (Active Sockets + Live-Stream)
-- [ ] **Audit-Browser** (Filter + Diff-Anzeige)
+- [x] **Audit-Browser** (Filter + Diff-Anzeige)
 - [ ] **Search-Tester** (FTS-Probier-UI)
 - [ ] **Diagnostik-Endpoint** `/dev/diagnostics`
 - [ ] **`.vscode/` Defaults** (Extensions, Launch-Configs, Tasks)
