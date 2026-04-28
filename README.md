@@ -9,8 +9,8 @@ Gedacht als Starter für `lt fullstack init` und als Sync-Quelle für `src/core/
 |---|---|
 | Runtime | Bun 1.x (Fallback: Node 22) |
 | Framework | NestJS 11 |
-| ORM | Prisma 6 |
-| DB | Postgres 17 |
+| ORM | Prisma 7 (driver-adapter) |
+| DB | Postgres 18 |
 | Auth | Better-Auth |
 | Validation | Zod 4 + nestjs-zod |
 | Tests | Vitest + Supertest |
@@ -25,7 +25,16 @@ Gedacht als Starter für `lt fullstack init` und als Sync-Quelle für `src/core/
 | Local-Dev-Routing | portless |
 | License | MIT |
 
-Vollständige Spec: [`PLAN.md`](./PLAN.md).
+Vollständige Spec: [`PLAN.md`](./PLAN.md). AI-Agent-Guide:
+[`CLAUDE.md`](./CLAUDE.md).
+
+## Status
+
+Alle Pflicht-Phasen + Optional-Phase 6 (Email/2FA/Passkey/MCP) sind
+abgeschlossen — siehe [`RALPH_LOG.md`](./RALPH_LOG.md). Test-Suite:
+1012 Tests in 106 Files, Coverage ≥ 96 % auf `src/core/`. Optional-
+Phasen 5b (PowerSync) und 5c (Geo) sind per `RALPH_DIRECTIVES.md`
+deaktiviert; jedes Projekt kann sie nachschalten.
 
 ## Quickstart
 
@@ -79,6 +88,12 @@ bun run test:coverage  # Coverage-Report
 ```
 
 Coverage-Gates: `src/core/` ≥ 90 %, `src/modules/` ≥ 80 %.
+
+Workflow-Disziplin (Red-Green-Refactor) ist in
+[`CLAUDE.md`](./CLAUDE.md) und der `running-tdd-slice` Skill
+beschrieben. Pre-built Agents für häufige Tasks liegen in
+[`.claude/agents/`](./.claude/agents/), Skills in
+[`.claude/skills/`](./.claude/skills/).
 
 ## Template-Sync
 
