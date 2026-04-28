@@ -3685,7 +3685,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] **Test-First (Stories):** `file.e2e-spec.ts`, `tus-upload.story.test.ts`, `tus-file-type-validation.spec.ts` — vor jeder Implementation
 - [x] Storage-Adapter-Interface
 - [x] S3-Adapter (RustFS-getestet)
-- [ ] Local-Adapter
+- [x] Local-Adapter
 - [ ] Postgres-Adapter (Large Objects + `FileBlob`-Modell + RLS)
 - [ ] File/Folder Models + CRUD-Endpoints
 - [ ] Multipart-Upload + TUS
