@@ -3662,7 +3662,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] **Test-First (Stories):** Adaptierte `better-auth-*.story.test.ts` (api, integration, plugins, jwt-middleware, rate-limit, email-verification), `auth-parallel-operation.e2e-spec.ts`, `auth-scenarios.e2e-spec.ts`, `user-enumeration-prevention.e2e-spec.ts`, `multi-tenancy.e2e-spec.ts`, `tenant-guard.e2e-spec.ts` — vor jeder Implementation
 - [x] Better-Auth Integration (Email/PW, Session, JWT)
 - [x] System-Setup (Initial-Admin)
-- [ ] Tenant-Interceptor + RLS-Setup
+- [x] Tenant-Interceptor + RLS-Setup
 - [ ] Tenant-Member-CRUD
 - [ ] Scoped API-Keys (CRUD, argon2id-Hash, Scopes, Rotation)
 - [ ] Repository-Pattern als Standard etablieren
