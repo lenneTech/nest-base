@@ -423,3 +423,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 95.81/88.35/97.39/97.09 (Schema-Slice — keine neuen TS-Sourcen), src/modules 0/0
 - Commits: 1dcea82 (test red) · c921560 (feat green) · <log>
 - Blocker: none
+
+## Iteration 52 · 2026-04-28T19:13:00Z
+- Phase: 5 (Realtime/Search/Webhooks, Slice 5)
+- Slice: Webhook-Dispatcher (HMAC-SHA256, Retries, Auto-Disable)
+- Tests: `tests/stories/webhook-dispatcher.story.test.ts` rot (Modul fehlt) → grün (7 Tests; signed POST + verifyable signature, delivered+reset, 5xx+failure-count, auto-disable threshold, skip-disabled, missing-endpoint throws, thrown-HTTP-error treated as failure)
+- Coverage: src/core 95.89/88.36/97.42/97.15, src/modules 0/0
+- Commits: 923f53a (test red) · a531161 (feat green) · <log>
+- Blocker: none. Glue-Slice — verbindet HMAC + Retry-Policy + Endpoint-Auto-Disable aus Iteration 48.
