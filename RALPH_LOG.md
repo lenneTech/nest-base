@@ -629,5 +629,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Webhook-Inspector (Delivery-Log + Re-Deliver)
 - Tests: `tests/stories/webhook-inspector-ui.story.test.ts` rot (Modul fehlt) → grün (17 Tests; Document-Chrome, Empty-State, List-Render mit data-status="FAILED" Hook, Attempt-Count, Error-Message, Redeliver-Form per row + optional CSRF, Status-Filter mit selected, XSS-Escape auf endpointId/eventType/errorMessage/CSRF, Order-Preservation)
 - Coverage: src/core 96.22/89.25/97.66/97.64, src/modules 0/0
-- Commits: c83f052 (test red) · a4cefe3 (feat green) · <log>
+- Commits: c83f052 (test red) · a4cefe3 (feat green) · 118aa90 (log)
 - Blocker: none. Pure HTML-Renderer mit eigenem `DeliveryListEntry`-Read-Model (nicht an `DeliveryRecord` gekoppelt — unterschiedliche Anforderungen Persistenz vs. Anzeige).
+
+## Iteration 78 · 2026-04-28T21:10:00Z
+- Phase: 8 (Developer Experience, Slice 6)
+- Slice: Realtime-Inspector (Active Sockets + Live-Stream)
+- Tests: `tests/stories/realtime-inspector-ui.story.test.ts` rot (Modul fehlt) → grün (14 Tests; Document-Chrome inkl. opt-in meta-refresh, Active-Sockets-Tabelle mit Count-Badge + per-row data-socket-id-Hook + Channels-Liste, Recent-Events-Tabelle mit Order-Preservation, XSS-Escape inkl. payloadPreview im `<pre>`)
+- Coverage: src/core 96.25/89.23/97.69/97.66, src/modules 0/0
+- Commits: 550a055 (test red) · 9792a31 (feat green) · <log>
+- Blocker: none. Read-Only heute; Disconnect-Action ist eigene Slice, Hook bereits gelegt.
