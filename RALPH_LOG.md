@@ -327,3 +327,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 96.00/88.12/97.92/97.22, src/modules 0/0
 - Commits: <red 3 files> · <green 3 modules> · <log>
 - Blocker: none. Tests ratifizieren die Contracts; @tus/server v3 Binding folgt mit Storage-Adapter.
+
+## Iteration 40 · 2026-04-28T18:40:00Z
+- Phase: 4 (Files, Slice 2)
+- Slice: Storage-Adapter-Interface
+- Tests: `tests/stories/storage-adapter.story.test.ts` rot (Modul fehlt) → grün (13 Tests; put/get/exists/delete/signUrl/list, NotFound-Errors, TTL-Validation, Empty-Key-Reject, Sort-Order)
+- Coverage: src/core 96.09/88.32/97.98/97.28, src/modules 0/0
+- Commits: e78a4ca (test red) · 911000d (feat green) · <log>
+- Blocker: none. InMemory-Adapter ist die Referenz — S3/Local/Postgres-Adapter folgen in eigenen Slices und werden durch dieselben Tests pinned.
