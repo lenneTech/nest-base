@@ -34,10 +34,14 @@ export function buildAbility(rules: AbilityRule[]): Ability {
   const builder = new AbilityBuilder<Ability>(PureAbility);
   for (const rule of rules) {
     const cmd = rule.inverted ? builder.cannot : builder.can;
+    // CASL rejects empty fields[]. Persisted Permission rows use `[]`
+    // here to mean "no field-level restriction" at this layer; strict
+    // deny-all-fields semantics is reserved for a future slice.
+    const fields = rule.fields && rule.fields.length > 0 ? rule.fields : undefined;
     cmd(
       rule.action as never,
       rule.subject as never,
-      rule.fields as never,
+      fields as never,
       rule.conditions as never,
     );
   }

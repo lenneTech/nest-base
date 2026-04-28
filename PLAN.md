@@ -3672,7 +3672,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Role / Policy / Permission Models
 - [x] CASL Integration (`@casl/ability`, `@casl/prisma`)
 - [x] DB-Rule → CASL-Rule Resolver (mit Variablen-Substitution)
-- [ ] PermissionService.abilityFor() + Cache (LRU, 60s TTL)
+- [x] PermissionService.abilityFor() + Cache (LRU, 60s TTL)
 - [ ] `@Can()` Decorator + Guard, `@Ability()` Param-Decorator
 - [ ] PostgREST-Query-Parser → Prisma-WHERE (kombiniert mit `accessibleBy`)
 - [ ] Output-Pipeline-Interceptor (4-Stage)
