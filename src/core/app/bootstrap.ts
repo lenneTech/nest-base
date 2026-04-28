@@ -5,6 +5,7 @@ import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 
+import { ProblemDetailsExceptionFilter } from '../errors/problem-details.filter.js';
 import { buildSecurityHeadersConfig } from '../http/security-headers.js';
 import { serverConfigFromEnv } from '../server/server-config.js';
 import { AppModule } from './app.module.js';
@@ -35,6 +36,8 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
       ...(security.hsts ? { hsts: security.hsts } : { hsts: false }),
     }),
   );
+
+  app.useGlobalFilters(new ProblemDetailsExceptionFilter());
 
   await app.init();
 
