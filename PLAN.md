@@ -3722,7 +3722,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] GeoJSON-Output-Mapper in Output-Pipeline integrieren (Stage 3a)
 - [x] GeocodingCache + Cleanup-Cron (90 Tage TTL)
 - [x] Field-Encryption-Integration für Adress-PII-Felder (street, zip)
-- [ ] Frontend-SDK-Types für Point/Polygon/FeatureCollection (via OpenAPI)
+- [x] Frontend-SDK-Types für Point/Polygon/FeatureCollection (via OpenAPI)
 
 ### Phase 5b – Mobile-Offline-Sync (PowerSync, optional)
 - [ ] **Test-First (Stories):** Sync-Rules ⊆ READ-Permissions (User sieht nur eigene Buckets), Better-Auth-JWT mit `audience: powersync` + JWKS-Verify, Upload-Controller-Konflikt-Resolution, Encrypted-Fields-Exclusion aus Sync-Buckets, Tenant-Bucket-Isolation — eigene Stories, keine 1:1-Übernahmen aus nest-server (kein PowerSync-Modul dort)
