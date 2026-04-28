@@ -447,3 +447,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 95.94/88.38/97.51/97.24, src/modules 0/0
 - Commits: a12fc63 (test red) · f30f65d (feat green) · <log>
 - Blocker: none
+
+## Iteration 55 · 2026-04-28T19:22:00Z
+- Phase: 5 (Realtime/Search/Webhooks, Slice 8)
+- Slice: Realtime-Service (Postgres LISTEN-Connection)
+- Tests: `tests/stories/realtime-service.story.test.ts` rot (Modul fehlt) → grün (9 Tests; subscribe-publish loopback, channel-isolation, unsubscribe handle, sibling-runs-despite-throw, publish-before-start, subscribe-before-start, transport contract, cross-instance NOTIFY)
+- Coverage: src/core 95.62/87.89/97.34/97.03, src/modules 0/0
+- Commits: 1622b3c (test red) · 6ff151a (feat green) · <log>
+- Blocker: none. Postgres-Transport folgt im Realtime-Module-Wiring; In-Memory-Transport mirrort die Postgres-NOTIFY-Loopback-Semantik.
