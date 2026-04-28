@@ -52,3 +52,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Commits: 3a1cbd1 (test red) · <green> (siehe git log) · <log>
 - User-Override: Prisma 7 (statt 6) + Postgres 18 (statt 17), Eintrag in RALPH_DIRECTIVES.md / „Stack-Overrides gegen PLAN.md §33"
 - Blocker: none — vitest test:e2e Glob-Bug (Bash hat `**` nicht expandiert) gefixt durch Substring-Filter
+
+## Iteration 6 · 2026-04-28T16:41:00Z
+- Phase: 1 (Foundation, Slice 6)
+- Slice: ENV-Validation (Zod) + Config-Modul
+- Tests: `tests/stories/config.story.test.ts` rot (Module fehlen) → grün (10 Tests; loadAppConfig + ConfigModule.forRoot DI)
+- Coverage: src/core 96.37/89.83/97.05/96.24 (Stmts/Branch/Funcs/Lines), src/modules 0/0
+- Commits: e764bef (test red) · <green> (siehe git log) · <log>
+- Blocker: none. Wichtige Erkenntnisse: (1) Vitest setzt `process.env.BASE_URL='/'` automatisch → eingeführt `APP_BASE_URL` als kanonische Variable, `BASE_URL` bleibt Sentinel-aware Fallback. (2) `NODE_ENV='test'` wird als `development` normalisiert, damit AppEnv-Union 3-wertig bleibt.
