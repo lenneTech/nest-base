@@ -157,3 +157,12 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Commits: d2bb90b (test red) · <green> · <log>
 - Refactor: zwei duplizierte UUID-v7-Generatoren in test-helper + request-context auf den kanonischen `src/core/uuid/uuid-v7.ts` umgestellt
 - Blocker: none
+
+## Iteration 19 · 2026-04-28T17:32:00Z
+- Phase: 1 (Foundation, Slice 19)
+- Slice: Field-Encryption-Service (AES-256-GCM, KEK aus ENV)
+- Tests: `tests/stories/field-encryption.story.test.ts` rot (Modul fehlt) → grün (15 Tests; Round-Trip, Unicode, Random-IV, Tamper-Detection, Version-Tag, KEK-Rotation, EnvKekProvider)
+- Coverage: src/core 96.35/87.50/97.24/97.56, src/modules 0/0
+- Commits: ba4f502 (test red) · <green> · <log>
+- Fix: flaky uuid-v7 monotonic-Test — verglich vollständige UUID-Strings, was bei selbem-ms wegen Random-Suffix flippte; jetzt vergleicht der Test nur den 48-bit-Timestamp-Prefix.
+- Blocker: none
