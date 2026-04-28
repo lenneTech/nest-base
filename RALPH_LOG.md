@@ -140,3 +140,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 96.30/87.12/97.00/97.62 (unverändert), src/modules 0/0
 - Commits: 813ab90 (test red) · <green> · <log>
 - Blocker: none
+
+## Iteration 17 · 2026-04-28T17:26:00Z
+- Phase: 1 (Foundation, Slice 17)
+- Slice: Prisma-Schema v1 (User, Tenant, Role) mit @@map/@map snake_case
+- Tests: `tests/unit/prisma-schema.spec.ts` rot (Models fehlen) → grün (11 Tests; User/Tenant/Role Strukturen, snake_case-Mapping, FK-Relations, unique-Constraints, DateTime-Mapping-Convention)
+- Coverage: src/core 96.30/87.12/97.00/97.62 (unverändert — Schema-Änderung ohne neue TS-Sourcen), src/modules 0/0
+- Commits: 5a82c58 (test red) · <green> · <log>
+- Blocker: none
