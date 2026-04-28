@@ -3731,7 +3731,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] PowerSync Service in Docker-Compose
 - [x] `sync-rules.yaml` mit User/Tenant-Buckets
 - [x] Better-Auth JWT-Plugin: `audience: powersync` + JWKS-Endpoint
-- [ ] PowerSync-Upload-Controller (`POST /powersync/crud`)
+- [x] PowerSync-Upload-Controller (`POST /powersync/crud`)
 - [ ] Konflikt-Resolution-Hook in BaseRepository
 - [ ] Encrypted-Fields explizit aus Sync-Rules ausschließen
 - [ ] React-Native Demo-Client + Upload-Backend-Test
