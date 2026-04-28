@@ -1,0 +1,42 @@
+{
+  "name": "nest-server-template",
+  "version": "0.0.0",
+  "description": "Template-fähiger NestJS-Server (Bun + Prisma + Postgres + Better-Auth)",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "bun": ">=1.1.0"
+  },
+  "scripts": {
+    "dev": "bun --watch src/main.ts",
+    "build": "bun build ./src/main.ts --target=bun --outdir=./dist",
+    "lint": "oxlint src tests",
+    "lint:fix": "oxlint --fix src tests",
+    "format": "oxfmt --check src tests",
+    "format:fix": "oxfmt src tests",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run tests/unit",
+    "test:e2e": "vitest run tests/**/*.e2e-spec.ts tests/stories",
+    "test:types": "tsc -p tests/types/tsconfig.json --noEmit",
+    "test:coverage": "vitest run --coverage",
+    "test:perf": "k6 run tests/k6/memory-test.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate deploy",
+    "prepare:schema": "bun run scripts/prepare-schema.ts",
+    "setup": "bun run scripts/setup-wizard.ts",
+    "sync:from-template": "bun run scripts/sync-from-template.ts",
+    "sync:to-template": "bun run scripts/sync-to-template.ts",
+    "sdk:generate": "kubb generate"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "oxfmt": "^0.1.0",
+    "oxlint": "^0.15.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0",
+    "@vitest/coverage-v8": "^2.1.0"
+  },
+  "dependencies": {}
+}

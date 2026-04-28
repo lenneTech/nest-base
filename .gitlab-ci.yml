@@ -1,0 +1,106 @@
+# GitLab CI Pipeline for nest-server-template
+# Stages: lint → test → audit → build
+# NOTE: This template is NOT a deployable app — no container build, no signing, no deploy.
+# Consumer projects build their own images (see PLAN.md §28.10/#29).
+
+stages:
+  - lint
+  - test
+  - audit
+  - build
+
+default:
+  image: oven/bun:1.1
+  cache:
+    key:
+      files:
+        - bun.lockb
+    paths:
+      - node_modules/
+  before_script:
+    - bun install --frozen-lockfile
+
+# ---------- Lint ----------
+lint:
+  stage: lint
+  script:
+    - bun run lint
+    - bun run format
+
+# ---------- Tests ----------
+test:unit:
+  stage: test
+  script:
+    - bun run test:unit
+
+test:e2e:
+  stage: test
+  services:
+    - name: postgres:17-alpine
+      alias: postgres
+  variables:
+    POSTGRES_USER: test
+    POSTGRES_PASSWORD: test
+    POSTGRES_DB: test
+    DATABASE_URL: 'postgresql://test:test@postgres:5432/test'
+  script:
+    - bun run test:e2e
+  coverage: '/Lines\s*:\s*([\d.]+)%/'
+  artifacts:
+    when: always
+    reports:
+      junit: reports/junit.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: reports/coverage/cobertura-coverage.xml
+
+test:types:
+  stage: test
+  script:
+    - bun run test:types
+
+test:coverage:
+  stage: test
+  services:
+    - name: postgres:17-alpine
+      alias: postgres
+  variables:
+    POSTGRES_USER: test
+    POSTGRES_PASSWORD: test
+    POSTGRES_DB: test
+    DATABASE_URL: 'postgresql://test:test@postgres:5432/test'
+  script:
+    - bun run test:coverage
+  artifacts:
+    when: always
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: reports/coverage/cobertura-coverage.xml
+
+test:performance:
+  stage: test
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_TAG'
+  image: grafana/k6:latest
+  before_script: []
+  script:
+    - k6 run tests/k6/memory-test.js
+  allow_failure: true
+
+# ---------- Audit ----------
+audit:dependencies:
+  stage: audit
+  script:
+    - bun audit
+  allow_failure: true
+
+# ---------- Build ----------
+build:
+  stage: build
+  script:
+    - bun run build
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 week

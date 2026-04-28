@@ -1,0 +1,19 @@
+# portless local dev routing
+# https://github.com/vercel-labs/portless
+#
+# Each service is exposed under <service>.<project>.localhost with auto-HTTPS via mkcert.
+# `bun run dev` starts portless implicitly; if portless is unavailable, the server
+# falls back to a dynamically assigned port so devs without portless are not blocked.
+
+project: nst
+
+services:
+  api:
+    target: 'http://localhost:3000'
+    public: 'api.nst.localhost'
+  mailpit:
+    target: 'http://localhost:8025'
+    public: 'mail.nst.localhost'
+  rustfs:
+    target: 'http://localhost:9001'
+    public: 's3.nst.localhost'

@@ -1,0 +1,63 @@
+# Docker Compose for local dev dependencies only.
+# The server itself runs natively via `bun --watch` (NOT in Docker).
+# See PLAN.md §28.10/#29.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: nst-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app}
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-app} -d ${POSTGRES_DB:-app}']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: nst-rustfs
+    restart: unless-stopped
+    environment:
+      RUSTFS_ROOT_USER: ${S3_ACCESS_KEY:-rustfs}
+      RUSTFS_ROOT_PASSWORD: ${S3_SECRET_KEY:-rustfs-secret}
+    ports:
+      - '9000:9000' # S3 API
+      - '9001:9001' # Web UI
+    volumes:
+      - rustfs_data:/data
+    command: ['server', '/data', '--console-address', ':9001']
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: nst-mailpit
+    restart: unless-stopped
+    ports:
+      - '1025:1025' # SMTP
+      - '8025:8025' # Web UI
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: nst-otel
+    restart: unless-stopped
+    command: ['--config=/etc/otel-config.yaml']
+    volumes:
+      - ./docker/otel-config.yaml:/etc/otel-config.yaml:ro
+    ports:
+      - '4317:4317' # OTLP gRPC
+      - '4318:4318' # OTLP HTTP
+
+volumes:
+  postgres_data:
+  rustfs_data:

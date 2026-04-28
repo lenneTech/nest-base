@@ -1,0 +1,40 @@
+# Dockerfile.example — Reference template for consumer projects.
+# This file is NOT built in CI and NOT published as an image.
+# Consumer projects copy / adapt this file in their own repo.
+# See PLAN.md §28.10/#29.
+
+# ---------- Stage 1: install dependencies ----------
+FROM oven/bun:1.1 AS deps
+WORKDIR /app
+COPY package.json bun.lockb* ./
+RUN bun install --frozen-lockfile --production
+
+# ---------- Stage 2: build ----------
+FROM oven/bun:1.1 AS build
+WORKDIR /app
+COPY package.json bun.lockb* ./
+RUN bun install --frozen-lockfile
+COPY . .
+RUN bun run build
+
+# ---------- Stage 3: runtime ----------
+FROM oven/bun:1.1-alpine AS runtime
+WORKDIR /app
+
+# non-root user
+RUN addgroup -S app && adduser -S app -G app
+
+ENV NODE_ENV=production
+ENV PORT=3000
+
+COPY --from=deps --chown=app:app /app/node_modules ./node_modules
+COPY --from=build --chown=app:app /app/dist ./dist
+COPY --chown=app:app package.json ./
+
+USER app
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD bun --eval "fetch('http://localhost:3000/health/live').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+
+CMD ["bun", "run", "dist/main.js"]

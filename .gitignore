@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+bun.lockb.local
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Generated artifacts
+generated/
+prisma/generated/
+schema.prisma.merged
+
+# Coverage / test reports
+coverage/
+reports/
+.vitest-reports/
+
+# Environment
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/settings.json
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+bun-debug.log*
+
+# Cache directories
+.cache/
+.turbo/
+.parcel-cache/
+
+# Claude / Ralph local files
+.claude/ralph-loop.local.md
+
+# OS-specific
+Thumbs.db
