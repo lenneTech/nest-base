@@ -733,5 +733,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: GDPR-Endpoints (`/me/export`, `/me/account`, Anonymisierung)
 - Tests: `tests/stories/gdpr.story.test.ts` rot (Modul fehlt) → grün (13 Tests; export-Envelope kind/version/exportedAt + user verbatim + relatedResources, hard-delete-Op, anonymise mit hash/null/mask-Strategien, Determinismus per userId, no-collision, mode-Validation, leere userId/piiFields-Footgun)
 - Coverage: src/core 96.42/89.50/97.75/97.79, src/modules 0/0
-- Commits: d48223f (test red) · 5afdbeb (feat green) · <log>
+- Commits: d48223f (test red) · 5afdbeb (feat green) · 743d262 (log)
 - Blocker: none. Anonymise-Hash ist deterministisch per userId (idempotent + re-identifikationssicher), Email-Spezialfall gibt `anon-...@anonymous.invalid` für Email-Uniqueness-Constraints.
+
+## Iteration 91 · 2026-04-28T21:46:00Z
+- Phase: 8 (Developer Experience, Slice 19)
+- Slice: Audit-Log-Extension (mit Encryption-Awareness)
+- Tests: `tests/stories/audit-log-extension.story.test.ts` rot (Modul fehlt) → grün (15 Tests; Envelope-Shape, ISO-Timestamp, unknown-action-Rejection, create-only-after / delete-only-before / update-both, Encryption-Maskierung in beiden Halves + bei einseitig-vorhandenen Feldern + No-Op bei leerer encryptedFields-Liste, Determinismus)
+- Coverage: src/core 96.45/89.59/97.76/97.81, src/modules 0/0
+- Commits: 6161ae7 (test red) · 3bfa52a (feat green) · <log>
+- Blocker: none. `[encrypted]`-Placeholder in `before`+`after`; Klartext lebt nur in der verschlüsselten Spalte der Source-Tabelle, nie im Audit-Log.
