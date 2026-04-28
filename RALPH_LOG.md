@@ -407,3 +407,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 95.75/88.39/97.36/97.05, src/modules 0/0
 - Commits: 279a69d (test red) · 63d76ca (feat green) · <log>
 - Blocker: none. pg-boss-Bindung folgt im Storage-Module-Wiring; Surface ist identisch.
+
+## Iteration 50 · 2026-04-28T19:08:00Z
+- Phase: 5 (Realtime/Search/Webhooks, Slice 3)
+- Slice: Outbox-Pattern (Events)
+- Tests: `tests/stories/outbox-worker.story.test.ts` rot (Modul fehlt) → grün (6 Tests; runOnce dispatch-fanout, mark-processed nur bei All-OK, sibling continues despite one failure, failed entry retries on next tick, batchSize, empty-batch returns 0)
+- Coverage: src/core 95.81/88.35/97.39/97.09, src/modules 0/0
+- Commits: 878a422 (test red) · f40ff21 (feat green) · <log>
+- Blocker: none. At-least-once Delivery — Dispatcher müssen idempotent sein.
