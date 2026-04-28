@@ -3749,7 +3749,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Dokumentation: Template-Update-Workflow, Pro-Projekt-Customization-Guide, Core-Contribution-Guide (PR-zurück-Workflow)
 
 ### Phase 8 – Developer Experience (parallel ab Phase 3, finalisieren in Sprint 13)
-- [ ] **Test-First (Stories):** Idempotency-Key (Cache-Hit/Miss), ETag/If-Match (Optimistic-Concurrency), Cursor-Pagination, Throttler (Multi-Window, Postgres-Store), GDPR-Endpoints (Export, Delete, Anonymize), Audit-Log (Create/Update/Delete-Tracking)
+- [x] **Test-First (Stories):** Idempotency-Key (Cache-Hit/Miss), ETag/If-Match (Optimistic-Concurrency), Cursor-Pagination, Throttler (Multi-Window, Postgres-Store), GDPR-Endpoints (Export, Delete, Anonymize), Audit-Log (Create/Update/Delete-Tracking)
 - [x] **Scalar** als API-UI (statt Swagger UI) — `@scalar/nestjs-api-reference`
 - [x] **NestJS DevTools** Integration (`@nestjs/devtools-integration` + Snapshot-Mode)
 - [x] **Dev-Hub** Landing-Page `/dev` mit Auto-Discovery aktiver Tools
