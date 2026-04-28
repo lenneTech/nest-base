@@ -3764,7 +3764,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] **SDK-Generation** (`bun run sdk:generate` via kubb)
 - [x] Idempotency-Key Interceptor + Tabelle
 - [x] ETag / If-Match Optimistic-Concurrency-Pipe
-- [ ] Cursor-Pagination zusätzlich zu page/limit
+- [x] Cursor-Pagination zusätzlich zu page/limit
 - [ ] `@nestjs/throttler` mit Postgres-Store, Multi-Window
 - [ ] Per-API-Key Rate-Limit-Bucket
 - [ ] GDPR-Endpoints (`/me/export`, `/me/account`, Anonymisierung)
