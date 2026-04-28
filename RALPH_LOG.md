@@ -27,3 +27,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 100/100/100/100 (Stmts/Branch/Funcs/Lines), src/modules 0/0
 - Commits: 935d248 (test red) · 8f32190 (feat green)
 - Blocker: none — HTTP-/Auth-Wrap der TestHelper kommt in späteren Slices wenn Nest + Better-Auth landen
+
+## Iteration 3 · 2026-04-28T16:20:00Z
+- Phase: 1 (Foundation, Slice 3)
+- Slice: Coverage-Gate (≥ 90 % auf src/core/, ≥ 80 % auf src/modules/) in .gitlab-ci.yml
+- Tests: `tests/unit/coverage-gate.spec.ts` rot (Modul fehlt) → grün (6 Tests grün, thresholds + GitLab-CI-Wiring + Vitest-Wiring verifiziert)
+- Coverage: src/core 100/100/100/100, src/modules 0/0
+- Commits: c882657 (test red) · 717d61e (feat green)
+- Blocker: none
