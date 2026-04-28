@@ -3664,7 +3664,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] System-Setup (Initial-Admin)
 - [x] Tenant-Interceptor + RLS-Setup
 - [x] Tenant-Member-CRUD
-- [ ] Scoped API-Keys (CRUD, argon2id-Hash, Scopes, Rotation)
+- [x] Scoped API-Keys (CRUD, argon2id-Hash, Scopes, Rotation)
 - [ ] Repository-Pattern als Standard etablieren
 
 ### Phase 3 – Permissions & Output-Pipeline (Sprint 5-6)

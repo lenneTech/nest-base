@@ -35,6 +35,9 @@ describe('Story · Scoped API-Keys', () => {
         records.push(record);
         return record;
       },
+      async findById(id) {
+        return records.find((r) => r.id === id) ?? null;
+      },
       async findByLookupId(lookupId) {
         return records.find((r) => r.lookupId === lookupId) ?? null;
       },
@@ -51,6 +54,12 @@ describe('Story · Scoped API-Keys', () => {
         const idx = records.findIndex((r) => r.id === id);
         if (idx < 0) return;
         records[idx] = { ...records[idx]!, lastUsedAt: at };
+      },
+      async rotate(id, lookupId, hash) {
+        const idx = records.findIndex((r) => r.id === id);
+        if (idx < 0) return null;
+        records[idx] = { ...records[idx]!, lookupId, hash };
+        return records[idx]!;
       },
     };
   }

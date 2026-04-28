@@ -70,8 +70,26 @@ model User {
 
   tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   memberships TenantMember[]
+  apiKeys     ApiKey[]
 
   @@map("users")
+}
+
+model ApiKey {
+  id         String    @id @default(uuid()) @db.Uuid
+  lookupId   String    @unique @map("lookup_id") @db.Uuid
+  hash       String
+  name       String
+  scopes     String[]
+  userId     String    @map("user_id") @db.Uuid
+  expiresAt  DateTime? @map("expires_at")
+  lastUsedAt DateTime? @map("last_used_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
 }
 
 model Role {
