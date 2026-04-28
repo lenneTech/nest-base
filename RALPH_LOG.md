@@ -375,3 +375,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 96.04/88.66/97.99/97.28, src/modules 0/0
 - Commits: 0218e73 (test red) · 198cf63 (feat green) · <log>
 - Blocker: none. Bytes-Sink (Chunk → StorageAdapter) bleibt Controller-Verantwortung; diese Slice liefert die State-Maschine.
+
+## Iteration 46 · 2026-04-28T18:56:00Z
+- Phase: 4 (Files, Slice 8)
+- Slice: Asset-Endpoint mit Transformations + Cache (sharp)
+- Tests: `tests/stories/asset-transform.story.test.ts` rot (Modul fehlt) → grün (8 Tests; computeCacheKey deterministic + key-order-invariant + assets/-Prefix, deliver origin→transform→cache, second-call cache-hit, different-options different cache, missing origin throws, empty-options pass-through)
+- Coverage: src/core 95.77/88.04/97.73/97.01, src/modules 0/0
+- Commits: ef9551a (test red) · 334c96b (feat green) · <log>
+- Blocker: none. Sharp-Binding (SharpTransformer) folgt im File-Module-Wiring; Service ist via injectable AssetTransformer-Interface unabhängig.
