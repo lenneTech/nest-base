@@ -469,5 +469,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Permission-Aware Channel-Filter
 - Tests: `tests/stories/channel-filter.story.test.ts` rot (Modul fehlt) → grün (12 Tests; register idempotent, unregister single/ghost, unregisterAll across channels, broadcast allow/deny by tenant/ownerId, no-cross-channel leak, empty channel no-op, subject-type isolation, malformed channel rejection)
 - Coverage: src/core 95.68/87.97/97.42/97.11, src/modules 0/0
-- Commits: 62c08b9 (test red) · 7f6cd61 (feat green) · <log>
+- Commits: 62c08b9 (test red) · 7f6cd61 (feat green) · 9d968b3 (log)
 - Blocker: none. Phase 5 (Realtime/Search/Webhooks) Pflicht-Slices vollständig abgehakt; Phase 5b (Mobile-Offline-Sync) und Phase 5c (Geo) sind als Optional in `RALPH_DIRECTIVES.md` hinterlegt — der Loop springt jetzt zu Phase 6 (User-Toggles) bzw. zur nächsten aktiven Pflicht-Phase.
+
+## Iteration 58 · 2026-04-28T19:33:00Z
+- Phase: 6 (Email + 2FA + Passkey + MCP, Slice 1 — `optional_phases.6_email_2fa_mcp: true`)
+- Slice: Email-Service (Nodemailer + Brevo)
+- Tests: `tests/stories/email-service.story.test.ts` rot (Modul fehlt) → grün (13 Tests; send() default-from + explicit-from + dev-whitelist + rate-limit + driver-error; sendTemplate() EJS-renderer-path + Brevo-template-id-routing + transactional-driver-missing + default-locale + rate-limit-record)
+- Coverage: src/core 95.67/88.04/97.49/97.19, src/modules 0/0
+- Commits: 5414aea (test red) · 1f5117c (feat green) · <log>
+- Blocker: none. Renderer und Driver-Implementierungen (NodemailerDriver, BrevoDriver) folgen als eigene Slices; Service ist driver-agnostisch und testbar mit FakeDriver/FakeRenderer.
