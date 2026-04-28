@@ -581,5 +581,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Test-First (Phase 6) — Audit-Story für Email-Service, 2FA, Passkey, MCP-OAuth
 - Tests: `tests/stories/phase-6-test-first-audit.story.test.ts` neu (5 Tests; 4 surface-Audits + count-drift-Schutz, alle direkt grün — die zugrundeliegenden Stories wurden in It. 58–65 als Red-vor-Impl entwickelt und sind hier nur als Regression-Guard fixiert)
 - Coverage: src/core 96.04/89.01/97.57/97.52, src/modules 0/0
-- Commits: d1f8893 (audit + checkbox) · <log>
+- Commits: d1f8893 (audit + checkbox) · d2a5458 (log)
 - Blocker: none. Audit ist Regression-Guard, nicht TDD-red→green — die Stories existierten bereits (in It. 58–65 jeweils red→green), der Audit pinnt jetzt den Contract gegen Rename/Delete.
+
+## Iteration 72 · 2026-04-28T20:13:00Z
+- Phase: 7 (Test-First-Audit, Slice 6 — Phase-Abschluss-Bookkeeping)
+- Slice: Test-First (Phase 7) — Audit-Story für Setup-Wizard, Schema-Concat, sync:from-template, sync:to-template
+- Tests: `tests/stories/phase-7-test-first-audit.story.test.ts` neu (5 Tests; 4 surface-Audits + count-drift-Schutz, alle direkt grün — die zugrundeliegenden Stories wurden in It. 66–69 als Red-vor-Impl entwickelt und sind hier nur als Regression-Guard fixiert)
+- Coverage: src/core 96.04/89.01/97.57/97.52, src/modules 0/0
+- Commits: 54839c4 (audit + checkbox) · <log>
+- Blocker: none. Phase 7 vollständig abgehakt. Verbleibend: Phase 8 (DX) mit ~26 Boxes — beginnt mit Test-First-Audit (sobald Sub-Stories da sind) und Scalar API-UI als ersten konkreten Slice.
