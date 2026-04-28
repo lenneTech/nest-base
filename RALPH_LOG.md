@@ -693,5 +693,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Idempotency-Key Interceptor + Tabelle
 - Tests: `tests/stories/idempotency.story.test.ts` rot (Modul fehlt) → grün (13 Tests; computeRequestHash sha256 + method/path/body-sensitivity, runOrCache Cache-Miss/Hit-replayed/Hit-Conflict/Expired-Refresh/Thrown-no-cache, expiresAt = now+ttlMs, userId-Forwarding)
 - Coverage: src/core 96.29/89.18/97.66/97.74, src/modules 0/0
-- Commits: bc5753d (test red) · 8cf9693 (feat green) · <log>
+- Commits: bc5753d (test red) · 8cf9693 (feat green) · c124e1a (log)
 - Blocker: none. Pure Service-Layer; NestJS-Interceptor + Prisma-Adapter (IdempotencyKey-Tabelle) sind eigene Sub-Slices, hier nur die Logik gepinnt.
+
+## Iteration 86 · 2026-04-28T21:33:00Z
+- Phase: 8 (Developer Experience, Slice 14)
+- Slice: ETag / If-Match Optimistic-Concurrency-Pipe
+- Tests: `tests/stories/etag.story.test.ts` rot (Modul fehlt) → grün (18 Tests; computeETag deterministisch + sensitive auf version/updatedAt + version-im-Tag, parseIfMatch single/comma/whitespace/wildcard/empty, verifyIfMatch exact-match/one-of-many/wildcard/missing-throws/mismatch-throws/weak-tag-rejected/currentETag-on-error)
+- Coverage: src/core 96.33/89.30/97.69/97.76, src/modules 0/0
+- Commits: 9cd8122 (test red) · 2f64863 (feat green) · <log>
+- Blocker: none. Pure-Funktionen; NestJS-Pipe ruft `verifyIfMatch()` und mappt `ETagMissingError`→428 + `ETagPreconditionFailedError`→412 mit currentETag-Echo (eigene Sub-Slice).
