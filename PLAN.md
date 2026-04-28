@@ -3663,7 +3663,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Better-Auth Integration (Email/PW, Session, JWT)
 - [x] System-Setup (Initial-Admin)
 - [x] Tenant-Interceptor + RLS-Setup
-- [ ] Tenant-Member-CRUD
+- [x] Tenant-Member-CRUD
 - [ ] Scoped API-Keys (CRUD, argon2id-Hash, Scopes, Rotation)
 - [ ] Repository-Pattern als Standard etablieren
 
