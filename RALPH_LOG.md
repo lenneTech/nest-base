@@ -222,3 +222,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 95.91/86.37/97.63/97.50, src/modules 0/0
 - Commits: 7f7a3de (test red) · b8c5f55 (feat green) · <log>
 - Blocker: none. Tenant-Scoping-Hook wird in späterer Slice plugged in (sobald Prisma-Extension `SET app.tenant_id` stempelt).
+
+## Iteration 27 · 2026-04-28T18:05:00Z
+- Phase: 3 (Permissions & Output-Pipeline, Slice 1) **— Phase 3 startet**
+- Slice: Test-First Stories (permissions-report, safety-net.spec/e2e, remove-secrets, pagination-metadata, map-and-validate.pipe)
+- Tests: 6 Test-Files rot (5 Module fehlten) → grün (34 neue Tests; permission-report, safety-net mask/throw + nested/array, removeSecrets normalize-key, pagination meta inkl. hasNext/hasPrev, ZodValidationPipe pass/fail/strip)
+- Coverage: src/core 96.19/87.36/97.83/97.58, src/modules 0/0
+- Commits: <red 6 files> · <green 5 modules> · <log>
+- Blocker: none
