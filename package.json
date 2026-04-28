@@ -51,6 +51,7 @@
     "@better-auth/passkey": "^1.6.9",
     "@casl/ability": "^6.8.1",
     "@casl/prisma": "^1.6.2",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@nestjs/common": "^11.1.19",
     "@nestjs/core": "^11.1.19",
     "@nestjs/platform-express": "^11.1.19",
