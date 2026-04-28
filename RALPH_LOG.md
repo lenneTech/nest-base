@@ -148,3 +148,12 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 96.30/87.12/97.00/97.62 (unverändert — Schema-Änderung ohne neue TS-Sourcen), src/modules 0/0
 - Commits: 5a82c58 (test red) · <green> · <log>
 - Blocker: none
+
+## Iteration 18 · 2026-04-28T17:30:00Z
+- Phase: 1 (Foundation, Slice 18)
+- Slice: UUID v7 Setup (Postgres-Extension pg_uuidv7)
+- Tests: `tests/unit/uuid-v7.spec.ts` rot (Modul + Migration fehlten) → grün (9 Tests; Generator-Format, Eindeutigkeit, Timestamp-Encoding, Monotonie, isUuidV7, Migration-File mit `CREATE EXTENSION IF NOT EXISTS pg_uuidv7`)
+- Coverage: src/core 96.19/87.12/97.02/97.55, src/modules 0/0
+- Commits: d2bb90b (test red) · <green> · <log>
+- Refactor: zwei duplizierte UUID-v7-Generatoren in test-helper + request-context auf den kanonischen `src/core/uuid/uuid-v7.ts` umgestellt
+- Blocker: none
