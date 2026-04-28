@@ -263,3 +263,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Commits: 8c49e6e (test red) · 6d31c59 (feat green) · <log>
 - Open Question: `Permission.fields = []` Semantik — derzeit als "keine Field-Restriktion" interpretiert (CASL-Limitation), strenge "deny all"-Semantik in späterer Slice via Output-Pipeline-Stage 2.
 - Blocker: none
+
+## Iteration 32 · 2026-04-28T18:19:00Z
+- Phase: 3 (Permissions & Output-Pipeline, Slice 6)
+- Slice: @Can() Decorator + Guard, @Ability() Param-Decorator
+- Tests: `tests/stories/can-guard.story.test.ts` rot (Modul fehlt) → grün (5 Tests; @Can-Metadata, allow/deny, no-metadata-pass-through, no-ability-throws)
+- Coverage: src/core 95.80/87.23/97.53/97.08, src/modules 0/0
+- Commits: 950b136 (test red) · ea81990 (feat green) · <log>
+- Blocker: none
