@@ -573,5 +573,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Dokumentation: Template-Update-Workflow, Pro-Projekt-Customization-Guide, Core-Contribution-Guide
 - Tests: `tests/stories/template-docs.story.test.ts` rot (13 fehlende Sektionen) → grün (13 Tests; sync:from-template-Doku, src/core vs src/modules-Boundary, Bucket-Vokabular, prepare:schema-Hinweis, FeaturesSchema-Pointer, Resource-Anlage-Pattern, sync:to-template-Doku, core-pr.patch-Artefakt, add/modify/skip/remove-Buckets, Upstream-Template-Hinweis, README-Cross-Links)
 - Coverage: src/core 96.04/89.01/97.57/97.52, src/modules 0/0
-- Commits: 8a63fb7 (test red) · 47a8832 (feat green) · <log>
+- Commits: 8a63fb7 (test red) · 47a8832 (feat green) · 4d6b7f5 (log)
 - Blocker: none. Phase 7 (Reliability, Template-Tooling & Polish) vollständig abgehakt. Verbleibend: Phase 8 (DX) mit ~26 Boxes (Scalar UI, NestJS DevTools, Dev-Hub, Permission-Tester UI, Webhook-Inspector, Realtime-Inspector, Audit-Browser, Search-Tester, Diagnostik-Endpoint, .vscode, onboard-Skript, kubb SDK, Idempotency, ETag, Cursor-Pagination, Throttler, GDPR, Audit-Log, Error-Code-Registry, OpenAPI-Doku, CI-Pipeline, k6, Docs).
+
+## Iteration 71 · 2026-04-28T20:11:00Z
+- Phase: 6 (Test-First-Audit, Slice 9 — Phase-Abschluss-Bookkeeping)
+- Slice: Test-First (Phase 6) — Audit-Story für Email-Service, 2FA, Passkey, MCP-OAuth
+- Tests: `tests/stories/phase-6-test-first-audit.story.test.ts` neu (5 Tests; 4 surface-Audits + count-drift-Schutz, alle direkt grün — die zugrundeliegenden Stories wurden in It. 58–65 als Red-vor-Impl entwickelt und sind hier nur als Regression-Guard fixiert)
+- Coverage: src/core 96.04/89.01/97.57/97.52, src/modules 0/0
+- Commits: d1f8893 (audit + checkbox) · <log>
+- Blocker: none. Audit ist Regression-Guard, nicht TDD-red→green — die Stories existierten bereits (in It. 58–65 jeweils red→green), der Audit pinnt jetzt den Contract gegen Rename/Delete.
