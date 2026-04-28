@@ -69,7 +69,7 @@ describe('Story · PowerSync service in docker-compose', () => {
     const volumes = c.services.powersync?.volumes ?? [];
     expect(volumes.some((v) => v.includes('sync-rules.yaml'))).toBe(true);
     // Read-only suffix is required so the container can't mutate the rules.
-    expect(volumes.some((v) => v.includes('sync-rules.yaml') && /:ro$/.test(v))).toBe(true);
+    expect(volumes.some((v) => v.includes('sync-rules.yaml') && v.endsWith(':ro'))).toBe(true);
   });
 
   it('passes the powersync database connection via env (DSN with the dedicated role)', () => {

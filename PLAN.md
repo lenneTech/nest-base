@@ -3728,7 +3728,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [ ] **Test-First (Stories):** Sync-Rules ⊆ READ-Permissions (User sieht nur eigene Buckets), Better-Auth-JWT mit `audience: powersync` + JWKS-Verify, Upload-Controller-Konflikt-Resolution, Encrypted-Fields-Exclusion aus Sync-Buckets, Tenant-Bucket-Isolation — eigene Stories, keine 1:1-Übernahmen aus nest-server (kein PowerSync-Modul dort)
 - [x] Postgres logical replication aktivieren (`wal_level = logical`)
 - [x] Replication-Role + Publication für PowerSync
-- [ ] PowerSync Service in Docker-Compose
+- [x] PowerSync Service in Docker-Compose
 - [ ] `sync-rules.yaml` mit User/Tenant-Buckets
 - [ ] Better-Auth JWT-Plugin: `audience: powersync` + JWKS-Endpoint
 - [ ] PowerSync-Upload-Controller (`POST /powersync/crud`)

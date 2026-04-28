@@ -34,6 +34,28 @@ services:
       timeout: 3s
       retries: 5
 
+  powersync:
+    # PowerSync sync engine (PLAN.md §15.5 + Phase 5b). Pulls the WAL from
+    # Postgres, applies sync-rules.yaml, exposes WebSocket+HTTP for clients.
+    image: journeyapps/powersync-service:latest
+    container_name: nst-powersync
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POWERSYNC_DATABASE_URI: postgresql://powersync:${POWERSYNC_DB_PASSWORD:-change-me-at-runtime}@postgres:5432/${POSTGRES_DB:-app}
+      POWERSYNC_PORT: '8080'
+      # Better-Auth exposes JWKS at /.well-known/jwks (see Phase 5b-5).
+      # The host.docker.internal host lets the container reach the bun-watched
+      # API running on the docker host (not inside compose).
+      POWERSYNC_JWKS_URL: ${POWERSYNC_JWKS_URL:-http://host.docker.internal:3000/.well-known/jwks}
+      POWERSYNC_JWT_AUDIENCE: powersync
+    ports:
+      - '8080:8080'
+    volumes:
+      - ./docker/powersync/sync-rules.yaml:/config/sync-rules.yaml:ro
+
   rustfs:
     image: rustfs/rustfs:latest
     container_name: nst-rustfs
