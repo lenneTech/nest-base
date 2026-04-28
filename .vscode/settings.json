@@ -1,0 +1,20 @@
+{
+  // The template uses oxlint/oxfmt — disable ESLint and Prettier so the
+  // two stacks don't fight on save.
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "always"
+  },
+  "eslint.enable": false,
+  "prettier.enable": false,
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "search.exclude": {
+    "**/dist": true,
+    "**/coverage": true,
+    "**/node_modules": true
+  },
+  "typescript.tsdk": "node_modules/typescript/lib"
+}

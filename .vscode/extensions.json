@@ -1,0 +1,11 @@
+{
+  // Recommended extensions for the template. VSCode will offer to install
+  // them in bulk the first time the workspace is opened.
+  "recommendations": [
+    "oxc.oxc-vscode",
+    "Prisma.prisma",
+    "vitest.explorer",
+    "redhat.vscode-yaml",
+    "EditorConfig.EditorConfig"
+  ]
+}

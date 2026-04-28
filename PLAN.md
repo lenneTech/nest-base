@@ -3759,7 +3759,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] **Audit-Browser** (Filter + Diff-Anzeige)
 - [x] **Search-Tester** (FTS-Probier-UI)
 - [x] **Diagnostik-Endpoint** `/dev/diagnostics`
-- [ ] **`.vscode/` Defaults** (Extensions, Launch-Configs, Tasks)
+- [x] **`.vscode/` Defaults** (Extensions, Launch-Configs, Tasks)
 - [ ] **`bun run onboard`** Skript für neue Entwickler
 - [ ] **SDK-Generation** (`bun run sdk:generate` via kubb)
 - [ ] Idempotency-Key Interceptor + Tabelle
