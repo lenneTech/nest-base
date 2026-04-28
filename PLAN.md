@@ -3700,7 +3700,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Webhook-Dispatcher (HMAC-SHA256, Retries, Auto-Disable)
 - [x] Search: `Searchable`-Decorator + Migration-Generator (tsvector + GIN)
 - [x] Cross-Resource-Search-Endpoint
-- [ ] Realtime-Service (Postgres LISTEN-Connection)
+- [x] Realtime-Service (Postgres LISTEN-Connection)
 - [ ] Socket.IO-Gateway + Auth-Handshake + Room-Subscriptions
 - [ ] Permission-Aware Channel-Filter
 
