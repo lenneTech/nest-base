@@ -3762,7 +3762,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] **`.vscode/` Defaults** (Extensions, Launch-Configs, Tasks)
 - [x] **`bun run onboard`** Skript für neue Entwickler
 - [x] **SDK-Generation** (`bun run sdk:generate` via kubb)
-- [ ] Idempotency-Key Interceptor + Tabelle
+- [x] Idempotency-Key Interceptor + Tabelle
 - [ ] ETag / If-Match Optimistic-Concurrency-Pipe
 - [ ] Cursor-Pagination zusätzlich zu page/limit
 - [ ] `@nestjs/throttler` mit Postgres-Store, Multi-Window
