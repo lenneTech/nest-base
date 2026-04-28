@@ -3671,7 +3671,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] **Test-First (Stories):** `permissions-report.e2e-spec.ts`, `safety-net.spec.ts` + `safety-net.e2e-spec.ts`, `remove-secrets.spec.ts`, `pagination-metadata.story.test.ts`, `map-and-validate.pipe.e2e-spec.ts` — vor jeder Implementation
 - [x] Role / Policy / Permission Models
 - [x] CASL Integration (`@casl/ability`, `@casl/prisma`)
-- [ ] DB-Rule → CASL-Rule Resolver (mit Variablen-Substitution)
+- [x] DB-Rule → CASL-Rule Resolver (mit Variablen-Substitution)
 - [ ] PermissionService.abilityFor() + Cache (LRU, 60s TTL)
 - [ ] `@Can()` Decorator + Guard, `@Ability()` Param-Decorator
 - [ ] PostgREST-Query-Parser → Prisma-WHERE (kombiniert mit `accessibleBy`)
