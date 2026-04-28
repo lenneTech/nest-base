@@ -2,6 +2,8 @@
 # The server itself runs natively via `bun --watch` (NOT in Docker).
 # See PLAN.md §28.10/#29.
 
+name: nst
+
 services:
   postgres:
     image: postgres:18-alpine
@@ -61,3 +63,8 @@ services:
 volumes:
   postgres_data:
   rustfs_data:
+
+networks:
+  default:
+    name: nst-dev
+    driver: bridge

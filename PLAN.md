@@ -3651,7 +3651,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Health-Check (Liveness + Readiness)
 - [x] RFC 7807 Problem-Details Exception-Filter
 - [x] `Dockerfile.example` als Template-Referenz für Konsumenten (Multi-Stage Bun, non-root) — wird **nicht** in CI gebaut
-- [ ] Docker-Compose-Setup nur für Projekt-Dependencies (Postgres + RustFS + Mailpit + OTel-Collector); der Server selbst läuft nativ über `bun --watch`
+- [x] Docker-Compose-Setup nur für Projekt-Dependencies (Postgres + RustFS + Mailpit + OTel-Collector); der Server selbst läuft nativ über `bun --watch`
 - [ ] [portless](https://github.com/vercel-labs/portless) integriert: `portless.yml` mit `<service>.<project>.localhost`-Routing, Auto-HTTPS (mkcert), `bun run dev` startet portless implizit; Fallback auf dynamischen Port wenn portless fehlt
 - [ ] Repo-Layout: `src/core/` (Template-Owned, Sync-Target) + `src/modules/` (Projekt-Owned) + `src/shared/` (gemeinsame Types)
 - [ ] Prisma-Schema v1 (User, Tenant, Role) mit `@@map`/`@map` snake_case
