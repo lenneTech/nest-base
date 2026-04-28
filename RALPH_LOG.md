@@ -311,3 +311,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 95.87/87.54/97.83/97.07, src/modules 0/0
 - Commits: a4c25d8 (test red) · 6db7b19 (feat green) · <log>
 - Blocker: none. CRUD-Surfaces für Role/Policy/Permission decken sich mit dem BaseRepository-Pattern aus Iteration 26 — diese Slice fügt nur den fehlenden Test-Endpunkt-Service hinzu.
+
+## Iteration 38 · 2026-04-28T18:35:00Z
+- Phase: 3 (Permissions & Output-Pipeline, Slice 12) **— Phase 3 abgeschlossen**
+- Slice: Soft-Delete Prisma-Extension (inkl. RESTORE/HARD_DELETE Actions)
+- Tests: `tests/stories/soft-delete-extension.story.test.ts` rot (Modul fehlt) → grün (8 Tests; addSoftDeleteFilter (no-where, AND-merge, includeDeleted-opt-out, no-mutation), convertDeleteToSoftDelete, convertRestoreToUpdate, isHardDeleteRequest)
+- Coverage: src/core 95.90/87.68/97.87/97.09, src/modules 0/0
+- Commits: db8b87b (test red) · 95449e1 (feat green) · <log>
+- Blocker: none. Reine Helper getestet — die Prisma-Client-Extension-Bindung ist eine dünne Shell und kommt zusammen mit dem PrismaService-Wiring.
