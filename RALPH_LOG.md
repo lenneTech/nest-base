@@ -807,3 +807,20 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 95.91/88.86/97.44/97.30 — über Threshold (≥ 90%)
 - Commits: c9a88f3..6de343e (22 atomare Commits), HEAD=6de343e
 - Blocker: none. Phase 5c ist vollständig abgehakt in PLAN.md (alle Boxen [x]). Done-Check (alle Pflicht-Phasen [x] + Phase 5c als optional [x] mit Direktive=true) erfordert noch Phase 5b.
+
+## Iteration 100 · 2026-04-28T23:17:00Z (Phase 5b — PowerSync Mobile-Offline-Sync, 10 Slices) — DONE
+- Phase: 5b (Mobile-Offline-Sync, optional, features.powerSync)
+- Slices: 5b-1..5b-10 — Postgres logical replication (wal_level=logical), Replication-Role + Publication, PowerSync Service in docker-compose, sync-rules.yaml mit User/Tenant-Buckets, Better-Auth JWT plugin (audience: powersync) + JWKS metadata, /powersync/crud Upload-Controller (Zod-Validator + Endpoint-Metadata), Konflikt-Resolution-Planner (last-write-wins + protected-fields), Encrypted-Fields-Exclusion + Sync-Rules-Audit, Demo-Client + In-Memory-Upload-Backend Round-Trip, Phase-5b Test-First-Audit
+- Tests: 20 commits (red→green pro Slice), Story-Files unter tests/stories/{powersync-logical-replication,powersync-replication-role,powersync-service-compose,powersync-sync-rules,powersync-jwt-plugin,powersync-upload-controller,powersync-conflict-resolution,powersync-encrypted-exclusion,powersync-demo-client-upload,phase-5b-test-first-audit}.story.test.ts — 127 Story-Files, 1181 Tests grün
+- Coverage: src/core 96.00/88.82/97.51/97.39 — über Threshold (≥ 90%)
+- Commits: 1d8e312..89e65ca (20 atomare Commits + diese Log-Zeile)
+- Blocker: none. Phase 5b ist vollständig abgehakt in PLAN.md.
+
+### Done-Check (2026-04-28T23:17:00Z)
+- **Pflicht-Phasen 1, 2, 3, 4, 5, 7, 8:** alle [x]
+- **Optional-Phasen mit Direktive=true (5b, 5c, 6):** alle [x]
+- **PLAN.md unchecked boxes:** 0 (von 118 gesamt)
+- **Quality-Gates auf HEAD (89e65ca):** lint=0/0, e2e=1181 ✓, unit=134 ✓, types ✓, build ✓, coverage 96.0% statements / 97.39% lines (Threshold ≥ 90%)
+- **OPEN_QUESTIONS.md:** keine offenen Punkte (nur „Beantwortet"-Sektion)
+
+→ `<promise>RALPH-PROJECT-COMPLETE</promise>`
