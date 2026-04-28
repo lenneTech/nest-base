@@ -3646,7 +3646,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] ENV-Validation (Zod) + Config-Modul
 - [x] Feature-Flag-System (`features.ts` + Conditional-Imports + Validierung von Abhängigkeiten)
 - [x] Logger (Pino) + OpenTelemetry-Integration
-- [ ] Helmet + CSP-Middleware
+- [x] Helmet + CSP-Middleware
 - [ ] Request-Context-Middleware (W3C Trace Context)
 - [ ] Health-Check (Liveness + Readiness)
 - [ ] RFC 7807 Problem-Details Exception-Filter

@@ -2,7 +2,10 @@ import 'reflect-metadata';
 
 import type { INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
+import helmet from 'helmet';
 
+import { buildSecurityHeadersConfig } from '../http/security-headers.js';
 import { serverConfigFromEnv } from '../server/server-config.js';
 import { AppModule } from './app.module.js';
 
@@ -21,11 +24,21 @@ export interface BootstrapOptions {
 export async function bootstrap(options: BootstrapOptions = {}): Promise<INestApplication> {
   const { listen = true } = options;
 
-  const app = await NestFactory.create(AppModule, { logger: false });
+  const cfg = serverConfigFromEnv(process.env);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { logger: false });
+  app.disable('x-powered-by');
+
+  const security = buildSecurityHeadersConfig(cfg.env);
+  app.use(
+    helmet({
+      contentSecurityPolicy: security.contentSecurityPolicy,
+      ...(security.hsts ? { hsts: security.hsts } : { hsts: false }),
+    }),
+  );
+
   await app.init();
 
   if (listen) {
-    const cfg = serverConfigFromEnv(process.env);
     await app.listen(cfg.port, cfg.host);
   }
 
