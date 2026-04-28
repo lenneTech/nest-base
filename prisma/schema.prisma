@@ -1,9 +1,8 @@
 // Prisma 7 schema for nest-server-template.
 //
 // Connection URL lives in `prisma.config.ts` (Prisma 7 moved it out of
-// the schema). The `_HealthPing` stub model exists so `prisma generate`
-// has something to target until real domain models land in later slices
-// (Phase 1: User/Tenant/Role).
+// the schema). All tables and columns are snake_case (`@@map` / `@map`)
+// to match Postgres convention; TS-side properties stay camelCase.
 
 generator client {
   provider = "prisma-client-js"
@@ -14,9 +13,50 @@ datasource db {
   provider = "postgresql"
 }
 
+// ---------- Diagnostic ----------
+
 model HealthPing {
   id        String   @id @default(uuid()) @db.Uuid
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("_health_ping")
+}
+
+// ---------- Domain v1 ----------
+
+model Tenant {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users User[]
+  roles Role[]
+
+  @@map("tenants")
+}
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  tenantId  String   @map("tenant_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("users")
+}
+
+model Role {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  tenantId  String   @map("tenant_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, name])
+  @@map("roles")
 }
