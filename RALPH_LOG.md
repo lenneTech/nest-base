@@ -319,3 +319,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 95.90/87.68/97.87/97.09, src/modules 0/0
 - Commits: db8b87b (test red) · 95449e1 (feat green) · <log>
 - Blocker: none. Reine Helper getestet — die Prisma-Client-Extension-Bindung ist eine dünne Shell und kommt zusammen mit dem PrismaService-Wiring.
+
+## Iteration 39 · 2026-04-28T18:38:00Z
+- Phase: 4 (Files, Slice 1) **— Phase 4 startet**
+- Slice: Test-First Stories (file.e2e-spec, tus-upload.story.test, tus-file-type-validation.spec)
+- Tests: 3 Test-Files rot (3 Module fehlten) → grün (24 neue Tests; FileMetadataSchema, formatFileSize, TusUploadConfig + Defaults + Mount-Path-Resolver, isMimeTypeAllowed exact/group-wildcard/full-wildcard, FileTypeRejectedError)
+- Coverage: src/core 96.00/88.12/97.92/97.22, src/modules 0/0
+- Commits: <red 3 files> · <green 3 modules> · <log>
+- Blocker: none. Tests ratifizieren die Contracts; @tus/server v3 Binding folgt mit Storage-Adapter.
