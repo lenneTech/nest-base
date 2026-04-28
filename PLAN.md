@@ -3647,7 +3647,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Feature-Flag-System (`features.ts` + Conditional-Imports + Validierung von Abhängigkeiten)
 - [x] Logger (Pino) + OpenTelemetry-Integration
 - [x] Helmet + CSP-Middleware
-- [ ] Request-Context-Middleware (W3C Trace Context)
+- [x] Request-Context-Middleware (W3C Trace Context)
 - [ ] Health-Check (Liveness + Readiness)
 - [ ] RFC 7807 Problem-Details Exception-Filter
 - [ ] `Dockerfile.example` als Template-Referenz für Konsumenten (Multi-Stage Bun, non-root) — wird **nicht** in CI gebaut
