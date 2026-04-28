@@ -7,8 +7,8 @@ hier wirken auf die nächste Iteration ohne Neustart.
 
 ```yaml
 optional_phases:
-  5b_powersync: false   # Mobile-Offline-Sync (PowerSync)
-  5c_geo: false         # PostGIS / Standortdaten
+  5b_powersync: true    # Mobile-Offline-Sync (PowerSync)
+  5c_geo: true          # PostGIS / Standortdaten
   6_email_2fa_mcp: true # Email + 2FA + Passkey + MCP
 ```
 
