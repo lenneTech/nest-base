@@ -717,5 +717,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: `@nestjs/throttler` mit Postgres-Store, Multi-Window
 - Tests: `tests/stories/throttler-postgres-store.story.test.ts` rot (Modul fehlt) → grün (11 Tests; PostgresThrottlerStore first-hit/in-window-increment/post-window-reset/isBlocked-flag/per-key-isolation, ThrottlerService.consume allowed-when-under-limits/blocked-on-any-window/first-violating-reported/per-key-isolation/empty-windows-rejected)
 - Coverage: src/core 96.36/89.40/97.72/97.76, src/modules 0/0
-- Commits: 415c73c (test red) · 13de7cb (feat green) · <log>
+- Commits: 415c73c (test red) · 13de7cb (feat green) · 4290d92 (log)
 - Blocker: none. PostgresThrottlerStore ist `@nestjs/throttler`-kompatibel; SQL-Backend ist thin INSERT…ON CONFLICT…RETURNING über `(key,count,expires_at)`-Tabelle (eigene Persistenz-Slice).
+
+## Iteration 89 · 2026-04-28T21:41:00Z
+- Phase: 8 (Developer Experience, Slice 17)
+- Slice: Per-API-Key Rate-Limit-Bucket
+- Tests: `tests/stories/throttle-bucket-key.story.test.ts` rot (Modul fehlt) → grün (12 Tests; identity-priority apiKey>user>ip + Missing-Error, Route-Participation method+path, Method-Upper-Case, deterministisch, Shape colon-separated mit Tier-Prefix)
+- Coverage: src/core 96.38/89.45/97.74/97.77, src/modules 0/0
+- Commits: 2f17402 (test red) · 71f06bc (feat green) · <log>
+- Blocker: none. Bucket-Builder pickt EINEN Tier, mischt nicht — sonst könnte Angreifer Bucket via API-Key+IP-Wechsel verdünnen.
