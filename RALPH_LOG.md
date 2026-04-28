@@ -669,5 +669,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: `.vscode/` Defaults (Extensions, Launch-Configs, Tasks, Settings)
 - Tests: `tests/stories/vscode-defaults.story.test.ts` rot (10 fehlende JSONC-Dateien) → grün (10 Tests; extensions.json mit oxc/Prisma/Vitest, launch.json mit zwei configs, tasks.json mit Lint/Test/Build/Coverage durchgehend bun-routed, settings.json mit oxc default-formatter + ESLint/Prettier disabled)
 - Coverage: src/core 96.29/89.08/97.78/97.71, src/modules 0/0
-- Commits: 33be1b4 (test red) · c6572c2 (feat green) · <log>
+- Commits: 33be1b4 (test red) · c6572c2 (feat green) · 9d2b1f5 (log)
 - Blocker: none. JSONC-Parser im Test strippt Line- und Block-Comments vor JSON.parse, sodass Comments in den Configs erlaubt bleiben.
+
+## Iteration 83 · 2026-04-28T21:25:00Z
+- Phase: 8 (Developer Experience, Slice 11)
+- Slice: `bun run onboard` Skript für neue Entwickler
+- Tests: `tests/stories/onboard.story.test.ts` rot (Modul fehlt) → grün (15 Tests; Top-Level kind/version, per-step bun/env/postgres/prisma/migrations Status mit Remediation-Hints, blocked vs. warning Severity, summary counts, ok=true wenn keine Blocker, deterministisch, Step-Reihenfolge)
+- Coverage: src/core 96.32/89.07/97.82/97.71, src/modules 0/0
+- Commits: f9a76af (test red) · fde29c8 (feat green) · <log>
+- Blocker: none. Pure-Planner; CLI-Runner sammelt die Inputs (Bun-Version via process.versions.bun, env-Datei via fs, Postgres via pg-Ping, Prisma via fs-Check) und pipet das Ergebnis hier durch.
