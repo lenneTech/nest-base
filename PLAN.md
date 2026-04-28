@@ -3729,7 +3729,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Postgres logical replication aktivieren (`wal_level = logical`)
 - [x] Replication-Role + Publication für PowerSync
 - [x] PowerSync Service in Docker-Compose
-- [ ] `sync-rules.yaml` mit User/Tenant-Buckets
+- [x] `sync-rules.yaml` mit User/Tenant-Buckets
 - [ ] Better-Auth JWT-Plugin: `audience: powersync` + JWKS-Endpoint
 - [ ] PowerSync-Upload-Controller (`POST /powersync/crud`)
 - [ ] Konflikt-Resolution-Hook in BaseRepository

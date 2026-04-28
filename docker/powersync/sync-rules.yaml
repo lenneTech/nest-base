@@ -1,0 +1,33 @@
+# PowerSync sync rules (PLAN.md §15.5 + Phase 5b).
+#
+# Each bucket is the unit of subscription a mobile client mounts. The
+# parameter query resolves a bucket *instance* per token (so userA and
+# userB don't share a "user" bucket); the data queries decide which
+# rows reach that instance.
+#
+# Two security invariants we MUST preserve here:
+#   1. Buckets ⊆ READ-Permissions — the WHERE clauses match what the
+#      backend Permission table allows for that user/tenant.
+#   2. Encrypted columns are excluded explicitly (see Phase 5b-8 — this
+#      file is the enforcement point; the publication is permissive).
+#
+# The tables `audit_log`, `jwks_keys`, and `sessions` are NEVER listed
+# in any data query — they hold either secrets or admin-only history.
+
+bucket_definitions:
+  # Per-user data: the user's own profile + their owned widgets/notes.
+  # parameter: SELECT request.user_id() AS user_id binds the bucket
+  # instance to the JWT `sub` claim.
+  user:
+    parameters: SELECT request.user_id() AS user_id
+    data:
+      - SELECT id, email, name, role FROM users WHERE id = bucket.user_id
+
+  # Per-tenant data: every row scoped to the tenant the JWT carries.
+  # The token plugin emits `tenantId` as a custom claim; PowerSync
+  # exposes it via request.parameters().tenantId.
+  tenant:
+    parameters: SELECT request.parameters() ->> 'tenantId' AS tenant_id
+    data:
+      - SELECT id, name, "createdAt" FROM tenants WHERE id = bucket.tenant_id
+      - SELECT id, "userId", "tenantId", role FROM tenant_members WHERE "tenantId" = bucket.tenant_id
