@@ -3701,7 +3701,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Search: `Searchable`-Decorator + Migration-Generator (tsvector + GIN)
 - [x] Cross-Resource-Search-Endpoint
 - [x] Realtime-Service (Postgres LISTEN-Connection)
-- [ ] Socket.IO-Gateway + Auth-Handshake + Room-Subscriptions
+- [x] Socket.IO-Gateway + Auth-Handshake + Room-Subscriptions
 - [ ] Permission-Aware Channel-Filter
 
 ### Phase 5c – Geo & Standortdaten (PostGIS, optional, nur wenn `features.geo` aktiv)
