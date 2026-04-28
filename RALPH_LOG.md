@@ -501,5 +501,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Passkey-Endpunkte aktivieren
 - Tests: `tests/stories/better-auth-passkey.story.test.ts` rot (Type-Error: passkey-Option fehlt) → grün (6 Tests; default-off, plugin-mounted-when-configured, leerer rpName/rpID rejected, Secret-Length-Invarianten, Koexistenz mit twoFactor)
 - Coverage: src/core 95.79/88.52/97.56/97.27, src/modules 0/0
-- Commits: 485edd7 (test red) · af90eb6 (feat green) · <log>
+- Commits: 485edd7 (test red) · af90eb6 (feat green) · fecb174 (log)
 - Blocker: none. Better-Auth 1.6.9 hat das Passkey-Plugin in `@better-auth/passkey` ausgegliedert (eigenes npm-Paket, version-locked auf 1.6.9). `rpID` wird aus `baseUrl.hostname` abgeleitet (PLAN.md §4.1 "Auto-Detection aus BASE_URL"); `origin` = `baseUrl`.
+
+## Iteration 62 · 2026-04-28T19:46:00Z
+- Phase: 6 (Email + 2FA + Passkey + MCP, Slice 5)
+- Slice: Social-Login-Provider
+- Tests: `tests/stories/better-auth-social.story.test.ts` rot (Type-Error: socialProviders-Option fehlt) → grün (7 Tests; default-off, single-google, all-four-multi, leerer clientId/clientSecret rejected mit provider-bezogener Message, Secret-Length-Invarianten, Koexistenz mit twoFactor + passkey)
+- Coverage: src/core 95.75/88.56/97.56/97.28, src/modules 0/0
+- Commits: e799735 (test red) · bee5c52 (feat green) · <log>
+- Blocker: none. Vier Provider (google · github · apple · discord) typisiert via `SocialProviderId`-Union; weitere Better-Auth-Provider bleiben über direkte Optionen-Passthrough erreichbar, aber außerhalb der Factory-Surface, um den Vertrag klein zu halten.
