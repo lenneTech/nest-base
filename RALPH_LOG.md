@@ -701,5 +701,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: ETag / If-Match Optimistic-Concurrency-Pipe
 - Tests: `tests/stories/etag.story.test.ts` rot (Modul fehlt) → grün (18 Tests; computeETag deterministisch + sensitive auf version/updatedAt + version-im-Tag, parseIfMatch single/comma/whitespace/wildcard/empty, verifyIfMatch exact-match/one-of-many/wildcard/missing-throws/mismatch-throws/weak-tag-rejected/currentETag-on-error)
 - Coverage: src/core 96.33/89.30/97.69/97.76, src/modules 0/0
-- Commits: 9cd8122 (test red) · 2f64863 (feat green) · <log>
+- Commits: 9cd8122 (test red) · 2f64863 (feat green) · ee177b7 (log)
 - Blocker: none. Pure-Funktionen; NestJS-Pipe ruft `verifyIfMatch()` und mappt `ETagMissingError`→428 + `ETagPreconditionFailedError`→412 mit currentETag-Echo (eigene Sub-Slice).
+
+## Iteration 87 · 2026-04-28T21:35:00Z
+- Phase: 8 (Developer Experience, Slice 15)
+- Slice: Cursor-Pagination zusätzlich zu page/limit
+- Tests: `tests/stories/cursor-pagination.story.test.ts` rot (Modul fehlt) → grün (12 Tests; encode/decode round-trip, URL-safe base64url, CursorMalformedError für empty/garbage/missing-fields, numeric+string sortValue, buildCursorPage under/exact/over-limit Off-by-one-Guard, Empty-Input, non-positive-limit Rejection)
+- Coverage: src/core 96.33/89.34/97.70/97.74, src/modules 0/0
+- Commits: 0c48795 (test red) · 257e2ef (feat green) · <log>
+- Blocker: none. Cursor-Payload kompakt (`{s,i}`), opak gegenüber Client; Keyset-Where-Clause im Repository ist eigene Folge-Slice.
