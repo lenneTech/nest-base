@@ -605,5 +605,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: NestJS DevTools Integration (`@nestjs/devtools-integration` + Snapshot-Mode)
 - Tests: `tests/stories/devtools-config.story.test.ts` rot (Modul fehlt) → grün (15 Tests; env-Defaults dev=on/prod=off/test=off, Override beidseitig, Port-Range/Integer-Validation, http-Default true + Override, Snapshot-Default true + off, Unknown-env-Rejection, Fresh-Object pro Call)
 - Coverage: src/core 96.09/89.30/97.59/97.55, src/modules 0/0
-- Commits: 0c08db8 (test red) · 8ce6019 (feat green) · <log>
+- Commits: 0c08db8 (test red) · 8ce6019 (feat green) · 22c921d (log)
 - Blocker: none. @nestjs/devtools-integration 0.2.1 installiert; Live-Mount + NestFactory-snapshot-Flag im Bootstrap-Wiring-Slice.
+
+## Iteration 75 · 2026-04-28T20:21:00Z
+- Phase: 8 (Developer Experience, Slice 3)
+- Slice: Dev-Hub Landing-Page `/dev` mit Auto-Discovery aktiver Tools
+- Tests: `tests/stories/dev-hub.story.test.ts` rot (Modul fehlt) → grün (19 Tests; immer-Scalar/OpenAPI/PermissionTester/ActiveFeatures, DevTools conditional + Port-in-URL, Webhook/Realtime/Search-Inspector feature-gated, Audit-Browser unconditional, 4 Categories api/architecture/data/async, prod/test=empty, deterministisch nach Category dann Label sortiert)
+- Coverage: src/core 96.14/89.27/97.60/97.59, src/modules 0/0
+- Commits: b95763b (test red) · 6a604eb (feat green) · <log>
+- Blocker: none. Pure-Planner; `/dev`-Controller (thin wrapper, HTML render) ist eigene Sub-Slice im Bootstrap-Wiring.
