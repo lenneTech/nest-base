@@ -3736,7 +3736,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] 2FA-Endpunkte aktivieren
 - [x] Passkey-Endpunkte aktivieren
 - [x] Social-Login-Provider
-- [ ] MCP-Server-Modul (`@modelcontextprotocol/sdk`)
+- [x] MCP-Server-Modul (`@modelcontextprotocol/sdk`)
 - [ ] `@McpTool`/`@McpResource`-Decorators + Auto-Discovery
 - [ ] MCP-Auth via Better-Auth-OAuth-Provider (Authorization-Code-Flow + PKCE)
 
