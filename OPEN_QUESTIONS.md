@@ -6,6 +6,8 @@ in `PLAN.md` oder durch eine Klarstellung in `RALPH_DIRECTIVES.md`.
 
 ## Offene Punkte
 
+_Keine offenen Punkte._
+
 <!-- Format pro Eintrag:
 ### YYYY-MM-DD · Phase X · <Slice-Titel>
 - **Kontext:** Was wurde versucht.
@@ -14,19 +16,20 @@ in `PLAN.md` oder durch eine Klarstellung in `RALPH_DIRECTIVES.md`.
 - **Status:** open | answered (Antwort: …)
 -->
 
+## Beantwortet
+
 ### 2026-04-28 · Phase 3 · `Permission.fields = []` Semantik
 
-- **Kontext:** PLAN.md §6.3 dokumentiert: `fields String[]` mit "Null = alle Felder, [] = keine".
-  Unser Schema hat `fields String[]` (non-null Postgres-Array), CASL akzeptiert keine leere
-  `fields`-Liste in einem Rule (`rawRule.fields cannot be an empty array`).
-- **Frage:** Wie soll `fields = []` an der CASL-Schicht behandelt werden? Die wörtliche
-  Lesart "keine Felder lesbar" entspricht "Rule grants nothing" — also könnte die Rule
-  schlicht entfallen. Aber andere Rules für dasselbe Resource könnten dann das Recht
-  geben.
-- **Vermutung:** Aktuell behandelt `buildAbility()` `fields = []` als "keine Field-Level-
-  Restriktion" (alle Felder erlaubt) und überspringt das CASL-`fields`-Argument. Dies
-  ist die laxere Interpretation — nicht streng "deny all fields". Soll im
-  Permission-Pipeline-Stage 2 (Field-Strip) später korrekt umgesetzt werden, sobald die
-  Output-Pipeline-Stages aufgesetzt sind.
-- **Status:** open
-
+- **Kontext:** PLAN.md §6.3 dokumentierte ursprünglich: `fields String[]` mit
+  „Null = alle Felder, [] = keine". Unser Schema hat `fields String[]` (non-null
+  Postgres-Array), CASL akzeptiert keine leere `fields`-Liste in einer Rule
+  (`rawRule.fields cannot be an empty array`).
+- **Frage:** Wie soll `fields = []` an der CASL-Schicht behandelt werden?
+- **Antwort (User-Direktive, 2026-04-28, Option 3):** PLAN.md §6.3 wurde
+  angepasst, sodass `[]` synonym zu „keine Field-Level-Restriction" ist
+  — damit ist die Spec mit der Implementierung konsistent. Rationale: CASL kann
+  leere `fields`-Listen technisch nicht repräsentieren, und mehrere Tests
+  (`permission-service.story.test.ts`, `permission-test-endpoint.story.test.ts`)
+  pinnen die laxe Interpretation. Wer „deny all fields" semantisch braucht,
+  nutzt einen `inverted: true` Rule oder lässt die Rule weg.
+- **Status:** answered.

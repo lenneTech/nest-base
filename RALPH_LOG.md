@@ -789,5 +789,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Test-First (Phase 8) — Audit-Story für Idempotency, ETag, Cursor-Pagination, Throttler, GDPR, Audit-Log
 - Tests: `tests/stories/phase-8-test-first-audit.story.test.ts` neu (7 Tests; 6 surface-Audits + count-drift-Schutz, alle direkt grün — die zugrundeliegenden Stories wurden in It. 85–91 als Red-vor-Impl entwickelt und sind hier als Regression-Guard fixiert)
 - Coverage: src/core 96.50/89.74/97.81/97.85, src/modules 0/0
-- Commits: 43c17a9 (audit + checkbox) · <log>
+- Commits: 43c17a9 (audit + checkbox) · 0b9df19 (log)
 - Blocker: none. Phase 8 vollständig abgehakt. Pflicht-Phasen 1, 2, 3, 4, 5, 7, 8 + Optional-Phase 6 (per directives) = ALLE komplett.
+
+## Iteration 98 · 2026-04-28T22:31:00Z (User-Direktive — Spec-Anpassung)
+- Phase: Übergreifend (Done-Check-Voraussetzung)
+- Slice: PLAN.md §6.3 `Permission.fields=[]` Semantik anpassen + OPEN_QUESTIONS.md schließen
+- Tests: keine neue Story (Spec-Anpassung an existierende Implementierung); 1012 e2e + 134 unit Tests bleiben grün
+- Coverage: src/core 96.50/89.74/97.81/97.85, src/modules 0/0
+- Commits: <pending> (PLAN.md §6.3 + OPEN_QUESTIONS.md update + log)
+- Blocker: none. User wählte Option 3 (Spec an Implementierung angleichen). PLAN.md §6.3 dokumentiert jetzt explizit, dass `[]` synonym zu „keine Field-Level-Restriction" ist; OPEN_QUESTIONS.md hat nur noch eine Beantwortet-Sektion. **Done-Check-Voraussetzungen alle erfüllt** — alle Pflicht-Phasen `[x]`, alle Optional-Phasen mit `true`-Direktive `[x]`, alle Quality-Gates grün, OPEN_QUESTIONS.md ohne offene Punkte.

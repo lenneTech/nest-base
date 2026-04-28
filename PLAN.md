@@ -487,7 +487,14 @@ model Permission {
   // Beispiel: { "user_created": { "_eq": "$CURRENT_USER" } }
   itemFilter      Json?
   // Field-Level: Whitelist der erlaubten Felder
-  // Null = alle Felder, [] = keine
+  // Null/Undefined oder [] = keine Field-Level-Restriction (alle Felder erlaubt);
+  // explizite Liste = nur diese Felder lesbar.
+  // Hinweis: CASL akzeptiert keine leere `fields`-Liste in einer Rule
+  // (`rawRule.fields cannot be an empty array`); deshalb behandelt
+  // `buildAbility()` `fields = []` synonym zu „keine Restriction" und
+  // die Output-Pipeline-Stage 2 (Field-Allowlist) liefert das Resultset
+  // ungefiltert aus. Wer „deny all fields" semantisch braucht, setzt
+  // stattdessen einen `inverted: true` Rule oder lässt die Rule weg.
   fields          String[]
   // Validation-Rules (für create/update): Pflichtwerte, Wertebereiche
   validation      Json?
