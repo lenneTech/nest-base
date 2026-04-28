@@ -749,5 +749,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Error-Code-Registry + i18n-Endpoint
 - Tests: `tests/stories/error-code-registry.story.test.ts` rot (Modul fehlt) → grün (14 Tests; register/get/list mit alphabetisch-deterministisch + duplicate/unknown-code/no-en-rejection, resolve mit locale-Override + en-Fallback + Multi-Placeholder-Substitution + Missing-Var-Verhalten + Detail-Optional + ErrorCodeNotFoundError, listLocales sorted+deduped)
 - Coverage: src/core 96.49/89.72/97.81/97.84, src/modules 0/0
-- Commits: f419699 (test red) · bfe18be (feat green) · <log>
+- Commits: f419699 (test red) · bfe18be (feat green) · 9263122 (log)
 - Blocker: none. Mustache-Placeholder bleibt unsubstituiert wenn Var fehlt — Dev-friendly (sichtbarer Fehlerhinweis statt leerer Slot).
+
+## Iteration 93 · 2026-04-28T21:52:00Z
+- Phase: 8 (Developer Experience, Slice 21)
+- Slice: OpenAPI-Doku komplett (inkl. RFC 7807 Schemas)
+- Tests: `tests/stories/openapi-problem-schemas.story.test.ts` rot (Modul fehlt) → grün (13 Tests; components.schemas + components.responses, ProblemDetails RFC-7807-Shape, integer-status-100-599, code-enum aus coreCodes+appCodes alphabetisch deterministisch + dedupliziert, application/problem+json Content-Type, $ref-Wiederverwendung, code-Regex-Validation)
+- Coverage: src/core 96.50/89.74/97.81/97.85, src/modules 0/0
+- Commits: a1ae19c (test red) · 630780b (feat green) · <log>
+- Blocker: none. Pure-Builder für OpenAPI-Components-Block; Swagger-Boot-Wiring (Module-Setup) ist eigene Folge-Slice.
