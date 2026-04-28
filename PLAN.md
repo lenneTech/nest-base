@@ -3771,7 +3771,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Audit-Log-Extension (mit Encryption-Awareness)
 - [x] Error-Code-Registry + i18n-Endpoint
 - [x] OpenAPI-Doku komplett (inkl. RFC 7807 Schemas)
-- [ ] CI-Pipeline (`.gitlab-ci.yml`: lint, test, audit, build) — **kein** Container-Build, -Signing oder Deploy auf Template-Ebene
+- [x] CI-Pipeline (`.gitlab-ci.yml`: lint, test, audit, build) — **kein** Container-Build, -Signing oder Deploy auf Template-Ebene
 - [ ] Test-Containers-Setup für Integration-Tests (Postgres + RustFS)
 - [ ] Dokumentation für Konsumenten + API-Stability-Promise + Webhook-Spec
 
