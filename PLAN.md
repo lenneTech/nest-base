@@ -3733,7 +3733,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Better-Auth JWT-Plugin: `audience: powersync` + JWKS-Endpoint
 - [x] PowerSync-Upload-Controller (`POST /powersync/crud`)
 - [x] Konflikt-Resolution-Hook in BaseRepository
-- [ ] Encrypted-Fields explizit aus Sync-Rules ausschließen
+- [x] Encrypted-Fields explizit aus Sync-Rules ausschließen
 - [ ] React-Native Demo-Client + Upload-Backend-Test
 
 ### Phase 6 – Email, 2FA, Passkey, MCP (Sprint 11)
