@@ -3726,7 +3726,7 @@ model Setting { id String @id; key String @unique; value Json }
 
 ### Phase 5b – Mobile-Offline-Sync (PowerSync, optional)
 - [ ] **Test-First (Stories):** Sync-Rules ⊆ READ-Permissions (User sieht nur eigene Buckets), Better-Auth-JWT mit `audience: powersync` + JWKS-Verify, Upload-Controller-Konflikt-Resolution, Encrypted-Fields-Exclusion aus Sync-Buckets, Tenant-Bucket-Isolation — eigene Stories, keine 1:1-Übernahmen aus nest-server (kein PowerSync-Modul dort)
-- [ ] Postgres logical replication aktivieren (`wal_level = logical`)
+- [x] Postgres logical replication aktivieren (`wal_level = logical`)
 - [ ] Replication-Role + Publication für PowerSync
 - [ ] PowerSync Service in Docker-Compose
 - [ ] `sync-rules.yaml` mit User/Tenant-Buckets
