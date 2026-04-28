@@ -3765,7 +3765,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Idempotency-Key Interceptor + Tabelle
 - [x] ETag / If-Match Optimistic-Concurrency-Pipe
 - [x] Cursor-Pagination zusätzlich zu page/limit
-- [ ] `@nestjs/throttler` mit Postgres-Store, Multi-Window
+- [x] `@nestjs/throttler` mit Postgres-Store, Multi-Window
 - [ ] Per-API-Key Rate-Limit-Bucket
 - [ ] GDPR-Endpoints (`/me/export`, `/me/account`, Anonymisierung)
 - [ ] Audit-Log-Extension (mit Encryption-Awareness)
