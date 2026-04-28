@@ -254,3 +254,12 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 95.91/86.63/97.93/97.17, src/modules 0/0
 - Commits: 36d23ab (test red) · 10d78bb (feat green) · <log>
 - Blocker: none. _eq wird zur bare value short-form übersetzt damit CASL's field-equality match greift; alle anderen Operatoren bleiben in `{ $op: value }`-Form.
+
+## Iteration 31 · 2026-04-28T18:16:00Z
+- Phase: 3 (Permissions & Output-Pipeline, Slice 5)
+- Slice: PermissionService.abilityFor() + Cache (LRU, 60s TTL)
+- Tests: `tests/stories/permission-service.story.test.ts` rot (Service fehlt) → grün (8 Tests; abilityFor build, Cache-Hit/TTL/Refetch, Multi-Key-Isolation, invalidate(userId, tenantId) und invalidate(userId), LRU-Eviction)
+- Coverage: src/core 95.95/86.99/97.98/97.28, src/modules 0/0
+- Commits: 8c49e6e (test red) · 6d31c59 (feat green) · <log>
+- Open Question: `Permission.fields = []` Semantik — derzeit als "keine Field-Restriktion" interpretiert (CASL-Limitation), strenge "deny all"-Semantik in späterer Slice via Output-Pipeline-Stage 2.
+- Blocker: none
