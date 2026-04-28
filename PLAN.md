@@ -3721,7 +3721,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] REST-Endpunkte (`/geo/*`, `/addresses`, `/geofences`, generisches `/places/nearby`)
 - [x] GeoJSON-Output-Mapper in Output-Pipeline integrieren (Stage 3a)
 - [x] GeocodingCache + Cleanup-Cron (90 Tage TTL)
-- [ ] Field-Encryption-Integration für Adress-PII-Felder (street, zip)
+- [x] Field-Encryption-Integration für Adress-PII-Felder (street, zip)
 - [ ] Frontend-SDK-Types für Point/Polygon/FeatureCollection (via OpenAPI)
 
 ### Phase 5b – Mobile-Offline-Sync (PowerSync, optional)
