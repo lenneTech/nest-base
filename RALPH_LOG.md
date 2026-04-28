@@ -132,3 +132,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 96.30/87.12/97.00/97.62, src/modules 0/0
 - Commits: e62d2d0 (test red) · <green> · <log>
 - Blocker: none — `bun run dev` startet portless implizit wenn vorhanden, fällt sonst auf Port 0 (dynamisch) zurück
+
+## Iteration 16 · 2026-04-28T17:24:00Z
+- Phase: 1 (Foundation, Slice 16)
+- Slice: Repo-Layout src/core/ + src/modules/ + src/shared/
+- Tests: `tests/unit/repo-layout.spec.ts` rot (src/modules/.gitkeep + src/shared/index.ts fehlten) → grün (6 Tests; Verzeichnis-Existenz, tsconfig-Aliases, vitest-Aliases, README-Doku)
+- Coverage: src/core 96.30/87.12/97.00/97.62 (unverändert), src/modules 0/0
+- Commits: 813ab90 (test red) · <green> · <log>
+- Blocker: none
