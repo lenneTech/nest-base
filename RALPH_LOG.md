@@ -279,3 +279,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 95.54/87.01/97.60/96.82, src/modules 0/0
 - Commits: 534c184 (test red) · f2f3940 (feat green) · <log>
 - Blocker: none
+
+## Iteration 34 · 2026-04-28T18:25:00Z
+- Phase: 3 (Permissions & Output-Pipeline, Slice 8)
+- Slice: Output-Pipeline-Interceptor (4-Stage)
+- Tests: `tests/stories/output-pipeline.story.test.ts` rot (Modul fehlt) → grün (7 Tests; Stage 2 Field-Allowlist (single + array), Stage 3 removeSecrets, Stage 4 throw/mask, Order Stage 2 → Stage 3)
+- Coverage: src/core 95.72/87.44/97.70/96.94, src/modules 0/0
+- Commits: d8f9dfd (test red) · b797fbe (feat green) · <log>
+- Blocker: none
