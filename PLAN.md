@@ -3731,7 +3731,7 @@ model Setting { id String @id; key String @unique; value Json }
 
 ### Phase 6 – Email, 2FA, Passkey, MCP (Sprint 11)
 - [ ] **Test-First (Stories):** `email-service.e2e-spec.ts` adaptiert (Mailpit-Trap), 2FA-Story (TOTP-Setup + Verify), Passkey-Story (WebAuthn-Register/Login), MCP-OAuth-Story (Authorization-Code + PKCE, Tool-Call mit Permission-Filter)
-- [ ] Email-Service (Nodemailer + Brevo)
+- [x] Email-Service (Nodemailer + Brevo)
 - [ ] Email-Templates (verify, reset, welcome, invitation)
 - [ ] 2FA-Endpunkte aktivieren
 - [ ] Passkey-Endpunkte aktivieren
