@@ -677,5 +677,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: `bun run onboard` Skript für neue Entwickler
 - Tests: `tests/stories/onboard.story.test.ts` rot (Modul fehlt) → grün (15 Tests; Top-Level kind/version, per-step bun/env/postgres/prisma/migrations Status mit Remediation-Hints, blocked vs. warning Severity, summary counts, ok=true wenn keine Blocker, deterministisch, Step-Reihenfolge)
 - Coverage: src/core 96.32/89.07/97.82/97.71, src/modules 0/0
-- Commits: f9a76af (test red) · fde29c8 (feat green) · <log>
+- Commits: f9a76af (test red) · fde29c8 (feat green) · 97bbc47 (log)
 - Blocker: none. Pure-Planner; CLI-Runner sammelt die Inputs (Bun-Version via process.versions.bun, env-Datei via fs, Postgres via pg-Ping, Prisma via fs-Check) und pipet das Ergebnis hier durch.
+
+## Iteration 84 · 2026-04-28T21:28:00Z
+- Phase: 8 (Developer Experience, Slice 12)
+- Slice: SDK-Generation (`bun run sdk:generate` via kubb)
+- Tests: `tests/stories/kubb-config.story.test.ts` rot (Modul fehlt) → grün (11 Tests; specPath/outputDir Validation, plugins-Set @kubb/plugin-oas + ts + client mit oas-first-Order, clientImportPath + baseURL Override-Hooks, deterministisch, Fresh-Object pro Call)
+- Coverage: src/core 96.34/89.15/97.82/97.71, src/modules 0/0
+- Commits: 85695ef (test red) · e682f21 (feat green) · <log>
+- Blocker: none. Builder-Output ist kubb-CLI-konform; Tests laufen schema-level ohne kubb-CLI-Aufruf, Plugin-Reihenfolge oas→ts→client gepinnt.
