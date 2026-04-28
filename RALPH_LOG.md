@@ -383,3 +383,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 95.77/88.04/97.73/97.01, src/modules 0/0
 - Commits: ef9551a (test red) · 334c96b (feat green) · <log>
 - Blocker: none. Sharp-Binding (SharpTransformer) folgt im File-Module-Wiring; Service ist via injectable AssetTransformer-Interface unabhängig.
+
+## Iteration 47 · 2026-04-28T18:59:00Z
+- Phase: 4 (Files, Slice 9) **— Phase 4 abgeschlossen**
+- Slice: Asset-Presets
+- Tests: `tests/stories/asset-presets.story.test.ts` rot (Modul fehlt) → grün (12 Tests; defaults + ordering, schema validation, registry register/get/duplicate/missing, fromDefaults factory, AssetService-Integration)
+- Coverage: src/core 95.76/88.12/97.45/96.98, src/modules 0/0
+- Commits: b6c76f3 (test red) · 6c26feb (feat green) · <log>
+- Blocker: none
