@@ -3718,7 +3718,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] GIST-Indizes via raw-SQL-Migration
 - [x] `GeocodingProvider` Interface + Adapter (Mapbox, Nominatim, Google, Local-Stub)
 - [x] `GeoService` (geocode, reverseGeocode, findNearby, withinGeofence, distance)
-- [ ] REST-Endpunkte (`/geo/*`, `/addresses`, `/geofences`, generisches `/places/nearby`)
+- [x] REST-Endpunkte (`/geo/*`, `/addresses`, `/geofences`, generisches `/places/nearby`)
 - [ ] GeoJSON-Output-Mapper in Output-Pipeline integrieren (Stage 3a)
 - [ ] GeocodingCache + Cleanup-Cron (90 Tage TTL)
 - [ ] Field-Encryption-Integration für Adress-PII-Felder (street, zip)
