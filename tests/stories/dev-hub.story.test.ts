@@ -28,7 +28,7 @@ describe('Story · Dev-Hub planner', () => {
   }
 
   function labels(links: DevHubLink[]): string[] {
-    return links.map((l) => l.label);
+    return links.map((l: DevHubLink) => l.label);
   }
 
   describe('always-on links', () => {
@@ -64,7 +64,7 @@ describe('Story · Dev-Hub planner', () => {
 
     it('embeds the configured devtools port in the URL', () => {
       const link = planDevHub(input({ devtools: { enabled: true, port: 4242 } }))
-        .find((l) => l.label === 'NestJS DevTools');
+        .find((l: DevHubLink) => l.label === 'NestJS DevTools');
       expect(link?.url).toContain('4242');
     });
   });
@@ -99,20 +99,20 @@ describe('Story · Dev-Hub planner', () => {
   describe('categorisation', () => {
     it('groups Scalar / OpenAPI / Permissions under "api"', () => {
       const links = planDevHub(input());
-      expect(links.find((l) => l.label === 'Scalar API Reference')?.category).toBe('api');
-      expect(links.find((l) => l.label === 'OpenAPI Spec (raw)')?.category).toBe('api');
-      expect(links.find((l) => l.label === 'Permission Tester')?.category).toBe('api');
+      expect(links.find((l: DevHubLink) => l.label === 'Scalar API Reference')?.category).toBe('api');
+      expect(links.find((l: DevHubLink) => l.label === 'OpenAPI Spec (raw)')?.category).toBe('api');
+      expect(links.find((l: DevHubLink) => l.label === 'Permission Tester')?.category).toBe('api');
     });
 
     it('groups DevTools / Active-Features under "architecture"', () => {
       const links = planDevHub(input());
-      expect(links.find((l) => l.label === 'NestJS DevTools')?.category).toBe('architecture');
-      expect(links.find((l) => l.label === 'Active Features')?.category).toBe('architecture');
+      expect(links.find((l: DevHubLink) => l.label === 'NestJS DevTools')?.category).toBe('architecture');
+      expect(links.find((l: DevHubLink) => l.label === 'Active Features')?.category).toBe('architecture');
     });
 
     it('groups Audit-Browser under "data"', () => {
       const links = planDevHub(input());
-      expect(links.find((l) => l.label === 'Audit Browser')?.category).toBe('data');
+      expect(links.find((l: DevHubLink) => l.label === 'Audit Browser')?.category).toBe('data');
     });
 
     it('groups Webhook-Inspector / Realtime-Inspector under "async"', () => {
@@ -124,8 +124,8 @@ describe('Story · Dev-Hub planner', () => {
           }),
         }),
       );
-      expect(links.find((l) => l.label === 'Webhook Inspector')?.category).toBe('async');
-      expect(links.find((l) => l.label === 'Realtime Inspector')?.category).toBe('async');
+      expect(links.find((l: DevHubLink) => l.label === 'Webhook Inspector')?.category).toBe('async');
+      expect(links.find((l: DevHubLink) => l.label === 'Realtime Inspector')?.category).toBe('async');
     });
   });
 
@@ -154,7 +154,7 @@ describe('Story · Dev-Hub planner', () => {
           }),
         }),
       );
-      const categories = links.map((l) => l.category);
+      const categories = links.map((l: DevHubLink) => l.category);
       // Categories appear in this fixed order: api → architecture → data → async
       const apiBlockEnd = categories.lastIndexOf('api');
       const archBlockStart = categories.indexOf('architecture');

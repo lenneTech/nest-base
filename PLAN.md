@@ -3752,7 +3752,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [ ] **Test-First (Stories):** Idempotency-Key (Cache-Hit/Miss), ETag/If-Match (Optimistic-Concurrency), Cursor-Pagination, Throttler (Multi-Window, Postgres-Store), GDPR-Endpoints (Export, Delete, Anonymize), Audit-Log (Create/Update/Delete-Tracking)
 - [x] **Scalar** als API-UI (statt Swagger UI) — `@scalar/nestjs-api-reference`
 - [x] **NestJS DevTools** Integration (`@nestjs/devtools-integration` + Snapshot-Mode)
-- [ ] **Dev-Hub** Landing-Page `/dev` mit Auto-Discovery aktiver Tools
+- [x] **Dev-Hub** Landing-Page `/dev` mit Auto-Discovery aktiver Tools
 - [ ] **Permission-Tester** UI (`/admin/permissions/test`)
 - [ ] **Webhook-Inspector** (Delivery-Log + Re-Deliver)
 - [ ] **Realtime-Inspector** (Active Sockets + Live-Stream)
