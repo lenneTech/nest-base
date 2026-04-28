@@ -42,11 +42,11 @@ describe('Repo Layout', () => {
     expect(cfg).toMatch(/'@shared'/);
   });
 
-  it('README documents the layout split', () => {
+  it('README documents the layout split (core / modules / shared)', () => {
     const readme = readFileSync(resolve(ROOT, 'README.md'), 'utf8');
-    expect(readme).toMatch(/src\/core/);
-    expect(readme).toMatch(/src\/modules/);
-    expect(readme).toMatch(/src\/shared/);
+    expect(readme).toMatch(/\bcore\//);
+    expect(readme).toMatch(/\bmodules\//);
+    expect(readme).toMatch(/\bshared\//);
   });
 
   it('src/modules has a placeholder so the directory survives a clean checkout', () => {
