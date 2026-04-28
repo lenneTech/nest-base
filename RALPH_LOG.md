@@ -653,5 +653,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Search-Tester (FTS-Probier-UI)
 - Tests: `tests/stories/search-tester-ui.story.test.ts` rot (Modul fehlt) → grün (15 Tests; Document-Chrome, Query-Form mit Echo + autofocus, optional tsquery-Hint, drei Result-States idle/no-results/hits, Snippet `<b>` highlights raw, Order-Preservation, XSS-Escape außer Snippet)
 - Coverage: src/core 96.26/89.21/97.77/97.69, src/modules 0/0
-- Commits: 92ce339 (test red) · 78feda2 (feat green) · <log>
+- Commits: 92ce339 (test red) · 78feda2 (feat green) · 59ed973 (log)
 - Blocker: none. Snippet aus `ts_headline` ist trusted (server-emitted, nur `<b>` Tags); Query-Echo + Resource/ID/Title weiterhin escaped.
+
+## Iteration 81 · 2026-04-28T21:18:00Z
+- Phase: 8 (Developer Experience, Slice 9)
+- Slice: Diagnostik-Endpoint `/dev/diagnostics`
+- Tests: `tests/stories/diagnostics.story.test.ts` rot (Modul fehlt) → grün (14 Tests; Top-Level kind/version, app/runtime/process/features/dependencies-Sections, Uptime-Berechnung in Sekunden, ISO now, Bun optional, authMethods sorted, socialProviders sorted, deterministisch, Negative-Uptime-Validation)
+- Coverage: src/core 96.29/89.08/97.78/97.71, src/modules 0/0
+- Commits: a7bb0fd (test red) · cd8d786 (feat green) · <log>
+- Blocker: none. Pure-Assembler — keine `process.*`/`os.*`-Reads im Builder, alles über injected Inputs für deterministische Tests.
