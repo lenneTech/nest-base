@@ -48,6 +48,8 @@
     "vitest": "^4.1.5"
   },
   "dependencies": {
+    "@casl/ability": "^6.8.1",
+    "@casl/prisma": "^1.6.2",
     "@nestjs/common": "^11.1.19",
     "@nestjs/core": "^11.1.19",
     "@nestjs/platform-express": "^11.1.19",
