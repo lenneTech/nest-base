@@ -493,5 +493,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: 2FA-Endpunkte aktivieren
 - Tests: `tests/stories/better-auth-two-factor.story.test.ts` rot (Type-Error: twoFactor-Option fehlt) → grün (4 Tests; default-off, plugin-mounted-when-configured, leerer Issuer rejected, Secret-Length-Invarianten bleiben aktiv)
 - Coverage: src/core 95.77/88.36/97.56/97.25, src/modules 0/0
-- Commits: 6104b01 (test red) · a3f6db7 (feat green) · <log>
+- Commits: 6104b01 (test red) · a3f6db7 (feat green) · f269e17 (log)
 - Blocker: none. Live-HTTP-Exercise der `/two-factor/*`-Routes folgt erst, wenn der Prisma-Adapter für Better-Auth gewired ist (heute Memory-Adapter); Story prüft die API-Surface über `auth.api.enableTwoFactor/verifyTOTP/disableTwoFactor`.
+
+## Iteration 61 · 2026-04-28T19:43:00Z
+- Phase: 6 (Email + 2FA + Passkey + MCP, Slice 4)
+- Slice: Passkey-Endpunkte aktivieren
+- Tests: `tests/stories/better-auth-passkey.story.test.ts` rot (Type-Error: passkey-Option fehlt) → grün (6 Tests; default-off, plugin-mounted-when-configured, leerer rpName/rpID rejected, Secret-Length-Invarianten, Koexistenz mit twoFactor)
+- Coverage: src/core 95.79/88.52/97.56/97.27, src/modules 0/0
+- Commits: 485edd7 (test red) · af90eb6 (feat green) · <log>
+- Blocker: none. Better-Auth 1.6.9 hat das Passkey-Plugin in `@better-auth/passkey` ausgegliedert (eigenes npm-Paket, version-locked auf 1.6.9). `rpID` wird aus `baseUrl.hostname` abgeleitet (PLAN.md §4.1 "Auto-Detection aus BASE_URL"); `origin` = `baseUrl`.
