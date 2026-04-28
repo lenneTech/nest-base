@@ -415,3 +415,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 95.81/88.35/97.39/97.09, src/modules 0/0
 - Commits: 878a422 (test red) · f40ff21 (feat green) · <log>
 - Blocker: none. At-least-once Delivery — Dispatcher müssen idempotent sein.
+
+## Iteration 51 · 2026-04-28T19:11:00Z
+- Phase: 5 (Realtime/Search/Webhooks, Slice 4)
+- Slice: Webhooks: WebhookEndpoint + WebhookDelivery Models
+- Tests: `tests/unit/webhook-models.spec.ts` rot (Models fehlen) → grün (10 Tests; Status-Enums, Endpoint-Felder + Cascade + back-relation, Delivery-Tracking-Felder, Tenant-Relation)
+- Coverage: src/core 95.81/88.35/97.39/97.09 (Schema-Slice — keine neuen TS-Sourcen), src/modules 0/0
+- Commits: 1dcea82 (test red) · c921560 (feat green) · <log>
+- Blocker: none
