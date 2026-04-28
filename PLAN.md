@@ -3690,7 +3690,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] File/Folder Models + CRUD-Endpoints
 - [x] Multipart-Upload + TUS
 - [x] Asset-Endpoint mit Transformations + Cache (`sharp`)
-- [ ] Asset-Presets
+- [x] Asset-Presets
 
 ### Phase 5 – Realtime, Search, Webhooks (Sprint 9-10)
 - [ ] **Test-First (Stories):** Webhook-Delivery (HMAC-Sig, Retry, Auto-Disable), Webhook-Master/Sub-Job-Fanout, FTS-Search-Edge-Cases, Realtime-Permission-aware-Channels, Outbox-Pattern — eigene Stories pro Feature, keine direkten 1:1-Übernahmen aus nest-server (dort fehlen vergleichbare Tests)
