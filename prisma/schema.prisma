@@ -93,14 +93,71 @@ model ApiKey {
 }
 
 model Role {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String
-  tenantId  String   @map("tenant_id") @db.Uuid
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  isSystem    Boolean  @default(false) @map("is_system")
+  isPublic    Boolean  @default(false) @map("is_public")
+  parentId    String?  @map("parent_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant   Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  parent   Role?        @relation("RoleHierarchy", fields: [parentId], references: [id])
+  children Role[]       @relation("RoleHierarchy")
+  policies RolePolicy[]
 
   @@unique([tenantId, name])
   @@map("roles")
+}
+
+model Policy {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  permissions Permission[]
+  roles       RolePolicy[]
+
+  @@map("policies")
+}
+
+model RolePolicy {
+  roleId   String @map("role_id") @db.Uuid
+  policyId String @map("policy_id") @db.Uuid
+
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  policy Policy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, policyId])
+  @@map("role_policies")
+}
+
+enum PermissionAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  SHARE
+}
+
+model Permission {
+  id         String           @id @default(uuid()) @db.Uuid
+  policyId   String           @map("policy_id") @db.Uuid
+  resource   String
+  action     PermissionAction
+  itemFilter Json?            @map("item_filter")
+  fields     String[]
+  validation Json?
+  presets    Json?
+  createdAt  DateTime         @default(now()) @map("created_at")
+  updatedAt  DateTime         @updatedAt @map("updated_at")
+
+  policy Policy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  @@unique([policyId, resource, action])
+  @@map("permissions")
 }
