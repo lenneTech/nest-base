@@ -124,3 +124,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 96.20/86.17/96.93/97.56 (unverändert), src/modules 0/0
 - Commits: ef27a36 (test red) · d4eb4d9 (feat green) · <log>
 - Blocker: none
+
+## Iteration 15 · 2026-04-28T17:21:00Z
+- Phase: 1 (Foundation, Slice 15)
+- Slice: portless-Integration (portless.yml + dev-Runner mit Fallback)
+- Tests: `tests/unit/portless.spec.ts` rot (Modul + scripts/dev.ts fehlten) → grün (11 Tests; portless.yml-Routing, shouldUsePortless mit DISABLE_PORTLESS-Override, resolveDevPort mit PORT/portlessAvailable/Fallback, package.json-Wiring)
+- Coverage: src/core 96.30/87.12/97.00/97.62, src/modules 0/0
+- Commits: e62d2d0 (test red) · <green> · <log>
+- Blocker: none — `bun run dev` startet portless implizit wenn vorhanden, fällt sonst auf Port 0 (dynamisch) zurück
