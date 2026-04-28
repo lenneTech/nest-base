@@ -287,3 +287,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 95.72/87.44/97.70/96.94, src/modules 0/0
 - Commits: d8f9dfd (test red) · b797fbe (feat green) · <log>
 - Blocker: none
+
+## Iteration 35 · 2026-04-28T18:27:00Z
+- Phase: 3 (Permissions & Output-Pipeline, Slice 9)
+- Slice: Filter-Service Pattern: @FilterFor() + Registry + Auto-Discovery
+- Tests: `tests/stories/filter-service.story.test.ts` rot (Modul fehlt) → grün (9 Tests; @FilterFor-Metadata, register/get, missing-decorator-throw, duplicate-subject-throw, applyFilter dispatch, fromInstances Auto-Discovery)
+- Coverage: src/core 95.82/87.65/97.76/97.01, src/modules 0/0
+- Commits: 5ca818a (test red) · fabc139 (feat green) · <log>
+- Blocker: none. NestJS-DiscoveryService-Bridge bleibt separater Slice — die statische `fromInstances()`-Factory hält die Registry in Unit-Tests verwendbar.
