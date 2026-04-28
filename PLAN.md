@@ -63,8 +63,8 @@ Eine vollständige Aktivierungs-Matrix mit ENV-Variablen, Default-Werten und Abh
 | Runtime | **Bun 1.2+** | TypeScript-First, ~3× schneller Startup, Built-in Test-Runner, native SQL/Crypto, NPM-kompatibel. Node 22 als Fallback (Library-Kompatibilität bei Bedarf). |
 | Framework | NestJS 11 | DI, Modularität, Decorators, Swagger-Integration. Läuft stabil auf Bun. |
 | Sprache | TypeScript 5.9+ strict | Native Execution durch Bun, keine `tsx`/`ts-node`-Layer |
-| ORM | Prisma 6 | Typsicher, Migrations, Postgres-First, Extensions |
-| DB | Postgres 17 | RLS, JSONB, FTS (`tsvector`/GIN), `LISTEN/NOTIFY`, `pg_largeobject`, Reife |
+| ORM | Prisma 7 | Typsicher, Migrations, Postgres-First, Extensions |
+| DB | Postgres 18 | RLS, JSONB, FTS (`tsvector`/GIN), `LISTEN/NOTIFY`, `pg_largeobject`, Reife |
 | Auth | Better-Auth 1.5+ | Email/PW, OAuth, 2FA, Passkey, Sessions, JWT |
 | API-Keys | Eigenbau auf argon2id-Hash + Scopes | Service-Accounts, CI (MCP nutzt OAuth) |
 | Authorization | **CASL 6** + DB-Persistenz für Rules | Industry-Standard, skaliert auf Enterprise-Komplexität, Field- & Item-Level |
@@ -3641,7 +3641,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] **Test-Infrastruktur:** `tests/`-Layout (`stories/`, `unit/`, `types/`, `migrate/`, `k6/`), `global-setup.ts` mit `testcontainers`-Postgres, Vitest-Config, npm-Scripts (`test`, `test:watch`, `test:unit`, `test:e2e`, `test:types`, `test:coverage`)
 - [x] **TestHelper** (Builder für authentifizierte Test-Requests, parallel-sichere Test-User mit UUID-Suffix, ID-basiertes Cleanup)
 - [x] **Coverage-Gate** (≥ 90 % auf `src/core/`, ≥ 80 % auf `src/modules/`) in `.gitlab-ci.yml`
-- [ ] Adaptierte Stories aus nest-server: `error-code.story.test.ts`, `cookies-cors-config.spec.ts`, `cookies-security-property.e2e-spec.ts`, `system-setup.e2e-spec.ts`, `server.e2e-spec.ts`
+- [x] Adaptierte Stories aus nest-server: `error-code.story.test.ts`, `cookies-cors-config.spec.ts`, `cookies-security-property.e2e-spec.ts`, `system-setup.e2e-spec.ts`, `server.e2e-spec.ts`
 - [ ] Projekt-Skeleton (Bun + NestJS + Prisma + Postgres)
 - [ ] ENV-Validation (Zod) + Config-Modul
 - [ ] Feature-Flag-System (`features.ts` + Conditional-Imports + Validierung von Abhängigkeiten)
