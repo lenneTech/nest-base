@@ -3665,7 +3665,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Tenant-Interceptor + RLS-Setup
 - [x] Tenant-Member-CRUD
 - [x] Scoped API-Keys (CRUD, argon2id-Hash, Scopes, Rotation)
-- [ ] Repository-Pattern als Standard etablieren
+- [x] Repository-Pattern als Standard etablieren
 
 ### Phase 3 – Permissions & Output-Pipeline (Sprint 5-6)
 - [ ] **Test-First (Stories):** `permissions-report.e2e-spec.ts`, `safety-net.spec.ts` + `safety-net.e2e-spec.ts`, `remove-secrets.spec.ts`, `pagination-metadata.story.test.ts`, `map-and-validate.pipe.e2e-spec.ts` — vor jeder Implementation
