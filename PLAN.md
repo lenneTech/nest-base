@@ -3737,7 +3737,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Passkey-Endpunkte aktivieren
 - [x] Social-Login-Provider
 - [x] MCP-Server-Modul (`@modelcontextprotocol/sdk`)
-- [ ] `@McpTool`/`@McpResource`-Decorators + Auto-Discovery
+- [x] `@McpTool`/`@McpResource`-Decorators + Auto-Discovery
 - [ ] MCP-Auth via Better-Auth-OAuth-Provider (Authorization-Code-Flow + PKCE)
 
 ### Phase 7 – Reliability, Template-Tooling & Polish (Sprint 12)
