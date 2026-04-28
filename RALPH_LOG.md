@@ -525,5 +525,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: `@McpTool`/`@McpResource`-Decorators + Auto-Discovery
 - Tests: `tests/stories/mcp-decorators.story.test.ts` rot (Modul fehlt) → grün (13 Tests; @McpTool-Metadata, @McpResource-Metadata, undecorated returns undefined, single tool/resource, instance-bound this, mehrere Tools+Resources auf einer Klasse, no-op auf undecorated, Object.prototype-Skip, Aggregation über mehrere Instanzen, Duplicate-Error-Propagation)
 - Coverage: src/core 95.73/88.61/97.44/97.31, src/modules 0/0
-- Commits: 12b56e8 (test red) · 55b9aa9 (feat green) · <log>
+- Commits: 12b56e8 (test red) · 55b9aa9 (feat green) · 5d62174 (log)
 - Blocker: none. Decorators nutzen reflect-metadata (gleiche Mechanik wie @Can()/CanGuard); Handler werden via `.bind(instance)` an die Instanz gebunden, sodass Service-`this` beim Invoke weiter funktioniert.
+
+## Iteration 65 · 2026-04-28T19:54:00Z
+- Phase: 6 (Email + 2FA + Passkey + MCP, Slice 8 — abschließend)
+- Slice: MCP-Auth via Better-Auth-OAuth-Provider (Authorization-Code-Flow + PKCE)
+- Tests: `tests/stories/mcp-auth.story.test.ts` rot (Modul fehlt) → grün (13 Tests; extractBearerToken-Parsing-Edges, McpAuthGuard rejects fehlenden/leeren Header, propagiert Validator-Resultate, propagiert Schema-Errors, StdioBootstrapMcpValidator + `allowEmptyHeader`-Bypass für stdio-Transport)
+- Coverage: src/core 95.79/88.72/97.48/97.35, src/modules 0/0
+- Commits: 31b292c (test red) · e13fb25 (feat green) · <log>
+- Blocker: none. Phase 6 (User-Toggle: Email + 2FA + Passkey + MCP) vollständig abgehakt. Better-Auth-OIDC-Provider-Validator hängt sich später hinter dasselbe `McpAuthValidator`-Interface; Unit-Tests bleiben über Fake-Validator DB-frei.
