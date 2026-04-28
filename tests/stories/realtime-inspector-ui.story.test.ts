@@ -125,7 +125,8 @@ describe('Story · Realtime-Inspector UI', () => {
       );
       expect(html).toContain('Order:tenant:t-1');
       expect(html).toContain('order.placed');
-      expect(html).toContain('{"id":"o-7"}');
+      // Payload preview is HTML-escaped — the literal JSON quotes become &quot;
+      expect(html).toContain('{&quot;id&quot;:&quot;o-7&quot;}');
     });
 
     it('preserves event order (newest-first is the controller\'s job)', () => {
