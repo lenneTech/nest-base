@@ -116,3 +116,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 96.20/86.17/96.93/97.56 (unverändert — Test-File ist tests/unit ohne neue src-Pfade), src/modules 0/0
 - Commits: 6c0fcd8 (test red) · a06e1b9 (feat green) · <log>
 - Blocker: none
+
+## Iteration 14 · 2026-04-28T17:18:00Z
+- Phase: 1 (Foundation, Slice 14)
+- Slice: Docker-Compose-Setup nur für Projekt-Dependencies (Postgres + RustFS + Mailpit + OTel-Collector); Server läuft nativ über `bun --watch`
+- Tests: `tests/unit/docker-compose.spec.ts` rot (`name:` + `networks:` fehlten) → grün (11 Tests; 4 Pflicht-Services, kein api/server-Service, Postgres 18, RustFS statt MinIO, pg_isready, Mailpit 1025/8025, OTel 4317/4318, dev-Script via bun --watch)
+- Coverage: src/core 96.20/86.17/96.93/97.56 (unverändert), src/modules 0/0
+- Commits: ef27a36 (test red) · d4eb4d9 (feat green) · <log>
+- Blocker: none
