@@ -3674,7 +3674,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] DB-Rule → CASL-Rule Resolver (mit Variablen-Substitution)
 - [x] PermissionService.abilityFor() + Cache (LRU, 60s TTL)
 - [x] `@Can()` Decorator + Guard, `@Ability()` Param-Decorator
-- [ ] PostgREST-Query-Parser → Prisma-WHERE (kombiniert mit `accessibleBy`)
+- [x] PostgREST-Query-Parser → Prisma-WHERE (kombiniert mit `accessibleBy`)
 - [ ] Output-Pipeline-Interceptor (4-Stage)
 - [ ] Filter-Service Pattern: `@FilterFor()` + Registry + Auto-Discovery
 - [ ] Secret-Safety-Net mit globaler Liste + Regex-Patterns
