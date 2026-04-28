@@ -685,5 +685,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: SDK-Generation (`bun run sdk:generate` via kubb)
 - Tests: `tests/stories/kubb-config.story.test.ts` rot (Modul fehlt) → grün (11 Tests; specPath/outputDir Validation, plugins-Set @kubb/plugin-oas + ts + client mit oas-first-Order, clientImportPath + baseURL Override-Hooks, deterministisch, Fresh-Object pro Call)
 - Coverage: src/core 96.34/89.15/97.82/97.71, src/modules 0/0
-- Commits: 85695ef (test red) · e682f21 (feat green) · <log>
+- Commits: 85695ef (test red) · e682f21 (feat green) · d41755a (log)
 - Blocker: none. Builder-Output ist kubb-CLI-konform; Tests laufen schema-level ohne kubb-CLI-Aufruf, Plugin-Reihenfolge oas→ts→client gepinnt.
+
+## Iteration 85 · 2026-04-28T21:30:00Z
+- Phase: 8 (Developer Experience, Slice 13)
+- Slice: Idempotency-Key Interceptor + Tabelle
+- Tests: `tests/stories/idempotency.story.test.ts` rot (Modul fehlt) → grün (13 Tests; computeRequestHash sha256 + method/path/body-sensitivity, runOrCache Cache-Miss/Hit-replayed/Hit-Conflict/Expired-Refresh/Thrown-no-cache, expiresAt = now+ttlMs, userId-Forwarding)
+- Coverage: src/core 96.29/89.18/97.66/97.74, src/modules 0/0
+- Commits: bc5753d (test red) · 8cf9693 (feat green) · <log>
+- Blocker: none. Pure Service-Layer; NestJS-Interceptor + Prisma-Adapter (IdempotencyKey-Tabelle) sind eigene Sub-Slices, hier nur die Logik gepinnt.
