@@ -3697,7 +3697,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] pg-boss Job-Queue + Worker-Setup
 - [x] Outbox-Pattern (Events)
 - [x] Webhooks: `WebhookEndpoint` + `WebhookDelivery` Models
-- [ ] Webhook-Dispatcher (HMAC-SHA256, Retries, Auto-Disable)
+- [x] Webhook-Dispatcher (HMAC-SHA256, Retries, Auto-Disable)
 - [ ] Search: `Searchable`-Decorator + Migration-Generator (tsvector + GIN)
 - [ ] Cross-Resource-Search-Endpoint
 - [ ] Realtime-Service (Postgres LISTEN-Connection)
