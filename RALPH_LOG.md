@@ -108,3 +108,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 96.20/86.17/96.93/97.56, src/modules 0/0
 - Commits: b405667 (test red) · e183f9e (feat green) · <log>
 - Blocker: none
+
+## Iteration 13 · 2026-04-28T17:16:00Z
+- Phase: 1 (Foundation, Slice 13)
+- Slice: Dockerfile.example als Template-Referenz (Multi-Stage Bun, non-root, nicht in CI gebaut)
+- Tests: `tests/unit/dockerfile-example.spec.ts` rot (.dockerignore + OCI-Labels fehlten) → grün (11 Tests; Bun-Base, ≥3 Stages, non-root USER, HEALTHCHECK, EXPOSE, OCI-Labels, .dockerignore-Inhalt, GitLab CI ohne Container-Build)
+- Coverage: src/core 96.20/86.17/96.93/97.56 (unverändert — Test-File ist tests/unit ohne neue src-Pfade), src/modules 0/0
+- Commits: 6c0fcd8 (test red) · a06e1b9 (feat green) · <log>
+- Blocker: none
