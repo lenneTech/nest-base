@@ -709,5 +709,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Cursor-Pagination zusätzlich zu page/limit
 - Tests: `tests/stories/cursor-pagination.story.test.ts` rot (Modul fehlt) → grün (12 Tests; encode/decode round-trip, URL-safe base64url, CursorMalformedError für empty/garbage/missing-fields, numeric+string sortValue, buildCursorPage under/exact/over-limit Off-by-one-Guard, Empty-Input, non-positive-limit Rejection)
 - Coverage: src/core 96.33/89.34/97.70/97.74, src/modules 0/0
-- Commits: 0c48795 (test red) · 257e2ef (feat green) · <log>
+- Commits: 0c48795 (test red) · 257e2ef (feat green) · f08447d (log)
 - Blocker: none. Cursor-Payload kompakt (`{s,i}`), opak gegenüber Client; Keyset-Where-Clause im Repository ist eigene Folge-Slice.
+
+## Iteration 88 · 2026-04-28T21:38:00Z
+- Phase: 8 (Developer Experience, Slice 16)
+- Slice: `@nestjs/throttler` mit Postgres-Store, Multi-Window
+- Tests: `tests/stories/throttler-postgres-store.story.test.ts` rot (Modul fehlt) → grün (11 Tests; PostgresThrottlerStore first-hit/in-window-increment/post-window-reset/isBlocked-flag/per-key-isolation, ThrottlerService.consume allowed-when-under-limits/blocked-on-any-window/first-violating-reported/per-key-isolation/empty-windows-rejected)
+- Coverage: src/core 96.36/89.40/97.72/97.76, src/modules 0/0
+- Commits: 415c73c (test red) · 13de7cb (feat green) · <log>
+- Blocker: none. PostgresThrottlerStore ist `@nestjs/throttler`-kompatibel; SQL-Backend ist thin INSERT…ON CONFLICT…RETURNING über `(key,count,expires_at)`-Tabelle (eigene Persistenz-Slice).
