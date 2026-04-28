@@ -359,3 +359,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 95.92/88.51/97.84/97.14, src/modules 0/0
 - Commits: f1f16eb (test red) · 821291c (feat green) · <log>
 - Blocker: none. RLS-Policy auf file_blobs folgt eigener Migration (analog users/roles aus Iteration 23). Production AwsS3Operations und Prisma-FileBlobOperations werden im Storage-Module-Wiring eingehängt.
+
+## Iteration 44 · 2026-04-28T18:51:00Z
+- Phase: 4 (Files, Slice 6)
+- Slice: File/Folder Models + CRUD-Endpoints
+- Tests: `tests/stories/file-folder.story.test.ts` rot (Modelle + Services fehlten) → grün (13 Tests; FolderService create/rename/listChildren/remove + NotFound, FileService create/rename/listInFolder/remove + NotFound, Schema-Pin Folder + File Models)
+- Coverage: src/core 95.92/88.49/97.93/97.20, src/modules 0/0
+- Commits: 2742e9f (test red) · <green> · <log>
+- Blocker: none. Hierarchie-Validation (parent gleiche Tenant, keine Zyklen) liegt im Prisma-Adapter — der Service-Layer hier ist die in-process Oberfläche.
