@@ -3677,7 +3677,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] PostgREST-Query-Parser → Prisma-WHERE (kombiniert mit `accessibleBy`)
 - [x] Output-Pipeline-Interceptor (4-Stage)
 - [x] Filter-Service Pattern: `@FilterFor()` + Registry + Auto-Discovery
-- [ ] Secret-Safety-Net mit globaler Liste + Regex-Patterns
+- [x] Secret-Safety-Net mit globaler Liste + Regex-Patterns
 - [ ] Admin-CRUD-Endpoints für Roles/Policies/Permissions + Test-Endpunkt
 - [ ] Soft-Delete Prisma-Extension (inkl. `RESTORE`/`HARD_DELETE` Actions)
 
