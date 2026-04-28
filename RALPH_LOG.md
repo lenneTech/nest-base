@@ -92,3 +92,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 96.10/87.32/96.55/97.72, src/modules 0/0
 - Commits: bc165d1 (test red) · <green> · <log>
 - Blocker: none
+
+## Iteration 11 · 2026-04-28T17:11:00Z
+- Phase: 1 (Foundation, Slice 11)
+- Slice: Health-Check (Liveness + Readiness)
+- Tests: `tests/health.e2e-spec.ts` rot (Endpoints fehlen) → grün (5 Tests; /health/live ohne Dep-Checks, /health/ready mit Prisma-Ping + responseTimeMs)
+- Coverage: src/core 95.77/85.52/96.77/97.26, src/modules 0/0
+- Commits: b834492 (test red) · <green> · <log>
+- Blocker: none — Branch-Coverage 85.52 % knapp über 85 % Threshold (Failure-Pfade in HealthService noch nicht ausgetestet, kommen wenn Prisma-Mocking landet)
