@@ -84,3 +84,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 96.99/87.93/97.26/97.60, src/modules 0/0
 - Commits: c513a64 (test red) · 69ca011 (feat green) · <log>
 - Blocker: none
+
+## Iteration 10 · 2026-04-28T17:09:00Z
+- Phase: 1 (Foundation, Slice 10)
+- Slice: Request-Context-Middleware (W3C Trace Context)
+- Tests: `tests/stories/request-context.story.test.ts` rot (Modul fehlt) → grün (10 Tests; parseTraceparent, runWithRequestContext, AsyncLocalStorage-Isolation, NestJS-Middleware mit Header-Reuse + Mint)
+- Coverage: src/core 96.10/87.32/96.55/97.72, src/modules 0/0
+- Commits: bc165d1 (test red) · <green> · <log>
+- Blocker: none
