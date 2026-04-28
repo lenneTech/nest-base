@@ -3745,7 +3745,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Setup-Wizard (`bun run setup`) für interaktive Projekt-Initialisierung
 - [x] Schema-Konkatenations-Skript (`bun run prepare:schema` → kombiniert nur aktivierte Feature-Schemas)
 - [x] Template-Sync-Skript `bun run sync:from-template` (zieht `src/core/` aus dem Template-Repo, lässt `src/modules/` unangetastet)
-- [ ] Core-PR-Workflow `bun run sync:to-template` (bereitet Patch aus lokalen `src/core/`-Änderungen für Pull Request ins Template-Repo vor)
+- [x] Core-PR-Workflow `bun run sync:to-template` (bereitet Patch aus lokalen `src/core/`-Änderungen für Pull Request ins Template-Repo vor)
 - [ ] Dokumentation: Template-Update-Workflow, Pro-Projekt-Customization-Guide, Core-Contribution-Guide (PR-zurück-Workflow)
 
 ### Phase 8 – Developer Experience (parallel ab Phase 3, finalisieren in Sprint 13)
