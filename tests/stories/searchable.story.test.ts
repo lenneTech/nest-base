@@ -27,9 +27,9 @@ describe('Story · @Searchable + Migration-Generator', () => {
     it('collects fields per class via getSearchableFields()', () => {
       class Project {
         @Searchable({ weight: 'A' })
-        accessor title = '';
+        title!: string;
         @Searchable({ weight: 'B' })
-        accessor description = '';
+        description!: string;
       }
       const fields = getSearchableFields(Project);
       expect(fields.map((f) => f.field).sort()).toEqual(['description', 'title']);
@@ -40,19 +40,19 @@ describe('Story · @Searchable + Migration-Generator', () => {
     it('defaults weight to "D" when not specified', () => {
       class Doc {
         @Searchable()
-        accessor body = '';
+        body!: string;
       }
       const [field] = getSearchableFields(Doc);
-      expect(field.weight).toBe('D');
+      expect(field!.weight).toBe('D');
     });
 
     it('rejects unknown weights at decorator time', () => {
       expect(() => {
         class Bad {
           @Searchable({ weight: 'Z' as never })
-          accessor x = '';
+          x!: string;
         }
-        new Bad();
+        void new Bad();
       }).toThrow(/weight/);
     });
   });

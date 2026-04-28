@@ -3698,7 +3698,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Outbox-Pattern (Events)
 - [x] Webhooks: `WebhookEndpoint` + `WebhookDelivery` Models
 - [x] Webhook-Dispatcher (HMAC-SHA256, Retries, Auto-Disable)
-- [ ] Search: `Searchable`-Decorator + Migration-Generator (tsvector + GIN)
+- [x] Search: `Searchable`-Decorator + Migration-Generator (tsvector + GIN)
 - [ ] Cross-Resource-Search-Endpoint
 - [ ] Realtime-Service (Postgres LISTEN-Connection)
 - [ ] Socket.IO-Gateway + Auth-Handshake + Room-Subscriptions
