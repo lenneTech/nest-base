@@ -757,5 +757,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: OpenAPI-Doku komplett (inkl. RFC 7807 Schemas)
 - Tests: `tests/stories/openapi-problem-schemas.story.test.ts` rot (Modul fehlt) → grün (13 Tests; components.schemas + components.responses, ProblemDetails RFC-7807-Shape, integer-status-100-599, code-enum aus coreCodes+appCodes alphabetisch deterministisch + dedupliziert, application/problem+json Content-Type, $ref-Wiederverwendung, code-Regex-Validation)
 - Coverage: src/core 96.50/89.74/97.81/97.85, src/modules 0/0
-- Commits: a1ae19c (test red) · 630780b (feat green) · <log>
+- Commits: a1ae19c (test red) · 630780b (feat green) · 0f67384 (log)
 - Blocker: none. Pure-Builder für OpenAPI-Components-Block; Swagger-Boot-Wiring (Module-Setup) ist eigene Folge-Slice.
+
+## Iteration 94 · 2026-04-28T21:54:00Z
+- Phase: 8 (Developer Experience, Slice 22)
+- Slice: CI-Pipeline (`.gitlab-ci.yml`: lint, test, audit, build)
+- Tests: `tests/stories/gitlab-ci-pipeline.story.test.ts` neu (12 Tests; alle direkt grün — `.gitlab-ci.yml` aus Phase-0-Bootstrap existiert; Audit pinnt Stages-Reihenfolge, oven/bun-Image, frozen-lockfile, bun-routed jobs, postgres:18-alpine, junit-Reporting, no-container-build/deploy)
+- Coverage: src/core 96.50/89.74/97.81/97.85, src/modules 0/0
+- Commits: ca766fa (audit + checkbox) · <log>
+- Blocker: none. Audit ist Regression-Guard (kein TDD-red→green) — die CI-Datei wurde mit Phase 0 angelegt, hier wird nur der Contract festgenagelt.
