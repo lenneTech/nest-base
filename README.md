@@ -90,6 +90,12 @@ bun run sync:from-template
 bun run sync:to-template
 ```
 
+Detaillierte Guides:
+
+- [Template-Update-Workflow](./docs/template-update-workflow.md) — `sync:from-template` Schritt für Schritt
+- [Customization-Guide](./docs/customization-guide.md) — `src/core/` vs `src/modules/`, Features aktivieren, neue Resources anlegen
+- [Core-Contribution-Guide](./docs/core-contribution-guide.md) — `sync:to-template` + PR-zurück-Workflow
+
 ## Lizenz
 
 MIT — siehe [`LICENSE`](./LICENSE).
