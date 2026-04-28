@@ -661,5 +661,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Diagnostik-Endpoint `/dev/diagnostics`
 - Tests: `tests/stories/diagnostics.story.test.ts` rot (Modul fehlt) → grün (14 Tests; Top-Level kind/version, app/runtime/process/features/dependencies-Sections, Uptime-Berechnung in Sekunden, ISO now, Bun optional, authMethods sorted, socialProviders sorted, deterministisch, Negative-Uptime-Validation)
 - Coverage: src/core 96.29/89.08/97.78/97.71, src/modules 0/0
-- Commits: a7bb0fd (test red) · cd8d786 (feat green) · <log>
+- Commits: a7bb0fd (test red) · cd8d786 (feat green) · d3ab17f (log)
 - Blocker: none. Pure-Assembler — keine `process.*`/`os.*`-Reads im Builder, alles über injected Inputs für deterministische Tests.
+
+## Iteration 82 · 2026-04-28T21:23:00Z
+- Phase: 8 (Developer Experience, Slice 10)
+- Slice: `.vscode/` Defaults (Extensions, Launch-Configs, Tasks, Settings)
+- Tests: `tests/stories/vscode-defaults.story.test.ts` rot (10 fehlende JSONC-Dateien) → grün (10 Tests; extensions.json mit oxc/Prisma/Vitest, launch.json mit zwei configs, tasks.json mit Lint/Test/Build/Coverage durchgehend bun-routed, settings.json mit oxc default-formatter + ESLint/Prettier disabled)
+- Coverage: src/core 96.29/89.08/97.78/97.71, src/modules 0/0
+- Commits: 33be1b4 (test red) · c6572c2 (feat green) · <log>
+- Blocker: none. JSONC-Parser im Test strippt Line- und Block-Comments vor JSON.parse, sodass Comments in den Configs erlaubt bleiben.
