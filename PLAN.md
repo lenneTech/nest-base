@@ -3761,7 +3761,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] **Diagnostik-Endpoint** `/dev/diagnostics`
 - [x] **`.vscode/` Defaults** (Extensions, Launch-Configs, Tasks)
 - [x] **`bun run onboard`** Skript für neue Entwickler
-- [ ] **SDK-Generation** (`bun run sdk:generate` via kubb)
+- [x] **SDK-Generation** (`bun run sdk:generate` via kubb)
 - [ ] Idempotency-Key Interceptor + Tabelle
 - [ ] ETag / If-Match Optimistic-Concurrency-Pipe
 - [ ] Cursor-Pagination zusätzlich zu page/limit
