@@ -3716,7 +3716,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] PostGIS-Extension via Migration aktivieren
 - [x] Geo-Schema (`prisma/features/geo.prisma`) mit `Address`, `Geofence`, `GeocodingCache`
 - [x] GIST-Indizes via raw-SQL-Migration
-- [ ] `GeocodingProvider` Interface + Adapter (Mapbox, Nominatim, Google, Local-Stub)
+- [x] `GeocodingProvider` Interface + Adapter (Mapbox, Nominatim, Google, Local-Stub)
 - [ ] `GeoService` (geocode, reverseGeocode, findNearby, withinGeofence, distance)
 - [ ] REST-Endpunkte (`/geo/*`, `/addresses`, `/geofences`, generisches `/places/nearby`)
 - [ ] GeoJSON-Output-Mapper in Output-Pipeline integrieren (Stage 3a)
