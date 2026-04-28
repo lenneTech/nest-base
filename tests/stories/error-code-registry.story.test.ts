@@ -137,8 +137,8 @@ describe('Story · Error-Code-Registry', () => {
   describe('listLocales()', () => {
     it('returns all locales advertised by any registered code (sorted, deduped)', () => {
       const reg = new ErrorCodeRegistry();
-      reg.register(definition({ code: 'A', messages: { en: { title: 'a' }, de: { title: 'a' } } }));
-      reg.register(definition({ code: 'B', messages: { en: { title: 'b' }, fr: { title: 'b' } } }));
+      reg.register(definition({ code: 'APP_AA', messages: { en: { title: 'a' }, de: { title: 'a' } } }));
+      reg.register(definition({ code: 'APP_BB', messages: { en: { title: 'b' }, fr: { title: 'b' } } }));
       expect(reg.listLocales()).toEqual(['de', 'en', 'fr']);
     });
   });
