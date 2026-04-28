@@ -3750,7 +3750,7 @@ model Setting { id String @id; key String @unique; value Json }
 
 ### Phase 8 – Developer Experience (parallel ab Phase 3, finalisieren in Sprint 13)
 - [ ] **Test-First (Stories):** Idempotency-Key (Cache-Hit/Miss), ETag/If-Match (Optimistic-Concurrency), Cursor-Pagination, Throttler (Multi-Window, Postgres-Store), GDPR-Endpoints (Export, Delete, Anonymize), Audit-Log (Create/Update/Delete-Tracking)
-- [ ] **Scalar** als API-UI (statt Swagger UI) — `@scalar/nestjs-api-reference`
+- [x] **Scalar** als API-UI (statt Swagger UI) — `@scalar/nestjs-api-reference`
 - [ ] **NestJS DevTools** Integration (`@nestjs/devtools-integration` + Snapshot-Mode)
 - [ ] **Dev-Hub** Landing-Page `/dev` mit Auto-Discovery aktiver Tools
 - [ ] **Permission-Tester** UI (`/admin/permissions/test`)
