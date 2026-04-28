@@ -3719,7 +3719,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] `GeocodingProvider` Interface + Adapter (Mapbox, Nominatim, Google, Local-Stub)
 - [x] `GeoService` (geocode, reverseGeocode, findNearby, withinGeofence, distance)
 - [x] REST-Endpunkte (`/geo/*`, `/addresses`, `/geofences`, generisches `/places/nearby`)
-- [ ] GeoJSON-Output-Mapper in Output-Pipeline integrieren (Stage 3a)
+- [x] GeoJSON-Output-Mapper in Output-Pipeline integrieren (Stage 3a)
 - [ ] GeocodingCache + Cleanup-Cron (90 Tage TTL)
 - [ ] Field-Encryption-Integration für Adress-PII-Felder (street, zip)
 - [ ] Frontend-SDK-Types für Point/Polygon/FeatureCollection (via OpenAPI)
