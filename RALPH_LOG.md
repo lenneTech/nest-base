@@ -439,3 +439,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 95.91/88.29/97.47/97.22, src/modules 0/0
 - Commits: 71ca193 (test red) · 9c37e32 (feat green) · <log>
 - Blocker: none. Legacy property-decorator gewählt da `experimentalDecorators=true` für NestJS gesetzt ist; Stage-3-accessor-Decorators sind dort nicht verfügbar.
+
+## Iteration 54 · 2026-04-28T19:19:00Z
+- Phase: 5 (Realtime/Search/Webhooks, Slice 7)
+- Slice: Cross-Resource-Search-Endpoint
+- Tests: `tests/stories/cross-resource-search.story.test.ts` rot (Modul fehlt) → grün (8 Tests; merge multiple executors, sort by rank desc, limit across merged set, executor-level limit, sanitize empty query, reject non-positive limit, only-allowlist, no-hits)
+- Coverage: src/core 95.94/88.38/97.51/97.24, src/modules 0/0
+- Commits: a12fc63 (test red) · f30f65d (feat green) · <log>
+- Blocker: none
