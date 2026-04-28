@@ -165,4 +165,12 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 96.35/87.50/97.24/97.56, src/modules 0/0
 - Commits: ba4f502 (test red) · <green> · <log>
 - Fix: flaky uuid-v7 monotonic-Test — verglich vollständige UUID-Strings, was bei selbem-ms wegen Random-Suffix flippte; jetzt vergleicht der Test nur den 48-bit-Timestamp-Prefix.
-- Blocker: none
+- Blocker: none — **Phase 1 (Foundation) komplett abgeschlossen**
+
+## Iteration 20 · 2026-04-28T17:39:00Z
+- Phase: 2 (Auth & Multi-Tenancy, Slice 1) **— Phase 2 startet**
+- Slice: Test-First Stories (11 adaptierte Test-Files: better-auth-*, auth-parallel-operation, auth-scenarios, user-enumeration-prevention, multi-tenancy, tenant-guard)
+- Tests: 11 Files rot (9 Module fehlten) → grün (48 neue Tests; Better-Auth-Config, Plugin-Set, JWT-Path-Classifier, Rate-Limits, Email-Verification, Parallel-Signup, Scenario-Catalog, Constant-Time-Compare, Tenant-Header-UUID-Parser, Tenant-Guard)
+- Coverage: src/core 96.70/87.78/97.63/97.88, src/modules 0/0
+- Commits: <red 11 tests> · <green 9 modules> · <log>
+- Blocker: none. Initial-Defaults: signUp 30/h war strenger als signIn 5/min — angepasst zu 10/min, damit signIn als strengster Endpoint dem typischen Credential-Stuffing-Threat-Modell entspricht.
