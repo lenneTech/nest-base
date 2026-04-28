@@ -367,3 +367,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 95.92/88.49/97.93/97.20, src/modules 0/0
 - Commits: 2742e9f (test red) · <green> · <log>
 - Blocker: none. Hierarchie-Validation (parent gleiche Tenant, keine Zyklen) liegt im Prisma-Adapter — der Service-Layer hier ist die in-process Oberfläche.
+
+## Iteration 45 · 2026-04-28T18:54:00Z
+- Phase: 4 (Files, Slice 7)
+- Slice: Multipart-Upload + TUS
+- Tests: `tests/stories/tus-upload-session.story.test.ts` rot (Modul fehlt) → grün (12 Tests; create + offset/status, appendChunk happy-path und mismatch/too-long/missing/already-complete, get + abort)
+- Coverage: src/core 96.04/88.66/97.99/97.28, src/modules 0/0
+- Commits: 0218e73 (test red) · 198cf63 (feat green) · <log>
+- Blocker: none. Bytes-Sink (Chunk → StorageAdapter) bleibt Controller-Verantwortung; diese Slice liefert die State-Maschine.
