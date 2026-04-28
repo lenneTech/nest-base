@@ -431,3 +431,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 95.89/88.36/97.42/97.15, src/modules 0/0
 - Commits: 923f53a (test red) · a531161 (feat green) · <log>
 - Blocker: none. Glue-Slice — verbindet HMAC + Retry-Policy + Endpoint-Auto-Disable aus Iteration 48.
+
+## Iteration 53 · 2026-04-28T19:17:00Z
+- Phase: 5 (Realtime/Search/Webhooks, Slice 6)
+- Slice: Search: @Searchable-Decorator + Migration-Generator (tsvector + GIN)
+- Tests: `tests/stories/searchable.story.test.ts` rot (Modul fehlt) → grün (9 Tests; @Searchable-Metadata, default weight, invalid weight throws, registry register/list/duplicate/empty, generateSearchMigration emits column+GIN+trigger, identifier-injection-guard)
+- Coverage: src/core 95.91/88.29/97.47/97.22, src/modules 0/0
+- Commits: 71ca193 (test red) · 9c37e32 (feat green) · <log>
+- Blocker: none. Legacy property-decorator gewählt da `experimentalDecorators=true` für NestJS gesetzt ist; Stage-3-accessor-Decorators sind dort nicht verfügbar.
