@@ -335,3 +335,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 96.09/88.32/97.98/97.28, src/modules 0/0
 - Commits: e78a4ca (test red) · 911000d (feat green) · <log>
 - Blocker: none. InMemory-Adapter ist die Referenz — S3/Local/Postgres-Adapter folgen in eigenen Slices und werden durch dieselben Tests pinned.
+
+## Iteration 41 · 2026-04-28T18:42:00Z
+- Phase: 4 (Files, Slice 3)
+- Slice: S3-Adapter (RustFS-getestet)
+- Tests: `tests/stories/s3-adapter.story.test.ts` rot (Modul fehlt) → grün (10 Tests; put/get/delete/exists/signUrl/list contract via injectable S3Operations stub, NotFound-Errors, TTL/Empty-Key Reject ohne S3-Call)
+- Coverage: src/core 96.15/88.48/98.03/97.32, src/modules 0/0
+- Commits: f92de82 (test red) · e5fba87 (feat green) · <log>
+- Blocker: none. Echtes AwsS3Operations (mit @aws-sdk/client-s3 + presigner) folgt im Storage-Module-Wiring; durch Operations-Interface bleibt Adapter Unit-testbar.
