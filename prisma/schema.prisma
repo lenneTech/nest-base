@@ -30,9 +30,10 @@ model Tenant {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  users   User[]
-  roles   Role[]
-  members TenantMember[]
+  users      User[]
+  roles      Role[]
+  members    TenantMember[]
+  fileBlobs  FileBlob[]
 
   @@map("tenants")
 }
@@ -90,6 +91,22 @@ model ApiKey {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("api_keys")
+}
+
+model FileBlob {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  key       String
+  mimeType  String   @map("mime_type")
+  sizeBytes Int      @map("size_bytes")
+  body      Bytes
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, key])
+  @@map("file_blobs")
 }
 
 model Role {
