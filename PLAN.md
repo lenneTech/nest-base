@@ -3659,7 +3659,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Field-Encryption-Service (AES-256-GCM, KEK aus ENV)
 
 ### Phase 2 – Auth & Multi-Tenancy (Sprint 3-4)
-- [ ] **Test-First (Stories):** Adaptierte `better-auth-*.story.test.ts` (api, integration, plugins, jwt-middleware, rate-limit, email-verification), `auth-parallel-operation.e2e-spec.ts`, `auth-scenarios.e2e-spec.ts`, `user-enumeration-prevention.e2e-spec.ts`, `multi-tenancy.e2e-spec.ts`, `tenant-guard.e2e-spec.ts` — vor jeder Implementation
+- [x] **Test-First (Stories):** Adaptierte `better-auth-*.story.test.ts` (api, integration, plugins, jwt-middleware, rate-limit, email-verification), `auth-parallel-operation.e2e-spec.ts`, `auth-scenarios.e2e-spec.ts`, `user-enumeration-prevention.e2e-spec.ts`, `multi-tenancy.e2e-spec.ts`, `tenant-guard.e2e-spec.ts` — vor jeder Implementation
 - [ ] Better-Auth Integration (Email/PW, Session, JWT)
 - [ ] System-Setup (Initial-Admin)
 - [ ] Tenant-Interceptor + RLS-Setup
