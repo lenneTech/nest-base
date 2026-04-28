@@ -3702,7 +3702,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Cross-Resource-Search-Endpoint
 - [x] Realtime-Service (Postgres LISTEN-Connection)
 - [x] Socket.IO-Gateway + Auth-Handshake + Room-Subscriptions
-- [ ] Permission-Aware Channel-Filter
+- [x] Permission-Aware Channel-Filter
 
 ### Phase 5c – Geo & Standortdaten (PostGIS, optional, nur wenn `features.geo` aktiv)
 - [ ] **Test-First (Stories):** Geocoding-Provider-Switch (Mapbox/Nominatim/Local-Stub), GeoJSON-Output-Mapping (Stage 3a der Output-Pipeline), `findNearby`/`withinGeofence`-Queries auf GIST-Indizes, GeocodingCache-TTL + DSGVO-Erasure, Address-PII-Encryption-Roundtrip — eigene Stories, keine 1:1-Übernahmen aus nest-server (kein Geo-Modul dort)
