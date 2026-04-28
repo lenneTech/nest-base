@@ -773,5 +773,13 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Slice: Test-Containers-Setup für Integration-Tests (Postgres + RustFS)
 - Tests: `tests/stories/test-containers-setup.story.test.ts` rot (rustfs-container Modul fehlt) → grün (13 Tests; global-setup pinnt PostgreSqlContainer/postgres:18-alpine/DATABASE_URL/CI-Bypass/teardown, rustfs-container builder pinnt image/port/keys/env-vars/overrides/empty-key-Rejection)
 - Coverage: src/core 96.50/89.74/97.81/97.85, src/modules 0/0
-- Commits: b9ce3f8 (test red) · bc918f5 (feat green) · <log>
+- Commits: b9ce3f8 (test red) · bc918f5 (feat green) · 104c897 (log)
 - Blocker: none. Pure-Builder; Runner-Side mit GenericContainer-Start lebt bei den File-Storage-Integration-Tests wo Docker-Dep eh akzeptiert ist.
+
+## Iteration 96 · 2026-04-28T22:01:00Z
+- Phase: 8 (Developer Experience, Slice 24)
+- Slice: Dokumentation für Konsumenten + API-Stability-Promise + Webhook-Spec
+- Tests: `tests/stories/consumer-docs.story.test.ts` rot (15 fehlende Sektionen) → grün (15 Tests; consumer-guide.md mit setup/env-contract/CI-gates/customization-link, api-stability-promise.md mit semver/public-surface/deprecation-window/migration, webhook-spec.md mit HMAC-SHA256/Standard-Webhooks/`t=,v1=`/Retry+Auto-Disable/Replay-Skew/Inspector-Pointer, README-Cross-Links)
+- Coverage: src/core 96.50/89.74/97.81/97.85, src/modules 0/0
+- Commits: 5d7bd77 (test red) · f543fcd (feat green) · <log>
+- Blocker: none. Phase 8 hat noch ~2 Boxes übrig (Test-First-Audit). Verbleibend nach diesem: Phase 8 Test-First-Audit-Bookkeeping.
