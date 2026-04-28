@@ -206,3 +206,11 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - Coverage: src/core 96.91/87.10/98.00/97.94, src/modules 0/0
 - Commits: 30b7c3d (test red) · 1fc6281 (feat green) · <log>
 - Blocker: none — Service ist storage-agnostic; Prisma-Adapter folgt zusammen mit Better-Auth-Session-Tabelle in späterer Slice
+
+## Iteration 25 · 2026-04-28T17:58:00Z
+- Phase: 2 (Auth & Multi-Tenancy, Slice 6)
+- Slice: Scoped API-Keys (CRUD, argon2id-Hash, Scopes, Rotation)
+- Tests: `tests/stories/api-keys.story.test.ts` rot (Service + Schema fehlten) → grün (15 Tests; createKey-Plaintext-Format, Storage-Hash, Scope-Persistence, Empty-Scope-Reject, verifyKey-Success/Tamper/Malformed/Unknown/Expired, lastUsedAt-Update, rotateKey-keeps-id, listByUser, revoke, Schema-Pin)
+- Coverage: src/core 96.36/86.97/97.50/97.58, src/modules 0/0
+- Commits: 4fcf2be (test red) · 33e80d7 (feat green) · <log>
+- Blocker: none. Bun.password ist im Vitest-Node-Runner undefined → @node-rs/argon2 als plattform-portable Lösung (funktioniert unter Node + Bun).
