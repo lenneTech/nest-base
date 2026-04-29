@@ -8,8 +8,8 @@
  * The actual NestJS Guard wraps this classifier in a future slice.
  */
 
-const EXEMPT_EXACT = new Set(['/']);
-const EXEMPT_PREFIXES = ['/health/', '/api/auth/', '/docs/', '/dev/'];
+const EXEMPT_EXACT = new Set(['/', '/errors']);
+const EXEMPT_PREFIXES = ['/health/', '/api/auth/', '/docs/', '/dev/', '/errors/'];
 
 export function isTenantExempt(path: string): boolean {
   if (!path) throw new Error('isTenantExempt: path is required');

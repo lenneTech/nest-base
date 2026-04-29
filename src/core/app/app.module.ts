@@ -8,6 +8,7 @@ import { EncryptionModule } from '../encryption/encryption.module.js';
 import { ErrorCodesModule } from '../errors/error-codes.module.js';
 import { conditionalImport, loadFeatures } from '../features/features.js';
 import { HealthModule } from '../health/health.module.js';
+import { TenantInterceptor } from '../multi-tenancy/tenant.interceptor.js';
 import { OutputPipelineInterceptor } from '../output-pipeline/output-pipeline.interceptor.js';
 import { PermissionsModule } from '../permissions/permissions.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
@@ -48,6 +49,9 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
   providers: [
     RequestContextMiddleware,
     { provide: APP_INTERCEPTOR, useClass: OutputPipelineInterceptor },
+    ...(features.multiTenancy.enabled
+      ? [{ provide: APP_INTERCEPTOR, useClass: TenantInterceptor }]
+      : []),
   ],
 })
 export class AppModule implements NestModule {
