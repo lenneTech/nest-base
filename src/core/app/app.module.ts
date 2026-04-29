@@ -3,6 +3,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { DevtoolsModule } from '@nestjs/devtools-integration';
 
 import { BetterAuthModule } from '../auth/better-auth.module.js';
+import { PowerSyncModule } from '../auth/powersync.module.js';
 import { ConfigModule } from '../config/config.module.js';
 import { buildDevToolsConfig, type DevToolsEnv } from '../dx/devtools-config.js';
 import { DevHubModule } from '../dx/dev-hub.module.js';
@@ -72,6 +73,7 @@ const devtools = buildDevToolsConfig({
     SearchModule,
     GdprModule,
     GeoModule,
+    PowerSyncModule,
     ...conditionalImport(features, 'fieldEncryption', EncryptionModule.forRoot()),
     ...(devtools.enabled && devtools.http
       ? [DevtoolsModule.register({ http: true, port: devtools.port })]

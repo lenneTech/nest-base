@@ -3731,7 +3731,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] PowerSync Service in Docker-Compose
 - [x] `sync-rules.yaml` mit User/Tenant-Buckets
 - [ ] Better-Auth JWT-Plugin: `audience: powersync` + JWKS-Endpoint  — *Config-Planner + Endpoint-Metadata existieren, aber Better-Auth-Instanz wird nirgends erzeugt; kein `/.well-known/jwks` Controller.*
-- [ ] PowerSync-Upload-Controller (`POST /powersync/crud`)  — *Zod-Validator existiert, kein NestJS-Controller.*
+- [x] PowerSync-Upload-Controller (`POST /powersync/crud`)  *(`PowerSyncModule` mit `PowerSyncController.crud()`: `parsePowerSyncCrudBatch()` → `applyPowerSyncCrudBatch()` (in-memory Store), 204 bei Success / 400 bei Validation-Error. e2e: `tests/powersync-controller.e2e-spec.ts`. Prisma-Repository-Upgrade folgt mit Konflikt-Hook-Slice.)*
 - [ ] Konflikt-Resolution-Hook in BaseRepository  — *Pure `resolvePowerSyncConflict()`-Planner existiert, BaseRepository ruft ihn nicht auf.*
 - [x] Encrypted-Fields explizit aus Sync-Rules ausschließen
 - [x] React-Native Demo-Client + Upload-Backend-Test  *(in-memory simulator, der den Upload-Flow durchspielt — RN-Repo separat)*
