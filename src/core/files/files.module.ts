@@ -24,6 +24,7 @@ import {
   FolderNotFoundError,
   FolderService,
 } from './folder.service.js';
+import { AssetController } from './asset.controller.js';
 
 const FILE_STORAGE = Symbol.for('lt:FileStorage');
 const FOLDER_STORAGE = Symbol.for('lt:FolderStorage');
@@ -150,7 +151,7 @@ class FolderController {
  * own modules in follow-up slices.
  */
 @Module({
-  controllers: [FileController, FolderController],
+  controllers: [FileController, FolderController, AssetController],
   providers: [
     { provide: FILE_STORAGE, useClass: InMemoryFileStorage },
     { provide: FOLDER_STORAGE, useClass: InMemoryFolderStorage },

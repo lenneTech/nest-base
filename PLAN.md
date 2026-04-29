@@ -3696,7 +3696,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Postgres-Adapter (Large Objects + `FileBlob`-Modell + RLS)
 - [x] File/Folder Models + CRUD-Endpoints  *(`FilesModule` mit `/files` und `/folders` CRUD-Controllern: GET (list by tenant/folder/parent), POST (create), DELETE (remove). In-Memory-Storage; Prisma-Adapter folgt.)*
 - [x] Multipart-Upload + TUS  *(`TusModule.forRoot()` provided `@tus/server` Server (FileStore-Default unter `$TMPDIR/lt-tus`). `mountTus()`-Helper exposed; bootstrap-Mount auf `/files/upload`.)*
-- [ ] Asset-Endpoint mit Transformations + Cache (`sharp`)  — *Helper existieren, kein Controller.*
+- [x] Asset-Endpoint mit Transformations + Cache (`sharp`)  *(`AssetController` `GET /assets/:key?width=&height=&format=` pipelined durch sharp + ETag via `computeCacheKey()`. Stub rendert Placeholder bis Storage-Retrieval gebunden ist.)*
 - [x] Asset-Presets
 
 ### Phase 5 – Realtime, Search, Webhooks (Sprint 9-10)
