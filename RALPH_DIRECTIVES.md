@@ -18,6 +18,28 @@ Hier können während des Loops zusätzliche Hinweise eingetragen werden, falls 
 sich verläuft oder eine Slice falsch interpretiert. Die Loop liest diese Sektion
 bei jeder Iteration.
 
+### 2026-04-29 · Definition-of-Done-Korrektur (kritisch)
+
+**Eine Box in PLAN.md §32 ist ERST dann abgehakt, wenn ALLE der folgenden gilt:**
+
+1. Die Pure-Function/Planner ist gebaut UND per Story-Test gepinnt (wie bisher).
+2. **Der NestJS-DI-Layer ist verdrahtet** — Service ist `@Injectable`, Modul existiert,
+   Modul ist in `AppModule` (oder einem Eltern-Modul) importiert.
+3. **Wenn das Feature eine HTTP/WS-Surface hat:** Controller existiert, ist gemountet,
+   und ein **e2e-Test** fährt einen echten NestJS-Server hoch (`Test.createTestingModule`),
+   ruft den Endpoint via `supertest` und prüft Status + Response.
+4. **Wenn das Feature einen Lifecycle braucht** (Cron, pg-boss-Worker, Socket.IO,
+   Outbox-Polling): Boot-Hook (`OnModuleInit`) ist implementiert, Lifecycle-Test fährt
+   den Boot durch und beobachtet die Side-Effect.
+5. Quality-Gates grün (lint, test:unit, test:e2e, test:types, test:coverage, build).
+
+**Konsequenz:** Story-Test allein reicht ab jetzt nicht mehr für eine Box-Flippung.
+Boxes ohne e2e-Verifikation der HTTP-Surface bleiben offen.
+
+Stand des Re-Audits (2026-04-29): 60 von 118 ehemals abgehakten Boxes wurden
+zurückgesetzt, weil nur der Planner-Layer fertig war. Die jeweilige Lücke ist
+in PLAN.md §32 in *kursiv* hinter der Box notiert.
+
 <!--
 Beispiel:
 - Phase 2 / Better-Auth: Email-Verifikation initial deaktiviert lassen, kommt in Phase 6.
