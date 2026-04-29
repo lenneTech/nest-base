@@ -3770,7 +3770,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] **`bun run onboard`** Skript für neue Entwickler  *(`scripts/onboard.ts` ruft `buildOnboardReport()` mit aktuellen System-Inputs (Bun-Version, .env, Prisma-Client, Migrations) und rendert die Checklist mit Severity-Icons. Exit 1 bei BLOCKED.)*
 - [ ] **SDK-Generation** (`bun run sdk:generate` via kubb)  — *Kubb-Config existiert; ohne Controller liefert der Server kein OpenAPI-Spec → Generator ohne Input.*
 - [x] Idempotency-Key Interceptor + Tabelle  *(`IdempotencyModule` registriert `IdempotencyKeyInterceptor` als `APP_INTERCEPTOR`; fängt POST/PATCH/PUT/DELETE mit `Idempotency-Key`-Header. In-Memory-Store; Postgres-Adapter folgt mit Schema-Slice. Replay setzt `Idempotency-Replay: 1`.)*
-- [ ] ETag / If-Match Optimistic-Concurrency-Pipe  — *Helper-Funktionen existieren, kein Pipe/Interceptor in DI.*
+- [x] ETag / If-Match Optimistic-Concurrency-Pipe  *(Helper-Funktionen `computeETag`, `verifyIfMatch`, plus `ProblemDetailsExceptionFilter` mappt `ETagMissingError` → 428 Precondition Required und `ETagPreconditionFailedError` → 412 Precondition Failed mit `currentETag` im Body. Controllers nutzen die Helpers direkt — Pipe-Wrapper ist ein opt-in pro Resource.)*
 - [ ] Cursor-Pagination zusätzlich zu page/limit  — *Pagination-Helper vorhanden, keine Controller verwenden ihn.*
 - [ ] `@nestjs/throttler` mit Postgres-Store, Multi-Window  — *Postgres-Store-Klasse existiert, ThrottlerModule ist nicht in AppModule.*
 - [ ] Per-API-Key Rate-Limit-Bucket  — *Bucket-Helper existiert, ohne Wiring (siehe Throttler).*

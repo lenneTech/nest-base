@@ -8,6 +8,7 @@ import {
 import type { Request, Response } from 'express';
 import { ZodError } from 'zod';
 
+import { ETagMissingError, ETagPreconditionFailedError } from '../concurrency/etag.js';
 import { getRequestContext } from '../request-context/request-context.js';
 import {
   CORE_ERROR_CODES,
@@ -46,6 +47,28 @@ export class ProblemDetailsExceptionFilter implements ExceptionFilter {
   private toProblem(exception: unknown, req: Request): ProblemDetails & Record<string, unknown> {
     const ctx = getRequestContext();
     const correlation = ctx ? { requestId: ctx.requestId, traceId: ctx.traceId } : {};
+
+    if (exception instanceof ETagMissingError) {
+      const detail = problemDetails({
+        code: 'CORE_PRECONDITION_REQUIRED',
+        status: 428,
+        title: 'Precondition Required',
+        detail: exception.message,
+        instance: req.originalUrl ?? req.url,
+      });
+      return { ...detail, ...correlation };
+    }
+
+    if (exception instanceof ETagPreconditionFailedError) {
+      const detail = problemDetails({
+        code: 'CORE_PRECONDITION_FAILED',
+        status: 412,
+        title: 'Precondition Failed',
+        detail: exception.message,
+        instance: req.originalUrl ?? req.url,
+      });
+      return { ...detail, ...correlation, currentETag: exception.currentETag };
+    }
 
     if (exception instanceof ZodError) {
       const detail = problemDetails({
