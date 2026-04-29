@@ -11,6 +11,7 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { apiReference } from "@scalar/nestjs-api-reference";
 
 import { type BrowserOpenPlatform, planBrowserOpen } from "../dx/browser-open.js";
+import { resolveEffectiveBaseUrl } from "../dx/effective-base-url.js";
 import { planPrismaStudio } from "../dx/prisma-studio.js";
 import { buildScalarConfig } from "../dx/scalar-config.js";
 import { planStartupBanner } from "../dx/startup-banner.js";
@@ -136,9 +137,19 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
         }
       }
 
+      const effective = resolveEffectiveBaseUrl({
+        baseUrl: cfg.baseUrl,
+        port: cfg.port,
+        env_vars: {
+          ...(process.env.DISABLE_PORTLESS
+            ? { DISABLE_PORTLESS: process.env.DISABLE_PORTLESS }
+            : {}),
+          ...(process.env.PORTLESS_ACTIVE ? { PORTLESS_ACTIVE: process.env.PORTLESS_ACTIVE } : {}),
+        },
+      });
       const banner = planStartupBanner({
         env: cfg.env,
-        baseUrl: cfg.baseUrl,
+        baseUrl: effective.publicUrl,
         port: cfg.port,
         features: {
           scalarEnabled: true,
@@ -161,7 +172,7 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
       if (process.env.DEV_HUB_OPENED !== "1") {
         process.env.DEV_HUB_OPENED = "1";
         const openPlan = planBrowserOpen({
-          url: `${stripTrailingSlash(cfg.baseUrl)}/dev`,
+          url: `${effective.publicUrl}/dev`,
           platform: detectBrowserOpenPlatform(),
           env: cfg.env,
           isTTY: Boolean(process.stdout.isTTY),
@@ -203,8 +214,4 @@ function detectBrowserOpenPlatform(): BrowserOpenPlatform {
     default:
       return "other";
   }
-}
-
-function stripTrailingSlash(url: string): string {
-  return url.endsWith("/") ? url.slice(0, -1) : url;
 }

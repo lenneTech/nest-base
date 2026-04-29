@@ -49,7 +49,10 @@ if (usePortless) {
   });
   console.log(`[dev] portless detected — running through proxy as api.${projectName}.localhost`);
   console.log('[dev] (proxy must already be running; start once via `portless proxy start`)');
-  child = spawn(portlessPath!, args, { stdio: 'inherit', env: process.env });
+  child = spawn(portlessPath!, args, {
+    stdio: 'inherit',
+    env: { ...process.env, PORTLESS_ACTIVE: '1' },
+  });
 } else {
   const port = resolveDevPort({
     env: process.env as { PORT?: string },

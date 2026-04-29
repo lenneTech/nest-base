@@ -10,6 +10,7 @@ import { APP_NAME, APP_VERSION } from "../app/app.metadata.js";
 import { renderAdminLayout } from "./admin-layout.js";
 import { buildCoverageReport, type RawCoverageSummary } from "./coverage-report.js";
 import { renderCoveragePage } from "./coverage-ui.js";
+import { resolveEffectiveBaseUrl } from "./effective-base-url.js";
 import { buildDiagnosticsReport, type DiagnosticsReport } from "./diagnostics.js";
 import { type DevHubLink, planDevHub } from "./dev-hub.js";
 import { getLogBuffer } from "./log-buffer.js";
@@ -37,9 +38,17 @@ export class DevHubController {
     const features = this.featuresOnly();
     const cfg = serverConfigFromEnv(process.env);
     const links = planDevHub({ env: "development", features });
-    const candidates = planServiceCandidates({
+    const effective = resolveEffectiveBaseUrl({
       baseUrl: cfg.baseUrl,
-      loopbackUrl: `http://localhost:${cfg.port}`,
+      port: cfg.port,
+      env_vars: {
+        ...(process.env.DISABLE_PORTLESS ? { DISABLE_PORTLESS: process.env.DISABLE_PORTLESS } : {}),
+        ...(process.env.PORTLESS_ACTIVE ? { PORTLESS_ACTIVE: process.env.PORTLESS_ACTIVE } : {}),
+      },
+    });
+    const candidates = planServiceCandidates({
+      baseUrl: effective.publicUrl,
+      loopbackUrl: effective.loopbackUrl,
       features,
       env_vars: {
         ...(process.env.DATABASE_URL ? { DATABASE_URL: process.env.DATABASE_URL } : {}),
@@ -58,9 +67,17 @@ export class DevHubController {
     this.assertDev();
     const features = this.featuresOnly();
     const cfg = serverConfigFromEnv(process.env);
-    const candidates = planServiceCandidates({
+    const effective = resolveEffectiveBaseUrl({
       baseUrl: cfg.baseUrl,
-      loopbackUrl: `http://localhost:${cfg.port}`,
+      port: cfg.port,
+      env_vars: {
+        ...(process.env.DISABLE_PORTLESS ? { DISABLE_PORTLESS: process.env.DISABLE_PORTLESS } : {}),
+        ...(process.env.PORTLESS_ACTIVE ? { PORTLESS_ACTIVE: process.env.PORTLESS_ACTIVE } : {}),
+      },
+    });
+    const candidates = planServiceCandidates({
+      baseUrl: effective.publicUrl,
+      loopbackUrl: effective.loopbackUrl,
       features,
       env_vars: {
         ...(process.env.DATABASE_URL ? { DATABASE_URL: process.env.DATABASE_URL } : {}),
