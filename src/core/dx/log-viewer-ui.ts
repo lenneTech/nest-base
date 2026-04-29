@@ -25,10 +25,16 @@ export function renderLogViewerPage(input: LogViewerInput): string {
   .log-toolbar strong { color: var(--fg); font-weight: 600; }
 
   /* Terminal-style scroll container: bound the height to the viewport
-     so the latest record is always visible without page-level scroll. */
+     so the latest record is always visible without page-level scroll.
+     Uses dvh (dynamic viewport height) so mobile browser chrome
+     doesn't push the bottom rows out of view. The 18rem offset
+     covers: admin-main padding (top+bottom), header + subtitle,
+     admin-card padding, log-toolbar, plus a buffer margin so the
+     last visible row is comfortably inside the viewport. */
   .log-scroll {
     position: relative;
-    max-height: calc(100vh - 14rem);
+    max-height: calc(100dvh - 18rem);
+    min-height: 16rem;
     overflow-y: auto;
     background: var(--surface-1);
     border: 1px solid var(--line);
