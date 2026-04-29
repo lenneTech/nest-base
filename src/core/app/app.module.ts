@@ -13,6 +13,7 @@ import { OutputPipelineInterceptor } from '../output-pipeline/output-pipeline.in
 import { PermissionsModule } from '../permissions/permissions.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { RequestContextMiddleware } from '../request-context/request-context.middleware.js';
+import { SystemSetupModule } from '../setup/system-setup.module.js';
 import { AppController } from './app.controller.js';
 
 const features = loadFeatures(process.env as Record<string, string | undefined>);
@@ -43,6 +44,7 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     BetterAuthModule,
     ErrorCodesModule,
     PermissionsModule,
+    SystemSetupModule,
     ...conditionalImport(features, 'fieldEncryption', EncryptionModule.forRoot()),
   ],
   controllers: [AppController],
