@@ -9,6 +9,7 @@ import type { Request, Response } from "express";
 import { ZodError } from "zod";
 
 import { ETagMissingError, ETagPreconditionFailedError } from "../concurrency/etag.js";
+import { TenantIsolationError } from "../multi-tenancy/tenant-header.js";
 import { getRequestContext } from "../request-context/request-context.js";
 import { CORE_ERROR_CODES, type ProblemDetails, problemDetails } from "./error-code.js";
 
@@ -49,6 +50,17 @@ export class ProblemDetailsExceptionFilter implements ExceptionFilter {
         code: "CORE_PRECONDITION_REQUIRED",
         status: 428,
         title: "Precondition Required",
+        detail: exception.message,
+        instance: req.originalUrl ?? req.url,
+      });
+      return { ...detail, ...correlation };
+    }
+
+    if (exception instanceof TenantIsolationError) {
+      const detail = problemDetails({
+        code: CORE_ERROR_CODES.VALIDATION,
+        status: HttpStatus.BAD_REQUEST,
+        title: "Tenant Header Required",
         detail: exception.message,
         instance: req.originalUrl ?? req.url,
       });
@@ -109,6 +121,19 @@ export class ProblemDetailsExceptionFilter implements ExceptionFilter {
       detail: "An unexpected error occurred. Check server logs for details.",
       instance: req.originalUrl ?? req.url,
     });
+    if (exception instanceof Error) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `[ProblemDetailsFilter] unhandled error on ${req.method} ${req.url}:`,
+        exception.stack ?? exception.message,
+      );
+    } else {
+      // eslint-disable-next-line no-console
+      console.error(
+        `[ProblemDetailsFilter] unhandled non-Error on ${req.method} ${req.url}:`,
+        exception,
+      );
+    }
     return { ...detail, ...correlation };
   }
 }

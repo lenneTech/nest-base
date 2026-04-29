@@ -13,6 +13,7 @@ import { z } from "zod";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { ProblemDetailsExceptionFilter } from "../src/core/errors/problem-details.filter.js";
+import { TenantIsolationError } from "../src/core/multi-tenancy/tenant-header.js";
 
 const Body = z.object({ name: z.string().min(2) });
 
@@ -82,6 +83,11 @@ class BoomController {
   badGateway(): void {
     throw new HttpException("upstream sad", HttpStatus.BAD_GATEWAY);
   }
+
+  @Get("tenant-missing")
+  tenantMissing(): void {
+    throw new TenantIsolationError("tenant header is required");
+  }
 }
 
 @Module({ controllers: [BoomController] })
@@ -149,6 +155,17 @@ describe("Problem-Details exception filter", () => {
     expect(response.status).toBe(500);
     expect(response.body.code).toBe("CORE_INTERNAL");
     expect(response.body.detail).not.toContain("kaboom");
+  });
+
+  it("TenantIsolationError becomes 400 + CORE_VALIDATION (not 500)", async () => {
+    const response = await request(app.getHttpServer()).get("/boom/tenant-missing");
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({
+      code: "CORE_VALIDATION",
+      title: "Tenant Header Required",
+      detail: "tenant header is required",
+      status: 400,
+    });
   });
 
   it("Successful responses are not touched", async () => {
