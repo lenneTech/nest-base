@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { AdminUiController } from './admin-ui.controller.js';
 import { DevHubController } from './dev-hub.controller.js';
 
 /**
@@ -10,6 +11,6 @@ import { DevHubController } from './dev-hub.controller.js';
  * tool URLs in production.
  */
 @Module({
-  controllers: [DevHubController],
+  controllers: [DevHubController, AdminUiController],
 })
 export class DevHubModule {}

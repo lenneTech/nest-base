@@ -9,7 +9,7 @@
  */
 
 const EXEMPT_EXACT = new Set(['/', '/errors']);
-const EXEMPT_PREFIXES = ['/health/', '/api/auth/', '/docs/', '/dev/', '/errors/'];
+const EXEMPT_PREFIXES = ['/health/', '/api/auth/', '/docs/', '/dev/', '/admin/', '/errors/'];
 
 export function isTenantExempt(path: string): boolean {
   if (!path) throw new Error('isTenantExempt: path is required');

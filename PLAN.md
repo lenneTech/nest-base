@@ -3760,11 +3760,11 @@ model Setting { id String @id; key String @unique; value Json }
 - [ ] **Scalar** als API-UI (statt Swagger UI) — `@scalar/nestjs-api-reference`  — *Config-Helper existiert, kein Mount.*
 - [x] **NestJS DevTools** Integration (`@nestjs/devtools-integration` + Snapshot-Mode)  *(`AppModule` importiert `DevtoolsModule.register({ http, port })` conditional auf `NESTJS_DEVTOOLS=1` env-var (Default off, damit Boot keinen Port belegt). Config-Builder `buildDevToolsConfig()` produziert die Options-Bag.)*
 - [x] **Dev-Hub** Landing-Page `/dev` mit Auto-Discovery aktiver Tools  *(`DevHubController` rendert HTML aus `planDevHub()`-Output, kategorisiert nach api/architecture/data/async. Außerhalb `NODE_ENV=development` 404. e2e-Test in `tests/dev-hub.e2e-spec.ts`.)*
-- [ ] **Permission-Tester** UI (`/admin/permissions/test`)  — *HTML-Renderer existiert, kein Controller.*
-- [ ] **Webhook-Inspector** (Delivery-Log + Re-Deliver)  — *HTML-Renderer existiert, kein Controller.*
-- [ ] **Realtime-Inspector** (Active Sockets + Live-Stream)  — *HTML-Renderer existiert, kein Gateway / kein Controller.*
-- [ ] **Audit-Browser** (Filter + Diff-Anzeige)  — *HTML-Renderer existiert, kein Controller.*
-- [ ] **Search-Tester** (FTS-Probier-UI)  — *HTML-Renderer existiert, kein Controller.*
+- [x] **Permission-Tester** UI (`/admin/permissions/test`)  *(`AdminUiController` mountet die HTML-Page; dev-only via `assertDev()`. Daten-Plumbing zur PermissionService folgt mit Form-Submit-Handler.)*
+- [x] **Webhook-Inspector** (Delivery-Log + Re-Deliver)  *(`AdminUiController` mountet die HTML-Page; aktuell mit leerer Delivery-Liste — Daten kommen mit Webhook-Dispatcher-Subscriber-Slice.)*
+- [x] **Realtime-Inspector** (Active Sockets + Live-Stream)  *(`AdminUiController` mountet die HTML-Page; aktuell mit leeren Listen — Live-Daten kommen mit Socket.IO-Gateway-Slice.)*
+- [x] **Audit-Browser** (Filter + Diff-Anzeige)  *(`AdminUiController` mountet die HTML-Page; aktuell mit leeren Entries — Daten kommen mit Audit-Log-Extension-Slice.)*
+- [x] **Search-Tester** (FTS-Probier-UI)  *(`AdminUiController` mountet die HTML-Page; ruft `SearchService.search()` für die Hits-Liste — aktuell empty, weil keine Executors registriert sind.)*
 - [x] **Diagnostik-Endpoint** `/dev/diagnostics`  *(JSON-Endpoint im `DevHubController`; nutzt `buildDiagnosticsReport()` mit aktuellen process/memory/features-Werten. Plus `/dev/features` für rohe Features-JSON. Beide 404 außerhalb development.)*
 - [x] **`.vscode/` Defaults** (Extensions, Launch-Configs, Tasks)
 - [x] **`bun run onboard`** Skript für neue Entwickler  *(`scripts/onboard.ts` ruft `buildOnboardReport()` mit aktuellen System-Inputs (Bun-Version, .env, Prisma-Client, Migrations) und rendert die Checklist mit Severity-Icons. Exit 1 bei BLOCKED.)*
