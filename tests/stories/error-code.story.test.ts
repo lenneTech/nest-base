@@ -34,11 +34,14 @@ describe("Story · Error Codes (RFC 7807 + CORE_* convention)", () => {
   });
 
   it("registry has at minimum INTERNAL, NOT_FOUND, UNAUTHORIZED, FORBIDDEN, VALIDATION", () => {
-    expect(CORE_ERROR_CODES.INTERNAL).toBeDefined();
-    expect(CORE_ERROR_CODES.NOT_FOUND).toBeDefined();
-    expect(CORE_ERROR_CODES.UNAUTHORIZED).toBeDefined();
-    expect(CORE_ERROR_CODES.FORBIDDEN).toBeDefined();
-    expect(CORE_ERROR_CODES.VALIDATION).toBeDefined();
+    // Assert exact values, not just presence — `toBeDefined()` would
+    // pass if the values were renamed to empty strings or `null`,
+    // which would silently break consumers reading the registry.
+    expect(CORE_ERROR_CODES.INTERNAL).toBe("CORE_INTERNAL");
+    expect(CORE_ERROR_CODES.NOT_FOUND).toBe("CORE_NOT_FOUND");
+    expect(CORE_ERROR_CODES.UNAUTHORIZED).toBe("CORE_UNAUTHORIZED");
+    expect(CORE_ERROR_CODES.FORBIDDEN).toBe("CORE_FORBIDDEN");
+    expect(CORE_ERROR_CODES.VALIDATION).toBe("CORE_VALIDATION");
   });
 
   it("problemDetails() returns RFC 7807 shape that validates against ProblemDetailsSchema", () => {

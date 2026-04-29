@@ -28,8 +28,20 @@ describe("Error-Code registry endpoint", () => {
     expect(res.status).toBe(200);
     expect(res.headers["content-type"]).toMatch(/application\/json/);
     expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.length).toBeGreaterThan(0);
-    expect(res.body[0]).toHaveProperty("code");
+    // Assert content, not just non-emptiness. A previous `length > 0`
+    // pass was meaningless if the array contained garbage.
+    const entries = res.body as Array<{
+      code: string;
+      status: number;
+      messages?: Record<string, { title?: string }>;
+    }>;
+    expect(entries.length).toBeGreaterThanOrEqual(5); // at minimum the 5 core codes
+    for (const entry of entries) {
+      expect(entry.code).toMatch(/^[A-Z][A-Z0-9_]+$/);
+      expect(typeof entry.status).toBe("number");
+      expect(entry.status).toBeGreaterThanOrEqual(400);
+      expect(entry.status).toBeLessThan(600);
+    }
   });
 
   it("GET /errors with Accept: text/html (browser default) returns the JSON viewer", async () => {

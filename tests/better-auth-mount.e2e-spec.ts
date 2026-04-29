@@ -42,7 +42,10 @@ describe("Better-Auth · /api/auth/* mount", () => {
     const res = await request(app.getHttpServer()).get("/api/auth/ok");
     expect([200, 404]).toContain(res.status); // some Better-Auth versions don't expose /ok
     if (res.status === 200) {
-      expect(res.body).toBeDefined();
+      // Better-Auth `/ok` returns `{ ok: true }`. Asserting on the
+      // shape catches the case where the route is reached but the
+      // response degenerates (empty body, error envelope, etc.).
+      expect(res.body).toEqual(expect.objectContaining({ ok: true }));
     }
   });
 
