@@ -3765,7 +3765,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [ ] **Realtime-Inspector** (Active Sockets + Live-Stream)  — *HTML-Renderer existiert, kein Gateway / kein Controller.*
 - [ ] **Audit-Browser** (Filter + Diff-Anzeige)  — *HTML-Renderer existiert, kein Controller.*
 - [ ] **Search-Tester** (FTS-Probier-UI)  — *HTML-Renderer existiert, kein Controller.*
-- [ ] **Diagnostik-Endpoint** `/dev/diagnostics`  — *Builder-Funktion existiert, kein Controller.*
+- [x] **Diagnostik-Endpoint** `/dev/diagnostics`  *(JSON-Endpoint im `DevHubController`; nutzt `buildDiagnosticsReport()` mit aktuellen process/memory/features-Werten. Plus `/dev/features` für rohe Features-JSON. Beide 404 außerhalb development.)*
 - [x] **`.vscode/` Defaults** (Extensions, Launch-Configs, Tasks)
 - [ ] **`bun run onboard`** Skript für neue Entwickler  — *Skript existiert nicht.*
 - [ ] **SDK-Generation** (`bun run sdk:generate` via kubb)  — *Kubb-Config existiert; ohne Controller liefert der Server kein OpenAPI-Spec → Generator ohne Input.*

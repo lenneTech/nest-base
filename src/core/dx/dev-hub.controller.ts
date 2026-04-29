@@ -1,27 +1,80 @@
-import { Controller, Get, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Header, NotFoundException } from '@nestjs/common';
 
-import { type Features, FeaturesSchema, loadFeatures } from '../features/features.js';
+import { type Features, loadFeatures } from '../features/features.js';
 import { serverConfigFromEnv } from '../server/server-config.js';
+import { APP_NAME, APP_VERSION } from '../app/app.metadata.js';
+import { buildDiagnosticsReport, type DiagnosticsReport } from './diagnostics.js';
 import { type DevHubLink, planDevHub } from './dev-hub.js';
 
 /**
- * `GET /dev` — landing page for the Dev-Hub. Lists active DX tools,
- * driven by `planDevHub()`. Outside `NODE_ENV=development` the route
- * 404s — the dev hub is a developer-only affordance.
+ * `/dev/*` — Developer-only landing + JSON inspection routes.
+ *
+ * - `GET /dev`             — HTML landing page (categorised tool links)
+ * - `GET /dev/features`    — active Features object as JSON
+ * - `GET /dev/diagnostics` — runtime + memory + features report
+ *
+ * Every route 404s outside `NODE_ENV=development` so the surface can
+ * never leak in production.
  */
 @Controller('dev')
 export class DevHubController {
   @Get()
+  @Header('content-type', 'text/html; charset=utf-8')
   index(): string {
+    this.assertDev();
+    const links = planDevHub({ env: 'development', features: this.featuresOnly() });
+    return renderHtml(links);
+  }
+
+  @Get('features')
+  features(): Features {
+    this.assertDev();
+    return this.featuresOnly();
+  }
+
+  @Get('diagnostics')
+  diagnostics(): DiagnosticsReport {
+    this.assertDev();
+    const features = this.featuresOnly();
+    const cfg = serverConfigFromEnv(process.env);
+    return buildDiagnosticsReport({
+      now: () => Date.now(),
+      processStartTime: Date.now() - Math.round(process.uptime() * 1000),
+      memory: () => {
+        const m = process.memoryUsage();
+        return {
+          rss: m.rss,
+          heapTotal: m.heapTotal,
+          heapUsed: m.heapUsed,
+          external: m.external,
+          arrayBuffers: m.arrayBuffers,
+        };
+      },
+      env: {
+        nodeVersion: process.versions.node,
+        bunVersion: readBunVersion(),
+        platform: process.platform,
+        arch: process.arch,
+      },
+      app: {
+        env: 'development',
+        version: APP_VERSION,
+        baseUrl: cfg.baseUrl,
+      },
+      features,
+      dependencies: { name: APP_NAME },
+    });
+  }
+
+  private assertDev(): void {
     const cfg = serverConfigFromEnv(process.env);
     if (cfg.env !== 'development') {
       throw new NotFoundException();
     }
+  }
 
-    const features: Features = loadFeatures(process.env as Record<string, string | undefined>);
-    void FeaturesSchema; // ensure schema import is alive for tooling
-    const links = planDevHub({ env: 'development', features });
-    return renderHtml(links);
+  private featuresOnly(): Features {
+    return loadFeatures(process.env as Record<string, string | undefined>);
   }
 }
 
@@ -69,6 +122,11 @@ ${sections}
 </body>
 </html>
 `;
+}
+
+function readBunVersion(): string | undefined {
+  const bun = (globalThis as { Bun?: { version: string } }).Bun;
+  return bun?.version;
 }
 
 function escapeHtml(input: string): string {
