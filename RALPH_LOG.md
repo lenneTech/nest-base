@@ -969,3 +969,33 @@ liefern erwartete Antworten. JSON i18n funktioniert (en + de).
 **Schätzung Restaufwand:** ~80-100h fokussierte Implementation. Jede
 Slice 30-90min mit voller TDD-Disziplin (red e2e → DI-Wiring → green
 → 6 Gates → PLAN-Flip → Commit).
+
+## Iteration 103 · 2026-04-29 (Wiring continued — 5 weitere Slices)
+
+| # | Slice | Tests | Box(es) |
+|---|---|---|---|
+| 10 | CanGuard global + PermissionInterceptor + PermissionsModule | e2e: routen ohne `@Can()` 200, mit `@Can()` 403 | Phase 3: `@Can()` Decorator + Guard |
+| 11 | `bun run onboard` runner (`scripts/onboard.ts`) | Smoke: Checklist rendert, OK/WARN/BLOCK Icons | Phase 8: `bun run onboard` Skript |
+| 12a | `bun run prepare:schema` runner | Smoke: schreibt `schema.generated.prisma` | Phase 7: Schema-Konkatenations-Skript |
+| 12b | `bun run sync:from-template <path>` runner | Smoke: walks beide cores, applied diff (147 skip im selbst-test) | Phase 7: Template-Sync `sync:from-template` |
+| 12c | `bun run sync:to-template <path>` runner | Smoke: produziert unified patch nach `reports/` | Phase 7: Core-PR-Workflow `sync:to-template` |
+
+- Tests: 1278 → 1280 grün (1 neue e2e), Coverage stabil ~97.6%
+- Stand: **74/118 [x]** in PLAN.md §32 — 44 Wiring-Slices stehen aus
+- Neue Endpoints / CLI:
+  - `bun run onboard` (Diagnose-Checklist)
+  - `bun run prepare:schema` (Feature-Schema-Konkat)
+  - `bun run sync:from-template <path>` (Template→Projekt)
+  - `bun run sync:to-template <path>` (Projekt→Template-PR)
+  - Globaler `CanGuard` + `@Can()`-Decorator scharf
+
+**Verbleibende 44 boxes** (siehe Iteration 102 für vollständige Roadmap)
+clustern in:
+- 4× Foundation (Tenant-Interceptor+RLS, System-Setup boot, Filter-Service AutoDiscovery, Postgrest-Query-Verwendung)
+- 4× Async-Infra (pg-boss, Outbox-Worker, Webhook-Dispatcher-Subscriber, Realtime+Socket.IO)
+- 11× HTTP-Surfaces (File-CRUD, TUS, Asset, Geo×1, PowerSync×2, TenantMember, ApiKey, Cross-Search, Admin-CRUD, GDPR)
+- 5× Admin-UIs (PermissionTester, WebhookInspector, RealtimeInspector, AuditBrowser, SearchTester)
+- 7× Cross-Cutting (Idempotency-Interceptor, ETag-Pipe, Cursor-Pagination-Use, Throttler×2, Audit-Log-Ext, GeoJSON-Stage3a, Cleanup-Cron, FieldEnc-Address-Integration)
+- 4× Email/MCP (EmailService DI, MCPModule, MCPDecorators, MCPAuth)
+- 4× Polish (Scalar mount, NestJS-DevTools, OpenAPI-Doku, SDK-Generation working)
+- 2× Repository-Konflikt-Hook + Better-Auth-Schema-Erweiterung-für-Prisma-Adapter
