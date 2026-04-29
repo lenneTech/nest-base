@@ -13,6 +13,8 @@
  * Inspector uses for failed deliveries).
  */
 
+import { renderAdminLayout } from "./admin-layout.js";
+
 export type AuditAction = "create" | "update" | "delete" | string;
 
 export interface AuditLogEntry {
@@ -41,57 +43,50 @@ export interface AuditBrowserPageInput {
 }
 
 export function renderAuditBrowserPage(input: AuditBrowserPageInput): string {
-  return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Audit Browser</title>
+  const body = `
 <style>
-  body { font-family: ui-sans-serif, system-ui, sans-serif; margin: 2rem; max-width: 1200px; color: #1b1b1b; }
-  h1 { margin-bottom: 1rem; }
-  form.filter { display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: .5rem; align-items: end; margin-bottom: 1.5rem; }
-  label { display: flex; flex-direction: column; font-size: .875rem; color: #555; }
-  input { padding: .5rem; border: 1px solid #ccc; border-radius: 4px; }
-  table { border-collapse: collapse; width: 100%; }
-  th, td { padding: .5rem; border-bottom: 1px solid #eee; text-align: left; vertical-align: top; }
-  tr[data-action="delete"] { background: #ffece8; }
-  tr[data-action="create"] { background: #ecfdf3; }
-  pre.diff { font-family: ui-monospace, SFMono-Regular, monospace; font-size: .8125rem; margin: 0; white-space: pre-wrap; word-break: break-word; }
-  pre.diff .add { color: #0a7036; }
-  pre.diff .del { color: #b3261e; }
-  .empty { padding: 1rem; color: #777; }
-  a.back { color: #555; text-decoration: none; font-size: .875rem; }
-  a.back:hover { text-decoration: underline; }
-  button { padding: .5rem 1rem; background: #1b1b1b; color: #fff; border: 0; border-radius: 4px; cursor: pointer; }
+  pre.diff { margin: 0; white-space: pre-wrap; word-break: break-word; }
+  pre.diff .add { color: var(--success); }
+  pre.diff .del { color: var(--danger); }
+  tr[data-action="delete"] td { background: rgba(248, 81, 73, .08); }
+  tr[data-action="create"] td { background: rgba(63, 185, 80, .08); }
 </style>
-</head>
-<body>
-<a href="/dev" class="back">← Back to Dev Hub</a>
-<h1>Audit Browser</h1>
-${renderFilter(input.filter)}
-${renderEntries(input.entries)}
-</body>
-</html>`;
+<div class="admin-card">
+  <h2 class="admin-card__title">Filter</h2>
+  ${renderFilter(input.filter)}
+</div>
+<div class="admin-card">
+  <h2 class="admin-card__title">Entries</h2>
+  ${renderEntries(input.entries)}
+</div>`;
+  return renderAdminLayout({
+    title: "Audit Browser",
+    subtitle: "Filter and inspect tenant-scoped audit-log entries with diffs.",
+    currentNav: "audit",
+    body,
+  });
 }
 
 function renderFilter(filter: AuditBrowserFilter): string {
   const value = (key: keyof AuditBrowserFilter): string => escapeHtml(filter[key] ?? "");
-  return `<form class="filter" method="get">
-  <label>Action <input name="action" value="${value("action")}" placeholder="create / update / delete"></label>
-  <label>Resource <input name="resource" value="${value("resource")}" placeholder="Project"></label>
-  <label>Actor <input name="actorUserId" value="${value("actorUserId")}" placeholder="user uuid"></label>
-  <label>From <input name="from" type="date" value="${value("from")}"></label>
-  <label>To <input name="to" type="date" value="${value("to")}"></label>
-  <button type="submit">Filter</button>
+  return `<form class="admin-form filter" method="get" style="grid-template-columns: repeat(5, 1fr) auto;">
+  <div class="row" style="grid-template-columns: repeat(5, 1fr) auto;">
+    <label>Action <input name="action" value="${value("action")}" placeholder="create / update / delete"></label>
+    <label>Resource <input name="resource" value="${value("resource")}" placeholder="Project"></label>
+    <label>Actor <input name="actorUserId" value="${value("actorUserId")}" placeholder="user uuid"></label>
+    <label>From <input name="from" type="date" value="${value("from")}"></label>
+    <label>To <input name="to" type="date" value="${value("to")}"></label>
+    <button type="submit">Filter</button>
+  </div>
 </form>`;
 }
 
 function renderEntries(entries: AuditLogEntry[]): string {
   if (entries.length === 0) {
-    return `<div class="empty">No audit entries match the current filter.</div>`;
+    return `<div class="admin-empty">No audit entries match the current filter.</div>`;
   }
   const rows = entries.map(renderEntryRow).join("");
-  return `<table data-audit-entries="true">
+  return `<table class="admin-table" data-audit-entries="true">
 <thead><tr><th>When</th><th>Action</th><th>Resource</th><th>ID</th><th>Actor</th><th>Diff</th></tr></thead>
 <tbody>${rows}</tbody>
 </table>`;

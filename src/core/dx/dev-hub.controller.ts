@@ -4,6 +4,7 @@ import { type Features, loadFeatures } from "../features/features.js";
 import { type PrismaWhere, parsePostgrestQuery } from "../permissions/postgrest-query.js";
 import { serverConfigFromEnv } from "../server/server-config.js";
 import { APP_NAME, APP_VERSION } from "../app/app.metadata.js";
+import { renderAdminLayout } from "./admin-layout.js";
 import { buildDiagnosticsReport, type DiagnosticsReport } from "./diagnostics.js";
 import { type DevHubLink, planDevHub } from "./dev-hub.js";
 
@@ -102,35 +103,31 @@ function renderHtml(links: ReadonlyArray<DevHubLink>): string {
   const sections = Object.entries(grouped)
     .map(([category, list]) => {
       const items = list!
-        .map((l) => `      <li><a href="${escapeHtml(l.url)}">${escapeHtml(l.label)}</a></li>`)
+        .map(
+          (l) =>
+            `        <li><a href="${escapeHtml(l.url)}"><span>${escapeHtml(l.label)}</span><span class="admin-meta">→</span></a></li>`,
+        )
         .join("\n");
-      return `    <section>\n      <h2>${escapeHtml(CATEGORY_LABELS[category as DevHubLink["category"]])}</h2>\n      <ul>\n${items}\n      </ul>\n    </section>`;
+      return `<div class="admin-card">
+  <h2 class="admin-card__title">${escapeHtml(CATEGORY_LABELS[category as DevHubLink["category"]])}</h2>
+  <ul class="admin-link-list">
+${items}
+  </ul>
+</div>`;
     })
     .join("\n");
 
-  return `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>Dev Hub</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
-    h1 { margin-bottom: 0.5rem; }
-    section { margin-top: 1.5rem; }
-    h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em; color: #666; }
-    ul { list-style: none; padding: 0; }
-    li { padding: 0.25rem 0; }
-    a { color: #0a58ca; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-  </style>
-</head>
-<body>
-  <h1>Dev Hub</h1>
-  <p>Local developer tools for this server. Visible only when <code>NODE_ENV=development</code>.</p>
+  const body = `
+<p class="admin-meta">Local developer tools for this server. Visible only when <code>NODE_ENV=development</code>.</p>
+<div class="admin-grid admin-grid--2">
 ${sections}
-</body>
-</html>
-`;
+</div>`;
+  return renderAdminLayout({
+    title: "Dev Hub",
+    subtitle: "Central access point for every dev/admin surface this server exposes.",
+    currentNav: "dev-hub",
+    body,
+  });
 }
 
 function readBunVersion(): string | undefined {

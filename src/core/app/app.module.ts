@@ -43,14 +43,18 @@ const devtoolsEnv: DevToolsEnv =
     : process.env.NODE_ENV === "test"
       ? "test"
       : "development";
-// Opt-in via env-var so the default boot doesn't bind port 8000 in
-// every test process. Set `NESTJS_DEVTOOLS=1` to flip on the
-// snapshot UI in `bun run dev`.
-const devtoolsExplicit = process.env.NESTJS_DEVTOOLS === "1";
+// In `bun run dev` we want the snapshot UI on by default so
+// http://localhost:8000 just works. Tests must NOT bind port 8000
+// (every spawned NestJS instance would collide), so the toggle is
+// `dev → on`, `test → off`, `production → opt-in via NESTJS_DEVTOOLS=1`.
+const devtoolsExplicitOff = process.env.NESTJS_DEVTOOLS === "0";
+const devtoolsForcedOn = process.env.NESTJS_DEVTOOLS === "1";
+const devtoolsDefault = devtoolsEnv === "development";
+const devtoolsEnabled = devtoolsForcedOn || (devtoolsDefault && !devtoolsExplicitOff);
 const devtools = buildDevToolsConfig({
   env: devtoolsEnv,
-  enabled: devtoolsExplicit,
-  http: devtoolsExplicit,
+  enabled: devtoolsEnabled,
+  http: devtoolsEnabled,
 });
 
 /**

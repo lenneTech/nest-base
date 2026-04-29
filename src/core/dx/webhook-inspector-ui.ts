@@ -13,6 +13,8 @@
  * five-character substitution table.
  */
 
+import { renderAdminLayout } from "./admin-layout.js";
+
 export type DeliveryStatus = "DELIVERED" | "FAILED";
 
 export interface DeliveryListEntry {
@@ -34,55 +36,47 @@ export interface WebhookInspectorPageInput {
 
 export function renderWebhookInspectorPage(input: WebhookInspectorPageInput): string {
   const filterStatus = input.filter?.status ?? "ALL";
-  return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Webhook Inspector</title>
-<style>
-  body { font-family: ui-sans-serif, system-ui, sans-serif; margin: 2rem; max-width: 1100px; color: #1b1b1b; }
-  h1 { margin-bottom: 1.5rem; }
-  table { border-collapse: collapse; width: 100%; }
-  th, td { padding: .5rem; border-bottom: 1px solid #eee; text-align: left; vertical-align: top; }
-  tr[data-status="FAILED"] { background: #ffece8; }
-  .empty { padding: 1rem; color: #777; }
-  a.back { color: #555; text-decoration: none; font-size: .875rem; }
-  a.back:hover { text-decoration: underline; }
-  form.filter { margin-bottom: 1rem; }
-  form.redeliver { display: inline; }
-  button { padding: .25rem .75rem; background: #1b1b1b; color: #fff; border: 0; border-radius: 4px; cursor: pointer; font-size: .875rem; }
-</style>
-</head>
-<body>
-<a href="/dev" class="back">← Back to Dev Hub</a>
-<h1>Webhook Inspector</h1>
-${renderFilter(filterStatus)}
-${renderTable(input)}
-</body>
-</html>`;
+  const body = `
+<div class="admin-card">
+  <h2 class="admin-card__title">Filter</h2>
+  ${renderFilter(filterStatus)}
+</div>
+<div class="admin-card">
+  <h2 class="admin-card__title">Recent deliveries</h2>
+  ${renderTable(input)}
+</div>`;
+  return renderAdminLayout({
+    title: "Webhook Inspector",
+    subtitle: "Recent deliveries, retry counts, and re-delivery actions.",
+    currentNav: "webhooks",
+    body,
+  });
 }
 
 function renderFilter(currentStatus: DeliveryStatus | "ALL"): string {
   const opt = (value: string, label: string): string =>
     `<option value="${value}"${value === currentStatus ? " selected" : ""}>${label}</option>`;
-  return `<form class="filter" method="get">
-  <label>Status
-    <select name="status">
-      ${opt("ALL", "All")}
-      ${opt("DELIVERED", "Delivered")}
-      ${opt("FAILED", "Failed")}
-    </select>
-  </label>
-  <button type="submit">Apply</button>
+  return `<form class="admin-form filter" method="get">
+  <div class="row">
+    <label>Status
+      <select name="status">
+        ${opt("ALL", "All")}
+        ${opt("DELIVERED", "Delivered")}
+        ${opt("FAILED", "Failed")}
+      </select>
+    </label>
+    <span></span>
+    <button type="submit">Apply</button>
+  </div>
 </form>`;
 }
 
 function renderTable(input: WebhookInspectorPageInput): string {
   if (input.deliveries.length === 0) {
-    return `<div class="empty">No deliveries to show.</div>`;
+    return `<div class="admin-empty">No deliveries to show.</div>`;
   }
   const rows = input.deliveries.map((d) => renderRow(d, input.csrfToken)).join("");
-  return `<table data-deliveries="true">
+  return `<table class="admin-table" data-deliveries="true">
 <thead><tr><th>When</th><th>Event</th><th>Endpoint</th><th>Status</th><th>HTTP</th><th>Attempts</th><th>Error</th><th></th></tr></thead>
 <tbody>${rows}</tbody>
 </table>`;

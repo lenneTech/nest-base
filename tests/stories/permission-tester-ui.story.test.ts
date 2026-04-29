@@ -110,9 +110,11 @@ describe("Story · Permission-Tester UI", () => {
           }),
         }),
       );
-      const auditPos = html.indexOf("Audit");
-      const projectPos = html.indexOf("Project");
-      const webhookPos = html.indexOf("Webhook");
+      // Search inside the report table — sidebar items also contain "Audit"/"Webhook".
+      const tableStart = html.indexOf('data-permission-report="true"');
+      const auditPos = html.indexOf("Audit", tableStart);
+      const projectPos = html.indexOf("Project", tableStart);
+      const webhookPos = html.indexOf("Webhook", tableStart);
       expect(auditPos).toBeLessThan(projectPos);
       expect(projectPos).toBeLessThan(webhookPos);
     });

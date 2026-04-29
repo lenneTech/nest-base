@@ -15,6 +15,8 @@
  * snapshot the admin reloads manually". When unset, no meta-refresh.
  */
 
+import { renderAdminLayout } from "./admin-layout.js";
+
 export interface ActiveSocketEntry {
   id: string;
   userId: string;
@@ -37,45 +39,30 @@ export interface RealtimeInspectorPageInput {
 }
 
 export function renderRealtimeInspectorPage(input: RealtimeInspectorPageInput): string {
-  const meta = input.refreshSeconds
-    ? `<meta http-equiv="refresh" content="${input.refreshSeconds}">`
-    : "";
-  return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-${meta}
-<title>Realtime Inspector</title>
-<style>
-  body { font-family: ui-sans-serif, system-ui, sans-serif; margin: 2rem; max-width: 1100px; color: #1b1b1b; }
-  h1 { margin-bottom: 1rem; }
-  h2 { margin-top: 2rem; font-size: 1.125rem; color: #333; }
-  table { border-collapse: collapse; width: 100%; }
-  th, td { padding: .5rem; border-bottom: 1px solid #eee; text-align: left; vertical-align: top; }
-  ul.channels { margin: 0; padding-left: 1.25rem; }
-  .empty { padding: 1rem; color: #777; }
-  .meta { color: #555; font-size: .875rem; margin-bottom: 1rem; }
-  a.back { color: #555; text-decoration: none; font-size: .875rem; }
-  a.back:hover { text-decoration: underline; }
-  pre.payload { font-family: ui-monospace, SFMono-Regular, monospace; font-size: .8125rem; margin: 0; white-space: pre-wrap; word-break: break-word; }
-</style>
-</head>
-<body>
-<a href="/dev" class="back">← Back to Dev Hub</a>
-<h1>Realtime Inspector</h1>
-${renderSockets(input.sockets)}
-${renderEvents(input.events)}
-</body>
-</html>`;
+  const body = `
+${input.refreshSeconds ? `<meta http-equiv="refresh" content="${input.refreshSeconds}">` : ""}
+<div class="admin-card">
+  <h2 class="admin-card__title">Active Sockets <span class="admin-meta">(${input.sockets.length} active)</span></h2>
+  ${renderSockets(input.sockets)}
+</div>
+<div class="admin-card">
+  <h2 class="admin-card__title">Recent Events</h2>
+  ${renderEvents(input.events)}
+</div>`;
+  return renderAdminLayout({
+    title: "Realtime Inspector",
+    subtitle: "Active Socket.IO connections and recent broadcast events.",
+    currentNav: "realtime",
+    body,
+  });
 }
 
 function renderSockets(sockets: ActiveSocketEntry[]): string {
-  const heading = `<h2>Active Sockets <span class="meta">(${sockets.length} active)</span></h2>`;
   if (sockets.length === 0) {
-    return `${heading}<div class="empty">No active sockets right now.</div>`;
+    return `<div class="admin-empty">No active sockets right now.</div>`;
   }
   const rows = sockets.map(renderSocketRow).join("");
-  return `${heading}<table data-sockets="true">
+  return `<table class="admin-table" data-sockets="true">
 <thead><tr><th>Socket</th><th>User</th><th>Tenant</th><th>Channels</th><th>Connected at</th></tr></thead>
 <tbody>${rows}</tbody>
 </table>`;
@@ -97,12 +84,11 @@ function renderSocketRow(s: ActiveSocketEntry): string {
 }
 
 function renderEvents(events: RealtimeEventEntry[]): string {
-  const heading = `<h2>Recent Events</h2>`;
   if (events.length === 0) {
-    return `${heading}<div class="empty">No recent events captured.</div>`;
+    return `<div class="admin-empty">No recent events captured.</div>`;
   }
   const rows = events.map(renderEventRow).join("");
-  return `${heading}<table data-events="true">
+  return `<table class="admin-table" data-events="true">
 <thead><tr><th>When</th><th>Channel</th><th>Type</th><th>Preview</th></tr></thead>
 <tbody>${rows}</tbody>
 </table>`;

@@ -1,5 +1,7 @@
 import "reflect-metadata";
 
+import { spawn } from "node:child_process";
+
 import type { INestApplication, LoggerService } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
@@ -8,6 +10,7 @@ import helmet from "helmet";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { apiReference } from "@scalar/nestjs-api-reference";
 
+import { type BrowserOpenPlatform, planBrowserOpen } from "../dx/browser-open.js";
 import { buildScalarConfig } from "../dx/scalar-config.js";
 import { planStartupBanner } from "../dx/startup-banner.js";
 import { ProblemDetailsExceptionFilter } from "../errors/problem-details.filter.js";
@@ -111,6 +114,9 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
           scalarEnabled: true,
           ...(process.env.MAILPIT_WEB_URL ? { mailpitUrl: process.env.MAILPIT_WEB_URL } : {}),
           ...(process.env.POWERSYNC_URL ? { powerSyncUrl: process.env.POWERSYNC_URL } : {}),
+          ...(process.env.NESTJS_DEVTOOLS !== "0"
+            ? { devtoolsUrl: "https://devtools.nestjs.com" }
+            : {}),
         },
       });
       // pino-pretty runs in a worker thread (async); a short tick lets
@@ -118,8 +124,56 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
       // banner write so the banner appears at the bottom, not the top.
       await new Promise((resolve) => setTimeout(resolve, 150));
       process.stdout.write(`${banner.text}\n`);
+
+      // Auto-open the Dev Hub the first time `bun run dev` runs in this
+      // process. Skipped on watch-restarts via DEV_HUB_OPENED=1.
+      if (process.env.DEV_HUB_OPENED !== "1") {
+        process.env.DEV_HUB_OPENED = "1";
+        const openPlan = planBrowserOpen({
+          url: `${stripTrailingSlash(cfg.baseUrl)}/dev`,
+          platform: detectBrowserOpenPlatform(),
+          env: cfg.env,
+          isTTY: Boolean(process.stdout.isTTY),
+          env_vars: {
+            ...(process.env.CI ? { CI: process.env.CI } : {}),
+            ...(process.env.NO_OPEN ? { NO_OPEN: process.env.NO_OPEN } : {}),
+            ...(process.env.BROWSER ? { BROWSER: process.env.BROWSER } : {}),
+          },
+        });
+        if (openPlan.action === "open") {
+          try {
+            const child = spawn(openPlan.command, openPlan.args, {
+              detached: true,
+              stdio: "ignore",
+            });
+            child.on("error", () => {
+              /* ignore — missing `open` / `xdg-open` should not crash boot */
+            });
+            child.unref();
+          } catch {
+            /* ignore — see comment above */
+          }
+        }
+      }
     }
   }
 
   return app;
+}
+
+function detectBrowserOpenPlatform(): BrowserOpenPlatform {
+  switch (process.platform) {
+    case "darwin":
+      return "darwin";
+    case "linux":
+      return "linux";
+    case "win32":
+      return "win32";
+    default:
+      return "other";
+  }
+}
+
+function stripTrailingSlash(url: string): string {
+  return url.endsWith("/") ? url.slice(0, -1) : url;
 }
