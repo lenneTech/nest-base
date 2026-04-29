@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { resolveDevPort, shouldUsePortless } from '../../src/core/dev/portless.js';
+import { buildPortlessRunCommand, resolveDevPort, shouldUsePortless } from '../../src/core/dev/portless.js';
 
 const ROOT = resolve(import.meta.dirname, '..', '..');
 const PORTLESS_YML = resolve(ROOT, 'portless.yml');
@@ -70,6 +70,48 @@ describe('dev runner', () => {
 
     it('throws when PORT is set but not numeric', () => {
       expect(() => resolveDevPort({ env: { PORT: 'abc' }, portlessAvailable: true })).toThrow();
+    });
+  });
+
+  describe('buildPortlessRunCommand()', () => {
+    // Constructs the argv for `portless run` (portless 0.11+ API). The
+    // service URL becomes `https://<app>.<projectName>.localhost`; the
+    // `--` separator hands the rest to the spawned dev command.
+    it('returns `run --name <app>.<projectName> -- <command>`', () => {
+      const args = buildPortlessRunCommand({
+        projectName: 'my-app',
+        app: 'api',
+        target: ['bun', '--watch', 'src/main.ts'],
+      });
+      expect(args).toEqual([
+        'run',
+        '--name',
+        'api.my-app',
+        '--',
+        'bun',
+        '--watch',
+        'src/main.ts',
+      ]);
+    });
+
+    it('omits the app prefix when `app` is undefined (URL = project.localhost)', () => {
+      const args = buildPortlessRunCommand({
+        projectName: 'my-app',
+        target: ['bun', 'src/main.ts'],
+      });
+      expect(args).toEqual(['run', '--name', 'my-app', '--', 'bun', 'src/main.ts']);
+    });
+
+    it('rejects an empty target array (would spawn nothing)', () => {
+      expect(() =>
+        buildPortlessRunCommand({ projectName: 'my-app', app: 'api', target: [] }),
+      ).toThrow(/target/);
+    });
+
+    it('rejects an empty projectName (URL would be malformed)', () => {
+      expect(() =>
+        buildPortlessRunCommand({ projectName: '', app: 'api', target: ['bun'] }),
+      ).toThrow(/projectName/);
     });
   });
 
