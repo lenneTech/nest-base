@@ -7,25 +7,30 @@ import {
   Controller,
   Get,
   Header,
+  Headers,
   HttpCode,
   NotFoundException,
   Param,
   Post,
   Query,
+  Res,
 } from "@nestjs/common";
+import type { Response } from "express";
 
 import { type Features, loadFeatures } from "../features/features.js";
-import { type PrismaWhere, parsePostgrestQuery } from "../permissions/postgrest-query.js";
+import { parsePostgrestQuery } from "../permissions/postgrest-query.js";
 import { serverConfigFromEnv } from "../server/server-config.js";
 import { APP_NAME, APP_VERSION } from "../app/app.metadata.js";
 import { buildCoverageReport, type RawCoverageSummary } from "./coverage-report.js";
 import { renderCoveragePage } from "./coverage-ui.js";
 import { renderDashboardPage } from "./dashboard-ui.js";
+import { renderDevtoolsPage } from "./devtools-ui.js";
 import { renderDiagnosticsPage } from "./diagnostics-ui.js";
 import { resolveEffectiveBaseUrl } from "./effective-base-url.js";
 import { planEnvFileUpdate } from "./env-file-update.js";
 import { FEATURE_CATALOG } from "./feature-catalog.js";
 import { renderFeaturesPage } from "./features-ui.js";
+import { renderJsonViewerPage } from "./json-viewer-ui.js";
 import { buildDiagnosticsReport, type DiagnosticsReport } from "./diagnostics.js";
 import { getLogBuffer } from "./log-buffer.js";
 import { renderLogViewerPage } from "./log-viewer-ui.js";
@@ -212,11 +217,37 @@ export class DevHubController {
   }
 
   @Get("postgrest-parse")
-  postgrestParse(@Query() query: Record<string, string>): { where: PrismaWhere } {
+  postgrestParse(
+    @Query() query: Record<string, string>,
+    @Headers("accept") accept: string | undefined,
+    @Res() res: Response,
+  ): void {
     this.assertDev();
-    // Strips off the controller's own NestJS-overhead query params if any
-    // (none today). Returns the parsed Prisma WHERE for inspection.
-    return { where: parsePostgrestQuery(query) };
+    const { format, ...filterQuery } = query;
+    const parsed = parsePostgrestQuery(filterQuery);
+    const data = { where: parsed, query: filterQuery };
+    if (devWantsJson(accept, format)) {
+      res.type("application/json").send(JSON.stringify(data));
+      return;
+    }
+    const rawJsonHref =
+      Object.keys(filterQuery).length === 0
+        ? "/dev/postgrest-parse?format=json"
+        : `/dev/postgrest-parse?${new URLSearchParams({ ...filterQuery, format: "json" }).toString()}`;
+    const prelude =
+      Object.keys(filterQuery).length === 0
+        ? '<p class="admin-meta">Try <a href="/dev/postgrest-parse?status=eq.draft&age=gte.18">?status=eq.draft&age=gte.18</a> to see how PostgREST-style filters map to a Prisma WHERE clause.</p>'
+        : "";
+    res.type("text/html; charset=utf-8").send(
+      renderJsonViewerPage({
+        title: "PostgREST Parser",
+        subtitle: "Mapping of `?key=op.value` query strings to a Prisma `where` clause.",
+        currentNav: "postgrest-parse",
+        prelude,
+        value: data,
+        rawJsonHref,
+      }),
+    );
   }
 
   @Get("coverage")
@@ -287,6 +318,24 @@ export class DevHubController {
     return renderTestSummaryPage(report);
   }
 
+  @Get("devtools")
+  @Header("content-type", "text/html; charset=utf-8")
+  async devtools(): Promise<string> {
+    this.assertDev();
+    const enabled = process.env.NESTJS_DEVTOOLS !== "0";
+    const port = 8000;
+    let status: "up" | "down" | "unknown" = "unknown";
+    if (enabled) {
+      status = (await probeLocalhost(port)) ? "up" : "down";
+    }
+    return renderDevtoolsPage({
+      enabled,
+      port,
+      status,
+      cloudUrl: "https://devtools.nestjs.com",
+    });
+  }
+
   @Get("diagnostics")
   @Header("content-type", "text/html; charset=utf-8")
   diagnostics(): string {
@@ -347,4 +396,31 @@ export class DevHubController {
 function readBunVersion(): string | undefined {
   const bun = (globalThis as { Bun?: { version: string } }).Bun;
   return bun?.version;
+}
+
+async function probeLocalhost(port: number, timeoutMs: number = 400): Promise<boolean> {
+  const { connect } = await import("node:net");
+  return new Promise((resolveBool) => {
+    const socket = connect({ host: "127.0.0.1", port, timeout: timeoutMs });
+    let settled = false;
+    const finish = (ok: boolean): void => {
+      if (settled) return;
+      settled = true;
+      socket.destroy();
+      resolveBool(ok);
+    };
+    socket.on("connect", () => finish(true));
+    socket.on("error", () => finish(false));
+    socket.on("timeout", () => finish(false));
+  });
+}
+
+function devWantsJson(accept: string | undefined, format: string | undefined): boolean {
+  if (format === "json") return true;
+  if (format === "html") return false;
+  if (!accept) return false;
+  const lower = accept.toLowerCase();
+  if (lower.includes("text/html")) return false;
+  if (lower.includes("application/json")) return true;
+  return false;
 }

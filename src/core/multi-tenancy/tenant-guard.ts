@@ -13,9 +13,16 @@ const EXEMPT_PREFIXES = ["/health/", "/api/auth/", "/docs/", "/dev/", "/admin/",
 
 export function isTenantExempt(path: string): boolean {
   if (!path) throw new Error("isTenantExempt: path is required");
-  if (EXEMPT_EXACT.has(path)) return true;
+  // Strip query string + fragment so /errors?format=json still matches
+  // the exempt-exact entry. Browsers and curl pass `req.originalUrl`
+  // which includes them.
+  const queryAt = path.indexOf("?");
+  const hashAt = path.indexOf("#");
+  const cut = Math.min(...[queryAt, hashAt].filter((i) => i >= 0), path.length);
+  const pure = path.slice(0, cut);
+  if (EXEMPT_EXACT.has(pure)) return true;
   for (const prefix of EXEMPT_PREFIXES) {
-    if (path.startsWith(prefix) || path === prefix.slice(0, -1)) return true;
+    if (pure.startsWith(prefix) || pure === prefix.slice(0, -1)) return true;
   }
   return false;
 }

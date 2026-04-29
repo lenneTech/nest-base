@@ -32,4 +32,15 @@ describe("Tenant Guard", () => {
   it("rejects empty input defensively", () => {
     expect(() => requiresTenant("")).toThrow();
   });
+
+  it("strips query strings before matching exempt prefixes", () => {
+    expect(isTenantExempt("/errors?format=json")).toBe(true);
+    expect(isTenantExempt("/health/live?ts=1")).toBe(true);
+    expect(isTenantExempt("/api/auth/sign-in?next=/x")).toBe(true);
+    expect(isTenantExempt("/dev?source=banner")).toBe(true);
+  });
+
+  it("strips fragments before matching", () => {
+    expect(isTenantExempt("/errors#section")).toBe(true);
+  });
 });

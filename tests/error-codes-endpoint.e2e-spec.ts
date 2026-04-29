@@ -23,8 +23,8 @@ describe("Error-Code registry endpoint", () => {
     await app.close();
   });
 
-  it("GET /errors returns an array of registered codes", async () => {
-    const res = await request(app.getHttpServer()).get("/errors");
+  it("GET /errors with Accept: application/json returns the registered codes as JSON", async () => {
+    const res = await request(app.getHttpServer()).get("/errors").set("Accept", "application/json");
     expect(res.status).toBe(200);
     expect(res.headers["content-type"]).toMatch(/application\/json/);
     expect(Array.isArray(res.body)).toBe(true);
@@ -32,8 +32,25 @@ describe("Error-Code registry endpoint", () => {
     expect(res.body[0]).toHaveProperty("code");
   });
 
+  it("GET /errors with Accept: text/html (browser default) returns the JSON viewer", async () => {
+    const res = await request(app.getHttpServer()).get("/errors").set("Accept", "text/html");
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toMatch(/text\/html/);
+    expect(res.text).toContain("Error Catalog");
+    expect(res.text).toContain("jv__root");
+  });
+
+  it("GET /errors?format=json overrides Accept and returns JSON", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/errors?format=json")
+      .set("Accept", "text/html");
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toMatch(/application\/json/);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
   it("seeded with the CORE_* defaults", async () => {
-    const res = await request(app.getHttpServer()).get("/errors");
+    const res = await request(app.getHttpServer()).get("/errors").set("Accept", "application/json");
     const codes = (res.body as Array<{ code: string }>).map((d) => d.code);
     expect(codes).toContain("CORE_INTERNAL");
     expect(codes).toContain("CORE_NOT_FOUND");

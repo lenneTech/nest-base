@@ -12,6 +12,7 @@ import { apiReference } from "@scalar/nestjs-api-reference";
 
 import { type BrowserOpenPlatform, planBrowserOpen } from "../dx/browser-open.js";
 import { resolveEffectiveBaseUrl } from "../dx/effective-base-url.js";
+import { renderJsonViewerPage } from "../dx/json-viewer-ui.js";
 import { planPrismaStudio } from "../dx/prisma-studio.js";
 import { buildScalarConfig } from "../dx/scalar-config.js";
 import { planStartupBanner } from "../dx/startup-banner.js";
@@ -78,12 +79,30 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
     .build();
   const openApiDocument = SwaggerModule.createDocument(app, openApiConfig);
   // SwaggerModule.setup also mounts the Swagger UI; we only want the
-  // raw JSON since Scalar UI is the chosen renderer. Manually expose
-  // the document at /api/openapi.json.
+  // raw JSON since Scalar UI is the chosen renderer. Mount /api/openapi
+  // as the dev-hub JSON viewer (browser default) and /api/openapi.json
+  // as the raw JSON for SDK generators.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   app.use("/api/openapi.json", (_req: any, res: any) => {
     res.json(openApiDocument);
   });
+  if (cfg.env !== "production") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    app.use("/api/openapi", (req: any, res: any, next: any) => {
+      // Only catch GET, fall through for other methods to keep the API
+      // surface clean in case anything ever wants to POST here.
+      if (req.method !== "GET") return next();
+      res.type("text/html; charset=utf-8").send(
+        renderJsonViewerPage({
+          title: "OpenAPI Spec",
+          subtitle: "OpenAPI 3.1 document this server emits — consumed by Scalar UI and kubb.",
+          currentNav: "openapi",
+          value: openApiDocument,
+          rawJsonHref: "/api/openapi.json",
+        }),
+      );
+    });
+  }
 
   // Scalar API-UI mount (PLAN.md §32 Phase 8). Default `/api/docs` with
   // the stock theme; consumers override via env or by tweaking

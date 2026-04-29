@@ -442,7 +442,8 @@ function renderQuickLinks(): string {
   <h2 class="admin-card__title">Quick navigation</h2>
   <div class="quick-grid">
     <a class="quick" href="/api/docs"><span class="quick__title">Scalar API Reference</span><span class="quick__hint">Interactive OpenAPI 3.1 reference</span></a>
-    <a class="quick" href="/api/openapi.json"><span class="quick__title">OpenAPI JSON</span><span class="quick__hint">Raw spec for SDK generation</span></a>
+    <a class="quick" href="/api/openapi"><span class="quick__title">OpenAPI Spec</span><span class="quick__hint">Pretty-printed JSON viewer + raw download</span></a>
+    <a class="quick" href="/dev/devtools"><span class="quick__title">NestJS DevTools</span><span class="quick__hint">Module graph, providers, lifecycle</span></a>
     <a class="quick" href="/admin/permissions/test"><span class="quick__title">Permission Tester</span><span class="quick__hint">Resolve CASL ability per user</span></a>
     <a class="quick" href="/admin/webhooks"><span class="quick__title">Webhook Inspector</span><span class="quick__hint">Recent deliveries + replay</span></a>
     <a class="quick" href="/admin/realtime"><span class="quick__title">Realtime Inspector</span><span class="quick__hint">Active sockets + events</span></a>
