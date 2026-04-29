@@ -1,3 +1,8 @@
+import {
+  type PowerSyncConflictOutcome,
+  resolvePowerSyncConflict,
+} from './powersync-conflict.js';
+
 /**
  * BaseRepository (PLAN.md §19.13).
  *
@@ -65,6 +70,12 @@ interface SoftDeletable {
   deletedAt: Date | null;
 }
 
+export interface ConflictUpdateResult<T> {
+  outcome: PowerSyncConflictOutcome;
+  row: T;
+  rejectedFields: string[];
+}
+
 export abstract class BaseRepository<T extends { id: string } & Partial<SoftDeletable>> {
   constructor(protected readonly delegate: ModelDelegate<T>) {}
 
@@ -96,6 +107,57 @@ export abstract class BaseRepository<T extends { id: string } & Partial<SoftDele
     } catch {
       throw new RepositoryNotFoundError(id);
     }
+  }
+
+  /**
+   * PowerSync-aware update — delegates conflict resolution to
+   * `resolvePowerSyncConflict()` (PLAN.md §15.5 Phase 5b). Use this
+   * from the `/powersync/crud` upload-controller (or any other
+   * offline-first writer) so a stale client's PATCH cannot overwrite
+   * fresher server state and `protectedFields` are never overwritten.
+   *
+   * Outcomes:
+   *   - `client-wins`      → patch applied, full row written
+   *   - `server-wins`      → no write, returns the server row as-is
+   *   - `partial-conflict` → patch applied minus protected fields,
+   *                         caller is expected to surface the
+   *                         `rejectedFields` array as a 409 to the client
+   *   - `no-op`            → empty patch, no-op
+   */
+  async updateWithConflict(
+    id: string,
+    patch: Partial<T>,
+    options: {
+      clientUpdatedAt: Date;
+      protectedFields?: ReadonlyArray<keyof T & string>;
+    },
+  ): Promise<ConflictUpdateResult<T>> {
+    const existing = await this.delegate.findUnique({ where: { id } });
+    if (!existing) throw new RepositoryNotFoundError(id);
+    const decision = resolvePowerSyncConflict<T & { updatedAt?: Date }>({
+      clientPatch: patch as Partial<T & { updatedAt?: Date }>,
+      clientUpdatedAt: options.clientUpdatedAt,
+      serverRow: existing as T & { updatedAt?: Date },
+      protectedFields: (options.protectedFields ?? []) as ReadonlyArray<
+        keyof (T & { updatedAt?: Date }) & string
+      >,
+    });
+    if (decision.outcome === 'no-op' || decision.outcome === 'server-wins') {
+      return {
+        outcome: decision.outcome,
+        row: existing,
+        rejectedFields: decision.rejectedFields,
+      };
+    }
+    const updated = await this.delegate.update({
+      where: { id },
+      data: decision.merged as Partial<T>,
+    });
+    return {
+      outcome: decision.outcome,
+      row: updated,
+      rejectedFields: decision.rejectedFields,
+    };
   }
 
   async softDelete(id: string): Promise<T> {
