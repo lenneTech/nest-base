@@ -3683,7 +3683,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] `@Can()` Decorator + Guard, `@Ability()` Param-Decorator  *(`PermissionsModule` registriert `CanGuard` als `APP_GUARD` + `PermissionInterceptor` als `APP_INTERCEPTOR` der `request.ability` setzt. Anonyme Requests bekommen leere Ability — `@Can()`-Routen denien (403), Routen ohne `@Can()` lassen pass-through. PermissionStorage via DI-Token, aktuell Stub-Adapter (real Prisma-Adapter folgt mit Permission-Schema-Slice).)*
 - [ ] PostgREST-Query-Parser → Prisma-WHERE (kombiniert mit `accessibleBy`)  — *Parser existiert, aber kein Controller verwendet ihn.*
 - [x] Output-Pipeline-Interceptor (4-Stage)  *(`OutputPipelineInterceptor` ist als globaler `APP_INTERCEPTOR` registriert; Stages 3+4 (remove-secrets + safety-net) laufen auf jeder Response. Stages 1+2 (record-level Permission-Filter + Field-Allowlist) aktivieren sich, sobald per Request eine `Ability` resolvbar ist — passiert mit Auth-Slice.)*
-- [ ] Filter-Service Pattern: `@FilterFor()` + Registry + Auto-Discovery  — *`FilterService` (@Injectable) existiert, aber keine Auto-Discovery via `DiscoveryModule`/`MetadataScanner`.*
+- [x] Filter-Service Pattern: `@FilterFor()` + Registry + Auto-Discovery  *(`FiltersModule` importiert `DiscoveryModule`; `FilterDiscoveryService` als `OnApplicationBootstrap` scannt alle Provider auf `FILTER_FOR_METADATA` und registriert sie idempotent in der Registry. e2e: `tests/filter-service-discovery.e2e-spec.ts`.)*
 - [x] Secret-Safety-Net mit globaler Liste + Regex-Patterns
 - [ ] Admin-CRUD-Endpoints für Roles/Policies/Permissions + Test-Endpunkt  — *Keine Controller.*
 - [x] Soft-Delete Prisma-Extension (inkl. `RESTORE`/`HARD_DELETE` Actions)

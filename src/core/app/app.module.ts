@@ -10,6 +10,7 @@ import { conditionalImport, loadFeatures } from '../features/features.js';
 import { HealthModule } from '../health/health.module.js';
 import { TenantInterceptor } from '../multi-tenancy/tenant.interceptor.js';
 import { OutputPipelineInterceptor } from '../output-pipeline/output-pipeline.interceptor.js';
+import { FiltersModule } from '../permissions/filters.module.js';
 import { PermissionsModule } from '../permissions/permissions.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { RequestContextMiddleware } from '../request-context/request-context.middleware.js';
@@ -44,6 +45,7 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     BetterAuthModule,
     ErrorCodesModule,
     PermissionsModule,
+    FiltersModule,
     SystemSetupModule,
     ...conditionalImport(features, 'fieldEncryption', EncryptionModule.forRoot()),
   ],
