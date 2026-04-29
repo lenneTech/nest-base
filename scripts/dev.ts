@@ -53,7 +53,13 @@ interface SpawnPlan {
   env: NodeJS.ProcessEnv;
 }
 
+// First spawn opens the Dev Hub in the browser; respawns (env-file
+// changes, watch-restarts) keep the user's existing tab and let the
+// page reload itself.
+let isFirstSpawn = true;
+
 function buildSpawnPlan(): SpawnPlan {
+  const browserEnv: NodeJS.ProcessEnv = isFirstSpawn ? {} : { DEV_HUB_OPENED: '1' };
   if (usePortless && proxyAlive) {
     const args = buildPortlessRunCommand({
       projectName,
@@ -63,7 +69,7 @@ function buildSpawnPlan(): SpawnPlan {
     return {
       command: portlessPath!,
       args,
-      env: { ...process.env, PORTLESS_ACTIVE: '1' },
+      env: { ...process.env, ...browserEnv, PORTLESS_ACTIVE: '1' },
     };
   }
   const port = resolveDevPort({
@@ -73,7 +79,7 @@ function buildSpawnPlan(): SpawnPlan {
   return {
     command: 'bun',
     args: ['--watch', 'src/main.ts'],
-    env: { ...process.env, PORT: String(port) },
+    env: { ...process.env, ...browserEnv, PORT: String(port) },
   };
 }
 
@@ -93,6 +99,7 @@ let shuttingDown = false;
 function spawnChild(): ChildProcess {
   const plan = buildSpawnPlan();
   const proc = spawn(plan.command, plan.args, { stdio: 'inherit', env: plan.env });
+  isFirstSpawn = false;
   proc.on('exit', (code) => {
     // Don't propagate exit during a planned respawn — a new child is coming.
     if (respawning) return;
