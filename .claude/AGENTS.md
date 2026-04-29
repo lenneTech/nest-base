@@ -46,6 +46,8 @@ spelunking through the directory tree.
 | "Pull upstream template changes" | skill: `syncing-from-template.md` |
 | "I just fixed a bug in `src/core/` — should I PR it back?" | skill: `contributing-upstream.md` + `/upstream-pr` |
 | "Open a PR back to the upstream nest-base template" | `/upstream-pr` command |
+| "User reports 403 / why does CASL deny this?" | skill: `debugging-permission-denials.md` |
+| "Add or change a Prisma model" | skill: `writing-migrations.md` |
 
 ---
 
@@ -82,6 +84,8 @@ and gotchas so each contributor doesn't re-discover them.
 | `running-tdd-slice` | The red-green-refactor cycle for a single PLAN.md slice. | `skills/running-tdd-slice.md` |
 | `syncing-from-template` | Pull latest `src/core/` upstream into a consumer project. | `skills/syncing-from-template.md` |
 | `contributing-upstream` | Decide *when* a downstream change should travel back to `nest-base`, then sequence the PR safely. | `skills/contributing-upstream.md` |
+| `debugging-permission-denials` | Standard 5-step diagnostic path from 403 → log → permission tester → DB rules → regression test. | `skills/debugging-permission-denials.md` |
+| `writing-migrations` | Add/change Prisma models without breaking schema-concat, RLS, or the six gates. | `skills/writing-migrations.md` |
 | `wiring-permissions` | Add CASL ability checks to a handler / route / record. | `skills/wiring-permissions.md` |
 
 ---
