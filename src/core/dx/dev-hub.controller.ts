@@ -33,6 +33,9 @@ import { renderJsonViewerPage } from "./json-viewer-ui.js";
 import { buildDiagnosticsReport, type DiagnosticsReport } from "./diagnostics.js";
 import { getLogBuffer } from "./log-buffer.js";
 import { renderLogViewerPage } from "./log-viewer-ui.js";
+import { RouteInventoryService } from "./route-inventory-runner.js";
+import { renderRouteInventoryPage } from "./route-inventory-ui.js";
+import type { RouteInventory } from "./route-inventory.js";
 import { buildTestSummary, type RawTestSummary } from "./test-summary.js";
 import { renderTestSummaryPage } from "./test-summary-ui.js";
 import { planServiceCandidates, probeServices, type ServiceProbeResult } from "./service-status.js";
@@ -49,6 +52,8 @@ import { planServiceCandidates, probeServices, type ServiceProbeResult } from ".
  */
 @Controller("dev")
 export class DevHubController {
+  constructor(private readonly routes: RouteInventoryService) {}
+
   @Get()
   @Header("content-type", "text/html; charset=utf-8")
   async index(): Promise<string> {
@@ -326,6 +331,19 @@ export class DevHubController {
   diagnosticsJson(): DiagnosticsReport {
     this.assertDev();
     return this.buildDiagnostics();
+  }
+
+  @Get("routes")
+  @Header("content-type", "text/html; charset=utf-8")
+  routesPage(): string {
+    this.assertDev();
+    return renderRouteInventoryPage(this.routes.build());
+  }
+
+  @Get("routes.json")
+  routesJson(): RouteInventory {
+    this.assertDev();
+    return this.routes.build();
   }
 
   private buildDiagnostics(): DiagnosticsReport {

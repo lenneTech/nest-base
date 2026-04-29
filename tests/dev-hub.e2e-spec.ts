@@ -88,6 +88,30 @@ describe("Dev-Hub · GET /dev", () => {
       expect(res.body).toHaveProperty("features");
       expect(res.body.runtime.platform).toMatch(/darwin|linux|win32/);
     });
+
+    it("GET /dev/routes renders the HTML route inventory page", async () => {
+      const res = await request(app.getHttpServer()).get("/dev/routes");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/text\/html/);
+      expect(res.text).toMatch(/Routes/);
+      // The page lists at least the dev-hub's own routes.
+      expect(res.text).toContain("/dev/diagnostics");
+    });
+
+    it("GET /dev/routes.json returns the structured inventory", async () => {
+      const res = await request(app.getHttpServer()).get("/dev/routes.json");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/application\/json/);
+      expect(res.body).toHaveProperty("routes");
+      expect(res.body).toHaveProperty("byController");
+      expect(res.body).toHaveProperty("summary");
+      expect(Array.isArray(res.body.routes)).toBe(true);
+      // /dev itself is in the public allowlist
+      const devRoute = res.body.routes.find(
+        (r: { path: string; method: string }) => r.path === "/dev" && r.method === "GET",
+      );
+      expect(devRoute).toBeDefined();
+    });
   });
 
   describe("outside development mode", () => {
