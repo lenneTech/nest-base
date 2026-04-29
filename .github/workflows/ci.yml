@@ -15,7 +15,11 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    # Run on every PR regardless of target branch (so feature → develop
+    # PRs gate the same way as feature → main). The pull_request trigger
+    # defaults to types: [opened, synchronize, reopened], which covers
+    # initial open + each push + reopen-after-close.
+    branches: ["**"]
 
 # Cancel in-flight runs on the same ref when a newer commit arrives — saves
 # Action minutes on rapid pushes (squash-merge cadence).
@@ -147,3 +151,27 @@ jobs:
         # GitLab pipeline; flip on `bun audit --severity high` once the
         # transitive ecosystem catches up.
         run: bun audit || true
+
+  # Aggregator gate — depends on every required job. Add THIS job to
+  # GitHub branch protection's "required status checks" list and you
+  # get one switch that flips green only when all six gates pass.
+  # `audit` is intentionally excluded (continue-on-error: true).
+  ci-success:
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+      - format
+      - test-types
+      - test-unit
+      - test-e2e
+      - test-coverage
+      - build
+    if: always()
+    steps:
+      - name: Verify every required job passed
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            echo "::error::One or more required CI jobs failed."
+            exit 1
+          fi
+          echo "All required CI jobs passed."

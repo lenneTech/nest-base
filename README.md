@@ -36,20 +36,25 @@ Most NestJS starters give you a `Hello World` and call it a day. This one ships 
 # 1. Install dependencies
 bun install
 
-# 2. Boot Postgres (Mailpit + RustFS optional)
-docker compose up -d postgres
+# 2. Generate .env with strong random secrets (creates .env.example too if missing)
+bun run setup
 
 # 3. Generate Prisma client + run migrations
 bun run prisma:generate
 bun run prisma:migrate
 
-# 4. Start the dev server (auto-opens the Dev Hub)
+# 4. (optional) Verify everything is wired correctly
+bun run onboard
+
+# 5. Start the dev server — boots Postgres if needed, opens the Dev Hub
 bun run dev
 ```
 
 The Dev Hub opens automatically at **http://localhost:3000/dev** (or `https://api.<project>.localhost/dev` if you use [portless](https://github.com/portless/portless)).
 
-> **Heads up:** The first start auto-spawns Prisma Studio on `:5555` and reads `.env` for the database URL. Set `NO_OPEN=1` if you don't want the browser tab.
+> **What `bun run dev` does for you**: starts Postgres via `docker compose up -d postgres` if the container isn't running, spawns Prisma Studio on `:5555`, watches `.env` for changes (so feature toggles take effect without a manual restart), and opens the Dev Hub in your browser. Set `NO_OPEN=1` to skip the auto-open, `SKIP_DB_BOOT=1` to skip the Postgres boot.
+
+> **`bun run onboard` is a sanity check**: prints a structured report of Bun version, `.env` presence, Postgres reachability, and Prisma client status. Run it whenever something feels off.
 
 ---
 
@@ -225,8 +230,9 @@ bun run prisma:generate       # Generate Prisma client
 bun run prisma:migrate        # Apply migrations
 
 # Project lifecycle
-bun run setup                 # Interactive setup wizard (.env + secrets)
-bun run rename                # Rename project across the codebase
+bun run setup                 # Generate .env with strong random secrets (idempotent)
+bun run onboard               # First-run sanity check (Bun / .env / Postgres / Prisma)
+bun run rename <new-name>     # Rename project across the codebase
 bun run sync:from-template    # Pull latest src/core/ from upstream
 bun run sync:to-template      # Contribute changes back upstream
 bun run sdk:generate          # kubb → typed SDK from /api/openapi.json

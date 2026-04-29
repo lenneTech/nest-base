@@ -12,6 +12,8 @@ interface Job {
   steps?: Array<{ uses?: string; run?: string; name?: string; with?: Record<string, unknown> }>;
   "continue-on-error"?: boolean;
   services?: Record<string, unknown>;
+  needs?: string[];
+  if?: string;
 }
 
 interface Workflow {
@@ -44,9 +46,15 @@ describe("Story · GitHub Actions CI workflow", () => {
     expect(wf.on?.push?.branches).toContain("main");
   });
 
-  it("triggers on pull requests targeting main", () => {
+  it("triggers on pull requests (against main or any branch)", () => {
     const wf = readWorkflow();
-    expect(wf.on?.pull_request?.branches).toContain("main");
+    const branches = wf.on?.pull_request?.branches ?? [];
+    // `["**"]` (wildcard) or `["main"]` both satisfy this — the point
+    // is that opening a PR runs the full gate matrix.
+    expect(
+      branches.includes("**") || branches.includes("main"),
+      `pull_request branches must include "main" or "**", got: ${branches.join(", ")}`,
+    ).toBe(true);
   });
 
   it("runs all six quality gates: lint, format, test:unit, test:e2e, test:types, test:coverage, build", () => {
@@ -68,6 +76,9 @@ describe("Story · GitHub Actions CI workflow", () => {
   it("uses ubuntu-latest for every job (Docker available — testcontainers needs it)", () => {
     const wf = readWorkflow();
     for (const [name, job] of Object.entries(wf.jobs ?? {})) {
+      // Aggregator gate has only `needs:` and a verification step —
+      // it doesn't run any tooling itself.
+      if (name === "ci-success") continue;
       expect(job["runs-on"], `job "${name}" missing runs-on`).toBe("ubuntu-latest");
     }
   });
@@ -75,6 +86,9 @@ describe("Story · GitHub Actions CI workflow", () => {
   it("every job sets up Bun via oven-sh/setup-bun", () => {
     const wf = readWorkflow();
     for (const [name, job] of Object.entries(wf.jobs ?? {})) {
+      // Aggregator gate has only `needs:` and a verification step —
+      // it doesn't run any tooling itself.
+      if (name === "ci-success") continue;
       const setupBun = job.steps?.find((s) => s.uses?.startsWith("oven-sh/setup-bun"));
       expect(setupBun, `job "${name}" must use oven-sh/setup-bun`).toBeDefined();
     }
@@ -83,6 +97,9 @@ describe("Story · GitHub Actions CI workflow", () => {
   it("every job checks out the repository before installing", () => {
     const wf = readWorkflow();
     for (const [name, job] of Object.entries(wf.jobs ?? {})) {
+      // Aggregator gate has only `needs:` and a verification step —
+      // it doesn't run any tooling itself.
+      if (name === "ci-success") continue;
       const checkout = job.steps?.find((s) => s.uses?.startsWith("actions/checkout"));
       expect(checkout, `job "${name}" must use actions/checkout`).toBeDefined();
     }
@@ -91,6 +108,9 @@ describe("Story · GitHub Actions CI workflow", () => {
   it("every job installs dependencies with --frozen-lockfile (reproducible builds)", () => {
     const wf = readWorkflow();
     for (const [name, job] of Object.entries(wf.jobs ?? {})) {
+      // Aggregator gate has only `needs:` and a verification step —
+      // it doesn't run any tooling itself.
+      if (name === "ci-success") continue;
       const installs = (job.steps ?? [])
         .map((s) => s.run ?? "")
         .filter((r) => /bun install/.test(r));
@@ -107,6 +127,30 @@ describe("Story · GitHub Actions CI workflow", () => {
     const audit = wf.jobs?.audit;
     expect(audit, "audit job must exist").toBeDefined();
     expect(audit!["continue-on-error"]).toBe(true);
+  });
+
+  it("ci-success aggregator depends on every required gate (single status check for branch protection)", () => {
+    const wf = readWorkflow();
+    const aggregator = wf.jobs?.["ci-success"];
+    expect(aggregator, "ci-success job must exist").toBeDefined();
+    const needs = aggregator!.needs ?? [];
+    // Every required gate must feed the aggregator. `audit` is
+    // intentionally excluded (continue-on-error: true).
+    for (const gate of [
+      "lint",
+      "format",
+      "test-types",
+      "test-unit",
+      "test-e2e",
+      "test-coverage",
+      "build",
+    ]) {
+      expect(needs, `ci-success must depend on "${gate}"`).toContain(gate);
+    }
+    expect(needs, "ci-success must NOT depend on audit (advisory-only)").not.toContain("audit");
+    // Must always run so branch protection sees a result even when an
+    // upstream job failed (otherwise the aggregator stays "skipped").
+    expect(aggregator!.if).toBe("always()");
   });
 
   it("top-level workflow has a human-readable name", () => {

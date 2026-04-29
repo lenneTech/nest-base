@@ -90,12 +90,31 @@ Scope examples: `auth`, `webhooks`, `dev-hub`, `features`,
 
 ## What happens after you open a PR
 
-1. **CI runs the same six gates.** If anything's red, the PR is
-   blocked until the matrix turns green.
+1. **CI runs the same six gates** (lint, format, types, unit, e2e,
+   coverage, build) on the PR branch — same matrix that runs on
+   `main`. The aggregator job `ci-success` flips green only when
+   every required gate passed.
 2. A maintainer (`@lenneTech` per [`CODEOWNERS`](./.github/CODEOWNERS))
    gets requested as a reviewer.
 3. We review for: fits-the-spec, test-first, conventions, and
    "would a future agent reading this commit understand it".
+
+### For repository owners — recommended branch protection
+
+Set this once on `main` so PRs can't bypass the gates:
+
+- **Require a pull request before merging** ✓
+- **Require approvals**: 1
+- **Dismiss stale approvals on new commits** ✓
+- **Require review from Code Owners** ✓
+- **Require status checks to pass before merging** ✓
+  - Required check: `ci-success` — the aggregator job in
+    `.github/workflows/ci.yml`. Flips green only when lint / format /
+    test-types / test-unit / test-e2e / test-coverage / build all
+    passed. One switch covers the whole gate matrix.
+  - **Require branches to be up to date before merging** ✓
+- **Require conversation resolution before merging** ✓
+- **Do not allow bypassing the above settings** ✓ (even for admins)
 
 ## AI-driven contributions
 
