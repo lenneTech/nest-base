@@ -38,6 +38,7 @@
     "@kubb/core": "^4.37.4",
     "@kubb/plugin-oas": "^4.37.4",
     "@kubb/plugin-ts": "^4.37.4",
+    "@nestjs/cli": "^11.0.21",
     "@nestjs/testing": "^11.1.19",
     "@testcontainers/postgresql": "^11.14.0",
     "@types/express": "^5.0.6",

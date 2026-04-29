@@ -33,6 +33,7 @@ spelunking through the directory tree.
 | "I keep hitting a weird error" | skill: `avoiding-common-pitfalls.md` |
 | "How do I write a story test?" | skill: `writing-story-tests.md` |
 | "How does Prisma 7 work here?" | skill: `working-with-prisma.md` |
+| "Add a new resource / business module" | `/add-module` command + `module-scaffolder` agent. Reference: `src/modules/example/` |
 | "Add a feature flag for Y" / "make Y toggleable" | `/add-feature` command + `feature-toggle-implementer` agent |
 | "Add a new dev-hub or admin page" | `/add-page` command + skill: `extending-dev-hub.md` |
 | "Implement next slice from PLAN.md" | `slice-implementer` agent |
@@ -89,6 +90,7 @@ appear as `/<name>` in the chat.
 
 | Command | Purpose |
 |---|---|
+| `/add-module <name> [--feature-flag <key>]` | Scaffold a project-owned resource under `src/modules/` (controller + service + DTO + module + tenant-aware tests). Bread-and-butter command for business logic. Reference module lives at `src/modules/example/`. |
 | `/add-feature <key> "<description>"` | Add a new toggleable feature flag end-to-end. Sequences the workflow under TDD discipline. |
 | `/add-page <slug> "<title>" [json-viewer\|custom]` | Add a new dev-hub or admin page using the shared dark-mode shell. |
 

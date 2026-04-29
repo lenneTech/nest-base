@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src/modules",
+  "compilerOptions": {
+    "deleteOutDir": false,
+    "manualRestart": false,
+    "tsConfigPath": "tsconfig.json"
+  },
+  "generateOptions": {
+    "spec": false,
+    "flat": false
+  },
+  "_comment": "sourceRoot points at src/modules so `nest g resource <name>` lands project-owned code in the right place (template-owned src/core/ stays untouched). Tests live in tests/, not next to the source — `spec: false` skips the CLI's default test scaffold so you can write proper story tests instead. For a fully wired module (story tests + permission gates + RLS-aware service), prefer `/add-module <name>` or the module-scaffolder agent."
+}
