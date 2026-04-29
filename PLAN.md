@@ -3654,7 +3654,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Feature-Flag-System (`features.ts` + Conditional-Imports + Validierung von Abhängigkeiten)
 - [x] Logger (Pino) + OpenTelemetry-Integration  *(Pino-Logger ist als `LoggerService` in `bootstrap()` verdrahtet; NestJS-Lifecycle-Logs gehen strukturiert via Pino raus. OTel-SDK-Init ist als optionaler Hook in `initObservability` vorbereitet — Default ist Noop, aktiviert via `features.observability.enabled` + injizierter `sdkFactory`.)*
 - [x] Helmet + CSP-Middleware
-- [ ] Request-Context-Middleware (W3C Trace Context)  — *Middleware-Klasse existiert, aber `app.use()` registriert sie nicht.*
+- [x] Request-Context-Middleware (W3C Trace Context)  *(in `AppModule.configure()` registriert; `x-request-id` + `traceparent` werden auf jeder Response gesetzt; e2e-Test in `tests/request-context.e2e-spec.ts` deckt das ab.)*
 - [x] Health-Check (Liveness + Readiness)
 - [x] RFC 7807 Problem-Details Exception-Filter
 - [x] `Dockerfile.example` als Template-Referenz für Konsumenten (Multi-Stage Bun, non-root) — wird **nicht** in CI gebaut
