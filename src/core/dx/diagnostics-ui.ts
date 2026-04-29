@@ -4,7 +4,22 @@ import type { DiagnosticsReport } from "./diagnostics.js";
 /** `/dev/diagnostics` HTML page — runtime, memory, versions, feature roster. */
 export function renderDiagnosticsPage(report: DiagnosticsReport): string {
   const heap = report.process.memory;
-  const heapPct = Math.round((heap.heapUsed / heap.heapTotal) * 100);
+  // Defensive percentage math:
+  //   - guard against `heapTotal === 0` (NaN / Infinity)
+  //   - clamp to [0, 100] so the bar never overflows its track
+  //
+  // Why the clamp matters: under Bun (JavaScriptCore) the
+  // `process.memoryUsage()` `heapUsed` and `heapTotal` come from
+  // different counters and can briefly disagree — `heapUsed` can
+  // exceed `heapTotal` because JSC's allocator has handed out
+  // cells the committed-page accounting hasn't caught up to yet.
+  // We use `max(used, total)` as the denominator so the displayed
+  // percentage is always sensible. Raw numbers stay visible below
+  // the bar for debugging.
+  const heapDenominator = Math.max(heap.heapUsed, heap.heapTotal);
+  const heapPct =
+    heapDenominator > 0 ? Math.min(100, Math.round((heap.heapUsed / heapDenominator) * 100)) : 0;
+  const heapOverflow = heap.heapUsed > heap.heapTotal && heap.heapTotal > 0;
   const uptimeMs = report.process.uptimeSeconds * 1000;
   const body = `
 <style>
@@ -49,9 +64,16 @@ export function renderDiagnosticsPage(report: DiagnosticsReport): string {
   <div class="diag-card">
     <h3 class="diag-card__title">Runtime</h3>
     <div class="diag-bar-wrap">
-      <div class="diag-bar-row"><span>Heap used</span><span>${formatBytes(heap.heapUsed)} / ${formatBytes(heap.heapTotal)} (${heapPct}%)</span></div>
+      <div class="diag-bar-row"><span>Heap pressure</span><span>${formatBytes(heap.heapUsed)} / ${formatBytes(heap.heapTotal)} (${heapPct}%)</span></div>
       <div class="diag-bar"><div class="diag-bar__fill ${heapPct > 90 ? "diag-bar__fill--bad" : heapPct > 70 ? "diag-bar__fill--warn" : ""}" style="width: ${heapPct}%"></div></div>
     </div>
+    <div class="diag-row"><span class="diag-row__label">Heap used</span><span class="diag-row__value">${formatBytes(heap.heapUsed)}</span></div>
+    <div class="diag-row"><span class="diag-row__label">Heap committed</span><span class="diag-row__value">${formatBytes(heap.heapTotal)}</span></div>
+    ${
+      heapOverflow
+        ? `<div class="diag-row" style="border-bottom:0;padding:.35rem 0 0;"><span class="diag-row__label" style="font-size:.72rem;color:var(--fg-dim);">Heap used &gt; committed — Bun's JSC heap accounting can show this briefly. Not a leak.</span></div>`
+        : ""
+    }
     <div class="diag-row"><span class="diag-row__label">RSS</span><span class="diag-row__value">${formatBytes(heap.rss)}</span></div>
     <div class="diag-row"><span class="diag-row__label">External</span><span class="diag-row__value">${formatBytes(heap.external)}</span></div>
     <div class="diag-row"><span class="diag-row__label">Array Buffers</span><span class="diag-row__value">${formatBytes(heap.arrayBuffers)}</span></div>
