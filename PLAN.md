@@ -3740,9 +3740,9 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] **Test-First (Stories):** `email-service.e2e-spec.ts` adaptiert (Mailpit-Trap), 2FA-Story (TOTP-Setup + Verify), Passkey-Story (WebAuthn-Register/Login), MCP-OAuth-Story (Authorization-Code + PKCE, Tool-Call mit Permission-Filter)
 - [ ] Email-Service (Nodemailer + Brevo)  — *Klasse existiert, kein DI-Provider; Nodemailer/Brevo-Deps nicht installiert.*
 - [x] Email-Templates (verify, reset, welcome, invitation)
-- [ ] 2FA-Endpunkte aktivieren  — *Plugin-Liste existiert (`listAuthPluginNames`), Better-Auth-Instanz wird nicht erzeugt → `/api/auth/two-factor/*` nicht erreichbar.*
-- [ ] Passkey-Endpunkte aktivieren  — *Plugin-Liste enthält `passkey`, kein Mount.*
-- [ ] Social-Login-Provider  — *Config-Plumbing vorhanden, kein Mount.*
+- [x] 2FA-Endpunkte aktivieren  *(Better-Auth `twoFactor` plugin via `BetterAuthModule` aktiviert wenn `features.authMethods.twoFactor=true` (Default an); `/api/auth/two-factor/*` reachable.)*
+- [x] Passkey-Endpunkte aktivieren  *(Better-Auth `passkey` plugin via `BetterAuthModule` aktiviert wenn `features.authMethods.passkey=true` (Default an); `/api/auth/passkey/*` reachable.)*
+- [x] Social-Login-Provider  *(`socialProviders` aus `features.authMethods.socialProviders` (CSV) + `<PROVIDER>_CLIENT_ID/SECRET` env-vars; `/api/auth/sign-in/social` reachable.)*
 - [ ] MCP-Server-Modul (`@modelcontextprotocol/sdk`)  — *Kein NestJS-Modul, MCP-SDK ist installiert aber nicht angeschlossen.*
 - [ ] `@McpTool`/`@McpResource`-Decorators + Auto-Discovery  — *Decorators existieren, keine Discovery-Logic in DI.*
 - [ ] MCP-Auth via Better-Auth-OAuth-Provider (Authorization-Code-Flow + PKCE)  — *Better-Auth nicht montiert.*
