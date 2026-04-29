@@ -97,6 +97,8 @@ These are the recurring workflows; each has a step-by-step skill in
 | Add a project resource | [`adding-feature-module`](./.claude/skills/adding-feature-module.md) |
 | Wire permissions on a handler | [`wiring-permissions`](./.claude/skills/wiring-permissions.md) |
 | Add a feature flag | [`adding-feature-flag`](./.claude/skills/adding-feature-flag.md) |
+| Add a new error code | [`adding-error-code`](./.claude/skills/adding-error-code.md) |
+| Add a new admin/dev page | [`extending-dev-hub`](./.claude/skills/extending-dev-hub.md) |
 | Update from upstream template | [`syncing-from-template`](./.claude/skills/syncing-from-template.md) |
 
 For larger workflows, use the agents in `.claude/agents/`:
@@ -104,6 +106,11 @@ For larger workflows, use the agents in `.claude/agents/`:
 - `slice-implementer` — runs the full Ralph red-green-refactor cycle
 - `quality-gate-runner` — runs all six gates and produces a remediation report
 - `module-scaffolder` — scaffolds a new `src/modules/<name>/` subtree
+- `feature-toggle-implementer` — wires a new feature flag end-to-end (schema → catalog → tests → live)
+
+For the user, the slash command [`/add-feature <key> "<description>"`](./.claude/commands/add-feature.md) sequences the feature-flag workflow under TDD discipline.
+
+**Full agent / skill / command index**: [`.claude/AGENTS.md`](./.claude/AGENTS.md)
 
 ## Conventions a quick scan won't catch
 

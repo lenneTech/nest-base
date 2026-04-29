@@ -1,0 +1,171 @@
+# `.claude/` — agent + skill index for nest-base
+
+This file is the master index for every Claude Code primitive defined in
+this repository. It exists so a fresh AI agent (or a human onboarding
+into the project) can answer "where do I find the X workflow" without
+spelunking through the directory tree.
+
+> **For agent authors**: when you add a new agent / skill / command, add
+> a row to the relevant table below. Keep this file flat — links into
+> deeper docs, but no nested folders.
+
+---
+
+## Quick map
+
+```
+.claude/
+├── AGENTS.md           ← you are here
+├── settings.json       ← plugin enablement
+├── agents/             ← spawnable sub-agents (long-running, autonomous)
+├── skills/             ← procedural how-tos (read before doing X)
+└── commands/           ← user-invoked slash commands (/cmd-name)
+```
+
+---
+
+## When the user says X, reach for Y
+
+| User intent | Primitive |
+|---|---|
+| "Add a feature flag for Y" / "make Y toggleable" | `/add-feature` command + `feature-toggle-implementer` agent |
+| "Implement next slice from PLAN.md" | `slice-implementer` agent |
+| "Run the six gates and tell me what's broken" | `quality-gate-runner` agent |
+| "Scaffold a new module under `src/modules/`" | `module-scaffolder` agent |
+| "How do I add a new error code?" | skill: `adding-error-code.md` |
+| "How do I add a new admin/dev page?" | skill: `extending-dev-hub.md` |
+| "How does the TDD slice flow work?" | skill: `running-tdd-slice.md` |
+| "How do I wire a permission check on a handler?" | skill: `wiring-permissions.md` |
+| "How do I add a feature module under `src/modules/`?" | skill: `adding-feature-module.md` |
+| "Pull upstream template changes" | skill: `syncing-from-template.md` |
+
+---
+
+## Agents
+
+Agents are spawned via `Agent({ subagent_type: "name", ... })` from the
+parent agent. They run autonomously to completion and report back.
+
+| Name | Purpose | Spec |
+|---|---|---|
+| `slice-implementer` | Pick the next unchecked PLAN.md §32 box, run a full red-green-refactor cycle with the six gates, mark it done, commit. | `agents/slice-implementer.md` |
+| `quality-gate-runner` | Run all six gates (`lint`, `format`, `test:types`, `test:unit`, `test:e2e`, `test:coverage`, `build`) and produce a remediation report with file:line references. | `agents/quality-gate-runner.md` |
+| `module-scaffolder` | Create a new `src/modules/<name>/` subtree (controller + service + module + DTO + tests) following project conventions. | `agents/module-scaffolder.md` |
+| `feature-toggle-implementer` | Add a toggleable feature flag end-to-end (schema → catalog → wiring → tests → live verify). | `agents/feature-toggle-implementer.md` |
+
+---
+
+## Skills
+
+Skills are procedural how-tos. The user (or another agent) reads them
+before performing the action — they encode the project's conventions
+and gotchas so each contributor doesn't re-discover them.
+
+| Name | Purpose | File |
+|---|---|---|
+| `adding-feature-flag` | Add a toggleable feature flag — every place it must be wired. | `skills/adding-feature-flag.md` |
+| `adding-feature-module` | Scaffold a feature module under `src/modules/`. | `skills/adding-feature-module.md` |
+| `adding-error-code` | Add a new `CORE_*` error code with i18n messages. | `skills/adding-error-code.md` |
+| `extending-dev-hub` | Add a new dev-hub / admin page (JSON viewer wrap or custom layout). | `skills/extending-dev-hub.md` |
+| `running-tdd-slice` | The red-green-refactor cycle for a single PLAN.md slice. | `skills/running-tdd-slice.md` |
+| `syncing-from-template` | Pull latest `src/core/` upstream into a consumer project. | `skills/syncing-from-template.md` |
+| `wiring-permissions` | Add CASL ability checks to a handler / route / record. | `skills/wiring-permissions.md` |
+
+---
+
+## Commands
+
+User-invoked slash commands. They live under `commands/<name>.md` and
+appear as `/<name>` in the chat.
+
+| Command | Purpose |
+|---|---|
+| `/add-feature <key> "<description>"` | Add a new toggleable feature flag end-to-end. Sequences the workflow under TDD discipline. |
+
+---
+
+## TDD discipline (non-negotiable)
+
+Every change to `src/core/` and most changes to `src/modules/` follow
+strict red-green-refactor:
+
+1. **Red** — write the failing test first (`tests/stories/<feature>.story.test.ts` or `tests/<feature>.e2e-spec.ts`)
+2. **Green** — minimal code to make it pass
+3. **Refactor** — clean up without changing behavior
+4. **Six gates** — `lint`, `format`, `test:types`, `test:unit`, `test:e2e`, `test:coverage`, `build`
+5. **Commit** — Conventional Commits, one slice per commit
+
+Coverage thresholds:
+- `src/core/` ≥ 90% lines
+- `src/modules/` ≥ 80% lines
+
+UI renderers (`src/core/dx/*-ui.ts`) and glue files (modules, controllers,
+interceptors, middleware, guards) are excluded from the gate — they're
+exercised via story / e2e tests.
+
+---
+
+## Where the project state lives
+
+| Question | Answer |
+|---|---|
+| What's the spec? | `PLAN.md` |
+| What's been built? | `RALPH_LOG.md` (slice-by-slice log) |
+| What's known to diverge? | `OPEN_QUESTIONS.md` |
+| Per-folder rules | `src/core/CLAUDE.md`, `tests/CLAUDE.md`, `prisma/CLAUDE.md`, `src/modules/CLAUDE.md` |
+| Architectural rationale | `PLAN.md` §1–§31 |
+
+---
+
+## Adding a new agent / skill / command
+
+### A new skill
+
+1. Drop a markdown file in `skills/<kebab-name>.md`.
+2. First line: `# <Title Case Name>` heading.
+3. Below: 1-2 sentence summary, then the procedural body.
+4. End with a "Don't" section listing common mistakes.
+5. Add a row to the **Skills** table above.
+
+### A new agent
+
+1. Drop a markdown file in `agents/<kebab-name>.md`.
+2. **Required** YAML frontmatter:
+   ```yaml
+   ---
+   name: <kebab-name>
+   description: <when to spawn this agent>
+   model: sonnet
+   tools: Read, Edit, Write, Bash, Grep, Glob, TodoWrite
+   ---
+   ```
+3. Body: mission statement, required reading, workflow phases, don'ts.
+4. Add a row to the **Agents** table above.
+
+### A new command
+
+1. Drop a markdown file in `commands/<kebab-name>.md`.
+2. **Required** YAML frontmatter:
+   ```yaml
+   ---
+   description: <one-line user-facing summary>
+   allowed-tools:
+     - Read
+     - Edit
+     - Bash
+   ---
+   ```
+3. Body: user-facing description, arguments, workflow steps,
+   acceptance criteria.
+4. Add a row to the **Commands** table above.
+
+---
+
+## For agents jumping in cold
+
+Read in this order:
+
+1. `CLAUDE.md` (repo root) — orientation, tech stack, conventions
+2. `.claude/AGENTS.md` (this file) — what tools are available
+3. `PLAN.md` — what the spec says, what's done, what's next
+4. The skill or agent file matching your task
