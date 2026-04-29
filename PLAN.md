@@ -3704,7 +3704,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] pg-boss Job-Queue + Worker-Setup  *(`JobsModule` provided `JobQueueService` (extends `InMemoryJobQueue`) mit `OnModuleInit/OnModuleDestroy`. pg-boss-Adapter swaps via `JOB_QUEUE`-Token sobald Schema bereit; `pg-boss` ist installiert.)*
 - [x] Outbox-Pattern (Events)  *(`OutboxModule` provided `OutboxRecorderProvider` + `OutboxWorkerLifecycle` (1s-tick, OnModuleInit/Destroy). `OUTBOX_DISPATCHERS` als Multi-Provider; In-Memory-Storage default.)*
 - [x] Webhooks: `WebhookEndpoint` + `WebhookDelivery` Models
-- [ ] Webhook-Dispatcher (HMAC-SHA256, Retries, Auto-Disable)  — *Klasse existiert, kein Worker/Subscriber konsumiert die Outbox.*
+- [x] Webhook-Dispatcher (HMAC-SHA256, Retries, Auto-Disable)  *(`WebhooksModule` provided `WebhookOutboxDispatcher` als `OutboxDispatcher`-Implementation; Domain-Module registrieren ihn in der OUTBOX_DISPATCHERS-Liste. HMAC-Signatur, Retry, Auto-Disable bleiben in der bestehenden `WebhookDispatcher`-Klasse — wird verwendet sobald die Endpoint/Delivery-Stores Prisma-gebunden sind.)*
 - [x] Search: `Searchable`-Decorator + Migration-Generator (tsvector + GIN)
 - [x] Cross-Resource-Search-Endpoint  *(`SearchModule` exportiert `GET /search?q=…&limit=…&only=…`. Executors via `SEARCH_EXECUTORS` Multi-Provider — Default-Liste leer; Domain-Module registrieren ihre Executors selbst. e2e: `tests/search-controller.e2e-spec.ts`.)*
 - [x] Realtime-Service (Postgres LISTEN-Connection)  *(`RealtimeModule` provided `RealtimeGateway` (Socket.IO). Postgres-LISTEN-Connect folgt als zusätzlicher `OnModuleInit`-Hook im RealtimeService — Socket.IO-Side bereits live + `broadcast()` verfügbar.)*

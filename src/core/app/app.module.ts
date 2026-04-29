@@ -21,6 +21,7 @@ import { HealthModule } from '../health/health.module.js';
 import { IdempotencyModule } from '../idempotency/idempotency.module.js';
 import { JobsModule } from '../jobs/jobs.module.js';
 import { OutboxModule } from '../outbox/outbox.module.js';
+import { WebhooksModule } from '../webhooks/webhooks.module.js';
 import { TenantMemberModule } from '../multi-tenancy/tenant-member.module.js';
 import { TenantInterceptor } from '../multi-tenancy/tenant.interceptor.js';
 import { OutputPipelineInterceptor } from '../output-pipeline/output-pipeline.interceptor.js';
@@ -94,6 +95,7 @@ const devtools = buildDevToolsConfig({
     JobsModule,
     OutboxModule,
     RealtimeModule,
+    WebhooksModule,
     // Throttler with multi-window defaults: short burst (10s/100req) +
     // sustained (1m/300req) + per-day cap. Postgres-backed store
     // adapter swaps in once the throttler-records table is migrated;
