@@ -31,6 +31,7 @@ export interface RouteInput {
 export type RouteGuard =
   | { kind: "can"; action: string; subject: string }
   | { kind: "public" }
+  | { kind: "dev-only" }
   | { kind: "unguarded" };
 
 export interface RouteRecord {
@@ -48,21 +49,36 @@ export interface RouteInventory {
     total: number;
     guarded: number;
     public: number;
+    devOnly: number;
     unguarded: number;
   };
+}
+
+export interface AllowlistEntry {
+  prefix: string;
+  kind: "public" | "dev-only";
 }
 
 export interface RouteInventoryInput {
   routes: RouteInput[];
   /**
-   * Path prefixes that are intentionally unguarded (health checks,
-   * OpenAPI spec, dev-hub itself). Matched as `path.startsWith(...)`.
+   * Path prefixes that are intentionally not guarded by `@Can()`.
+   * Two kinds:
+   *
+   *   - `public`   — endpoint serves anonymous traffic by design
+   *                  (health checks, OpenAPI spec, error catalog)
+   *   - `dev-only` — endpoint exists only in development (assertDev
+   *                  throws 404 in production); not the same as
+   *                  "public" from an audit perspective
+   *
+   * Legacy callers that still pass a `string[]` are treated as if
+   * every entry were `kind: "public"`.
    */
-  publicAllowlist?: string[];
+  publicAllowlist?: ReadonlyArray<AllowlistEntry | string>;
 }
 
 export function buildRouteInventory(input: RouteInventoryInput): RouteInventory {
-  const allowlist = input.publicAllowlist ?? [];
+  const allowlist = normaliseAllowlist(input.publicAllowlist);
 
   const records: RouteRecord[] = input.routes.map((r) => ({
     method: r.method.toUpperCase(),
@@ -87,18 +103,29 @@ export function buildRouteInventory(input: RouteInventoryInput): RouteInventory 
     total: records.length,
     guarded: records.filter((r) => r.guards.some((g) => g.kind === "can")).length,
     public: records.filter((r) => r.guards.some((g) => g.kind === "public")).length,
+    devOnly: records.filter((r) => r.guards.some((g) => g.kind === "dev-only")).length,
     unguarded: records.filter((r) => r.guards.some((g) => g.kind === "unguarded")).length,
   };
 
   return { routes: records, byController, summary };
 }
 
-function classifyGuards(route: RouteInput, allowlist: string[]): RouteGuard[] {
+function normaliseAllowlist(
+  raw: ReadonlyArray<AllowlistEntry | string> | undefined,
+): AllowlistEntry[] {
+  if (!raw) return [];
+  return raw.map((entry) =>
+    typeof entry === "string" ? { prefix: entry, kind: "public" as const } : entry,
+  );
+}
+
+function classifyGuards(route: RouteInput, allowlist: AllowlistEntry[]): RouteGuard[] {
   if (route.canMetadata) {
     return [{ kind: "can", action: route.canMetadata.action, subject: route.canMetadata.subject }];
   }
-  if (allowlist.some((prefix) => route.path.startsWith(prefix))) {
-    return [{ kind: "public" }];
+  const match = allowlist.find((entry) => route.path.startsWith(entry.prefix));
+  if (match) {
+    return [{ kind: match.kind }];
   }
   return [{ kind: "unguarded" }];
 }

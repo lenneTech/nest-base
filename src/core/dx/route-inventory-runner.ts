@@ -75,17 +75,18 @@ export class RouteInventoryService {
     }
     return buildRouteInventory({
       routes,
-      // Routes that legitimately don't carry @Can() — health checks,
-      // public catalogues, dev-only inspection. Keep this list tight;
-      // it's the seam an auditor checks first.
+      // Routes that legitimately don't carry @Can(). Two kinds:
+      //   - `public`   → serves anonymous traffic by design
+      //   - `dev-only` → assertDev() throws 404 in production
+      // Keep this list tight — it's the seam an auditor checks first.
       publicAllowlist: [
-        "/health/",
-        "/api/openapi",
-        "/api/docs",
-        "/api/auth/",
-        "/errors",
-        "/dev",
-        "/admin",
+        { prefix: "/health/", kind: "public" },
+        { prefix: "/api/openapi", kind: "public" },
+        { prefix: "/api/docs", kind: "public" },
+        { prefix: "/api/auth/", kind: "public" },
+        { prefix: "/errors", kind: "public" },
+        { prefix: "/dev", kind: "dev-only" },
+        { prefix: "/admin", kind: "dev-only" },
       ],
     });
   }

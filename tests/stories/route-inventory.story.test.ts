@@ -103,7 +103,13 @@ describe("Story · buildRouteInventory", () => {
       routes: stack,
       publicAllowlist: ["/health/"],
     });
-    expect(inventory.summary).toEqual({ total: 3, guarded: 1, public: 1, unguarded: 1 });
+    expect(inventory.summary).toEqual({
+      total: 3,
+      guarded: 1,
+      public: 1,
+      devOnly: 0,
+      unguarded: 1,
+    });
   });
 
   it("groups routes by controller for the secondary view", () => {
@@ -121,7 +127,13 @@ describe("Story · buildRouteInventory", () => {
   it("returns empty inventory when given no routes (regression safety)", () => {
     const inventory = buildRouteInventory({ routes: [] });
     expect(inventory.routes).toEqual([]);
-    expect(inventory.summary).toEqual({ total: 0, guarded: 0, public: 0, unguarded: 0 });
+    expect(inventory.summary).toEqual({
+      total: 0,
+      guarded: 0,
+      public: 0,
+      devOnly: 0,
+      unguarded: 0,
+    });
   });
 
   it("is total: every input route appears in the output", () => {
@@ -149,5 +161,74 @@ describe("Story · buildRouteInventory", () => {
     });
     const r = inventory.routes[0] as RouteRecord;
     expect(r.method).toBe("GET");
+  });
+
+  describe("Dev-only allowlist (split from `public`)", () => {
+    // Why: routes under /dev and /admin previously got the same
+    // `public` label as /health and /api/openapi, which is misleading
+    // — they're not actually public, they 404 in production via
+    // `assertDev()`. Splitting the kinds gives a more honest audit:
+    // an auditor sees how many routes are *truly* public vs only
+    // exposed in development.
+    it("classifies dev-only entries with kind=`dev-only` (not `public`)", () => {
+      const stack = [
+        { method: "GET", path: "/dev/diagnostics", controller: "D", handler: "d" },
+        { method: "GET", path: "/admin/audit", controller: "A", handler: "a" },
+        { method: "GET", path: "/health/live", controller: "H", handler: "h" },
+      ];
+      const inventory = buildRouteInventory({
+        routes: stack,
+        publicAllowlist: [
+          { prefix: "/health/", kind: "public" },
+          { prefix: "/dev", kind: "dev-only" },
+          { prefix: "/admin", kind: "dev-only" },
+        ],
+      });
+      const byPath: Record<string, RouteRecord> = {};
+      for (const r of inventory.routes) byPath[r.path] = r;
+      expect(byPath["/dev/diagnostics"]?.guards).toEqual([{ kind: "dev-only" }]);
+      expect(byPath["/admin/audit"]?.guards).toEqual([{ kind: "dev-only" }]);
+      expect(byPath["/health/live"]?.guards).toEqual([{ kind: "public" }]);
+    });
+
+    it("includes dev-only count in the summary alongside public/guarded/unguarded", () => {
+      const stack = [
+        { method: "GET", path: "/dev/x", controller: "D", handler: "h" },
+        { method: "GET", path: "/admin/y", controller: "A", handler: "h" },
+        { method: "GET", path: "/health/live", controller: "H", handler: "h" },
+        {
+          method: "GET",
+          path: "/projects",
+          controller: "P",
+          handler: "list",
+          canMetadata: { action: "read", subject: "Project" },
+        },
+        { method: "POST", path: "/secret", controller: "S", handler: "post" },
+      ];
+      const inventory = buildRouteInventory({
+        routes: stack,
+        publicAllowlist: [
+          { prefix: "/dev", kind: "dev-only" },
+          { prefix: "/admin", kind: "dev-only" },
+          { prefix: "/health/", kind: "public" },
+        ],
+      });
+      expect(inventory.summary).toEqual({
+        total: 5,
+        guarded: 1,
+        public: 1,
+        devOnly: 2,
+        unguarded: 1,
+      });
+    });
+
+    it("accepts the legacy string-array allowlist for backwards compatibility (treats all as public)", () => {
+      const stack = [{ method: "GET", path: "/health/live", controller: "H", handler: "h" }];
+      const inventory = buildRouteInventory({
+        routes: stack,
+        publicAllowlist: ["/health/"],
+      });
+      expect(inventory.routes[0]?.guards).toEqual([{ kind: "public" }]);
+    });
   });
 });

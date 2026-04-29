@@ -18,8 +18,12 @@ export function renderRouteInventoryPage(inventory: RouteInventory): string {
     <div class="ri-tile__value">${summary.guarded} <span class="ri-tile__pct">${tilePct(summary.guarded)}%</span></div>
   </div>
   <div class="ri-tile ri-tile--info">
-    <div class="ri-tile__title">Public (allowlist)</div>
+    <div class="ri-tile__title">Public</div>
     <div class="ri-tile__value">${summary.public} <span class="ri-tile__pct">${tilePct(summary.public)}%</span></div>
+  </div>
+  <div class="ri-tile ri-tile--devonly">
+    <div class="ri-tile__title">Dev-only</div>
+    <div class="ri-tile__value">${summary.devOnly} <span class="ri-tile__pct">${tilePct(summary.devOnly)}%</span></div>
   </div>
   <div class="ri-tile ${summary.unguarded > 0 ? "ri-tile--bad" : ""}">
     <div class="ri-tile__title">Unguarded</div>
@@ -31,11 +35,13 @@ export function renderRouteInventoryPage(inventory: RouteInventory): string {
 
   const body = `
 <style>
-  .ri-tiles { display: grid; gap: 1rem; grid-template-columns: repeat(4, 1fr); margin-bottom: 1.5rem; }
-  @media (max-width: 900px) { .ri-tiles { grid-template-columns: repeat(2, 1fr); } }
+  .ri-tiles { display: grid; gap: 1rem; grid-template-columns: repeat(5, 1fr); margin-bottom: 1.5rem; }
+  @media (max-width: 1100px) { .ri-tiles { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 700px) { .ri-tiles { grid-template-columns: repeat(2, 1fr); } }
   .ri-tile { background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.25rem; }
   .ri-tile--ok { border-color: var(--line-accent); }
   .ri-tile--info { border-color: rgba(96,165,250,.3); }
+  .ri-tile--devonly { border-color: rgba(168,85,247,.3); }
   .ri-tile--bad { border-color: var(--err); box-shadow: 0 0 0 1px rgba(248,113,113,.2); }
   .ri-tile__title { font-size: .65rem; color: var(--fg-dim); text-transform: uppercase; letter-spacing: .14em; font-weight: 600; }
   .ri-tile__value { font-size: 1.6rem; font-family: var(--font-mono); margin-top: .35rem; color: var(--fg); }
@@ -56,6 +62,7 @@ export function renderRouteInventoryPage(inventory: RouteInventory): string {
   .ri-guard { display: inline-flex; align-items: center; gap: .3rem; padding: .15rem .55rem; border-radius: 999px; font-size: .65rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
   .ri-guard--can { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--line-accent); }
   .ri-guard--public { background: rgba(96,165,250,.12); color: #93c5fd; border: 1px solid rgba(96,165,250,.25); }
+  .ri-guard--devonly { background: rgba(168,85,247,.12); color: #d8b4fe; border: 1px solid rgba(168,85,247,.3); }
   .ri-guard--unguarded { background: rgba(248,113,113,.12); color: #fca5a5; border: 1px solid rgba(248,113,113,.3); }
 </style>
 
@@ -101,6 +108,9 @@ function renderGuard(g: RouteGuard): string {
   }
   if (g.kind === "public") {
     return `<span class="ri-guard ri-guard--public">public</span>`;
+  }
+  if (g.kind === "dev-only") {
+    return `<span class="ri-guard ri-guard--devonly">dev-only</span>`;
   }
   return `<span class="ri-guard ri-guard--unguarded">unguarded</span>`;
 }
