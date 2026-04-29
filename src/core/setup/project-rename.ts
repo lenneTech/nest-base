@@ -52,7 +52,10 @@ export function planProjectRename(input: ProjectRenameInput): ProjectRenamePlan 
   const oldLong = readJsonName(files['package.json']);
   const oldSlug = readPortlessProject(files['portless.yml']);
 
-  if (oldLong === newName) {
+  // Only short-circuit when every canonical file is already at the new
+  // name. A partial state (e.g. package.json long-renamed but portless
+  // slug still old) must proceed so the rewrite can align the rest.
+  if (oldLong === newName && oldSlug === newName) {
     throw new ProjectAlreadyRenamedError(oldLong);
   }
 
