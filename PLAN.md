@@ -3759,7 +3759,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] **Test-First (Stories):** Idempotency-Key (Cache-Hit/Miss), ETag/If-Match (Optimistic-Concurrency), Cursor-Pagination, Throttler (Multi-Window, Postgres-Store), GDPR-Endpoints (Export, Delete, Anonymize), Audit-Log (Create/Update/Delete-Tracking)
 - [ ] **Scalar** als API-UI (statt Swagger UI) — `@scalar/nestjs-api-reference`  — *Config-Helper existiert, kein Mount.*
 - [ ] **NestJS DevTools** Integration (`@nestjs/devtools-integration` + Snapshot-Mode)  — *Snapshot-Module nicht in AppModule importiert.*
-- [ ] **Dev-Hub** Landing-Page `/dev` mit Auto-Discovery aktiver Tools  — *`planDevHub()` ist da, kein Controller / kein HTML-Renderer für die Landingpage selbst.*
+- [x] **Dev-Hub** Landing-Page `/dev` mit Auto-Discovery aktiver Tools  *(`DevHubController` rendert HTML aus `planDevHub()`-Output, kategorisiert nach api/architecture/data/async. Außerhalb `NODE_ENV=development` 404. e2e-Test in `tests/dev-hub.e2e-spec.ts`.)*
 - [ ] **Permission-Tester** UI (`/admin/permissions/test`)  — *HTML-Renderer existiert, kein Controller.*
 - [ ] **Webhook-Inspector** (Delivery-Log + Re-Deliver)  — *HTML-Renderer existiert, kein Controller.*
 - [ ] **Realtime-Inspector** (Active Sockets + Live-Stream)  — *HTML-Renderer existiert, kein Gateway / kein Controller.*
