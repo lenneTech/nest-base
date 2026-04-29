@@ -59,10 +59,9 @@ Per-folder navigation guides live in `src/core/CLAUDE.md`, `src/modules/CLAUDE.m
 
 ## How development happens (TDD discipline)
 
-The project follows **strict red-green-refactor TDD** under the Ralph-Loop
-plugin (`.claude/settings.json` has it enabled). Every checklist item in
-PLAN.md §32 is one *slice*; one slice = one iteration = one commit each
-for tests, impl, and log. The discipline is non-negotiable:
+The project follows **strict red-green-refactor TDD**. Every PLAN.md §32
+checklist item is one *slice* — one slice = one test commit + one impl
+commit. The discipline is non-negotiable:
 
 1. **Red** — write the failing story / e2e test first
    (`tests/stories/<feature>.story.test.ts` or `tests/<feature>.e2e-spec.ts`).
@@ -107,7 +106,7 @@ These are the recurring workflows; each has a step-by-step skill in
 
 For larger workflows, use the agents in `.claude/agents/`:
 
-- `slice-implementer` — runs the full Ralph red-green-refactor cycle
+- `slice-implementer` — runs the full red-green-refactor cycle on the next PLAN.md slice
 - `quality-gate-runner` — runs all six gates and produces a remediation report
 - `module-scaffolder` — scaffolds a new `src/modules/<name>/` subtree
 - `feature-toggle-implementer` — wires a new feature flag end-to-end (schema → catalog → tests → live)
@@ -134,8 +133,7 @@ For the user, the slash command [`/add-feature <key> "<description>"`](./.claude
   table. The Search-Tester is the only renderer that trusts a payload
   fragment (`ts_headline`'s `<b>` tags).
 - **PLAN.md is read-only** — only the checkbox flip is allowed. If the
-  spec needs to change, that's a user decision documented in
-  `RALPH_DIRECTIVES.md` overrides.
+  spec needs to change, that's a user decision; ask first.
 
 ## Where to find things
 
@@ -162,6 +160,6 @@ For the user, the slash command [`/add-feature <key> "<description>"`](./.claude
 
 ## When in doubt
 
-Read PLAN.md for the spec, RALPH_LOG.md for what's been built, and
-OPEN_QUESTIONS.md for known divergences. The git history is the third
+Read PLAN.md for the spec and `OPEN_QUESTIONS.md` for known divergences
+between the spec and the implementation. The git history is the third
 source of truth — every commit is one slice with a written rationale.

@@ -1,0 +1,138 @@
+# Contributing to nest-base
+
+Thanks for considering a contribution. This file is the minimum you
+need to know before opening a PR — for the deep dive on how the
+project is structured, see [`CLAUDE.md`](./CLAUDE.md) and
+[`PLAN.md`](./PLAN.md).
+
+## TL;DR
+
+1. **One slice per PR**, Conventional Commit title, six gates green.
+2. **Story test or e2e spec for every behaviour change** — red first,
+   green after.
+3. **`src/core/` is template-owned** (synced to every consumer). New
+   project-specific code goes in `src/modules/`. Generic utilities
+   that benefit every consumer can be PR'd to `src/core/` — but the
+   review bar is higher there.
+
+## Before you start
+
+- Read [`.claude/QUICKSTART.md`](./.claude/QUICKSTART.md) — the 60-second
+  onboarding card. It tells you where everything lives and what
+  conventions are non-negotiable.
+- Skim [`PLAN.md`](./PLAN.md) §32 for the slice list. If your idea
+  doesn't have a slice, it's outside the spec — open an issue first
+  to discuss.
+- For a feature flag: read
+  [`.claude/skills/adding-feature-flag.md`](./.claude/skills/adding-feature-flag.md).
+- For a new dev/admin page: read
+  [`.claude/skills/extending-dev-hub.md`](./.claude/skills/extending-dev-hub.md).
+- For a new resource module: read
+  [`.claude/skills/adding-feature-module.md`](./.claude/skills/adding-feature-module.md)
+  and copy [`src/modules/example/`](./src/modules/example/) as the
+  reference.
+
+## Setup
+
+```bash
+git clone git@github.com:lenneTech/nest-base.git
+cd nest-base
+bun install
+bun run setup            # generates .env with strong random secrets
+docker compose up -d postgres
+bun run prisma:generate
+bun run dev              # opens the dev hub at /dev
+```
+
+## The TDD cycle
+
+Every behaviour change follows red → green → refactor:
+
+1. **Write the failing test first** in `tests/stories/<feature>.story.test.ts`
+   (pure planners) or `tests/<feature>.e2e-spec.ts` (HTTP layer).
+2. Confirm it's red:
+   ```bash
+   bun run test:e2e tests/stories/<your-test>.story.test.ts
+   ```
+3. Commit: `test(<scope>): add red tests for <slice>`
+4. Implement the minimum code to make the test pass.
+5. Refactor without changing behaviour. Tests stay green.
+6. Run all six gates:
+   ```bash
+   bun run lint && \
+   bun run format && \
+   bun run test:types && \
+   bun run test:unit && \
+   bun run test:e2e && \
+   bun run test:coverage && \
+   bun run build
+   ```
+7. Commit: `feat(<scope>): <slice>` (or `fix(<scope>):`, etc.)
+
+Coverage thresholds: `src/core/` ≥ 90% lines, `src/modules/` ≥ 80%.
+Failing the gate forces more tests, **not** more exclusions.
+
+## Conventional Commits
+
+| Type | When |
+|---|---|
+| `feat(<scope>):` | New behaviour, new feature flag, new page |
+| `fix(<scope>):` | Bug fix |
+| `test(<scope>):` | Adding a test (red commit before the impl) |
+| `docs(<scope>):` | Docs only |
+| `refactor(<scope>):` | No behaviour change |
+| `chore(<scope>):` | Dependency bumps, tooling, repo hygiene |
+| `ci(<scope>):` | CI / build pipeline |
+| `perf(<scope>):` | Measurable performance improvement |
+
+Scope examples: `auth`, `webhooks`, `dev-hub`, `features`,
+`<resource-name>` for module changes.
+
+## What happens after you open a PR
+
+1. **CI runs the same six gates.** If anything's red, the PR is
+   blocked until the matrix turns green.
+2. A maintainer (`@lenneTech` per [`CODEOWNERS`](./.github/CODEOWNERS))
+   gets requested as a reviewer.
+3. We review for: fits-the-spec, test-first, conventions, and
+   "would a future agent reading this commit understand it".
+
+## AI-driven contributions
+
+This project is **optimised for AI-assisted development** with Claude
+Code. If you're using an AI agent:
+
+- Spawn `feature-toggle-implementer` for feature flags
+- Spawn `module-scaffolder` for new resources
+- Spawn `slice-implementer` for PLAN.md slices
+- Use `/add-feature`, `/add-module`, `/add-page` slash commands
+- Read the matching skill in `.claude/skills/` before letting the
+  agent loose
+
+The agent will follow the same TDD discipline + six gates. If it
+doesn't, that's a bug in the skill — open an issue.
+
+## What does NOT belong here
+
+- **Project-specific business logic** — keep that in your fork's
+  `src/modules/`. The template is a template.
+- **Optional dependencies that drag CI weight** — every package added
+  affects every consumer's `bun install` time.
+- **Copy-pasted code from other repos** — re-implement in the project's
+  conventions or PR upstream-of-here.
+
+## Code of conduct
+
+By participating, you agree to follow our
+[Code of Conduct](./CODE_OF_CONDUCT.md). Be kind. We're all here to
+ship better code.
+
+## Security
+
+Found a vulnerability? **Don't file a public issue.** See
+[`SECURITY.md`](./SECURITY.md) for the private disclosure path.
+
+## Questions
+
+For free-form questions, use [GitHub Discussions](https://github.com/lenneTech/nest-base/discussions).
+For specific bug reports or feature requests, use the issue templates.

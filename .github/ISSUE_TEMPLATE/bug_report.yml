@@ -1,0 +1,101 @@
+name: 🐛 Bug report
+description: Something is broken or not behaving the way the docs claim.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. The more concrete the
+        repro, the faster we can fix it.
+
+        **Before you file**: scan the [open issues](../issues) — quick
+        chance someone already hit this.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear, concrete description of the wrong behaviour.
+      placeholder: When I run `bun run dev` and visit /dev/coverage, ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+      description: One sentence is fine.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: |
+        Numbered steps a fresh clone needs to follow to see the bug.
+        Include the exact commands, not paraphrased ones.
+      placeholder: |
+        1. Fresh clone of nest-base
+        2. `docker compose up -d postgres`
+        3. `bun run dev`
+        4. Open https://api.nest-base.localhost/dev
+        5. Click on "Coverage" — see error
+      render: bash
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Server log, browser console, or terminal output. No need to redact tenant IDs unless they're sensitive.
+      render: shell
+
+  - type: input
+    id: bun-version
+    attributes:
+      label: Bun version
+      description: Output of `bun --version`.
+      placeholder: 1.3.13
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: macOS 15.2 / Ubuntu 24.04 / Windows 11 + WSL2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: What part of the project?
+      options:
+        - Dev hub (/dev/*)
+        - Auth (Better-Auth, sessions, API keys)
+        - Multi-tenancy (RLS, tenant interceptor)
+        - Permissions (CASL, rules)
+        - Webhooks
+        - Realtime (Socket.IO, channels)
+        - Files & uploads (TUS, storage adapters)
+        - PowerSync
+        - Errors / RFC 7807
+        - Build / CI
+        - Documentation
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Sanity checks
+      options:
+        - label: I searched the [open issues](../issues) and didn't find a duplicate
+          required: true
+        - label: I'm on a recent main (not a year-old fork)
+          required: true

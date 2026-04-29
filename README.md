@@ -263,16 +263,45 @@ FEATURE_REALTIME_ENABLED=true
 
 ---
 
+## 🤖 AI-driven Development
+
+This project is **optimised for AI-assisted development** with [Claude Code](https://claude.com/claude-code) — every convention, test pattern, and dev-hub page exists with an AI agent as a first-class user.
+
+```bash
+# Slash commands ship with the repo
+/add-module <name>              # New project resource (controller / service / DTO / tests)
+/add-feature <key> "<desc>"     # Toggleable feature flag end-to-end
+/add-page <slug> "<title>"      # New /dev or /admin page in the dark-mode shell
+```
+
+A fresh agent reads [`.claude/QUICKSTART.md`](./.claude/QUICKSTART.md) (60 sec) → [`.claude/AGENTS.md`](./.claude/AGENTS.md) (lookup table) → the matching skill, and is productive in under 3 minutes. Six quality gates per commit ensure the agent can't ship a regression.
+
+→ Full guide: [`docs/working-with-ai-agents.md`](./docs/working-with-ai-agents.md).
+
+---
+
 ## 📚 Documentation
 
+**Getting started**
+- [`docs/working-with-ai-agents.md`](./docs/working-with-ai-agents.md) — AI-driven development workflow (Claude Code, slash commands, skills)
+- [`docs/consumer-guide.md`](./docs/consumer-guide.md) — bootstrapping a new project on this template
+- [`CONTRIBUTING.md`](./CONTRIBUTING.md) — TDD discipline, six gates, PR rituals
+
+**Reference**
 - [`PLAN.md`](./PLAN.md) — full spec with architecture rationale per module
 - [`CLAUDE.md`](./CLAUDE.md) — agent-readable orientation
-- [`docs/consumer-guide.md`](./docs/consumer-guide.md) — bootstrapping a new project on this template
+- [`.claude/AGENTS.md`](./.claude/AGENTS.md) — full agent / skill / command catalogue
 - [`docs/api-stability-promise.md`](./docs/api-stability-promise.md) — semver + deprecation rules
+- [`docs/webhook-spec.md`](./docs/webhook-spec.md) — outbound webhook contract
+
+**Workflows**
 - [`docs/template-update-workflow.md`](./docs/template-update-workflow.md) — pulling upstream changes
 - [`docs/customization-guide.md`](./docs/customization-guide.md) — adding domain modules in `src/modules/`
 - [`docs/core-contribution-guide.md`](./docs/core-contribution-guide.md) — contributing back to `src/core/`
-- [`docs/webhook-spec.md`](./docs/webhook-spec.md) — outbound webhook contract
+
+**Community**
+- [`SECURITY.md`](./SECURITY.md) — vulnerability disclosure
+- [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md) — community standards
 
 ---
 

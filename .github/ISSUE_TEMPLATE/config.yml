@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Discussions
+    url: https://github.com/lenneTech/nest-base/discussions
+    about: Free-form questions, ideas, show-and-tell — better than an issue.
+  - name: 📖 Documentation
+    url: https://github.com/lenneTech/nest-base#readme
+    about: Quickstart, dev hub tour, feature flags — most "how do I" questions are here.
+  - name: 🤖 Claude Code skills
+    url: https://github.com/lenneTech/nest-base/tree/main/.claude
+    about: Skills, agents, slash commands. AI-driven development is first-class here.

@@ -175,13 +175,6 @@ If your test needs RustFS (file storage), use the
 and start a `GenericContainer` per test (or per file with a
 `beforeAll`/`afterAll`).
 
-## Phase audits
-
-`tests/stories/phase-N-test-first-audit.story.test.ts` files lock the
-_existence_ of the story files PLAN.md §32 mandates per phase. They're
-regression guards — a future doc rewrite that renames a story file
-wakes the audit.
-
 ## Don't add here
 
 - Source code — that's `src/core/` or `src/modules/`.

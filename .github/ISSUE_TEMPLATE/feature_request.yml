@@ -1,0 +1,72 @@
+name: ✨ Feature request
+description: Suggest a new capability — a feature flag, a dev-hub page, a built-in helper.
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement. **nest-base** is a
+        template — code added here ships to every consumer project,
+        so we're picky about what lands.
+
+        For project-specific business logic that won't be reused: keep
+        it in your fork's `src/modules/` and skip the issue.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's the problem?
+      description: |
+        Describe the friction. "I currently have to do X, which is
+        annoying because Y." If there's no existing pain, this
+        probably belongs in your project's fork, not the template.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you build?
+      description: |
+        Concrete proposal. Where in the tree (`src/core/<area>/`),
+        what shape (planner + runner / module / decorator / config),
+        what tests would cover it.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type of change
+      options:
+        - New always-on capability in src/core/
+        - New toggleable feature flag (default OFF)
+        - New /dev/* or /admin/* page
+        - New skill / agent / command (.claude/)
+        - Improvement to existing surface
+        - Documentation
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you thought about, and why this one wins.
+
+  - type: textarea
+    id: anything-else
+    attributes:
+      label: Anything else?
+      description: Links to similar features in other frameworks, RFCs, blog posts.
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Sanity checks
+      options:
+        - label: I searched the [open issues](../issues) and didn't find a duplicate
+          required: true
+        - label: This benefits *every* project on the template, not just my own
+          required: true

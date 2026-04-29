@@ -1,0 +1,50 @@
+name: ❓ Question / Help
+description: Not a bug, not a feature — you're stuck on how to use the template.
+title: "question: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For free-form discussion, [GitHub Discussions](../discussions)
+        is usually a better fit. Use this issue template only for
+        questions that, once answered, deserve to live in the
+        documentation.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: What are you trying to do?
+      placeholder: |
+        I want to add a /reports endpoint that aggregates orders per
+        tenant. The skill `adding-feature-module.md` covers the
+        scaffold, but I'm not sure how to ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: What have you tried?
+      description: Skills you read, commands you ran, what didn't work.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Topic
+      options:
+        - How to add a feature flag
+        - How to add a module / resource
+        - How to add a /dev or /admin page
+        - Permissions (CASL, rules)
+        - Multi-tenancy (RLS, tenant interceptor)
+        - Auth (Better-Auth, sessions, API keys)
+        - Prisma / migrations / RLS
+        - Tests (story tests, e2e specs, coverage)
+        - AI agents / Claude Code workflow
+        - Documentation
+        - Other
+    validations:
+      required: true

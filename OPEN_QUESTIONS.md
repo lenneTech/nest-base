@@ -1,35 +1,38 @@
 # Open Questions
 
-Ralph trägt hier Slices ein, bei denen er sich nicht sicher ist oder wo PLAN.md
-unklar ist. User reviewt periodisch und beantwortet entweder durch direkte Edits
-in `PLAN.md` oder durch eine Klarstellung in `RALPH_DIRECTIVES.md`.
+Capture-and-answer log for divergences between the spec
+([`PLAN.md`](./PLAN.md)) and the implementation, plus open design
+decisions that are blocked on a human call. Anyone (human or AI agent)
+can append an entry; the project owner reviews and answers.
 
-## Offene Punkte
+## Open
 
-_Keine offenen Punkte._
+_None._
 
-<!-- Format pro Eintrag:
-### YYYY-MM-DD · Phase X · <Slice-Titel>
-- **Kontext:** Was wurde versucht.
-- **Frage:** Was ist unklar.
-- **Vermutung:** Was Ralph annehmen würde.
-- **Status:** open | answered (Antwort: …)
+<!--
+Per entry:
+
+### YYYY-MM-DD · <area> · <short title>
+- **Context:** what was attempted, where the spec is.
+- **Question:** the specific decision needed.
+- **Working assumption:** what the agent does in the meantime.
+- **Status:** open | answered (date + decision)
 -->
 
-## Beantwortet
+## Answered
 
-### 2026-04-28 · Phase 3 · `Permission.fields = []` Semantik
+### 2026-04-28 · Permissions · `Permission.fields = []` semantics
 
-- **Kontext:** PLAN.md §6.3 dokumentierte ursprünglich: `fields String[]` mit
-  „Null = alle Felder, [] = keine". Unser Schema hat `fields String[]` (non-null
-  Postgres-Array), CASL akzeptiert keine leere `fields`-Liste in einer Rule
-  (`rawRule.fields cannot be an empty array`).
-- **Frage:** Wie soll `fields = []` an der CASL-Schicht behandelt werden?
-- **Antwort (User-Direktive, 2026-04-28, Option 3):** PLAN.md §6.3 wurde
-  angepasst, sodass `[]` synonym zu „keine Field-Level-Restriction" ist
-  — damit ist die Spec mit der Implementierung konsistent. Rationale: CASL kann
-  leere `fields`-Listen technisch nicht repräsentieren, und mehrere Tests
-  (`permission-service.story.test.ts`, `permission-test-endpoint.story.test.ts`)
-  pinnen die laxe Interpretation. Wer „deny all fields" semantisch braucht,
-  nutzt einen `inverted: true` Rule oder lässt die Rule weg.
+- **Context:** PLAN.md §6.3 originally read `fields String[]` with
+  "null = all fields, [] = no fields". The Postgres schema uses a
+  non-null array, and CASL itself rejects an empty `fields` array on
+  a rule (`rawRule.fields cannot be an empty array`).
+- **Question:** how should `fields = []` behave at the CASL layer?
+- **Answer (2026-04-28):** PLAN.md §6.3 was updated so that `[]` means
+  "no field-level restriction" (matching the prior null semantics).
+  Rationale: CASL can't represent the original "deny every field"
+  interpretation in a single rule, and the implementation already
+  treats empty arrays as wide-open. The intended deny-all case is
+  expressed by simply not granting the action (or via an inverted
+  rule).
 - **Status:** answered.

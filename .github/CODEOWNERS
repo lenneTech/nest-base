@@ -1,0 +1,20 @@
+# Code owners — auto-requested as reviewers when matching paths change.
+# https://docs.github.com/en/repositories/managing-your-repositories-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default fallback — every PR gets the org review unless overridden below.
+*                                       @lenneTech
+
+# The template-owned core surface — everything here ships to consumer
+# projects via `bun run sync:from-template`. Higher review bar.
+/src/core/                              @lenneTech
+/.claude/                               @lenneTech
+/PLAN.md                                @lenneTech
+/CLAUDE.md                              @lenneTech
+/docs/                                  @lenneTech
+
+# CI / release / GitHub config
+/.github/                               @lenneTech
+/scripts/                               @lenneTech
+/vitest.config.ts                       @lenneTech
+/package.json                           @lenneTech
+/bun.lock                               @lenneTech
