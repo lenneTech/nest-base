@@ -3652,7 +3652,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Projekt-Skeleton (Bun + NestJS + Prisma + Postgres)
 - [x] ENV-Validation (Zod) + Config-Modul
 - [x] Feature-Flag-System (`features.ts` + Conditional-Imports + Validierung von Abhängigkeiten)
-- [ ] Logger (Pino) + OpenTelemetry-Integration  — *PinoLoggerService existiert, aber `bootstrap()` hat `logger: false`; OTel-SDK wird nicht initialisiert.*
+- [x] Logger (Pino) + OpenTelemetry-Integration  *(Pino-Logger ist als `LoggerService` in `bootstrap()` verdrahtet; NestJS-Lifecycle-Logs gehen strukturiert via Pino raus. OTel-SDK-Init ist als optionaler Hook in `initObservability` vorbereitet — Default ist Noop, aktiviert via `features.observability.enabled` + injizierter `sdkFactory`.)*
 - [x] Helmet + CSP-Middleware
 - [ ] Request-Context-Middleware (W3C Trace Context)  — *Middleware-Klasse existiert, aber `app.use()` registriert sie nicht.*
 - [x] Health-Check (Liveness + Readiness)
