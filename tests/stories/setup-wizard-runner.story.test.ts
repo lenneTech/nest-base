@@ -128,4 +128,70 @@ describe('Story · setup-wizard runner planner', () => {
     const out = planEnvFromExample(example, { randomBytes: deterministicRng() });
     expect(out.endsWith('\n')).toBe(true);
   });
+
+  describe('project-name substitution (when projectName is given)', () => {
+    it('rewrites APP_BASE_URL to the portless host for the named project', () => {
+      const example = 'APP_BASE_URL=http://localhost:3000\n';
+      const out = planEnvFromExample(example, {
+        randomBytes: deterministicRng(),
+        projectName: 'my-app',
+      });
+      expect(out).toMatch(/^APP_BASE_URL=https:\/\/api\.my-app\.localhost$/m);
+    });
+
+    it('rewrites POSTGRES_USER and POSTGRES_DB from the template name to the project name', () => {
+      const example = [
+        'POSTGRES_USER=nest-server-template',
+        'POSTGRES_DB=nest-server-template',
+      ].join('\n');
+      const out = planEnvFromExample(example, {
+        randomBytes: deterministicRng(),
+        projectName: 'my-app',
+      });
+      expect(out).toMatch(/^POSTGRES_USER=my-app$/m);
+      expect(out).toMatch(/^POSTGRES_DB=my-app$/m);
+    });
+
+    it('rewrites DATABASE_URL user + dbname segments to the project name (and still substitutes the password)', () => {
+      const example = [
+        'POSTGRES_PASSWORD=change-me-strong-pass',
+        'DATABASE_URL=postgresql://nest-server-template:change-me-strong-pass@localhost:5432/nest-server-template',
+      ].join('\n');
+      const out = planEnvFromExample(example, {
+        randomBytes: deterministicRng(),
+        projectName: 'my-app',
+      });
+      const url = out.match(/^DATABASE_URL=(.*)$/m)?.[1];
+      const password = out.match(/^POSTGRES_PASSWORD=(.*)$/m)?.[1];
+      expect(url).toContain('my-app');
+      expect(url).toContain(password!);
+      expect(url).not.toContain('nest-server-template');
+      expect(url).not.toContain('change-me-strong-pass');
+    });
+
+    it('leaves the file untouched when projectName equals the template name (no churn)', () => {
+      const example = 'APP_BASE_URL=http://localhost:3000\nPOSTGRES_USER=nest-server-template\n';
+      const out = planEnvFromExample(example, {
+        randomBytes: deterministicRng(),
+        projectName: 'nest-server-template',
+      });
+      expect(out).toContain('APP_BASE_URL=http://localhost:3000');
+      expect(out).toContain('POSTGRES_USER=nest-server-template');
+    });
+
+    it('does not affect secret values (substitution happens after secret generation)', () => {
+      // BETTER_AUTH_SECRET could *theoretically* be a base64url string that
+      // happens to spell "nest-server-template" — vanishingly unlikely, but
+      // the substitution must run on the original placeholder text and not
+      // on the freshly generated secret to be safe.
+      const example = 'BETTER_AUTH_SECRET=change-me-32-chars-minimum-XXXXXX\n';
+      const out = planEnvFromExample(example, {
+        randomBytes: deterministicRng(),
+        projectName: 'my-app',
+      });
+      const value = out.match(/^BETTER_AUTH_SECRET=(.*)$/m)?.[1];
+      expect(value).not.toBe('change-me-32-chars-minimum-XXXXXX');
+      expect(value).not.toContain('my-app');
+    });
+  });
 });

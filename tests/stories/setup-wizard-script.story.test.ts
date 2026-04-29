@@ -77,4 +77,28 @@ describe('Story · bun run setup runner I/O', () => {
     const result = runSetupWizard({ projectRoot: workspace, logger });
     expect(result.envPath).toBe(join(workspace, '.env'));
   });
+
+  it('reads package.json["name"] and tailors project-scoped vars in .env', () => {
+    writeFileSync(
+      join(workspace, 'package.json'),
+      '{\n  "name": "my-app",\n  "version": "0.0.0"\n}\n',
+    );
+    writeFileSync(
+      join(workspace, '.env.example'),
+      [
+        'APP_BASE_URL=http://localhost:3000',
+        'POSTGRES_USER=nest-server-template',
+        'POSTGRES_DB=nest-server-template',
+        'POSTGRES_PASSWORD=change-me-strong-pass',
+        'DATABASE_URL=postgresql://nest-server-template:change-me-strong-pass@localhost:5432/nest-server-template',
+      ].join('\n') + '\n',
+    );
+    runSetupWizard({ projectRoot: workspace, logger });
+    const env = readFileSync(join(workspace, '.env'), 'utf8');
+    expect(env).toMatch(/^APP_BASE_URL=https:\/\/api\.my-app\.localhost$/m);
+    expect(env).toMatch(/^POSTGRES_USER=my-app$/m);
+    expect(env).toMatch(/^POSTGRES_DB=my-app$/m);
+    expect(env).toContain('postgresql://my-app:');
+    expect(env).toContain('@localhost:5432/my-app');
+  });
 });
