@@ -30,11 +30,10 @@ Vollständige Spec: [`PLAN.md`](./PLAN.md). AI-Agent-Guide:
 
 ## Status
 
-Alle Pflicht-Phasen + Optional-Phase 6 (Email/2FA/Passkey/MCP) sind
-abgeschlossen — siehe [`RALPH_LOG.md`](./RALPH_LOG.md). Test-Suite:
-1012 Tests in 106 Files, Coverage ≥ 96 % auf `src/core/`. Optional-
-Phasen 5b (PowerSync) und 5c (Geo) sind per `RALPH_DIRECTIVES.md`
-deaktiviert; jedes Projekt kann sie nachschalten.
+Alle Pflicht- und Optional-Phasen aus PLAN.md §32 sind abgeschlossen
+(Phase 1–8 + 5b PowerSync + 5c Geo + 6 Email/2FA/Passkey/MCP) — siehe
+[`RALPH_LOG.md`](./RALPH_LOG.md). Test-Suite: 1205 Tests in 130 Files,
+Coverage ≥ 96 % auf `src/core/`.
 
 ## Quickstart
 
@@ -48,8 +47,12 @@ bun install
 # 3. Dependencies starten (Postgres, RustFS, Mailpit, OTel)
 docker compose up -d
 
-# 4. ENV-File anlegen
-cp .env.example .env
+# 4. ENV-File anlegen (kopiert .env.example → .env, Secrets werden via
+#    crypto.randomBytes automatisch ersetzt — BETTER_AUTH_SECRET,
+#    POSTGRES_PASSWORD, FIELD_ENCRYPTION_KEK, S3_SECRET_KEY,
+#    POWERSYNC_DB_PASSWORD; DATABASE_URL wird passend umgeschrieben).
+#    Idempotent: refused to overwrite, wenn .env schon existiert.
+bun run setup
 
 # 5. DB-Migrations + Seed
 bun run prisma:migrate
