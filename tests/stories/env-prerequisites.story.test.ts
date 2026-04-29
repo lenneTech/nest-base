@@ -61,25 +61,29 @@ describe("Story · ENV Prerequisites", () => {
   });
 
   describe("renderEnvBanner", () => {
-    it("suggests `bun run setup` when both .env and .env.example are missing", () => {
-      const text = renderEnvBanner({
-        ok: false,
-        missing: [],
-        envFileMissing: true,
-        envExampleMissing: true,
-      });
-      expect(text).toContain("bun run setup");
-      expect(text).toContain("No .env or .env.example");
+    it("suggests `bun run setup` when .env is missing (covers both file states)", () => {
+      // bun run setup auto-creates .env.example (if missing) and .env
+      // — single command for both flavours. No `cp` step needed.
+      for (const envExampleMissing of [true, false]) {
+        const text = renderEnvBanner({
+          ok: false,
+          missing: [],
+          envFileMissing: true,
+          envExampleMissing,
+        });
+        expect(text).toContain("bun run setup");
+        expect(text).toContain("No .env file found");
+      }
     });
 
-    it("suggests `cp .env.example .env` when only .env is missing", () => {
+    it("never suggests `cp .env.example .env` (setup refuses to overwrite an existing .env)", () => {
       const text = renderEnvBanner({
         ok: false,
         missing: [],
         envFileMissing: true,
         envExampleMissing: false,
       });
-      expect(text).toContain("cp .env.example .env");
+      expect(text).not.toContain("cp .env.example");
     });
 
     it("lists each missing key with its hint when .env exists but is incomplete", () => {

@@ -78,28 +78,20 @@ export function renderEnvBanner(plan: EnvPrerequisitesPlan): string {
   lines.push(`${BOLD}${RED}✗ Missing required environment variables${RESET}`);
   lines.push("");
 
-  if (plan.envExampleMissing) {
-    lines.push(
-      `${YELLOW}No .env or .env.example found.${RESET} The setup wizard can generate both:`,
-    );
+  if (plan.envFileMissing) {
+    // `bun run setup` auto-creates .env.example (if missing) and .env
+    // with strong randomly-generated secrets in one step. No `cp`
+    // dance needed — and the wizard refuses to overwrite an existing
+    // .env, so doing the copy first would actually block setup.
+    lines.push(`${YELLOW}No .env file found.${RESET} Generate one with strong random secrets:`);
     lines.push("");
     lines.push(`  ${BOLD}${CYAN}bun run setup${RESET}`);
     lines.push("");
     lines.push(
-      `${DIM}This writes a project-local .env with strong randomly-generated secrets.${RESET}`,
+      `${DIM}The wizard writes .env (and .env.example if missing) with project-local${RESET}`,
     );
-  } else if (plan.envFileMissing) {
     lines.push(
-      `${YELLOW}No .env file found.${RESET} Copy the template and fill in the placeholder secrets:`,
-    );
-    lines.push("");
-    lines.push(`  ${BOLD}${CYAN}cp .env.example .env${RESET}`);
-    lines.push(
-      `  ${BOLD}${CYAN}bun run setup${RESET}    ${DIM}# auto-generates strong secrets${RESET}`,
-    );
-    lines.push("");
-    lines.push(
-      `${DIM}Or open .env in your editor and replace every "change-me-*" placeholder.${RESET}`,
+      `${DIM}values for DATABASE_URL, BETTER_AUTH_SECRET, and the other prerequisites.${RESET}`,
     );
   } else {
     lines.push(
@@ -112,8 +104,9 @@ export function renderEnvBanner(plan: EnvPrerequisitesPlan): string {
     }
     lines.push("");
     lines.push(
-      `${DIM}Re-run ${BOLD}bun run setup${RESET}${DIM} to auto-fill secrets, or edit .env manually.${RESET}`,
+      `${DIM}Delete .env and re-run ${RESET}${BOLD}${CYAN}bun run setup${RESET}${DIM} to regenerate with fresh${RESET}`,
     );
+    lines.push(`${DIM}auto-generated secrets, or edit .env manually.${RESET}`);
   }
 
   lines.push("");
