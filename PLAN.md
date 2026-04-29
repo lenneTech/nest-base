@@ -3750,9 +3750,9 @@ model Setting { id String @id; key String @unique; value Json }
 ### Phase 7 – Reliability, Template-Tooling & Polish (Sprint 12)
 - [x] **Test-First (Stories):** Setup-Wizard (Idempotenz, abbrechbar, korrektes `.env`-Output), Schema-Konkatenation (nur aktive Features kombiniert), `sync:from-template` (lässt `src/modules/` unangetastet), `sync:to-template` (Patch aus `src/core/`-Diff korrekt) — eigene Stories
 - [x] Setup-Wizard (`bun run setup`) für interaktive Projekt-Initialisierung
-- [ ] Schema-Konkatenations-Skript (`bun run prepare:schema` → kombiniert nur aktivierte Feature-Schemas)  — *`scripts/prepare-schema.ts` existiert nicht; package.json-Eintrag wäre kaputt.*
-- [ ] Template-Sync-Skript `bun run sync:from-template`  — *`scripts/sync-from-template.ts` existiert nicht (Planner ja, Runner nein).*
-- [ ] Core-PR-Workflow `bun run sync:to-template`  — *`scripts/sync-to-template.ts` existiert nicht (Planner ja, Runner nein).*
+- [x] Schema-Konkatenations-Skript (`bun run prepare:schema` → kombiniert nur aktivierte Feature-Schemas)  *(`scripts/prepare-schema.ts` liest core + `prisma/features/*` + Features und schreibt `prisma/schema.generated.prisma` via `concatenateSchema()`.)*
+- [x] Template-Sync-Skript `bun run sync:from-template`  *(`scripts/sync-from-template.ts` walked beide `src/core/`-Bäume und applied `planSyncFromTemplate()`s create/update/delete; `src/modules/` ist Planner-bewacht.)*
+- [x] Core-PR-Workflow `bun run sync:to-template`  *(`scripts/sync-to-template.ts` produziert unified patch via `planSyncToTemplate().renderUnifiedPatch()` → `reports/sync-to-template.patch`.)*
 - [x] Dokumentation: Template-Update-Workflow, Pro-Projekt-Customization-Guide, Core-Contribution-Guide (PR-zurück-Workflow)
 
 ### Phase 8 – Developer Experience (parallel ab Phase 3, finalisieren in Sprint 13)
