@@ -78,5 +78,12 @@ describe('dev runner', () => {
       const pkg = JSON.parse(readFileSync(PACKAGE_JSON, 'utf8')) as { scripts: Record<string, string> };
       expect(pkg.scripts.dev).toMatch(/scripts\/dev\.ts/);
     });
+
+    it('portless is declared as a devDependency so `bun install` provides the binary', () => {
+      const pkg = JSON.parse(readFileSync(PACKAGE_JSON, 'utf8')) as { devDependencies: Record<string, string> };
+      expect(pkg.devDependencies.portless).toBeDefined();
+      // Pin to the Vercel-Labs `portless` series — accept any 0.x.
+      expect(pkg.devDependencies.portless).toMatch(/^[\^~]?0\./);
+    });
   });
 });
