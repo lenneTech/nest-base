@@ -119,6 +119,39 @@ describe("Story · S3 Storage Adapter", () => {
     expect(ops.calls.find((c) => c.method === "presignGet")).toBeUndefined();
   });
 
+  describe("signUrl() — TTL upper-bound cap (security)", () => {
+    // Why: presigned URLs survive permission revokes. An unbounded TTL
+    // (years/forever) effectively bypasses access control. We cap at
+    // 1h by default; consumers that legitimately need longer must opt
+    // in by raising `maxTtlSeconds` on the adapter.
+    it("rejects a TTL larger than the default cap (3600s) without calling S3Operations", async () => {
+      const ops = makeOps();
+      const adapter = new S3StorageAdapter(ops);
+      await adapter.put({ key: "k", body: asBytes("x"), mimeType: "text/plain" });
+      await expect(adapter.signUrl("k", 7200)).rejects.toThrow(/ttl/i);
+      await expect(adapter.signUrl("k", 31_536_000)).rejects.toThrow(/ttl/i);
+      expect(ops.calls.find((c) => c.method === "presignGet")).toBeUndefined();
+    });
+
+    it("accepts a TTL exactly at the cap (3600s)", async () => {
+      const ops = makeOps();
+      const adapter = new S3StorageAdapter(ops);
+      await adapter.put({ key: "k", body: asBytes("x"), mimeType: "text/plain" });
+      const url = await adapter.signUrl("k", 3600);
+      expect(url).toContain("expires=3600");
+    });
+
+    it("honours a custom maxTtlSeconds passed to the adapter", async () => {
+      const ops = makeOps();
+      const adapter = new S3StorageAdapter(ops, { maxTtlSeconds: 86_400 });
+      await adapter.put({ key: "k", body: asBytes("x"), mimeType: "text/plain" });
+      // Now 7200 is within the 24h cap.
+      await expect(adapter.signUrl("k", 7200)).resolves.toContain("expires=7200");
+      // But 25h still exceeds.
+      await expect(adapter.signUrl("k", 90_000)).rejects.toThrow(/ttl/i);
+    });
+  });
+
   it("signUrl() throws StorageObjectNotFoundError when the object does not exist", async () => {
     const ops = makeOps();
     const adapter = new S3StorageAdapter(ops);

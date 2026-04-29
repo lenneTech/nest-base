@@ -31,8 +31,31 @@ export interface S3Operations {
   presignGet(key: string, ttlSeconds: number): Promise<string>;
 }
 
+export interface S3StorageAdapterOptions {
+  /**
+   * Maximum permitted `ttlSeconds` for `signUrl()`. Defaults to 1 hour.
+   *
+   * Why this exists: presigned URLs survive permission revokes — once
+   * minted, they grant access until expiry regardless of subsequent
+   * RBAC changes. An unbounded TTL effectively bypasses access
+   * control. The cap is per-adapter so consumers that legitimately
+   * need longer URLs (e.g. signed download links emailed to a user)
+   * can opt into a higher limit explicitly.
+   */
+  maxTtlSeconds?: number;
+}
+
+const DEFAULT_MAX_TTL_SECONDS = 3600;
+
 export class S3StorageAdapter implements StorageAdapter {
-  constructor(private readonly ops: S3Operations) {}
+  private readonly maxTtlSeconds: number;
+
+  constructor(
+    private readonly ops: S3Operations,
+    options: S3StorageAdapterOptions = {},
+  ) {
+    this.maxTtlSeconds = options.maxTtlSeconds ?? DEFAULT_MAX_TTL_SECONDS;
+  }
 
   async put(input: StoragePutInput): Promise<StorageObjectMetadata> {
     if (!input.key) throw new Error("storage: key is required");
@@ -57,6 +80,11 @@ export class S3StorageAdapter implements StorageAdapter {
   async signUrl(key: string, ttlSeconds: number): Promise<string> {
     if (ttlSeconds <= 0) {
       throw new Error(`storage: ttlSeconds must be positive (received: ${ttlSeconds})`);
+    }
+    if (ttlSeconds > this.maxTtlSeconds) {
+      throw new Error(
+        `storage: ttlSeconds exceeds cap (received: ${ttlSeconds}, max: ${this.maxTtlSeconds})`,
+      );
     }
     if (!(await this.ops.headObject(key))) {
       throw new StorageObjectNotFoundError(key);
