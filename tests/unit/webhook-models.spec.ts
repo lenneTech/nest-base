@@ -1,13 +1,13 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 
-const ROOT = resolve(import.meta.dirname, '..', '..');
-const SCHEMA = readFileSync(resolve(ROOT, 'prisma/schema.prisma'), 'utf8');
+const ROOT = resolve(import.meta.dirname, "..", "..");
+const SCHEMA = readFileSync(resolve(ROOT, "prisma/schema.prisma"), "utf8");
 
 function blockOf(model: string): string {
-  const re = new RegExp(`model\\s+${model}\\s*\\{[\\s\\S]*?\\n\\}`, 'm');
+  const re = new RegExp(`model\\s+${model}\\s*\\{[\\s\\S]*?\\n\\}`, "m");
   const match = SCHEMA.match(re);
   expect(match, `model ${model} not found`).not.toBeNull();
   return match![0];
@@ -22,31 +22,33 @@ function blockOf(model: string): string {
  *   - WebhookDelivery: per-attempt audit row (endpoint, event, status,
  *     statusCode, attemptCount, nextRetryAt)
  */
-describe('Webhook persistence schema', () => {
-  describe('WebhookEndpointStatus enum', () => {
-    it('declares ACTIVE + DISABLED', () => {
-      expect(SCHEMA).toMatch(/enum\s+WebhookEndpointStatus\s*\{[\s\S]*ACTIVE[\s\S]*DISABLED[\s\S]*\}/);
+describe("Webhook persistence schema", () => {
+  describe("WebhookEndpointStatus enum", () => {
+    it("declares ACTIVE + DISABLED", () => {
+      expect(SCHEMA).toMatch(
+        /enum\s+WebhookEndpointStatus\s*\{[\s\S]*ACTIVE[\s\S]*DISABLED[\s\S]*\}/,
+      );
     });
   });
 
-  describe('WebhookDeliveryStatus enum', () => {
-    it('declares PENDING + DELIVERED + FAILED', () => {
+  describe("WebhookDeliveryStatus enum", () => {
+    it("declares PENDING + DELIVERED + FAILED", () => {
       expect(SCHEMA).toMatch(
         /enum\s+WebhookDeliveryStatus\s*\{[\s\S]*PENDING[\s\S]*DELIVERED[\s\S]*FAILED[\s\S]*\}/,
       );
     });
   });
 
-  describe('WebhookEndpoint model', () => {
-    const block = (): string => blockOf('WebhookEndpoint');
+  describe("WebhookEndpoint model", () => {
+    const block = (): string => blockOf("WebhookEndpoint");
 
-    it('maps to `webhook_endpoints` with snake_case columns', () => {
+    it("maps to `webhook_endpoints` with snake_case columns", () => {
       const b = block();
       expect(b).toMatch(/@@map\(\s*"webhook_endpoints"\s*\)/);
       expect(b).toMatch(/tenantId[\s\S]*@map\(\s*"tenant_id"\s*\)/);
     });
 
-    it('carries url + secret + events[] + status + consecutiveFailures', () => {
+    it("carries url + secret + events[] + status + consecutiveFailures", () => {
       const b = block();
       expect(b).toMatch(/url\s+String/);
       expect(b).toMatch(/secret\s+String/);
@@ -55,26 +57,26 @@ describe('Webhook persistence schema', () => {
       expect(b).toMatch(/consecutiveFailures[\s\S]*@map\(\s*"consecutive_failures"\s*\)/);
     });
 
-    it('cascades on tenant delete', () => {
+    it("cascades on tenant delete", () => {
       expect(block()).toMatch(/tenant\s+Tenant\s+@relation\([\s\S]*onDelete:\s*Cascade/);
     });
 
-    it('exposes deliveries[] back-relation to WebhookDelivery', () => {
+    it("exposes deliveries[] back-relation to WebhookDelivery", () => {
       expect(block()).toMatch(/deliveries\s+WebhookDelivery\[\]/);
     });
   });
 
-  describe('WebhookDelivery model', () => {
-    const block = (): string => blockOf('WebhookDelivery');
+  describe("WebhookDelivery model", () => {
+    const block = (): string => blockOf("WebhookDelivery");
 
-    it('maps to `webhook_deliveries` with snake_case columns', () => {
+    it("maps to `webhook_deliveries` with snake_case columns", () => {
       const b = block();
       expect(b).toMatch(/@@map\(\s*"webhook_deliveries"\s*\)/);
       expect(b).toMatch(/endpointId[\s\S]*@map\(\s*"endpoint_id"\s*\)/);
       expect(b).toMatch(/eventId[\s\S]*@map\(\s*"event_id"\s*\)/);
     });
 
-    it('tracks status + statusCode + attemptCount + nextRetryAt', () => {
+    it("tracks status + statusCode + attemptCount + nextRetryAt", () => {
       const b = block();
       expect(b).toMatch(/status\s+WebhookDeliveryStatus/);
       expect(b).toMatch(/statusCode[\s\S]*@map\(\s*"status_code"\s*\)/);
@@ -82,14 +84,14 @@ describe('Webhook persistence schema', () => {
       expect(b).toMatch(/nextRetryAt[\s\S]*@map\(\s*"next_retry_at"\s*\)/);
     });
 
-    it('cascades on endpoint delete', () => {
+    it("cascades on endpoint delete", () => {
       expect(block()).toMatch(/endpoint\s+WebhookEndpoint\s+@relation\([\s\S]*onDelete:\s*Cascade/);
     });
   });
 
-  describe('Tenant relation', () => {
-    it('Tenant exposes webhookEndpoints[] back-relation', () => {
-      expect(blockOf('Tenant')).toMatch(/webhookEndpoints\s+WebhookEndpoint\[\]/);
+  describe("Tenant relation", () => {
+    it("Tenant exposes webhookEndpoints[] back-relation", () => {
+      expect(blockOf("Tenant")).toMatch(/webhookEndpoints\s+WebhookEndpoint\[\]/);
     });
   });
 });

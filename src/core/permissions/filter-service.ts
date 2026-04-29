@@ -1,4 +1,4 @@
-import 'reflect-metadata';
+import "reflect-metadata";
 
 /**
  * Filter-Service Pattern (PLAN.md §22).
@@ -18,7 +18,7 @@ import 'reflect-metadata';
  * in the integration slice).
  */
 
-export const FILTER_FOR_METADATA = 'core:filter-for';
+export const FILTER_FOR_METADATA = "core:filter-for";
 
 export type FilterContext = Record<string, unknown>;
 

@@ -5,13 +5,13 @@ import {
   Module,
   type OnModuleDestroy,
   type OnModuleInit,
-} from '@nestjs/common';
+} from "@nestjs/common";
 
-import { OutboxRecorder, type OutboxEntry, type OutboxStorage } from './outbox.js';
-import { OutboxWorker, type OutboxDispatcher } from './outbox-worker.js';
+import { OutboxRecorder, type OutboxEntry, type OutboxStorage } from "./outbox.js";
+import { OutboxWorker, type OutboxDispatcher } from "./outbox-worker.js";
 
-export const OUTBOX_STORAGE = Symbol.for('lt:OutboxStorage');
-export const OUTBOX_DISPATCHERS = Symbol.for('lt:OutboxDispatchers');
+export const OUTBOX_STORAGE = Symbol.for("lt:OutboxStorage");
+export const OUTBOX_DISPATCHERS = Symbol.for("lt:OutboxDispatchers");
 
 class InMemoryOutboxStorage implements OutboxStorage {
   private readonly entries: OutboxEntry[] = [];
@@ -39,7 +39,7 @@ export class OutboxRecorderProvider extends OutboxRecorder {
 
 @Injectable()
 export class OutboxWorkerLifecycle implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger('OutboxWorker');
+  private readonly logger = new Logger("OutboxWorker");
   private readonly worker: OutboxWorker;
   private timer?: ReturnType<typeof setInterval>;
 

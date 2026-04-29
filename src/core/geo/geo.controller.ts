@@ -1,12 +1,8 @@
-import { BadRequestException, Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Post, Query } from "@nestjs/common";
 
-import {
-  GeocodeQuerySchema,
-  PlacesNearbySchema,
-  ReverseGeocodeQuerySchema,
-} from './geo-dtos.js';
-import { GeoService, buildFindNearbyQuery } from './geo-service.js';
-import type { GeocodingResult } from './geocoding-providers.js';
+import { GeocodeQuerySchema, PlacesNearbySchema, ReverseGeocodeQuerySchema } from "./geo-dtos.js";
+import { GeoService, buildFindNearbyQuery } from "./geo-service.js";
+import type { GeocodingResult } from "./geocoding-providers.js";
 
 /**
  * `/geo/*` and `/places/nearby` HTTP surface.
@@ -22,14 +18,14 @@ import type { GeocodingResult } from './geocoding-providers.js';
 export class GeoController {
   constructor(private readonly geo: GeoService) {}
 
-  @Get('geo/geocode')
+  @Get("geo/geocode")
   async geocode(@Query() query: Record<string, string>): Promise<GeocodingResult | null> {
     const parsed = GeocodeQuerySchema.safeParse(query);
     if (!parsed.success) throw new BadRequestException(parsed.error.message);
     return this.geo.geocode(parsed.data.q);
   }
 
-  @Get('geo/reverse-geocode')
+  @Get("geo/reverse-geocode")
   async reverseGeocode(@Query() query: Record<string, string>): Promise<GeocodingResult | null> {
     const parsed = ReverseGeocodeQuerySchema.safeParse({
       lat: Number(query.lat),
@@ -39,7 +35,7 @@ export class GeoController {
     return this.geo.reverseGeocode(parsed.data.lat, parsed.data.lng);
   }
 
-  @Post('places/nearby')
+  @Post("places/nearby")
   async placesNearby(@Body() body: unknown): Promise<{ sql: string }> {
     const parsed = PlacesNearbySchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.message);
@@ -48,7 +44,7 @@ export class GeoController {
     // /places/nearby table happens in domain modules — they pass
     // their own table + tenantId to `buildFindNearbyQuery()`.
     const sql = buildFindNearbyQuery({
-      table: 'addresses',
+      table: "addresses",
       lat: parsed.data.lat,
       lng: parsed.data.lng,
       radiusMeters: parsed.data.radiusMeters,

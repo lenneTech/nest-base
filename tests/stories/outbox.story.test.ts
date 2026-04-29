@@ -1,10 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 
 import {
   OutboxRecorder,
   type OutboxEntry,
   type OutboxStorage,
-} from '../../src/core/outbox/outbox.js';
+} from "../../src/core/outbox/outbox.js";
 
 /**
  * Story · Outbox-Pattern (PLAN.md §28.4/#18).
@@ -17,7 +17,7 @@ import {
  * This module owns the recorder + the worker dispatch loop; the
  * Prisma binding for OutboxStorage lives next to PrismaService.
  */
-describe('Story · Outbox', () => {
+describe("Story · Outbox", () => {
   function makeStorage(): OutboxStorage & { rows: OutboxEntry[] } {
     const rows: OutboxEntry[] = [];
     return {
@@ -40,48 +40,48 @@ describe('Story · Outbox', () => {
     };
   }
 
-  it('record() appends an unprocessed entry with monotonically growing seq', async () => {
+  it("record() appends an unprocessed entry with monotonically growing seq", async () => {
     const storage = makeStorage();
     const rec = new OutboxRecorder(storage);
-    const a = await rec.record({ tenantId: 't1', type: 'x', payload: { v: 1 } });
-    const b = await rec.record({ tenantId: 't1', type: 'x', payload: { v: 2 } });
+    const a = await rec.record({ tenantId: "t1", type: "x", payload: { v: 1 } });
+    const b = await rec.record({ tenantId: "t1", type: "x", payload: { v: 2 } });
     expect(a.seq).toBeLessThan(b.seq);
     expect(a.processedAt).toBeNull();
     expect(b.processedAt).toBeNull();
     expect(storage.rows).toHaveLength(2);
   });
 
-  it('claim() returns at most `limit` unprocessed entries', async () => {
+  it("claim() returns at most `limit` unprocessed entries", async () => {
     const storage = makeStorage();
     const rec = new OutboxRecorder(storage);
     for (let i = 0; i < 5; i++) {
-      await rec.record({ tenantId: 't1', type: 'x', payload: { v: i } });
+      await rec.record({ tenantId: "t1", type: "x", payload: { v: i } });
     }
     const batch = await rec.claim(3);
     expect(batch).toHaveLength(3);
   });
 
-  it('markProcessed() removes the entry from the next claim', async () => {
+  it("markProcessed() removes the entry from the next claim", async () => {
     const storage = makeStorage();
     const rec = new OutboxRecorder(storage);
-    const entry = await rec.record({ tenantId: 't1', type: 'x', payload: {} });
+    const entry = await rec.record({ tenantId: "t1", type: "x", payload: {} });
     await rec.markProcessed(entry.id);
     const batch = await rec.claim(10);
     expect(batch.find((e) => e.id === entry.id)).toBeUndefined();
   });
 
-  it('record() rejects empty type', async () => {
+  it("record() rejects empty type", async () => {
     const rec = new OutboxRecorder(makeStorage());
-    await expect(rec.record({ tenantId: 't1', type: '', payload: {} })).rejects.toThrow(/type/i);
+    await expect(rec.record({ tenantId: "t1", type: "", payload: {} })).rejects.toThrow(/type/i);
   });
 
-  it('runs records in insertion order (FIFO)', async () => {
+  it("runs records in insertion order (FIFO)", async () => {
     const storage = makeStorage();
     const rec = new OutboxRecorder(storage);
-    await rec.record({ tenantId: 't1', type: 'a', payload: {} });
-    await rec.record({ tenantId: 't1', type: 'b', payload: {} });
-    await rec.record({ tenantId: 't1', type: 'c', payload: {} });
+    await rec.record({ tenantId: "t1", type: "a", payload: {} });
+    await rec.record({ tenantId: "t1", type: "b", payload: {} });
+    await rec.record({ tenantId: "t1", type: "c", payload: {} });
     const batch = await rec.claim(10);
-    expect(batch.map((e) => e.type)).toEqual(['a', 'b', 'c']);
+    expect(batch.map((e) => e.type)).toEqual(["a", "b", "c"]);
   });
 });

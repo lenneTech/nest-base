@@ -13,7 +13,7 @@
  * five-character substitution table.
  */
 
-export type DeliveryStatus = 'DELIVERED' | 'FAILED';
+export type DeliveryStatus = "DELIVERED" | "FAILED";
 
 export interface DeliveryListEntry {
   id: string;
@@ -28,12 +28,12 @@ export interface DeliveryListEntry {
 
 export interface WebhookInspectorPageInput {
   deliveries: DeliveryListEntry[];
-  filter?: { status?: DeliveryStatus | 'ALL' };
+  filter?: { status?: DeliveryStatus | "ALL" };
   csrfToken?: string;
 }
 
 export function renderWebhookInspectorPage(input: WebhookInspectorPageInput): string {
-  const filterStatus = input.filter?.status ?? 'ALL';
+  const filterStatus = input.filter?.status ?? "ALL";
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -62,15 +62,15 @@ ${renderTable(input)}
 </html>`;
 }
 
-function renderFilter(currentStatus: DeliveryStatus | 'ALL'): string {
+function renderFilter(currentStatus: DeliveryStatus | "ALL"): string {
   const opt = (value: string, label: string): string =>
-    `<option value="${value}"${value === currentStatus ? ' selected' : ''}>${label}</option>`;
+    `<option value="${value}"${value === currentStatus ? " selected" : ""}>${label}</option>`;
   return `<form class="filter" method="get">
   <label>Status
     <select name="status">
-      ${opt('ALL', 'All')}
-      ${opt('DELIVERED', 'Delivered')}
-      ${opt('FAILED', 'Failed')}
+      ${opt("ALL", "All")}
+      ${opt("DELIVERED", "Delivered")}
+      ${opt("FAILED", "Failed")}
     </select>
   </label>
   <button type="submit">Apply</button>
@@ -81,7 +81,7 @@ function renderTable(input: WebhookInspectorPageInput): string {
   if (input.deliveries.length === 0) {
     return `<div class="empty">No deliveries to show.</div>`;
   }
-  const rows = input.deliveries.map((d) => renderRow(d, input.csrfToken)).join('');
+  const rows = input.deliveries.map((d) => renderRow(d, input.csrfToken)).join("");
   return `<table data-deliveries="true">
 <thead><tr><th>When</th><th>Event</th><th>Endpoint</th><th>Status</th><th>HTTP</th><th>Attempts</th><th>Error</th><th></th></tr></thead>
 <tbody>${rows}</tbody>
@@ -89,17 +89,17 @@ function renderTable(input: WebhookInspectorPageInput): string {
 }
 
 function renderRow(delivery: DeliveryListEntry, csrfToken: string | undefined): string {
-  const safeEvent = escapeHtml(delivery.eventType ?? '');
+  const safeEvent = escapeHtml(delivery.eventType ?? "");
   const safeEndpoint = escapeHtml(delivery.endpointId);
   const safeStatus = escapeHtml(delivery.status);
-  const safeOccurred = escapeHtml(delivery.occurredAt ?? '');
-  const safeError = delivery.errorMessage ? escapeHtml(delivery.errorMessage) : '';
-  const httpCode = delivery.statusCode === undefined ? '' : escapeHtml(String(delivery.statusCode));
+  const safeOccurred = escapeHtml(delivery.occurredAt ?? "");
+  const safeError = delivery.errorMessage ? escapeHtml(delivery.errorMessage) : "";
+  const httpCode = delivery.statusCode === undefined ? "" : escapeHtml(String(delivery.statusCode));
   const attempts = escapeHtml(String(delivery.attemptCount));
   const safeId = escapeHtml(delivery.id);
   const csrfField = csrfToken
     ? `<input type="hidden" name="csrf" value="${escapeHtml(csrfToken)}">`
-    : '';
+    : "";
   return `<tr data-status="${safeStatus}">
 <td>${safeOccurred}</td>
 <td>${safeEvent}</td>
@@ -119,9 +119,9 @@ function renderRow(delivery: DeliveryListEntry, csrfToken: string | undefined): 
 
 function escapeHtml(input: string): string {
   return input
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }

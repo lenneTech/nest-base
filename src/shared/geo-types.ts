@@ -10,53 +10,47 @@
 export type Position = [number, number] | [number, number, number];
 
 export interface Point {
-  type: 'Point';
+  type: "Point";
   coordinates: Position;
 }
 
 export interface LineString {
-  type: 'LineString';
+  type: "LineString";
   coordinates: Position[];
 }
 
 export interface Polygon {
-  type: 'Polygon';
+  type: "Polygon";
   /** Outer ring + zero-or-more inner rings (holes). Each ring is closed. */
   coordinates: Position[][];
 }
 
 export interface MultiPoint {
-  type: 'MultiPoint';
+  type: "MultiPoint";
   coordinates: Position[];
 }
 
 export interface MultiLineString {
-  type: 'MultiLineString';
+  type: "MultiLineString";
   coordinates: Position[][];
 }
 
 export interface MultiPolygon {
-  type: 'MultiPolygon';
+  type: "MultiPolygon";
   coordinates: Position[][][];
 }
 
-export type Geometry =
-  | Point
-  | LineString
-  | Polygon
-  | MultiPoint
-  | MultiLineString
-  | MultiPolygon;
+export type Geometry = Point | LineString | Polygon | MultiPoint | MultiLineString | MultiPolygon;
 
 export interface Feature<P extends Record<string, unknown> = Record<string, unknown>> {
-  type: 'Feature';
+  type: "Feature";
   geometry: Geometry | null;
   properties: P;
   id?: string | number;
 }
 
 export interface FeatureCollection<P extends Record<string, unknown> = Record<string, unknown>> {
-  type: 'FeatureCollection';
+  type: "FeatureCollection";
   features: Feature<P>[];
 }
 
@@ -65,19 +59,19 @@ export interface FeatureCollection<P extends Record<string, unknown> = Record<st
 // ────────────────────────────────────────────────────────────────────
 
 export function isPoint(value: unknown): value is Point {
-  if (!value || typeof value !== 'object') return false;
+  if (!value || typeof value !== "object") return false;
   const v = value as { type?: unknown; coordinates?: unknown };
-  return v.type === 'Point' && Array.isArray(v.coordinates) && v.coordinates.length >= 2;
+  return v.type === "Point" && Array.isArray(v.coordinates) && v.coordinates.length >= 2;
 }
 
 export function isPolygon(value: unknown): value is Polygon {
-  if (!value || typeof value !== 'object') return false;
+  if (!value || typeof value !== "object") return false;
   const v = value as { type?: unknown; coordinates?: unknown };
-  return v.type === 'Polygon' && Array.isArray(v.coordinates);
+  return v.type === "Polygon" && Array.isArray(v.coordinates);
 }
 
 export function isFeatureCollection(value: unknown): value is FeatureCollection {
-  if (!value || typeof value !== 'object') return false;
+  if (!value || typeof value !== "object") return false;
   const v = value as { type?: unknown; features?: unknown };
-  return v.type === 'FeatureCollection' && Array.isArray(v.features);
+  return v.type === "FeatureCollection" && Array.isArray(v.features);
 }

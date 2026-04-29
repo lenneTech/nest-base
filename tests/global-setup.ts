@@ -1,4 +1,4 @@
-import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 
 /**
  * Vitest globalSetup hook.
@@ -15,19 +15,19 @@ import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testconta
 let container: StartedPostgreSqlContainer | undefined;
 
 export default async function globalSetup(): Promise<() => Promise<void>> {
-  process.env.NODE_ENV = 'test';
+  process.env.NODE_ENV = "test";
 
   if (!process.env.DATABASE_URL) {
-    container = await new PostgreSqlContainer('postgres:18-alpine')
-      .withDatabase('nst_test')
-      .withUsername('nst_test')
-      .withPassword('nst_test')
+    container = await new PostgreSqlContainer("postgres:18-alpine")
+      .withDatabase("nst_test")
+      .withUsername("nst_test")
+      .withPassword("nst_test")
       .start();
 
     process.env.DATABASE_URL = container.getConnectionUri();
   }
 
-  process.env.TEST_INFRA_READY = '1';
+  process.env.TEST_INFRA_READY = "1";
 
   return async () => {
     delete process.env.TEST_INFRA_READY;

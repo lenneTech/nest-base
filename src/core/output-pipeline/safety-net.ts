@@ -16,16 +16,16 @@
  */
 
 export const DEFAULT_SECRET_FIELD_NAMES = [
-  'password',
-  'passwordHash',
-  'token',
-  'apiKey',
-  'secret',
-  'authToken',
-  'refreshToken',
-  'sessionToken',
-  'pinHash',
-  'mfaSecret',
+  "password",
+  "passwordHash",
+  "token",
+  "apiKey",
+  "secret",
+  "authToken",
+  "refreshToken",
+  "sessionToken",
+  "pinHash",
+  "mfaSecret",
 ] as const;
 
 /**
@@ -51,11 +51,11 @@ export const DEFAULT_SECRET_VALUE_PATTERNS: readonly RegExp[] = [
 export class SafetyNetViolationError extends Error {
   constructor(public readonly field: string) {
     super(`output-pipeline safety-net: secret-named field "${field}" leaked`);
-    this.name = 'SafetyNetViolationError';
+    this.name = "SafetyNetViolationError";
   }
 }
 
-export type SafetyNetMode = 'mask' | 'throw';
+export type SafetyNetMode = "mask" | "throw";
 
 export interface SafetyNetOptions {
   mode: SafetyNetMode;
@@ -77,7 +77,7 @@ export function applySafetyNet(value: unknown, options: SafetyNetOptions): unkno
   const fields = normalize(options.fields ?? DEFAULT_SECRET_FIELD_NAMES);
   const patterns = options.valuePatterns ?? [];
 
-  if (options.mode === 'throw') {
+  if (options.mode === "throw") {
     const fieldHit = walkForFieldHit(value, fields);
     if (fieldHit !== null) throw new SafetyNetViolationError(fieldHit);
     if (patterns.length > 0) {
@@ -102,7 +102,7 @@ function walkForFieldHit(value: unknown, fields: Set<string>): string | null {
     }
     return null;
   }
-  if (value !== null && typeof value === 'object') {
+  if (value !== null && typeof value === "object") {
     for (const [key, child] of Object.entries(value)) {
       if (fields.has(key.toLowerCase())) return key;
       const hit = walkForFieldHit(child, fields);
@@ -113,9 +113,9 @@ function walkForFieldHit(value: unknown, fields: Set<string>): string | null {
 }
 
 function walkForValueHit(value: unknown, patterns: readonly RegExp[]): string | null {
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     for (const pattern of patterns) {
-      if (pattern.test(value)) return '<value-shape>';
+      if (pattern.test(value)) return "<value-shape>";
     }
     return null;
   }
@@ -126,7 +126,7 @@ function walkForValueHit(value: unknown, patterns: readonly RegExp[]): string | 
     }
     return null;
   }
-  if (value !== null && typeof value === 'object') {
+  if (value !== null && typeof value === "object") {
     for (const child of Object.values(value)) {
       const hit = walkForValueHit(child, patterns);
       if (hit !== null) return hit;
@@ -136,15 +136,15 @@ function walkForValueHit(value: unknown, patterns: readonly RegExp[]): string | 
 }
 
 function walkAndMask(value: unknown, fields: Set<string>, patterns: readonly RegExp[]): unknown {
-  if (typeof value === 'string') {
-    return matchesAny(value, patterns) ? '[redacted]' : value;
+  if (typeof value === "string") {
+    return matchesAny(value, patterns) ? "[redacted]" : value;
   }
   if (Array.isArray(value)) return value.map((v) => walkAndMask(v, fields, patterns));
-  if (value !== null && typeof value === 'object') {
+  if (value !== null && typeof value === "object") {
     const out: Record<string, unknown> = {};
     for (const [key, child] of Object.entries(value)) {
       if (fields.has(key.toLowerCase())) {
-        out[key] = '[redacted]';
+        out[key] = "[redacted]";
         continue;
       }
       out[key] = walkAndMask(child, fields, patterns);

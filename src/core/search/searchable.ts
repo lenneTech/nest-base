@@ -9,11 +9,11 @@
  *   - a trigger that calls the function
  */
 
-const SEARCHABLE_FIELDS = Symbol.for('core.search.searchable-fields');
-const VALID_WEIGHTS = new Set<string>(['A', 'B', 'C', 'D']);
+const SEARCHABLE_FIELDS = Symbol.for("core.search.searchable-fields");
+const VALID_WEIGHTS = new Set<string>(["A", "B", "C", "D"]);
 const SAFE_IDENT = /^[a-z_][a-z0-9_]*$/i;
 
-export type SearchWeight = 'A' | 'B' | 'C' | 'D';
+export type SearchWeight = "A" | "B" | "C" | "D";
 
 export interface SearchableField {
   field: string;
@@ -35,12 +35,12 @@ interface MetadataTarget {
  * accessor decorators are not available under that flag.
  */
 export function Searchable(options: SearchableOptions = {}): PropertyDecorator {
-  const weight = options.weight ?? 'D';
+  const weight = options.weight ?? "D";
   if (!VALID_WEIGHTS.has(weight)) {
     throw new Error(`@Searchable: invalid weight "${weight}" (allowed: A,B,C,D)`);
   }
   return (target, propertyKey) => {
-    if (typeof propertyKey !== 'string') return;
+    if (typeof propertyKey !== "string") return;
     const ctor = target.constructor as MetadataTarget;
     const list = ctor[SEARCHABLE_FIELDS] ?? [];
     if (!list.some((f) => f.field === propertyKey)) {
@@ -50,7 +50,9 @@ export function Searchable(options: SearchableOptions = {}): PropertyDecorator {
   };
 }
 
-export function getSearchableFields(ctor: { new (...args: unknown[]): unknown }): SearchableField[] {
+export function getSearchableFields(ctor: {
+  new (...args: unknown[]): unknown;
+}): SearchableField[] {
   return ((ctor as MetadataTarget)[SEARCHABLE_FIELDS] ?? []).slice();
 }
 
@@ -59,7 +61,7 @@ export class SearchableRegistry {
 
   register(table: string, ctor: Function, fields: SearchableField[]): void {
     if (fields.length === 0) {
-      throw new Error('SearchableRegistry: fields list must not be empty');
+      throw new Error("SearchableRegistry: fields list must not be empty");
     }
     if (this.entries.has(table)) {
       throw new Error(`SearchableRegistry: duplicate table "${table}"`);
@@ -89,8 +91,11 @@ export function generateSearchMigration(table: string, fields: SearchableField[]
   }
 
   const setweightClauses = fields
-    .map(({ field, weight }) => `setweight(to_tsvector('simple', coalesce(NEW.${field}, '')), '${weight}')`)
-    .join(' || ');
+    .map(
+      ({ field, weight }) =>
+        `setweight(to_tsvector('simple', coalesce(NEW.${field}, '')), '${weight}')`,
+    )
+    .join(" || ");
 
   const fnName = `${table}_search_trigger`;
   const triggerName = `${table}_search_trigger`;

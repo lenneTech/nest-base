@@ -1,20 +1,20 @@
-import 'reflect-metadata';
+import "reflect-metadata";
 
-import type { INestApplication, LoggerService } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
-import type { NestExpressApplication } from '@nestjs/platform-express';
-import helmet from 'helmet';
+import type { INestApplication, LoggerService } from "@nestjs/common";
+import { NestFactory } from "@nestjs/core";
+import type { NestExpressApplication } from "@nestjs/platform-express";
+import helmet from "helmet";
 
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { apiReference } from '@scalar/nestjs-api-reference';
+import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { apiReference } from "@scalar/nestjs-api-reference";
 
-import { buildScalarConfig } from '../dx/scalar-config.js';
-import { ProblemDetailsExceptionFilter } from '../errors/problem-details.filter.js';
-import { buildSecurityHeadersConfig } from '../http/security-headers.js';
-import { createLogger } from '../observability/logger.js';
-import { PinoLoggerService } from '../observability/pino-logger.service.js';
-import { serverConfigFromEnv } from '../server/server-config.js';
-import { AppModule } from './app.module.js';
+import { buildScalarConfig } from "../dx/scalar-config.js";
+import { ProblemDetailsExceptionFilter } from "../errors/problem-details.filter.js";
+import { buildSecurityHeadersConfig } from "../http/security-headers.js";
+import { createLogger } from "../observability/logger.js";
+import { PinoLoggerService } from "../observability/pino-logger.service.js";
+import { serverConfigFromEnv } from "../server/server-config.js";
+import { AppModule } from "./app.module.js";
 
 export interface BootstrapOptions {
   /** When false, the app is created but `listen()` is skipped (used in tests). */
@@ -44,11 +44,10 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
 
   const cfg = serverConfigFromEnv(process.env);
   const logger =
-    options.logger ??
-    new PinoLoggerService(createLogger({ env: cfg.env, name: 'nest-server' }));
+    options.logger ?? new PinoLoggerService(createLogger({ env: cfg.env, name: "nest-server" }));
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { logger });
-  app.disable('x-powered-by');
+  app.disable("x-powered-by");
 
   const security = buildSecurityHeadersConfig(cfg.env);
   app.use(
@@ -65,18 +64,18 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   // 3.1 JSON. Mounted at `/api/openapi.json` (Scalar UI consumes it,
   // kubb generates the SDK from it).
   const openApiConfig = new DocumentBuilder()
-    .setTitle('nest-server-template')
-    .setDescription('Template-fähiger NestJS-Server')
-    .setVersion('1.0.0')
+    .setTitle("nest-server-template")
+    .setDescription("Template-fähiger NestJS-Server")
+    .setVersion("1.0.0")
     .addBearerAuth()
-    .addCookieAuth('better-auth.session_token')
+    .addCookieAuth("better-auth.session_token")
     .build();
   const openApiDocument = SwaggerModule.createDocument(app, openApiConfig);
   // SwaggerModule.setup also mounts the Swagger UI; we only want the
   // raw JSON since Scalar UI is the chosen renderer. Manually expose
   // the document at /api/openapi.json.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  app.use('/api/openapi.json', (_req: any, res: any) => {
+  app.use("/api/openapi.json", (_req: any, res: any) => {
     res.json(openApiDocument);
   });
 
@@ -84,8 +83,8 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   // the stock theme; consumers override via env or by tweaking
   // `buildScalarConfig` inputs in their own bootstrap shim. The spec
   // URL points at the (future) OpenAPI builder mount.
-  if (cfg.env !== 'production' || process.env.SCALAR_PROD === '1') {
-    const scalar = buildScalarConfig({ specUrl: '/api/openapi.json' });
+  if (cfg.env !== "production" || process.env.SCALAR_PROD === "1") {
+    const scalar = buildScalarConfig({ specUrl: "/api/openapi.json" });
     app.use(
       scalar.mountPath,
       apiReference({

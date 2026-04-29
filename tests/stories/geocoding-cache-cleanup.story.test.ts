@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 
 import {
   buildGeocodingCleanupPlan,
   DEFAULT_GEOCODING_CACHE_RETENTION_DAYS,
-} from '../../src/core/geo/geocoding-cache-cleanup.js';
+} from "../../src/core/geo/geocoding-cache-cleanup.js";
 
 /**
  * Story · GeocodingCache cleanup cron (PLAN.md §15 + §32 Phase 5c).
@@ -17,30 +17,30 @@ import {
  * keeping the planner I/O-free means we can verify the boundary
  * arithmetic without spinning Postgres.
  */
-describe('Story · GeocodingCache cleanup', () => {
-  describe('buildGeocodingCleanupPlan()', () => {
-    it('uses 90 days as the default retention', () => {
+describe("Story · GeocodingCache cleanup", () => {
+  describe("buildGeocodingCleanupPlan()", () => {
+    it("uses 90 days as the default retention", () => {
       expect(DEFAULT_GEOCODING_CACHE_RETENTION_DAYS).toBe(90);
     });
 
-    it('returns a cutoff = now − retention days', () => {
-      const now = Date.parse('2026-04-28T12:00:00Z');
+    it("returns a cutoff = now − retention days", () => {
+      const now = Date.parse("2026-04-28T12:00:00Z");
       const plan = buildGeocodingCleanupPlan({ now, retentionDays: 90 });
       expect(plan.cutoffMs).toBe(now - 90 * 24 * 3_600 * 1_000);
     });
 
-    it('renders the cutoff as ISO string for SQL substitution', () => {
+    it("renders the cutoff as ISO string for SQL substitution", () => {
       const plan = buildGeocodingCleanupPlan({
-        now: Date.parse('2026-04-28T12:00:00Z'),
+        now: Date.parse("2026-04-28T12:00:00Z"),
         retentionDays: 90,
       });
       expect(plan.cutoffIso).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
-      expect(plan.cutoffIso).toBe('2026-01-28T12:00:00.000Z');
+      expect(plan.cutoffIso).toBe("2026-01-28T12:00:00.000Z");
     });
 
-    it('includes both the time-based and the explicit-expiry filter (defense in depth)', () => {
+    it("includes both the time-based and the explicit-expiry filter (defense in depth)", () => {
       const plan = buildGeocodingCleanupPlan({
-        now: Date.parse('2026-04-28T12:00:00Z'),
+        now: Date.parse("2026-04-28T12:00:00Z"),
         retentionDays: 90,
       });
       expect(plan.where).toMatch(/createdAt"?\s*<\s*\$1/i);
@@ -48,20 +48,20 @@ describe('Story · GeocodingCache cleanup', () => {
       expect(plan.where).toMatch(/OR/i);
     });
 
-    it('honours a custom retention window', () => {
-      const now = Date.parse('2026-04-28T00:00:00Z');
+    it("honours a custom retention window", () => {
+      const now = Date.parse("2026-04-28T00:00:00Z");
       const plan = buildGeocodingCleanupPlan({ now, retentionDays: 7 });
       expect(plan.cutoffMs).toBe(now - 7 * 24 * 3_600 * 1_000);
     });
 
-    it('rejects a non-positive retention', () => {
+    it("rejects a non-positive retention", () => {
       expect(() => buildGeocodingCleanupPlan({ now: 0, retentionDays: 0 })).toThrow(/retention/i);
       expect(() => buildGeocodingCleanupPlan({ now: 0, retentionDays: -1 })).toThrow(/retention/i);
     });
 
-    it('returns the parameter array in the same order the WHERE references them', () => {
+    it("returns the parameter array in the same order the WHERE references them", () => {
       const plan = buildGeocodingCleanupPlan({
-        now: Date.parse('2026-04-28T12:00:00Z'),
+        now: Date.parse("2026-04-28T12:00:00Z"),
         retentionDays: 90,
       });
       expect(plan.params).toHaveLength(2);

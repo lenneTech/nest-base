@@ -8,7 +8,7 @@ import {
   NotFoundException,
   Param,
   Post,
-} from '@nestjs/common';
+} from "@nestjs/common";
 
 interface IdRecord {
   id: string;
@@ -48,8 +48,8 @@ abstract class CrudController {
   }
 
   protected createImpl(body: Record<string, unknown>): IdRecord {
-    if (!body || typeof body !== 'object') {
-      throw new BadRequestException('body must be an object');
+    if (!body || typeof body !== "object") {
+      throw new BadRequestException("body must be an object");
     }
     const id = (body.id as string) ?? makeId();
     return this.store.insert({ ...body, id });
@@ -66,43 +66,67 @@ abstract class CrudController {
   }
 }
 
-@Controller('admin/roles')
+@Controller("admin/roles")
 class RoleAdminController extends CrudController {
   protected store = ROLES;
 
-  @Get() list(): IdRecord[] { return this.listImpl(); }
-  @Post() create(@Body() body: Record<string, unknown>): IdRecord { return this.createImpl(body); }
-  @Get(':id') get(@Param('id') id: string): IdRecord { return this.getImpl(id); }
-  @Delete(':id') remove(@Param('id') id: string): { removed: boolean } { return this.deleteImpl(id); }
+  @Get() list(): IdRecord[] {
+    return this.listImpl();
+  }
+  @Post() create(@Body() body: Record<string, unknown>): IdRecord {
+    return this.createImpl(body);
+  }
+  @Get(":id") get(@Param("id") id: string): IdRecord {
+    return this.getImpl(id);
+  }
+  @Delete(":id") remove(@Param("id") id: string): { removed: boolean } {
+    return this.deleteImpl(id);
+  }
 }
 
-@Controller('admin/policies')
+@Controller("admin/policies")
 class PolicyAdminController extends CrudController {
   protected store = POLICIES;
 
-  @Get() list(): IdRecord[] { return this.listImpl(); }
-  @Post() create(@Body() body: Record<string, unknown>): IdRecord { return this.createImpl(body); }
-  @Get(':id') get(@Param('id') id: string): IdRecord { return this.getImpl(id); }
-  @Delete(':id') remove(@Param('id') id: string): { removed: boolean } { return this.deleteImpl(id); }
+  @Get() list(): IdRecord[] {
+    return this.listImpl();
+  }
+  @Post() create(@Body() body: Record<string, unknown>): IdRecord {
+    return this.createImpl(body);
+  }
+  @Get(":id") get(@Param("id") id: string): IdRecord {
+    return this.getImpl(id);
+  }
+  @Delete(":id") remove(@Param("id") id: string): { removed: boolean } {
+    return this.deleteImpl(id);
+  }
 }
 
-@Controller('admin/permissions')
+@Controller("admin/permissions")
 class PermissionAdminController extends CrudController {
   protected store = PERMISSIONS;
 
-  @Get() list(): IdRecord[] { return this.listImpl(); }
-  @Post() create(@Body() body: Record<string, unknown>): IdRecord { return this.createImpl(body); }
-  @Get(':id') get(@Param('id') id: string): IdRecord { return this.getImpl(id); }
-  @Delete(':id') remove(@Param('id') id: string): { removed: boolean } { return this.deleteImpl(id); }
+  @Get() list(): IdRecord[] {
+    return this.listImpl();
+  }
+  @Post() create(@Body() body: Record<string, unknown>): IdRecord {
+    return this.createImpl(body);
+  }
+  @Get(":id") get(@Param("id") id: string): IdRecord {
+    return this.getImpl(id);
+  }
+  @Delete(":id") remove(@Param("id") id: string): { removed: boolean } {
+    return this.deleteImpl(id);
+  }
 
-  @Post('test')
+  @Post("test")
   test(@Body() body: { userId: string; tenantId: string; action: string; subject: string }): {
     ok: true;
     request: typeof body;
     rules: IdRecord[];
   } {
     if (!body?.userId || !body?.tenantId || !body?.action || !body?.subject) {
-      throw new BadRequestException('userId, tenantId, action, subject are required');
+      throw new BadRequestException("userId, tenantId, action, subject are required");
     }
     // Stub: returns the registered permission rules. Real evaluation hooks
     // into PermissionService once a Prisma-backed PermissionStorage lands.

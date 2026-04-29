@@ -49,7 +49,7 @@ export class RealtimeService {
 
   async publish(channel: string, payload: unknown): Promise<void> {
     if (!this.running) {
-      throw new Error('realtime: publish() called before start()');
+      throw new Error("realtime: publish() called before start()");
     }
     await this.transport.notify(channel, payload);
   }

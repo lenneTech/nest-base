@@ -1,7 +1,7 @@
-import { type DynamicModule, Module } from '@nestjs/common';
+import { type DynamicModule, Module } from "@nestjs/common";
 
-import { FieldEncryptionService } from './field-encryption.service.js';
-import { EnvKekProvider, KEK_PROVIDER, type KekProvider } from './kek-provider.js';
+import { FieldEncryptionService } from "./field-encryption.service.js";
+import { EnvKekProvider, KEK_PROVIDER, type KekProvider } from "./kek-provider.js";
 
 export interface EncryptionModuleOptions {
   /** Defaults to `process.env`; tests override. */
@@ -25,14 +25,12 @@ export interface EncryptionModuleOptions {
 export class EncryptionModule {
   static forRoot(options: EncryptionModuleOptions = {}): DynamicModule {
     const provider: KekProvider =
-      options.provider ?? new EnvKekProvider(options.env ?? (process.env as Record<string, string | undefined>));
+      options.provider ??
+      new EnvKekProvider(options.env ?? (process.env as Record<string, string | undefined>));
 
     return {
       module: EncryptionModule,
-      providers: [
-        { provide: KEK_PROVIDER, useValue: provider },
-        FieldEncryptionService,
-      ],
+      providers: [{ provide: KEK_PROVIDER, useValue: provider }, FieldEncryptionService],
       exports: [FieldEncryptionService, KEK_PROVIDER],
       global: true,
     };

@@ -1,4 +1,4 @@
-import type { McpContext, McpUser } from './mcp-server.js';
+import type { McpContext, McpUser } from "./mcp-server.js";
 
 export type { McpUser };
 
@@ -23,22 +23,22 @@ export type { McpUser };
 
 export class McpAuthRequiredError extends Error {
   constructor() {
-    super('mcp-auth: Authorization header is required');
-    this.name = 'McpAuthRequiredError';
+    super("mcp-auth: Authorization header is required");
+    this.name = "McpAuthRequiredError";
   }
 }
 
 export class McpInvalidAuthHeaderError extends Error {
   constructor() {
     super('mcp-auth: Authorization header must use the "Bearer <token>" scheme');
-    this.name = 'McpInvalidAuthHeaderError';
+    this.name = "McpInvalidAuthHeaderError";
   }
 }
 
 export class McpUnauthorizedError extends Error {
   constructor() {
-    super('mcp-auth: token is not valid');
-    this.name = 'McpUnauthorizedError';
+    super("mcp-auth: token is not valid");
+    this.name = "McpUnauthorizedError";
   }
 }
 
@@ -55,7 +55,7 @@ export interface McpAuthGuardOptions {
   allowEmptyHeader?: boolean;
 }
 
-const BEARER_PREFIX = 'Bearer ';
+const BEARER_PREFIX = "Bearer ";
 
 export function extractBearerToken(header: string): string {
   if (!header.startsWith(BEARER_PREFIX)) throw new McpInvalidAuthHeaderError();
@@ -73,7 +73,7 @@ export class McpAuthGuard {
   async resolveContext(authorizationHeader: string | undefined): Promise<McpContext> {
     if (!authorizationHeader) {
       if (!this.options.allowEmptyHeader) throw new McpAuthRequiredError();
-      const result = await this.validator.validate('');
+      const result = await this.validator.validate("");
       return { user: result.user };
     }
     const token = extractBearerToken(authorizationHeader);

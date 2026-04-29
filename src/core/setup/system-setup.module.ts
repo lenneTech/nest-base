@@ -1,14 +1,21 @@
-import { Inject, Injectable, type LoggerService, Logger, Module, type OnModuleInit } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  type LoggerService,
+  Logger,
+  Module,
+  type OnModuleInit,
+} from "@nestjs/common";
 
 import {
   type AdminProvisioningStorage,
   type AdminRecord,
   type ProvisionResult,
   SystemSetupService,
-} from './system-setup.service.js';
-import { systemSetupConfigFromEnv } from './system-setup-config.js';
+} from "./system-setup.service.js";
+import { systemSetupConfigFromEnv } from "./system-setup-config.js";
 
-const ADMIN_PROVISIONING_STORAGE = Symbol.for('lt:AdminProvisioningStorage');
+const ADMIN_PROVISIONING_STORAGE = Symbol.for("lt:AdminProvisioningStorage");
 
 /**
  * In-memory admin storage stub. Replaced with a Better-Auth-backed
@@ -34,20 +41,23 @@ class InMemoryAdminStorage implements AdminProvisioningStorage {
 
 @Injectable()
 class SystemSetupBootstrap implements OnModuleInit {
-  private readonly logger: LoggerService = new Logger('SystemSetup');
+  private readonly logger: LoggerService = new Logger("SystemSetup");
   private lastResult: ProvisionResult | null = null;
 
   constructor(
     @Inject(ADMIN_PROVISIONING_STORAGE) storage: AdminProvisioningStorage,
-    @Inject(SystemSetupService) private readonly service: SystemSetupService = new SystemSetupService(storage),
+    @Inject(SystemSetupService)
+    private readonly service: SystemSetupService = new SystemSetupService(storage),
   ) {}
 
   async onModuleInit(): Promise<void> {
     const config = systemSetupConfigFromEnv(process.env as Record<string, string | undefined>);
     this.lastResult = await this.service.provisionInitialAdmin(config);
-    this.logger.log(`provisionInitialAdmin: ${this.lastResult.status}${
-      this.lastResult.status !== 'disabled' ? ` (${this.lastResult.email})` : ''
-    }`);
+    this.logger.log(
+      `provisionInitialAdmin: ${this.lastResult.status}${
+        this.lastResult.status !== "disabled" ? ` (${this.lastResult.email})` : ""
+      }`,
+    );
   }
 
   getLastResult(): ProvisionResult | null {

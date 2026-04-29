@@ -1,7 +1,7 @@
-import { Injectable, Logger, Module } from '@nestjs/common';
+import { Injectable, Logger, Module } from "@nestjs/common";
 
-import type { OutboxEntry } from '../outbox/outbox.js';
-import type { OutboxDispatcher } from '../outbox/outbox-worker.js';
+import type { OutboxEntry } from "../outbox/outbox.js";
+import type { OutboxDispatcher } from "../outbox/outbox-worker.js";
 
 /**
  * Subscribes to outbox entries, looks up matching `WebhookEndpoint`
@@ -19,8 +19,8 @@ import type { OutboxDispatcher } from '../outbox/outbox-worker.js';
  */
 @Injectable()
 export class WebhookOutboxDispatcher implements OutboxDispatcher {
-  readonly name = 'webhook';
-  private readonly logger = new Logger('WebhookDispatcher');
+  readonly name = "webhook";
+  private readonly logger = new Logger("WebhookDispatcher");
 
   async dispatch(entry: OutboxEntry): Promise<void> {
     this.logger.log(`outbox→webhook: ${entry.type} (id=${entry.id} tenant=${entry.tenantId})`);

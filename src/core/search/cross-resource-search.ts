@@ -1,4 +1,4 @@
-import { sanitizeFtsQuery } from './fts-query.js';
+import { sanitizeFtsQuery } from "./fts-query.js";
 
 /**
  * Cross-Resource Search Service (PLAN.md §11 + §32 Phase 5).

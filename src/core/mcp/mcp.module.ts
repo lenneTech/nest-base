@@ -1,14 +1,14 @@
+import { Injectable, Module, type OnApplicationBootstrap } from "@nestjs/common";
+import { DiscoveryModule, DiscoveryService, MetadataScanner } from "@nestjs/core";
+
 import {
-  Injectable,
-  Module,
-  type OnApplicationBootstrap,
-} from '@nestjs/common';
-import { DiscoveryModule, DiscoveryService, MetadataScanner } from '@nestjs/core';
+  discoverMcpHandlers,
+  getMcpResourceMetadata,
+  getMcpToolMetadata,
+} from "./mcp-decorators.js";
+import { McpServerModule as McpServer } from "./mcp-server.js";
 
-import { discoverMcpHandlers, getMcpResourceMetadata, getMcpToolMetadata } from './mcp-decorators.js';
-import { McpServerModule as McpServer } from './mcp-server.js';
-
-export const MCP_SERVER = Symbol.for('lt:McpServer');
+export const MCP_SERVER = Symbol.for("lt:McpServer");
 
 @Injectable()
 class McpDiscoveryService implements OnApplicationBootstrap {
@@ -22,12 +22,12 @@ class McpDiscoveryService implements OnApplicationBootstrap {
     const providers = this.discovery.getProviders();
     for (const wrapper of providers) {
       const instance = wrapper.instance as object | null;
-      if (!instance || typeof instance !== 'object') continue;
+      if (!instance || typeof instance !== "object") continue;
       const ctor = (instance as { constructor?: unknown }).constructor;
-      if (typeof ctor !== 'function') continue;
+      if (typeof ctor !== "function") continue;
       // For each method on the prototype check if it carries @McpTool / @McpResource
       const proto = Object.getPrototypeOf(instance) ?? {};
-      const methodNames = Object.getOwnPropertyNames(proto).filter((n) => n !== 'constructor');
+      const methodNames = Object.getOwnPropertyNames(proto).filter((n) => n !== "constructor");
       let hasAny = false;
       for (const name of methodNames) {
         if (getMcpToolMetadata(ctor, name) || getMcpResourceMetadata(ctor, name)) {
@@ -47,7 +47,7 @@ class McpDiscoveryService implements OnApplicationBootstrap {
   }
 }
 
-const server = new McpServer({ name: 'nest-server', version: '1.0.0' });
+const server = new McpServer({ name: "nest-server", version: "1.0.0" });
 
 /**
  * McpModule — wires the Model Context Protocol server with
@@ -59,10 +59,7 @@ const server = new McpServer({ name: 'nest-server', version: '1.0.0' });
  */
 @Module({
   imports: [DiscoveryModule],
-  providers: [
-    { provide: MCP_SERVER, useValue: server },
-    McpDiscoveryService,
-  ],
+  providers: [{ provide: MCP_SERVER, useValue: server }, McpDiscoveryService],
   exports: [MCP_SERVER],
 })
 export class McpModule {}

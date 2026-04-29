@@ -1,8 +1,8 @@
-import { Module } from '@nestjs/common';
+import { Module } from "@nestjs/common";
 
-import { type ResourceSearchExecutor } from './cross-resource-search.js';
-import { SearchController } from './search.controller.js';
-import { SEARCH_EXECUTORS, SearchService } from './search.service.js';
+import { type ResourceSearchExecutor } from "./cross-resource-search.js";
+import { SearchController } from "./search.controller.js";
+import { SEARCH_EXECUTORS, SearchService } from "./search.service.js";
 
 /**
  * SearchModule — exposes `GET /search?q=…&limit=…&only=table1,table2`.
@@ -22,4 +22,4 @@ import { SEARCH_EXECUTORS, SearchService } from './search.service.js';
 })
 export class SearchModule {}
 
-export { SearchService, SEARCH_EXECUTORS } from './search.service.js';
+export { SearchService, SEARCH_EXECUTORS } from "./search.service.js";

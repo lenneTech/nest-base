@@ -29,8 +29,8 @@ export interface ThrottleBucketSubject {
 
 export class ThrottleBucketKeyMissingError extends Error {
   constructor() {
-    super('throttler: bucket key requires at least one of apiKeyId / userId / ip');
-    this.name = 'ThrottleBucketKeyMissingError';
+    super("throttler: bucket key requires at least one of apiKeyId / userId / ip");
+    this.name = "ThrottleBucketKeyMissingError";
   }
 }
 

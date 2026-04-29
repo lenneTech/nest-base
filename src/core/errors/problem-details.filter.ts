@@ -4,17 +4,13 @@ import {
   type ExceptionFilter,
   HttpException,
   HttpStatus,
-} from '@nestjs/common';
-import type { Request, Response } from 'express';
-import { ZodError } from 'zod';
+} from "@nestjs/common";
+import type { Request, Response } from "express";
+import { ZodError } from "zod";
 
-import { ETagMissingError, ETagPreconditionFailedError } from '../concurrency/etag.js';
-import { getRequestContext } from '../request-context/request-context.js';
-import {
-  CORE_ERROR_CODES,
-  type ProblemDetails,
-  problemDetails,
-} from './error-code.js';
+import { ETagMissingError, ETagPreconditionFailedError } from "../concurrency/etag.js";
+import { getRequestContext } from "../request-context/request-context.js";
+import { CORE_ERROR_CODES, type ProblemDetails, problemDetails } from "./error-code.js";
 
 /**
  * Global exception filter that converts every uncaught exception into an
@@ -40,7 +36,7 @@ export class ProblemDetailsExceptionFilter implements ExceptionFilter {
     const res = http.getResponse<Response>();
 
     const detail = this.toProblem(exception, req);
-    res.setHeader('content-type', 'application/problem+json');
+    res.setHeader("content-type", "application/problem+json");
     res.status(detail.status).json(detail);
   }
 
@@ -50,9 +46,9 @@ export class ProblemDetailsExceptionFilter implements ExceptionFilter {
 
     if (exception instanceof ETagMissingError) {
       const detail = problemDetails({
-        code: 'CORE_PRECONDITION_REQUIRED',
+        code: "CORE_PRECONDITION_REQUIRED",
         status: 428,
-        title: 'Precondition Required',
+        title: "Precondition Required",
         detail: exception.message,
         instance: req.originalUrl ?? req.url,
       });
@@ -61,9 +57,9 @@ export class ProblemDetailsExceptionFilter implements ExceptionFilter {
 
     if (exception instanceof ETagPreconditionFailedError) {
       const detail = problemDetails({
-        code: 'CORE_PRECONDITION_FAILED',
+        code: "CORE_PRECONDITION_FAILED",
         status: 412,
-        title: 'Precondition Failed',
+        title: "Precondition Failed",
         detail: exception.message,
         instance: req.originalUrl ?? req.url,
       });
@@ -74,7 +70,7 @@ export class ProblemDetailsExceptionFilter implements ExceptionFilter {
       const detail = problemDetails({
         code: CORE_ERROR_CODES.VALIDATION,
         status: HttpStatus.BAD_REQUEST,
-        title: 'Validation failed',
+        title: "Validation failed",
         instance: req.originalUrl ?? req.url,
       });
       return {
@@ -91,8 +87,11 @@ export class ProblemDetailsExceptionFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
       const response = exception.getResponse();
-      const message = typeof response === 'string' ? response : (response as { message?: unknown }).message;
-      const detailText = Array.isArray(message) ? message.join(', ') : String(message ?? exception.message);
+      const message =
+        typeof response === "string" ? response : (response as { message?: unknown }).message;
+      const detailText = Array.isArray(message)
+        ? message.join(", ")
+        : String(message ?? exception.message);
       const detail = problemDetails({
         code: codeForStatus(status),
         status,
@@ -106,8 +105,8 @@ export class ProblemDetailsExceptionFilter implements ExceptionFilter {
     const detail = problemDetails({
       code: CORE_ERROR_CODES.INTERNAL,
       status: HttpStatus.INTERNAL_SERVER_ERROR,
-      title: 'Internal Server Error',
-      detail: 'An unexpected error occurred. Check server logs for details.',
+      title: "Internal Server Error",
+      detail: "An unexpected error occurred. Check server logs for details.",
       instance: req.originalUrl ?? req.url,
     });
     return { ...detail, ...correlation };
@@ -136,18 +135,18 @@ function codeForStatus(status: number): string {
 function titleForStatus(status: number): string {
   switch (status) {
     case HttpStatus.BAD_REQUEST:
-      return 'Bad Request';
+      return "Bad Request";
     case HttpStatus.UNAUTHORIZED:
-      return 'Unauthorized';
+      return "Unauthorized";
     case HttpStatus.FORBIDDEN:
-      return 'Forbidden';
+      return "Forbidden";
     case HttpStatus.NOT_FOUND:
-      return 'Not Found';
+      return "Not Found";
     case HttpStatus.CONFLICT:
-      return 'Conflict';
+      return "Conflict";
     case HttpStatus.TOO_MANY_REQUESTS:
-      return 'Too Many Requests';
+      return "Too Many Requests";
     default:
-      return status >= 500 ? 'Internal Server Error' : 'Error';
+      return status >= 500 ? "Internal Server Error" : "Error";
   }
 }

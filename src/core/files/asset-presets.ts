@@ -1,6 +1,6 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-import type { TransformOptions } from './asset.service.js';
+import type { TransformOptions } from "./asset.service.js";
 
 /**
  * Asset Presets (PLAN.md §8 + §32 Phase 4).
@@ -10,8 +10,8 @@ import type { TransformOptions } from './asset.service.js';
  * `registry.register(name, opts)` without forking the asset service.
  */
 
-const FORMATS = ['webp', 'jpeg', 'png', 'avif'] as const;
-const FITS = ['cover', 'contain', 'inside', 'outside'] as const;
+const FORMATS = ["webp", "jpeg", "png", "avif"] as const;
+const FITS = ["cover", "contain", "inside", "outside"] as const;
 
 export const AssetPresetSchema = z.object({
   width: z.number().int().positive().optional(),
@@ -24,15 +24,15 @@ export const AssetPresetSchema = z.object({
 export type AssetPreset = TransformOptions;
 
 export const DEFAULT_ASSET_PRESETS: Record<string, AssetPreset> = {
-  thumbnail: { width: 200, height: 200, format: 'webp', fit: 'cover', quality: 75 },
-  avatar: { width: 400, height: 400, format: 'webp', fit: 'cover', quality: 80 },
-  hero: { width: 1920, height: 1080, format: 'webp', fit: 'cover', quality: 80 },
+  thumbnail: { width: 200, height: 200, format: "webp", fit: "cover", quality: 75 },
+  avatar: { width: 400, height: 400, format: "webp", fit: "cover", quality: 80 },
+  hero: { width: 1920, height: 1080, format: "webp", fit: "cover", quality: 80 },
 };
 
 export class AssetPresetNotFoundError extends Error {
   constructor(public readonly name: string) {
     super(`asset preset not found: ${name}`);
-    this.name = 'AssetPresetNotFoundError';
+    this.name = "AssetPresetNotFoundError";
   }
 }
 

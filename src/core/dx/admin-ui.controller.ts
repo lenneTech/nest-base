@@ -1,11 +1,11 @@
-import { Controller, Get, Header, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Header, NotFoundException } from "@nestjs/common";
 
-import { serverConfigFromEnv } from '../server/server-config.js';
-import { renderAuditBrowserPage } from './audit-browser-ui.js';
-import { renderPermissionTesterPage } from './permission-tester-ui.js';
-import { renderRealtimeInspectorPage } from './realtime-inspector-ui.js';
-import { renderSearchTesterPage } from './search-tester-ui.js';
-import { renderWebhookInspectorPage } from './webhook-inspector-ui.js';
+import { serverConfigFromEnv } from "../server/server-config.js";
+import { renderAuditBrowserPage } from "./audit-browser-ui.js";
+import { renderPermissionTesterPage } from "./permission-tester-ui.js";
+import { renderRealtimeInspectorPage } from "./realtime-inspector-ui.js";
+import { renderSearchTesterPage } from "./search-tester-ui.js";
+import { renderWebhookInspectorPage } from "./webhook-inspector-ui.js";
 
 /**
  * `/admin/*` developer UIs (PLAN.md §27 + §32 Phase 8). All routes
@@ -17,38 +17,38 @@ import { renderWebhookInspectorPage } from './webhook-inspector-ui.js';
  * "no data yet" hint, which is enough for the dev-hub deep-links to
  * resolve and for the controllers to be e2e-testable.
  */
-@Controller('admin')
+@Controller("admin")
 export class AdminUiController {
-  @Get('permissions/test')
-  @Header('content-type', 'text/html; charset=utf-8')
+  @Get("permissions/test")
+  @Header("content-type", "text/html; charset=utf-8")
   permissionsTest(): string {
     this.assertDev();
     return renderPermissionTesterPage({});
   }
 
-  @Get('webhooks')
-  @Header('content-type', 'text/html; charset=utf-8')
+  @Get("webhooks")
+  @Header("content-type", "text/html; charset=utf-8")
   webhookInspector(): string {
     this.assertDev();
-    return renderWebhookInspectorPage({ deliveries: [], filter: { status: 'ALL' } });
+    return renderWebhookInspectorPage({ deliveries: [], filter: { status: "ALL" } });
   }
 
-  @Get('realtime')
-  @Header('content-type', 'text/html; charset=utf-8')
+  @Get("realtime")
+  @Header("content-type", "text/html; charset=utf-8")
   realtimeInspector(): string {
     this.assertDev();
     return renderRealtimeInspectorPage({ sockets: [], events: [] });
   }
 
-  @Get('audit')
-  @Header('content-type', 'text/html; charset=utf-8')
+  @Get("audit")
+  @Header("content-type", "text/html; charset=utf-8")
   auditBrowser(): string {
     this.assertDev();
     return renderAuditBrowserPage({ entries: [], filter: {} });
   }
 
-  @Get('search')
-  @Header('content-type', 'text/html; charset=utf-8')
+  @Get("search")
+  @Header("content-type", "text/html; charset=utf-8")
   searchTester(): string {
     this.assertDev();
     return renderSearchTesterPage({ hits: [] });
@@ -56,7 +56,7 @@ export class AdminUiController {
 
   private assertDev(): void {
     const cfg = serverConfigFromEnv(process.env);
-    if (cfg.env !== 'development') {
+    if (cfg.env !== "development") {
       throw new NotFoundException();
     }
   }

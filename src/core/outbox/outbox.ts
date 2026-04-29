@@ -1,4 +1,4 @@
-import { uuidV7 } from '../uuid/uuid-v7.js';
+import { uuidV7 } from "../uuid/uuid-v7.js";
 
 /**
  * Outbox-Pattern recorder (PLAN.md §28.4/#18).
@@ -40,7 +40,7 @@ export class OutboxRecorder {
   constructor(private readonly storage: OutboxStorage) {}
 
   async record(input: RecordInput): Promise<OutboxEntry> {
-    if (!input.type) throw new Error('outbox: type is required');
+    if (!input.type) throw new Error("outbox: type is required");
     const entry: OutboxEntry = {
       id: uuidV7(),
       seq: this.nextSeq++,

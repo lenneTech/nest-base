@@ -5,10 +5,10 @@ import {
   Injectable,
   SetMetadata,
   createParamDecorator,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
 
-import type { Ability, AbilityAction, AbilitySubjectType } from './casl-ability.js';
+import type { Ability, AbilityAction, AbilitySubjectType } from "./casl-ability.js";
 
 /**
  * `@Can()` decorator + `CanGuard` + `@Ability()` param decorator
@@ -30,7 +30,7 @@ import type { Ability, AbilityAction, AbilitySubjectType } from './casl-ability.
  *    (e.g. record-level filters).
  */
 
-export const CAN_METADATA_KEY = 'core:can';
+export const CAN_METADATA_KEY = "core:can";
 
 export interface CanMetadata {
   action: AbilityAction;
@@ -49,13 +49,16 @@ export class CanGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const meta = this.reflector.get<CanMetadata | undefined>(CAN_METADATA_KEY, context.getHandler());
+    const meta = this.reflector.get<CanMetadata | undefined>(
+      CAN_METADATA_KEY,
+      context.getHandler(),
+    );
     if (!meta) return true;
 
     const req = context.switchToHttp().getRequest<RequestWithAbility>();
     const ability = req.ability;
     if (!ability) {
-      throw new ForbiddenException('no ability attached to request');
+      throw new ForbiddenException("no ability attached to request");
     }
     if (!ability.can(meta.action, meta.subject)) {
       throw new ForbiddenException(`forbidden: ${meta.action}:${String(meta.subject)}`);

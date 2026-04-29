@@ -104,15 +104,21 @@ export class ThrottlerService {
 
   async consume(input: ConsumeInput): Promise<ConsumeResult> {
     if (input.windows.length === 0) {
-      throw new Error('throttler: windows array must contain at least one entry');
+      throw new Error("throttler: windows array must contain at least one entry");
     }
     const now = this.options.now();
-    const states: ConsumeResult['windows'] = [];
+    const states: ConsumeResult["windows"] = [];
     let violatedWindow: string | undefined;
 
     for (const window of input.windows) {
       const compositeKey = `${input.key}::${window.name}`;
-      const record = await this.storage.increment(compositeKey, window.ttlMs, window.limit, now, window.name);
+      const record = await this.storage.increment(
+        compositeKey,
+        window.ttlMs,
+        window.limit,
+        now,
+        window.name,
+      );
       states.push({
         name: window.name,
         remaining: Math.max(0, window.limit - record.totalHits),

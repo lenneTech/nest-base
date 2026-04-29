@@ -1,8 +1,8 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes } from "node:crypto";
 
-import { hash as argon2Hash, verify as argon2Verify } from '@node-rs/argon2';
+import { hash as argon2Hash, verify as argon2Verify } from "@node-rs/argon2";
 
-import { uuidV7 } from '../../uuid/uuid-v7.js';
+import { uuidV7 } from "../../uuid/uuid-v7.js";
 
 /**
  * Scoped API-Keys (PLAN.md §32 Phase 2 — CRUD, argon2id, Scopes, Rotation).
@@ -17,7 +17,7 @@ import { uuidV7 } from '../../uuid/uuid-v7.js';
  * keys.
  */
 
-const PREFIX = 'nst_pk_';
+const PREFIX = "nst_pk_";
 const SECRET_BYTES = 32;
 // Algorithm.Argon2id = 2 — hardcoded so we can avoid `isolatedModules`-incompatible
 // const-enum imports from `@node-rs/argon2`.
@@ -26,20 +26,20 @@ const PLAINTEXT_RE = /^nst_pk_([0-9a-f-]{36})_([0-9a-f]{64})$/;
 
 export class ApiKeyInvalidError extends Error {
   constructor() {
-    super('api key is invalid');
-    this.name = 'ApiKeyInvalidError';
+    super("api key is invalid");
+    this.name = "ApiKeyInvalidError";
   }
 }
 export class ApiKeyExpiredError extends Error {
   constructor() {
-    super('api key has expired');
-    this.name = 'ApiKeyExpiredError';
+    super("api key has expired");
+    this.name = "ApiKeyExpiredError";
   }
 }
 export class ApiKeyNotFoundError extends Error {
   constructor(id: string) {
     super(`api key not found: ${id}`);
-    this.name = 'ApiKeyNotFoundError';
+    this.name = "ApiKeyNotFoundError";
   }
 }
 
@@ -90,10 +90,10 @@ export class ApiKeyService {
 
   async createKey(input: CreateKeyInput): Promise<CreateKeyResult> {
     if (input.scopes.length === 0) {
-      throw new Error('api key requires at least one scope');
+      throw new Error("api key requires at least one scope");
     }
     const lookupId = uuidV7();
-    const secret = randomBytes(SECRET_BYTES).toString('hex');
+    const secret = randomBytes(SECRET_BYTES).toString("hex");
     const hash = await argon2Hash(secret, ARGON2_OPTIONS);
     const record: ApiKeyRecord = {
       id: uuidV7(),
@@ -126,7 +126,7 @@ export class ApiKeyService {
   async rotateKey(id: string): Promise<CreateKeyResult> {
     const existing = await this.findById(id);
     const lookupId = uuidV7();
-    const secret = randomBytes(SECRET_BYTES).toString('hex');
+    const secret = randomBytes(SECRET_BYTES).toString("hex");
     const hash = await argon2Hash(secret, ARGON2_OPTIONS);
     const updated = await this.storage.rotate(existing.id, lookupId, hash);
     if (!updated) throw new ApiKeyNotFoundError(existing.id);

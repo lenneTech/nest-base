@@ -1,4 +1,4 @@
-import type { EmailRenderedTemplate, EmailTemplateRenderer } from './email.service.js';
+import type { EmailRenderedTemplate, EmailTemplateRenderer } from "./email.service.js";
 
 /**
  * Email-Templates (PLAN.md §9.2 + §32 Phase 6).
@@ -36,14 +36,14 @@ export interface EmailTemplateRegistry {
 export class EmailTemplateNotFoundError extends Error {
   constructor(name: string, locale: string) {
     super(`email-templates: template "${name}" (locale="${locale}") not found`);
-    this.name = 'EmailTemplateNotFoundError';
+    this.name = "EmailTemplateNotFoundError";
   }
 }
 
 export class MissingTemplateVariableError extends Error {
   constructor(path: string) {
     super(`email-templates: missing variable "${path}"`);
-    this.name = 'MissingTemplateVariableError';
+    this.name = "MissingTemplateVariableError";
   }
 }
 
@@ -81,17 +81,17 @@ const TAG_RE = /<%([=#-])\s*([\s\S]*?)\s*%>/g;
 
 function renderSection(source: string, vars: Record<string, unknown>): string {
   return source.replace(TAG_RE, (_match, kind: string, expr: string) => {
-    if (kind === '#') return '';
+    if (kind === "#") return "";
     const value = resolvePath(vars, expr.trim());
     const stringified = String(value);
-    return kind === '=' ? escapeHtml(stringified) : stringified;
+    return kind === "=" ? escapeHtml(stringified) : stringified;
   });
 }
 
 function resolvePath(vars: Record<string, unknown>, path: string): unknown {
   let current: unknown = vars;
-  for (const segment of path.split('.')) {
-    if (current === null || typeof current !== 'object' || !(segment in (current as object))) {
+  for (const segment of path.split(".")) {
+    if (current === null || typeof current !== "object" || !(segment in (current as object))) {
       throw new MissingTemplateVariableError(path);
     }
     current = (current as Record<string, unknown>)[segment];
@@ -101,11 +101,11 @@ function resolvePath(vars: Record<string, unknown>, path: string): unknown {
 
 function escapeHtml(input: string): string {
   return input
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 /**
@@ -115,38 +115,38 @@ function escapeHtml(input: string): string {
 export function buildBuiltInEmailTemplateRegistry(): EmailTemplateRegistry {
   const reg = new InMemoryEmailTemplateRegistry();
 
-  reg.register('email-verification', null, {
-    subject: 'Please verify your email',
+  reg.register("email-verification", null, {
+    subject: "Please verify your email",
     html:
-      '<p>Hello <%= recipientName %>,</p>' +
+      "<p>Hello <%= recipientName %>,</p>" +
       '<p>Please verify your email by visiting <a href="<%= verificationUrl %>"><%= verificationUrl %></a>.</p>',
-    text: 'Hello <%= recipientName %>,\n\nPlease verify your email: <%= verificationUrl %>',
+    text: "Hello <%= recipientName %>,\n\nPlease verify your email: <%= verificationUrl %>",
   });
 
-  reg.register('password-reset', null, {
-    subject: 'Reset your password',
+  reg.register("password-reset", null, {
+    subject: "Reset your password",
     html:
-      '<p>Hello <%= recipientName %>,</p>' +
+      "<p>Hello <%= recipientName %>,</p>" +
       '<p>Reset your password by visiting <a href="<%= resetUrl %>"><%= resetUrl %></a>.</p>' +
-      '<p>If you did not request this, ignore this email.</p>',
-    text: 'Hello <%= recipientName %>,\n\nReset your password: <%= resetUrl %>',
+      "<p>If you did not request this, ignore this email.</p>",
+    text: "Hello <%= recipientName %>,\n\nReset your password: <%= resetUrl %>",
   });
 
-  reg.register('welcome', null, {
-    subject: 'Welcome to <%= appName %>',
-    html: '<p>Hello <%= recipientName %>,</p><p>Welcome to <%= appName %>!</p>',
-    text: 'Hello <%= recipientName %>,\n\nWelcome to <%= appName %>!',
+  reg.register("welcome", null, {
+    subject: "Welcome to <%= appName %>",
+    html: "<p>Hello <%= recipientName %>,</p><p>Welcome to <%= appName %>!</p>",
+    text: "Hello <%= recipientName %>,\n\nWelcome to <%= appName %>!",
   });
 
-  reg.register('invitation', null, {
-    subject: 'You have been invited to <%= appName %>',
+  reg.register("invitation", null, {
+    subject: "You have been invited to <%= appName %>",
     html:
-      '<p>Hello <%= recipientName %>,</p>' +
-      '<p><%= senderName %> has invited you to join <%= appName %>.</p>' +
+      "<p>Hello <%= recipientName %>,</p>" +
+      "<p><%= senderName %> has invited you to join <%= appName %>.</p>" +
       '<p>Accept the invitation: <a href="<%= acceptUrl %>"><%= acceptUrl %></a></p>',
     text:
-      'Hello <%= recipientName %>,\n\n<%= senderName %> has invited you to join <%= appName %>.\n' +
-      'Accept the invitation: <%= acceptUrl %>',
+      "Hello <%= recipientName %>,\n\n<%= senderName %> has invited you to join <%= appName %>.\n" +
+      "Accept the invitation: <%= acceptUrl %>",
   });
 
   return reg;

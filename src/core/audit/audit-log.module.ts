@@ -1,13 +1,13 @@
-import { Inject, Injectable, Module } from '@nestjs/common';
+import { Inject, Injectable, Module } from "@nestjs/common";
 
 import {
   type AuditAction,
   type AuditLogEntry,
   type AuditLogInput,
   buildAuditLogEntry,
-} from './audit-log.service.js';
+} from "./audit-log.service.js";
 
-export const AUDIT_LOG_SINK = Symbol.for('lt:AuditLogSink');
+export const AUDIT_LOG_SINK = Symbol.for("lt:AuditLogSink");
 
 export interface AuditLogSink {
   /** Called with the builder-produced entry whenever a tracked op runs. */
@@ -27,7 +27,7 @@ export class AuditLogger {
 
   /** Builds + persists an audit entry. Pass `encryptedFields` per
    *  resource to ensure encrypted columns never leak in the log. */
-  async log(input: Omit<AuditLogInput, 'now'> & { now?: () => number }): Promise<AuditLogEntry> {
+  async log(input: Omit<AuditLogInput, "now"> & { now?: () => number }): Promise<AuditLogEntry> {
     const entry = buildAuditLogEntry({ now: () => Date.now(), ...input });
     await this.sink.record(entry);
     return entry;
@@ -37,7 +37,10 @@ export class AuditLogger {
   async track(
     action: AuditAction,
     resource: string,
-    diff: Pick<AuditLogInput, 'before' | 'after' | 'encryptedFields' | 'actorUserId' | 'tenantId' | 'resourceId'>,
+    diff: Pick<
+      AuditLogInput,
+      "before" | "after" | "encryptedFields" | "actorUserId" | "tenantId" | "resourceId"
+    >,
   ): Promise<AuditLogEntry> {
     return this.log({ action, resource, ...diff });
   }
@@ -54,10 +57,7 @@ export class AuditLogger {
  * before the sink ever sees them (PLAN.md §32 Phase 8).
  */
 @Module({
-  providers: [
-    { provide: AUDIT_LOG_SINK, useClass: InMemoryAuditLogSink },
-    AuditLogger,
-  ],
+  providers: [{ provide: AUDIT_LOG_SINK, useClass: InMemoryAuditLogSink }, AuditLogger],
   exports: [AuditLogger, AUDIT_LOG_SINK],
 })
 export class AuditLogModule {}

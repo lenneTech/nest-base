@@ -1,52 +1,52 @@
-import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
-import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { DevtoolsModule } from '@nestjs/devtools-integration';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { type MiddlewareConsumer, Module, type NestModule } from "@nestjs/common";
+import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
+import { DevtoolsModule } from "@nestjs/devtools-integration";
+import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 
-import { AuditLogModule } from '../audit/audit-log.module.js';
-import { ApiKeyModule } from '../auth/api-keys/api-key.module.js';
-import { BetterAuthModule } from '../auth/better-auth.module.js';
-import { PowerSyncModule } from '../auth/powersync.module.js';
-import { ConfigModule } from '../config/config.module.js';
-import { buildDevToolsConfig, type DevToolsEnv } from '../dx/devtools-config.js';
-import { DevHubModule } from '../dx/dev-hub.module.js';
-import { EmailModule } from '../email/email.module.js';
-import { EncryptionModule } from '../encryption/encryption.module.js';
-import { ErrorCodesModule } from '../errors/error-codes.module.js';
-import { FilesModule } from '../files/files.module.js';
-import { conditionalImport, loadFeatures } from '../features/features.js';
-import { GdprModule } from '../gdpr/gdpr.module.js';
-import { GeoModule } from '../geo/geo.module.js';
-import { HealthModule } from '../health/health.module.js';
-import { IdempotencyModule } from '../idempotency/idempotency.module.js';
-import { JobsModule } from '../jobs/jobs.module.js';
-import { McpModule } from '../mcp/mcp.module.js';
-import { OutboxModule } from '../outbox/outbox.module.js';
-import { WebhooksModule } from '../webhooks/webhooks.module.js';
-import { TenantMemberModule } from '../multi-tenancy/tenant-member.module.js';
-import { TenantInterceptor } from '../multi-tenancy/tenant.interceptor.js';
-import { OutputPipelineInterceptor } from '../output-pipeline/output-pipeline.interceptor.js';
-import { AdminCrudModule } from '../permissions/admin-crud.module.js';
-import { FiltersModule } from '../permissions/filters.module.js';
-import { PermissionsModule } from '../permissions/permissions.module.js';
-import { PrismaModule } from '../prisma/prisma.module.js';
-import { RealtimeModule } from '../realtime/realtime.module.js';
-import { SearchModule } from '../search/search.module.js';
-import { RequestContextMiddleware } from '../request-context/request-context.middleware.js';
-import { SystemSetupModule } from '../setup/system-setup.module.js';
-import { AppController } from './app.controller.js';
+import { AuditLogModule } from "../audit/audit-log.module.js";
+import { ApiKeyModule } from "../auth/api-keys/api-key.module.js";
+import { BetterAuthModule } from "../auth/better-auth.module.js";
+import { PowerSyncModule } from "../auth/powersync.module.js";
+import { ConfigModule } from "../config/config.module.js";
+import { buildDevToolsConfig, type DevToolsEnv } from "../dx/devtools-config.js";
+import { DevHubModule } from "../dx/dev-hub.module.js";
+import { EmailModule } from "../email/email.module.js";
+import { EncryptionModule } from "../encryption/encryption.module.js";
+import { ErrorCodesModule } from "../errors/error-codes.module.js";
+import { FilesModule } from "../files/files.module.js";
+import { conditionalImport, loadFeatures } from "../features/features.js";
+import { GdprModule } from "../gdpr/gdpr.module.js";
+import { GeoModule } from "../geo/geo.module.js";
+import { HealthModule } from "../health/health.module.js";
+import { IdempotencyModule } from "../idempotency/idempotency.module.js";
+import { JobsModule } from "../jobs/jobs.module.js";
+import { McpModule } from "../mcp/mcp.module.js";
+import { OutboxModule } from "../outbox/outbox.module.js";
+import { WebhooksModule } from "../webhooks/webhooks.module.js";
+import { TenantMemberModule } from "../multi-tenancy/tenant-member.module.js";
+import { TenantInterceptor } from "../multi-tenancy/tenant.interceptor.js";
+import { OutputPipelineInterceptor } from "../output-pipeline/output-pipeline.interceptor.js";
+import { AdminCrudModule } from "../permissions/admin-crud.module.js";
+import { FiltersModule } from "../permissions/filters.module.js";
+import { PermissionsModule } from "../permissions/permissions.module.js";
+import { PrismaModule } from "../prisma/prisma.module.js";
+import { RealtimeModule } from "../realtime/realtime.module.js";
+import { SearchModule } from "../search/search.module.js";
+import { RequestContextMiddleware } from "../request-context/request-context.middleware.js";
+import { SystemSetupModule } from "../setup/system-setup.module.js";
+import { AppController } from "./app.controller.js";
 
 const features = loadFeatures(process.env as Record<string, string | undefined>);
 const devtoolsEnv: DevToolsEnv =
-  process.env.NODE_ENV === 'production'
-    ? 'production'
-    : process.env.NODE_ENV === 'test'
-      ? 'test'
-      : 'development';
+  process.env.NODE_ENV === "production"
+    ? "production"
+    : process.env.NODE_ENV === "test"
+      ? "test"
+      : "development";
 // Opt-in via env-var so the default boot doesn't bind port 8000 in
 // every test process. Set `NESTJS_DEVTOOLS=1` to flip on the
 // snapshot UI in `bun run dev`.
-const devtoolsExplicit = process.env.NESTJS_DEVTOOLS === '1';
+const devtoolsExplicit = process.env.NESTJS_DEVTOOLS === "1";
 const devtools = buildDevToolsConfig({
   env: devtoolsEnv,
   enabled: devtoolsExplicit,
@@ -103,12 +103,12 @@ const devtools = buildDevToolsConfig({
     // adapter swaps in once the throttler-records table is migrated;
     // until then NestJS' default in-memory storage is used.
     ThrottlerModule.forRoot([
-      { name: 'short', ttl: 10_000, limit: 100 },
-      { name: 'sustained', ttl: 60_000, limit: 300 },
-      { name: 'daily', ttl: 24 * 60 * 60 * 1000, limit: 100_000 },
+      { name: "short", ttl: 10_000, limit: 100 },
+      { name: "sustained", ttl: 60_000, limit: 300 },
+      { name: "daily", ttl: 24 * 60 * 60 * 1000, limit: 100_000 },
     ]),
     FilesModule,
-    ...conditionalImport(features, 'fieldEncryption', EncryptionModule.forRoot()),
+    ...conditionalImport(features, "fieldEncryption", EncryptionModule.forRoot()),
     ...(devtools.enabled && devtools.http
       ? [DevtoolsModule.register({ http: true, port: devtools.port })]
       : []),
@@ -125,6 +125,6 @@ const devtools = buildDevToolsConfig({
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(RequestContextMiddleware).forRoutes('*');
+    consumer.apply(RequestContextMiddleware).forRoutes("*");
   }
 }

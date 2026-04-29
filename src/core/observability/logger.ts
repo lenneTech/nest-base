@@ -1,8 +1,8 @@
-import pino, { type Logger as PinoBase, type LoggerOptions } from 'pino';
+import pino, { type Logger as PinoBase, type LoggerOptions } from "pino";
 
-import type { AppEnv } from '../http/cookie-cors-config.js';
+import type { AppEnv } from "../http/cookie-cors-config.js";
 
-export type LogLevel = 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
+export type LogLevel = "fatal" | "error" | "warn" | "info" | "debug" | "trace";
 
 /**
  * Plain shape of a Pino log record (subset). Used by tests and by the
@@ -19,7 +19,7 @@ export interface LogRecord {
 }
 
 export interface CreateLoggerOptions {
-  env: AppEnv | 'test';
+  env: AppEnv | "test";
   name: string;
   level?: LogLevel;
   /**
@@ -40,7 +40,7 @@ export type Logger = PinoBase;
  * span-id correlation automatically once it's running (see `initObservability`).
  */
 export function createLogger(options: CreateLoggerOptions): Logger {
-  const level: LogLevel = options.level ?? (options.env === 'development' ? 'debug' : 'info');
+  const level: LogLevel = options.level ?? (options.env === "development" ? "debug" : "info");
 
   const base: LoggerOptions = {
     name: options.name,

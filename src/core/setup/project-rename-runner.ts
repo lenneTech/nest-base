@@ -1,12 +1,12 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 import {
   planProjectRename,
   ProjectAlreadyRenamedError,
   type ProjectRenameInput,
   type RenamedFilePath,
-} from './project-rename.js';
+} from "./project-rename.js";
 
 /**
  * `bun run rename <new-name>` — thin I/O wrapper around the planner.
@@ -37,22 +37,22 @@ export interface RunProjectRenameResult {
 const SILENT_LOGGER: ProjectRenameLogger = { info: () => {}, warn: () => {} };
 
 const CANONICAL_FILES: RenamedFilePath[] = [
-  'package.json',
-  'README.md',
-  'portless.yml',
-  'docker-compose.yml',
+  "package.json",
+  "README.md",
+  "portless.yml",
+  "docker-compose.yml",
 ];
 
 export function runProjectRename(options: RunProjectRenameOptions): RunProjectRenameResult {
   const logger = options.logger ?? SILENT_LOGGER;
 
-  const files = {} as ProjectRenameInput['files'];
+  const files = {} as ProjectRenameInput["files"];
   for (const path of CANONICAL_FILES) {
     const absolute = join(options.projectRoot, path);
     if (!existsSync(absolute)) {
       throw new Error(`project-rename: required file ${path} not found at ${options.projectRoot}`);
     }
-    files[path] = readFileSync(absolute, 'utf8');
+    files[path] = readFileSync(absolute, "utf8");
   }
 
   let plan;
@@ -68,7 +68,7 @@ export function runProjectRename(options: RunProjectRenameOptions): RunProjectRe
 
   for (const file of plan.files) {
     if (file.before === file.after) continue;
-    writeFileSync(join(options.projectRoot, file.path), file.after, 'utf8');
+    writeFileSync(join(options.projectRoot, file.path), file.after, "utf8");
     logger.info(`updated ${file.path}`);
   }
 

@@ -3,12 +3,12 @@ import {
   type ExecutionContext,
   Injectable,
   type NestInterceptor,
-} from '@nestjs/common';
-import { type Observable, map } from 'rxjs';
+} from "@nestjs/common";
+import { type Observable, map } from "rxjs";
 
-import { mapRecordToGeoJson } from '../geo/geojson-output-mapper.js';
-import { removeSecrets } from './remove-secrets.js';
-import { applySafetyNet } from './safety-net.js';
+import { mapRecordToGeoJson } from "../geo/geojson-output-mapper.js";
+import { removeSecrets } from "./remove-secrets.js";
+import { applySafetyNet } from "./safety-net.js";
 
 /**
  * Global Output-Pipeline interceptor (PLAN.md §7).
@@ -27,7 +27,7 @@ import { applySafetyNet } from './safety-net.js';
 @Injectable()
 export class OutputPipelineInterceptor implements NestInterceptor {
   /** Conventional geometry column names the mapper rewrites. */
-  private static readonly GEOMETRY_COLUMNS = ['location', 'area'];
+  private static readonly GEOMETRY_COLUMNS = ["location", "area"];
 
   intercept(_context: ExecutionContext, next: CallHandler): Observable<unknown> {
     return next.handle().pipe(map((value) => this.process(value)));
@@ -43,7 +43,7 @@ export class OutputPipelineInterceptor implements NestInterceptor {
     // secret-shaped field surfaces as `[redacted]` rather than crashing
     // the response; controllers that need the strict 'throw' behaviour
     // can wrap themselves in the full `OutputPipeline` class).
-    return applySafetyNet(stripped, { mode: 'mask' });
+    return applySafetyNet(stripped, { mode: "mask" });
   }
 
   private mapGeoJsonRecursively(value: unknown): unknown {
@@ -51,7 +51,7 @@ export class OutputPipelineInterceptor implements NestInterceptor {
     if (Array.isArray(value)) {
       return value.map((item) => this.mapGeoJsonRecursively(item));
     }
-    if (value !== null && typeof value === 'object') {
+    if (value !== null && typeof value === "object") {
       try {
         const mapped = mapRecordToGeoJson(value as Record<string, unknown>, cols);
         if (Array.isArray(mapped)) return mapped;

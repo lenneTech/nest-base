@@ -1,10 +1,10 @@
-import { resolvePowerSyncConflict } from '../repository/powersync-conflict.js';
+import { resolvePowerSyncConflict } from "../repository/powersync-conflict.js";
 
 import {
   parsePowerSyncCrudBatch,
   type PowerSyncCrudBatch,
   type PowerSyncCrudOperation,
-} from './powersync-upload.js';
+} from "./powersync-upload.js";
 
 /**
  * PowerSync demo client + in-memory upload backend
@@ -72,11 +72,11 @@ export function applyPowerSyncCrudBatch(
 ): ApplyPowerSyncBatchResult {
   const parsed = parsePowerSyncCrudBatch(batch);
   const protectedByType = options.protectedFieldsByType ?? {};
-  const rejected: ApplyPowerSyncBatchResult['rejected'] = [];
+  const rejected: ApplyPowerSyncBatchResult["rejected"] = [];
 
   for (const op of parsed.batch) {
     const key = `${op.type}:${op.id}`;
-    if (op.op === 'DELETE') {
+    if (op.op === "DELETE") {
       options.store.delete(key);
       continue;
     }
@@ -97,7 +97,7 @@ export function applyPowerSyncCrudBatch(
       serverRow: existing,
       protectedFields: protectedFields as ReadonlyArray<keyof StoreRow & string>,
     });
-    if (decision.outcome === 'partial-conflict') {
+    if (decision.outcome === "partial-conflict") {
       rejected.push({ id: op.id, type: op.type, fields: decision.rejectedFields });
     }
     options.store.set(key, { ...decision.merged, updatedAt: options.now() });

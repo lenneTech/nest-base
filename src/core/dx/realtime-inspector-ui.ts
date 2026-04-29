@@ -39,7 +39,7 @@ export interface RealtimeInspectorPageInput {
 export function renderRealtimeInspectorPage(input: RealtimeInspectorPageInput): string {
   const meta = input.refreshSeconds
     ? `<meta http-equiv="refresh" content="${input.refreshSeconds}">`
-    : '';
+    : "";
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -74,7 +74,7 @@ function renderSockets(sockets: ActiveSocketEntry[]): string {
   if (sockets.length === 0) {
     return `${heading}<div class="empty">No active sockets right now.</div>`;
   }
-  const rows = sockets.map(renderSocketRow).join('');
+  const rows = sockets.map(renderSocketRow).join("");
   return `${heading}<table data-sockets="true">
 <thead><tr><th>Socket</th><th>User</th><th>Tenant</th><th>Channels</th><th>Connected at</th></tr></thead>
 <tbody>${rows}</tbody>
@@ -83,9 +83,10 @@ function renderSockets(sockets: ActiveSocketEntry[]): string {
 
 function renderSocketRow(s: ActiveSocketEntry): string {
   const id = escapeHtml(s.id);
-  const channels = s.channels.length === 0
-    ? '<em>none</em>'
-    : `<ul class="channels">${s.channels.map((c) => `<li>${escapeHtml(c)}</li>`).join('')}</ul>`;
+  const channels =
+    s.channels.length === 0
+      ? "<em>none</em>"
+      : `<ul class="channels">${s.channels.map((c) => `<li>${escapeHtml(c)}</li>`).join("")}</ul>`;
   return `<tr data-socket-id="${id}">
 <td>${id}</td>
 <td>${escapeHtml(s.userId)}</td>
@@ -100,7 +101,7 @@ function renderEvents(events: RealtimeEventEntry[]): string {
   if (events.length === 0) {
     return `${heading}<div class="empty">No recent events captured.</div>`;
   }
-  const rows = events.map(renderEventRow).join('');
+  const rows = events.map(renderEventRow).join("");
   return `${heading}<table data-events="true">
 <thead><tr><th>When</th><th>Channel</th><th>Type</th><th>Preview</th></tr></thead>
 <tbody>${rows}</tbody>
@@ -118,9 +119,9 @@ function renderEventRow(e: RealtimeEventEntry): string {
 
 function escapeHtml(input: string): string {
   return input
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }

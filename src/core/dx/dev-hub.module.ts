@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
+import { Module } from "@nestjs/common";
 
-import { AdminUiController } from './admin-ui.controller.js';
-import { DevHubController } from './dev-hub.controller.js';
+import { AdminUiController } from "./admin-ui.controller.js";
+import { DevHubController } from "./dev-hub.controller.js";
 
 /**
  * DevHubModule — registers the `/dev` landing page controller.

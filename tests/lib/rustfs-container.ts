@@ -12,11 +12,11 @@
  * dev's accidental real-AWS leak still looks obviously test-only.
  */
 
-const DEFAULT_IMAGE = 'rustfs/rustfs:latest';
+const DEFAULT_IMAGE = "rustfs/rustfs:latest";
 const DEFAULT_PORT = 9000;
-const DEFAULT_REGION = 'us-east-1';
-const DEFAULT_ACCESS_KEY = 'nsttestAK';
-const DEFAULT_SECRET_KEY = 'nsttestSecret123456';
+const DEFAULT_REGION = "us-east-1";
+const DEFAULT_ACCESS_KEY = "nsttestAK";
+const DEFAULT_SECRET_KEY = "nsttestSecret123456";
 
 export interface RustFsTestContainerInput {
   image?: string;
@@ -41,10 +41,10 @@ export function buildRustFsContainerConfig(
   const accessKey = input.accessKey ?? DEFAULT_ACCESS_KEY;
   const secretKey = input.secretKey ?? DEFAULT_SECRET_KEY;
   if (input.accessKey !== undefined && !input.accessKey) {
-    throw new Error('rustfs-container: accessKey must be a non-empty string');
+    throw new Error("rustfs-container: accessKey must be a non-empty string");
   }
   if (input.secretKey !== undefined && !input.secretKey) {
-    throw new Error('rustfs-container: secretKey must be a non-empty string');
+    throw new Error("rustfs-container: secretKey must be a non-empty string");
   }
   return {
     image: input.image ?? DEFAULT_IMAGE,

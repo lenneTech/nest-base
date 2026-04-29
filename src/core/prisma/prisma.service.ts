@@ -1,8 +1,8 @@
-import { Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { type Prisma, PrismaClient } from '@prisma/client';
+import { Injectable, type OnModuleDestroy, type OnModuleInit } from "@nestjs/common";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { type Prisma, PrismaClient } from "@prisma/client";
 
-import { getCurrentTenantId } from '../multi-tenancy/tenant.interceptor.js';
+import { getCurrentTenantId } from "../multi-tenancy/tenant.interceptor.js";
 
 /**
  * Prisma 7 client wrapped as a NestJS provider.
@@ -31,7 +31,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   constructor() {
     const url = process.env.DATABASE_URL;
     if (!url) {
-      throw new Error('DATABASE_URL is required to construct PrismaService');
+      throw new Error("DATABASE_URL is required to construct PrismaService");
     }
     super({ adapter: new PrismaPg({ connectionString: url }) });
   }
@@ -69,8 +69,8 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
 export class RlsTenantMissingError extends Error {
   constructor() {
-    super('runWithRlsTenant: no tenant id in scope (header missing or interceptor not registered)');
-    this.name = 'RlsTenantMissingError';
+    super("runWithRlsTenant: no tenant id in scope (header missing or interceptor not registered)");
+    this.name = "RlsTenantMissingError";
   }
 }
 

@@ -1,8 +1,8 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import request from 'supertest';
-import type { INestApplication } from '@nestjs/common';
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import request from "supertest";
+import type { INestApplication } from "@nestjs/common";
 
-import { bootstrap } from '../src/core/app/bootstrap.js';
+import { bootstrap } from "../src/core/app/bootstrap.js";
 
 /**
  * Adapted from nest-server `server.e2e-spec.ts` (running-app branch).
@@ -14,7 +14,7 @@ import { bootstrap } from '../src/core/app/bootstrap.js';
  * Health-check endpoints (`/health/live`, `/health/ready`) are a separate
  * Phase 1 slice and live in a different test file.
  */
-describe('Server boot smoke', () => {
+describe("Server boot smoke", () => {
   let app: INestApplication;
 
   beforeAll(async () => {
@@ -25,8 +25,8 @@ describe('Server boot smoke', () => {
     await app?.close();
   });
 
-  it('GET / returns 200 with the server metadata', async () => {
-    const response = await request(app.getHttpServer()).get('/').expect(200);
+  it("GET / returns 200 with the server metadata", async () => {
+    const response = await request(app.getHttpServer()).get("/").expect(200);
 
     expect(response.body).toMatchObject({
       name: expect.any(String),
@@ -35,12 +35,12 @@ describe('Server boot smoke', () => {
     expect(response.body.name.length).toBeGreaterThan(0);
   });
 
-  it('GET / responds with JSON content-type', async () => {
-    const response = await request(app.getHttpServer()).get('/');
-    expect(response.headers['content-type']).toMatch(/application\/json/);
+  it("GET / responds with JSON content-type", async () => {
+    const response = await request(app.getHttpServer()).get("/");
+    expect(response.headers["content-type"]).toMatch(/application\/json/);
   });
 
-  it('GET /__missing__ returns 404 (default not-found behaviour)', async () => {
-    await request(app.getHttpServer()).get('/__missing__').expect(404);
+  it("GET /__missing__ returns 404 (default not-found behaviour)", async () => {
+    await request(app.getHttpServer()).get("/__missing__").expect(404);
   });
 });

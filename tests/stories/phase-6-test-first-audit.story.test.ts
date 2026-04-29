@@ -1,9 +1,9 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 
-const ROOT = resolve(import.meta.dirname, '..', '..');
+const ROOT = resolve(import.meta.dirname, "..", "..");
 
 /**
  * Story · Phase 6 Test-First audit (PLAN.md §32 Phase 6).
@@ -18,27 +18,27 @@ const ROOT = resolve(import.meta.dirname, '..', '..');
  * "rename-only" change still wakes the audit — the test name is part
  * of the contract, not just the file presence.
  */
-describe('Story · Phase 6 Test-First audit', () => {
+describe("Story · Phase 6 Test-First audit", () => {
   const REQUIRED: Array<{ surface: string; file: string; describeFragment: string }> = [
     {
-      surface: 'Email-Service (Nodemailer + Brevo, Mailpit-Trap parity)',
-      file: 'tests/stories/email-service.story.test.ts',
-      describeFragment: 'EmailService',
+      surface: "Email-Service (Nodemailer + Brevo, Mailpit-Trap parity)",
+      file: "tests/stories/email-service.story.test.ts",
+      describeFragment: "EmailService",
     },
     {
-      surface: '2FA TOTP (Setup + Verify)',
-      file: 'tests/stories/better-auth-two-factor.story.test.ts',
-      describeFragment: 'Two-Factor',
+      surface: "2FA TOTP (Setup + Verify)",
+      file: "tests/stories/better-auth-two-factor.story.test.ts",
+      describeFragment: "Two-Factor",
     },
     {
-      surface: 'Passkey WebAuthn (Register + Login)',
-      file: 'tests/stories/better-auth-passkey.story.test.ts',
-      describeFragment: 'Passkey',
+      surface: "Passkey WebAuthn (Register + Login)",
+      file: "tests/stories/better-auth-passkey.story.test.ts",
+      describeFragment: "Passkey",
     },
     {
-      surface: 'MCP-OAuth (Authorization-Code + PKCE, Tool-Call w/ Permission-Filter)',
-      file: 'tests/stories/mcp-auth.story.test.ts',
-      describeFragment: 'MCP-Auth',
+      surface: "MCP-OAuth (Authorization-Code + PKCE, Tool-Call w/ Permission-Filter)",
+      file: "tests/stories/mcp-auth.story.test.ts",
+      describeFragment: "MCP-Auth",
     },
   ];
 
@@ -46,12 +46,12 @@ describe('Story · Phase 6 Test-First audit', () => {
     it(`covers "${entry.surface}" via ${entry.file}`, () => {
       const full = resolve(ROOT, entry.file);
       expect(existsSync(full), `${entry.file} must exist`).toBe(true);
-      const content = readFileSync(full, 'utf8');
+      const content = readFileSync(full, "utf8");
       expect(content).toMatch(new RegExp(`describe\\([\\s\\S]*?${entry.describeFragment}`));
     });
   }
 
-  it('all four required stories are present (no count drift)', () => {
+  it("all four required stories are present (no count drift)", () => {
     expect(REQUIRED).toHaveLength(4);
   });
 });

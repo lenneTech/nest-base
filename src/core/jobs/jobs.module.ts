@@ -1,19 +1,25 @@
-import { Injectable, Logger, Module, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  Module,
+  type OnModuleDestroy,
+  type OnModuleInit,
+} from "@nestjs/common";
 
-import { InMemoryJobQueue } from './job-queue.js';
+import { InMemoryJobQueue } from "./job-queue.js";
 
 @Injectable()
 export class JobQueueService extends InMemoryJobQueue implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger('JobQueueService');
+  private readonly logger = new Logger("JobQueueService");
 
   async onModuleInit(): Promise<void> {
     this.start();
-    this.logger.log('job queue started (in-memory adapter)');
+    this.logger.log("job queue started (in-memory adapter)");
   }
 
   async onModuleDestroy(): Promise<void> {
     this.stop();
-    this.logger.log('job queue stopped');
+    this.logger.log("job queue stopped");
   }
 }
 

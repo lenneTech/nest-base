@@ -1,15 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable } from "@nestjs/common";
 
-import { PrismaService } from '../prisma/prisma.service.js';
+import { PrismaService } from "../prisma/prisma.service.js";
 
 export interface CheckResult {
-  status: 'ok' | 'fail';
+  status: "ok" | "fail";
   responseTimeMs: number;
   error?: string;
 }
 
 export interface ReadinessReport {
-  status: 'ok' | 'fail';
+  status: "ok" | "fail";
   checks: {
     database: CheckResult;
   };
@@ -27,10 +27,10 @@ export class HealthService {
     const start = performance.now();
     try {
       await this.prisma.$queryRaw`SELECT 1`;
-      return { status: 'ok', responseTimeMs: Math.round(performance.now() - start) };
+      return { status: "ok", responseTimeMs: Math.round(performance.now() - start) };
     } catch (error) {
       return {
-        status: 'fail',
+        status: "fail",
         responseTimeMs: Math.round(performance.now() - start),
         error: error instanceof Error ? error.message : String(error),
       };
@@ -39,7 +39,7 @@ export class HealthService {
 
   async readiness(): Promise<ReadinessReport> {
     const database = await this.checkDatabase();
-    const status: ReadinessReport['status'] = database.status === 'ok' ? 'ok' : 'fail';
+    const status: ReadinessReport["status"] = database.status === "ok" ? "ok" : "fail";
     return { status, checks: { database } };
   }
 }

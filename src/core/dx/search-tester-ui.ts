@@ -64,7 +64,7 @@ ${renderResults(input)}
 }
 
 function renderForm(query: string | undefined): string {
-  const safeQuery = escapeHtml(query ?? '');
+  const safeQuery = escapeHtml(query ?? "");
   return `<form class="q" method="get">
   <input name="q" value="${safeQuery}" placeholder="Type a search query and press Enter…" autofocus>
   <button type="submit">Search</button>
@@ -72,7 +72,7 @@ function renderForm(query: string | undefined): string {
 }
 
 function renderTsqueryHint(tsquery: string | undefined): string {
-  if (!tsquery) return '';
+  if (!tsquery) return "";
   return `<div class="meta" data-tsquery="true">Parsed tsquery: <pre class="tsquery">${escapeHtml(tsquery)}</pre></div>`;
 }
 
@@ -83,8 +83,8 @@ function renderResults(input: SearchTesterPageInput): string {
   if (input.hits.length === 0) {
     return `<div class="empty">No results for "<strong>${escapeHtml(input.query)}</strong>".</div>`;
   }
-  const rows = input.hits.map(renderHitRow).join('');
-  return `<p class="meta">${input.hits.length} result${input.hits.length === 1 ? '' : 's'}.</p>
+  const rows = input.hits.map(renderHitRow).join("");
+  return `<p class="meta">${input.hits.length} result${input.hits.length === 1 ? "" : "s"}.</p>
 <table data-search-results="true">
 <thead><tr><th>Resource</th><th>Title</th><th>Snippet</th><th>Rank</th></tr></thead>
 <tbody>${rows}</tbody>
@@ -102,9 +102,9 @@ function renderHitRow(hit: SearchHit): string {
 
 function escapeHtml(input: string): string {
   return input
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }

@@ -1,8 +1,8 @@
-import { All, Controller, Inject, Req, Res } from '@nestjs/common';
-import { toNodeHandler } from 'better-auth/node';
-import type { Request, Response } from 'express';
+import { All, Controller, Inject, Req, Res } from "@nestjs/common";
+import { toNodeHandler } from "better-auth/node";
+import type { Request, Response } from "express";
 
-import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from './better-auth.token.js';
+import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from "./better-auth.token.js";
 
 /**
  * Mounts Better-Auth's handler under `/api/auth/*`. The catch-all
@@ -16,18 +16,16 @@ import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from './better-auth.tok
  * If `BETTER_AUTH_SECRET` is not configured the injected instance is
  * `null` and every auth request returns `503 Service Unavailable`.
  */
-@Controller('api/auth')
+@Controller("api/auth")
 export class BetterAuthController {
-  constructor(
-    @Inject(BETTER_AUTH_INSTANCE) private readonly auth: BetterAuthInstance | null,
-  ) {}
+  constructor(@Inject(BETTER_AUTH_INSTANCE) private readonly auth: BetterAuthInstance | null) {}
 
-  @All('*splat')
+  @All("*splat")
   async handle(@Req() req: Request, @Res() res: Response): Promise<void> {
     if (!this.auth) {
       res.status(503).json({
-        error: 'auth-not-configured',
-        message: 'BETTER_AUTH_SECRET is not set; /api/auth/* is disabled.',
+        error: "auth-not-configured",
+        message: "BETTER_AUTH_SECRET is not set; /api/auth/* is disabled.",
       });
       return;
     }

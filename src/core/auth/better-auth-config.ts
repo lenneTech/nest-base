@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * Better-Auth configuration surface (Phase 2 / "Better-Auth Integration").
@@ -29,12 +29,12 @@ export function betterAuthConfigDefaults(): BetterAuthConfig {
   };
 }
 
-const DEFAULT_MOUNT_PATH = '/api/auth';
+const DEFAULT_MOUNT_PATH = "/api/auth";
 
 /** Validate + normalize the Better-Auth handler mount path. */
 export function resolveBetterAuthMountPath(custom?: string): string {
   const candidate = custom ?? DEFAULT_MOUNT_PATH;
-  if (!candidate.startsWith('/')) {
+  if (!candidate.startsWith("/")) {
     throw new Error(`mount path must start with "/" (received: ${candidate})`);
   }
   return candidate;

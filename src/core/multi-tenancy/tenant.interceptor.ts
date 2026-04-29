@@ -1,11 +1,16 @@
-import { AsyncLocalStorage } from 'node:async_hooks';
+import { AsyncLocalStorage } from "node:async_hooks";
 
-import { Injectable, type CallHandler, type ExecutionContext, type NestInterceptor } from '@nestjs/common';
-import type { Request } from 'express';
-import { Observable, defer, from, switchMap, throwError } from 'rxjs';
+import {
+  Injectable,
+  type CallHandler,
+  type ExecutionContext,
+  type NestInterceptor,
+} from "@nestjs/common";
+import type { Request } from "express";
+import { Observable, defer, from, switchMap, throwError } from "rxjs";
 
-import { isTenantExempt } from './tenant-guard.js';
-import { parseTenantHeader } from './tenant-header.js';
+import { isTenantExempt } from "./tenant-guard.js";
+import { parseTenantHeader } from "./tenant-header.js";
 
 /**
  * Tenant-Interceptor + AsyncLocalStorage container.
@@ -30,16 +35,16 @@ export async function runWithTenant<T>(tenantId: string, fn: () => Promise<T> | 
   return tenantStorage.run(tenantId, fn);
 }
 
-const TENANT_HEADER = 'x-tenant-id';
+const TENANT_HEADER = "x-tenant-id";
 
 @Injectable()
 export class TenantInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
-    if (context.getType() !== 'http') {
+    if (context.getType() !== "http") {
       return next.handle();
     }
     const req = context.switchToHttp().getRequest<Request>();
-    const path = (req.originalUrl ?? req.url ?? '/') as string;
+    const path = (req.originalUrl ?? req.url ?? "/") as string;
 
     if (isTenantExempt(path)) {
       return next.handle();

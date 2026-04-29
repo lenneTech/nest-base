@@ -1,5 +1,9 @@
-import { type PermissionReport, type PermissionRule, buildPermissionReport } from './permission-report.js';
-import { PermissionService } from './permission.service.js';
+import {
+  type PermissionReport,
+  type PermissionRule,
+  buildPermissionReport,
+} from "./permission-report.js";
+import { PermissionService } from "./permission.service.js";
 
 /**
  * Service backing the `/admin/permissions/test` endpoint
@@ -16,7 +20,7 @@ import { PermissionService } from './permission.service.js';
  * the serializer do the per-resource grouping + superset detection.
  */
 
-const CRUD_ACTIONS = new Set(['create', 'read', 'update', 'delete']);
+const CRUD_ACTIONS = new Set(["create", "read", "update", "delete"]);
 
 export class PermissionTestService {
   constructor(private readonly permissions: PermissionService) {}

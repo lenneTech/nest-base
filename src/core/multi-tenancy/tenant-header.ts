@@ -1,4 +1,4 @@
-import type { Features } from '../features/features.js';
+import type { Features } from "../features/features.js";
 
 /**
  * Tenant-header parsing.
@@ -11,11 +11,11 @@ import type { Features } from '../features/features.js';
 export class TenantIsolationError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'TenantIsolationError';
+    this.name = "TenantIsolationError";
   }
 }
 
-export function resolveTenantHeaderName(features: Pick<Features, 'multiTenancy'>): string {
+export function resolveTenantHeaderName(features: Pick<Features, "multiTenancy">): string {
   return features.multiTenancy.headerName;
 }
 
@@ -24,7 +24,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export function parseTenantHeader(value: string | string[] | undefined): string {
   const raw = Array.isArray(value) ? value[0] : value;
   if (!raw) {
-    throw new TenantIsolationError('tenant header is required');
+    throw new TenantIsolationError("tenant header is required");
   }
   if (!UUID_RE.test(raw)) {
     throw new TenantIsolationError(`tenant header must be a UUID (received: ${raw})`);

@@ -1,4 +1,4 @@
-import type { Features } from '../features/features.js';
+import type { Features } from "../features/features.js";
 
 /**
  * Dev-Hub planner (PLAN.md §27.4 + §32 Phase 8).
@@ -19,8 +19,8 @@ import type { Features } from '../features/features.js';
  * but a missing list is one fewer attack surface.
  */
 
-export type DevHubEnv = 'development' | 'production' | 'test';
-export type DevHubCategory = 'api' | 'architecture' | 'data' | 'async';
+export type DevHubEnv = "development" | "production" | "test";
+export type DevHubCategory = "api" | "architecture" | "data" | "async";
 
 export interface DevHubLink {
   label: string;
@@ -35,75 +35,75 @@ export interface DevHubInput {
   devtools?: { enabled: boolean; port: number };
 }
 
-const CATEGORY_ORDER: DevHubCategory[] = ['api', 'architecture', 'data', 'async'];
+const CATEGORY_ORDER: DevHubCategory[] = ["api", "architecture", "data", "async"];
 
 export function planDevHub(input: DevHubInput): DevHubLink[] {
-  if (input.env !== 'development') return [];
+  if (input.env !== "development") return [];
 
   const links: DevHubLink[] = [];
 
   // api ----------------------------------------------------------------
   if (input.scalar) {
     links.push({
-      label: 'Scalar API Reference',
+      label: "Scalar API Reference",
       url: input.scalar.mountPath,
-      category: 'api',
+      category: "api",
     });
     if (input.scalar.specUrl) {
       links.push({
-        label: 'OpenAPI Spec (raw)',
+        label: "OpenAPI Spec (raw)",
         url: input.scalar.specUrl,
-        category: 'api',
+        category: "api",
       });
     }
   }
   links.push({
-    label: 'Permission Tester',
-    url: '/admin/permissions/test',
-    category: 'api',
+    label: "Permission Tester",
+    url: "/admin/permissions/test",
+    category: "api",
   });
 
   // architecture ------------------------------------------------------
   if (input.devtools?.enabled) {
     links.push({
-      label: 'NestJS DevTools',
+      label: "NestJS DevTools",
       url: `http://localhost:${input.devtools.port}`,
-      category: 'architecture',
+      category: "architecture",
     });
   }
   links.push({
-    label: 'Active Features',
-    url: '/dev/features',
-    category: 'architecture',
+    label: "Active Features",
+    url: "/dev/features",
+    category: "architecture",
   });
 
   // data --------------------------------------------------------------
   links.push({
-    label: 'Audit Browser',
-    url: '/admin/audit',
-    category: 'data',
+    label: "Audit Browser",
+    url: "/admin/audit",
+    category: "data",
   });
 
   // async -------------------------------------------------------------
   if (input.features.webhooks.enabled) {
     links.push({
-      label: 'Webhook Inspector',
-      url: '/admin/webhooks',
-      category: 'async',
+      label: "Webhook Inspector",
+      url: "/admin/webhooks",
+      category: "async",
     });
   }
   if (input.features.realtime.enabled) {
     links.push({
-      label: 'Realtime Inspector',
-      url: '/admin/realtime',
-      category: 'async',
+      label: "Realtime Inspector",
+      url: "/admin/realtime",
+      category: "async",
     });
   }
   if (input.features.search.enabled) {
     links.push({
-      label: 'Search Tester',
-      url: '/admin/search',
-      category: 'async',
+      label: "Search Tester",
+      url: "/admin/search",
+      category: "async",
     });
   }
 

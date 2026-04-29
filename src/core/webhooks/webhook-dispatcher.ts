@@ -1,9 +1,5 @@
-import { buildHmacSignatureHeader } from './hmac-signature.js';
-import {
-  type RetryConfig,
-  WEBHOOK_RETRY_DEFAULTS,
-  shouldAutoDisable,
-} from './retry-policy.js';
+import { buildHmacSignatureHeader } from "./hmac-signature.js";
+import { type RetryConfig, WEBHOOK_RETRY_DEFAULTS, shouldAutoDisable } from "./retry-policy.js";
 
 /**
  * Webhook Dispatcher (PLAN.md §10).
@@ -21,8 +17,8 @@ import {
  * without a network or DB.
  */
 
-export type EndpointStatus = 'ACTIVE' | 'DISABLED';
-export type DeliveryStatus = 'DELIVERED' | 'FAILED';
+export type EndpointStatus = "ACTIVE" | "DISABLED";
+export type DeliveryStatus = "DELIVERED" | "FAILED";
 
 export interface WebhookEndpointSnapshot {
   id: string;
@@ -80,7 +76,7 @@ export interface WebhookDispatcherOptions {
 export class WebhookEndpointNotFoundError extends Error {
   constructor(id: string) {
     super(`webhook endpoint not found: ${id}`);
-    this.name = 'WebhookEndpointNotFoundError';
+    this.name = "WebhookEndpointNotFoundError";
   }
 }
 
@@ -94,14 +90,14 @@ export class WebhookDispatcher {
   async dispatch(input: DispatchInput): Promise<void> {
     const endpoint = await this.options.endpointStore.findById(input.endpointId);
     if (!endpoint) throw new WebhookEndpointNotFoundError(input.endpointId);
-    if (endpoint.status === 'DISABLED') return;
+    if (endpoint.status === "DISABLED") return;
 
     const ts = String(this.options.now());
     const headers: Record<string, string> = {
-      'content-type': 'application/json',
-      'webhook-id': input.eventId,
-      'webhook-timestamp': ts,
-      'webhook-signature': buildHmacSignatureHeader(endpoint.secret, ts, input.body),
+      "content-type": "application/json",
+      "webhook-id": input.eventId,
+      "webhook-timestamp": ts,
+      "webhook-signature": buildHmacSignatureHeader(endpoint.secret, ts, input.body),
     };
 
     let response: HttpResponse | null = null;
@@ -120,7 +116,7 @@ export class WebhookDispatcher {
         id: deliveryId(input),
         endpointId: endpoint.id,
         eventId: input.eventId,
-        status: 'DELIVERED',
+        status: "DELIVERED",
         statusCode: response?.status,
         attemptCount: 1,
       });
@@ -133,14 +129,14 @@ export class WebhookDispatcher {
       id: deliveryId(input),
       endpointId: endpoint.id,
       eventId: input.eventId,
-      status: 'FAILED',
+      status: "FAILED",
       ...(response ? { statusCode: response.status } : {}),
       attemptCount: 1,
     });
     if (shouldAutoDisable(nextFailures, this.retry)) {
       await this.options.endpointStore.disable(endpoint.id);
     }
-    if (httpError && process.env.NODE_ENV !== 'test') {
+    if (httpError && process.env.NODE_ENV !== "test") {
       // Log path: real binding hands httpError to the logger; tests
       // don't need observable side-effects for the throw case.
     }

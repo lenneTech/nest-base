@@ -1,8 +1,8 @@
-import { Inject, Injectable, Optional } from '@nestjs/common';
+import { Inject, Injectable, Optional } from "@nestjs/common";
 
-import { type Ability, buildAbility } from './casl-ability.js';
-import { type DbPermissionRow, resolveDbRules } from './db-rule-resolver.js';
-import { PERMISSION_STORAGE } from './permission-storage.token.js';
+import { type Ability, buildAbility } from "./casl-ability.js";
+import { type DbPermissionRow, resolveDbRules } from "./db-rule-resolver.js";
+import { PERMISSION_STORAGE } from "./permission-storage.token.js";
 
 /**
  * PermissionService.abilityFor() (PLAN.md §6).

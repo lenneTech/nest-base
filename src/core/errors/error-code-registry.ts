@@ -37,14 +37,14 @@ export interface ResolvedErrorMessage {
 export class ErrorCodeAlreadyRegisteredError extends Error {
   constructor(code: string) {
     super(`error-code-registry: code "${code}" is already registered`);
-    this.name = 'ErrorCodeAlreadyRegisteredError';
+    this.name = "ErrorCodeAlreadyRegisteredError";
   }
 }
 
 export class ErrorCodeNotFoundError extends Error {
   constructor(code: string) {
     super(`error-code-registry: code "${code}" is not registered`);
-    this.name = 'ErrorCodeNotFoundError';
+    this.name = "ErrorCodeNotFoundError";
   }
 }
 
@@ -56,7 +56,9 @@ export class ErrorCodeRegistry {
       throw new Error(`error-code-registry: code "${definition.code}" must match ${CODE_RE}`);
     }
     if (!definition.messages || !definition.messages.en) {
-      throw new Error(`error-code-registry: code "${definition.code}" must include an "en" message (fallback locale)`);
+      throw new Error(
+        `error-code-registry: code "${definition.code}" must include an "en" message (fallback locale)`,
+      );
     }
     if (this.codes.has(definition.code)) {
       throw new ErrorCodeAlreadyRegisteredError(definition.code);

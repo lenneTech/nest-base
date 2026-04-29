@@ -1,11 +1,11 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from "@nestjs/common";
 
-import type { AppConfig } from './app-config.js';
-import type { CookieConfig, CorsConfig } from '../http/cookie-cors-config.js';
-import type { ServerConfig } from '../server/server-config.js';
-import type { SystemSetupConfig } from '../setup/system-setup-config.js';
+import type { AppConfig } from "./app-config.js";
+import type { CookieConfig, CorsConfig } from "../http/cookie-cors-config.js";
+import type { ServerConfig } from "../server/server-config.js";
+import type { SystemSetupConfig } from "../setup/system-setup-config.js";
 
-export const APP_CONFIG_TOKEN = Symbol('APP_CONFIG');
+export const APP_CONFIG_TOKEN = Symbol("APP_CONFIG");
 
 /**
  * Read-only accessor for the validated `AppConfig` produced at boot.

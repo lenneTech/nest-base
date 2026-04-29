@@ -1,11 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 
 import {
   FILTER_FOR_METADATA,
   FilterFor,
   FilterServiceRegistry,
   type FilterService,
-} from '../../src/core/permissions/filter-service.js';
+} from "../../src/core/permissions/filter-service.js";
 
 /**
  * Story · Filter-Service Pattern (PLAN.md §22)
@@ -19,15 +19,15 @@ import {
  * Auto-discovery walks an injected list of providers (NestJS
  * DiscoveryService integration is a separate slice).
  */
-describe('Story · Filter-Service Pattern', () => {
-  it('@FilterFor(subject) sets metadata on the class', () => {
-    @FilterFor('Project')
+describe("Story · Filter-Service Pattern", () => {
+  it("@FilterFor(subject) sets metadata on the class", () => {
+    @FilterFor("Project")
     class ProjectFilter {}
-    expect(Reflect.getMetadata(FILTER_FOR_METADATA, ProjectFilter)).toBe('Project');
+    expect(Reflect.getMetadata(FILTER_FOR_METADATA, ProjectFilter)).toBe("Project");
   });
 
-  describe('FilterServiceRegistry', () => {
-    it('register() throws when the class has no @FilterFor()', () => {
+  describe("FilterServiceRegistry", () => {
+    it("register() throws when the class has no @FilterFor()", () => {
       class NoMeta {}
       const reg = new FilterServiceRegistry();
       expect(() => reg.register(new NoMeta() as unknown as FilterService<unknown>, NoMeta)).toThrow(
@@ -35,14 +35,14 @@ describe('Story · Filter-Service Pattern', () => {
       );
     });
 
-    it('register() throws on a duplicate subject (collision is a wiring bug)', () => {
-      @FilterFor('Project')
+    it("register() throws on a duplicate subject (collision is a wiring bug)", () => {
+      @FilterFor("Project")
       class A implements FilterService<unknown> {
         async filter<T>(value: T): Promise<T> {
           return value;
         }
       }
-      @FilterFor('Project')
+      @FilterFor("Project")
       class B implements FilterService<unknown> {
         async filter<T>(value: T): Promise<T> {
           return value;
@@ -53,8 +53,8 @@ describe('Story · Filter-Service Pattern', () => {
       expect(() => reg.register(new B(), B)).toThrow(/Project/);
     });
 
-    it('get() returns the registered service for the subject', () => {
-      @FilterFor('Project')
+    it("get() returns the registered service for the subject", () => {
+      @FilterFor("Project")
       class Filter implements FilterService<unknown> {
         async filter<T>(value: T): Promise<T> {
           return value;
@@ -63,46 +63,49 @@ describe('Story · Filter-Service Pattern', () => {
       const reg = new FilterServiceRegistry();
       const svc = new Filter();
       reg.register(svc, Filter);
-      expect(reg.get('Project')).toBe(svc);
+      expect(reg.get("Project")).toBe(svc);
     });
 
-    it('get() returns undefined when no service is registered for the subject', () => {
+    it("get() returns undefined when no service is registered for the subject", () => {
       const reg = new FilterServiceRegistry();
-      expect(reg.get('Unknown')).toBeUndefined();
+      expect(reg.get("Unknown")).toBeUndefined();
     });
   });
 
-  describe('applyFilter()', () => {
-    it('dispatches to the registered service and returns its result', async () => {
-      @FilterFor('User')
+  describe("applyFilter()", () => {
+    it("dispatches to the registered service and returns its result", async () => {
+      @FilterFor("User")
       class UserFilter implements FilterService<{ id: string; secret?: string }> {
-        async filter(value: { id: string; secret?: string }): Promise<{ id: string; secret?: string }> {
+        async filter(value: {
+          id: string;
+          secret?: string;
+        }): Promise<{ id: string; secret?: string }> {
           const { secret: _secret, ...rest } = value;
           return rest;
         }
       }
       const reg = new FilterServiceRegistry();
       reg.register(new UserFilter(), UserFilter);
-      const out = await reg.applyFilter('User', { id: '1', secret: 'x' });
-      expect(out).toEqual({ id: '1' });
+      const out = await reg.applyFilter("User", { id: "1", secret: "x" });
+      expect(out).toEqual({ id: "1" });
     });
 
-    it('returns the value untouched when no service matches the subject', async () => {
+    it("returns the value untouched when no service matches the subject", async () => {
       const reg = new FilterServiceRegistry();
-      const out = await reg.applyFilter('Project', { id: '1' });
-      expect(out).toEqual({ id: '1' });
+      const out = await reg.applyFilter("Project", { id: "1" });
+      expect(out).toEqual({ id: "1" });
     });
   });
 
-  describe('auto-discovery', () => {
-    it('FilterServiceRegistry.fromInstances() registers each entry', () => {
-      @FilterFor('Project')
+  describe("auto-discovery", () => {
+    it("FilterServiceRegistry.fromInstances() registers each entry", () => {
+      @FilterFor("Project")
       class P implements FilterService<unknown> {
         async filter<T>(v: T): Promise<T> {
           return v;
         }
       }
-      @FilterFor('User')
+      @FilterFor("User")
       class U implements FilterService<unknown> {
         async filter<T>(v: T): Promise<T> {
           return v;
@@ -112,14 +115,14 @@ describe('Story · Filter-Service Pattern', () => {
         { instance: new P(), ctor: P },
         { instance: new U(), ctor: U },
       ]);
-      expect(reg.get('Project')).toBeDefined();
-      expect(reg.get('User')).toBeDefined();
+      expect(reg.get("Project")).toBeDefined();
+      expect(reg.get("User")).toBeDefined();
     });
 
-    it('fromInstances() ignores entries without @FilterFor() metadata', () => {
+    it("fromInstances() ignores entries without @FilterFor() metadata", () => {
       class Plain {}
       const reg = FilterServiceRegistry.fromInstances([{ instance: new Plain(), ctor: Plain }]);
-      expect(reg.get('Plain')).toBeUndefined();
+      expect(reg.get("Plain")).toBeUndefined();
     });
   });
 });

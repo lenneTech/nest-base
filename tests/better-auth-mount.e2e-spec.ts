@@ -1,8 +1,8 @@
-import type { INestApplication } from '@nestjs/common';
-import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import type { INestApplication } from "@nestjs/common";
+import request from "supertest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { bootstrap } from '../src/core/app/bootstrap.js';
+import { bootstrap } from "../src/core/app/bootstrap.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 
@@ -12,14 +12,14 @@ const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {
  * uses Better-Auth's in-memory adapter for now, so requests land
  * on a real handler without needing a Prisma migration.
  */
-describe('Better-Auth · /api/auth/* mount', () => {
+describe("Better-Auth · /api/auth/* mount", () => {
   let app: INestApplication;
   const originalSecret = process.env.BETTER_AUTH_SECRET;
   const originalBaseUrl = process.env.APP_BASE_URL;
 
   beforeAll(async () => {
-    process.env.BETTER_AUTH_SECRET = 'test-secret-32-chars-minimum-aaaaaaaa';
-    process.env.APP_BASE_URL = 'http://localhost:3000';
+    process.env.BETTER_AUTH_SECRET = "test-secret-32-chars-minimum-aaaaaaaa";
+    process.env.APP_BASE_URL = "http://localhost:3000";
     app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
   });
 
@@ -31,34 +31,34 @@ describe('Better-Auth · /api/auth/* mount', () => {
     else process.env.APP_BASE_URL = originalBaseUrl;
   });
 
-  it('GET /api/auth/get-session returns 200 with null session for an anonymous request', async () => {
-    const res = await request(app.getHttpServer()).get('/api/auth/get-session');
+  it("GET /api/auth/get-session returns 200 with null session for an anonymous request", async () => {
+    const res = await request(app.getHttpServer()).get("/api/auth/get-session");
     expect(res.status).toBe(200);
     // Better-Auth returns null (or empty) when there's no session cookie.
-    expect(res.body === null || res.body === '' || typeof res.body === 'object').toBe(true);
+    expect(res.body === null || res.body === "" || typeof res.body === "object").toBe(true);
   });
 
-  it('GET /api/auth/ok returns the Better-Auth liveness response', async () => {
-    const res = await request(app.getHttpServer()).get('/api/auth/ok');
+  it("GET /api/auth/ok returns the Better-Auth liveness response", async () => {
+    const res = await request(app.getHttpServer()).get("/api/auth/ok");
     expect([200, 404]).toContain(res.status); // some Better-Auth versions don't expose /ok
     if (res.status === 200) {
       expect(res.body).toBeDefined();
     }
   });
 
-  it('POST /api/auth/sign-up/email accepts a valid registration payload', async () => {
+  it("POST /api/auth/sign-up/email accepts a valid registration payload", async () => {
     const email = `user-${Date.now()}@example.com`;
     const res = await request(app.getHttpServer())
-      .post('/api/auth/sign-up/email')
-      .set('content-type', 'application/json')
-      .send({ email, password: 'password-12345', name: 'Test User' });
+      .post("/api/auth/sign-up/email")
+      .set("content-type", "application/json")
+      .send({ email, password: "password-12345", name: "Test User" });
     // Better-Auth responds 200 on successful sign-up; 400/422 on validation
     // failure. Either way, the route IS handled (not 404 from NestJS).
     expect(res.status).not.toBe(404);
   });
 
-  it('an unknown auth route still routes through Better-Auth (not the NestJS 404)', async () => {
-    const res = await request(app.getHttpServer()).get('/api/auth/this-does-not-exist');
+  it("an unknown auth route still routes through Better-Auth (not the NestJS 404)", async () => {
+    const res = await request(app.getHttpServer()).get("/api/auth/this-does-not-exist");
     // Better-Auth's handler returns its own 404 (with Better-Auth body
     // shape), not a generic NestJS HTML/JSON 404.
     expect(res.status).toBe(404);

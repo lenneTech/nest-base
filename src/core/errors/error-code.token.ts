@@ -1,3 +1,3 @@
-export { ErrorCodeRegistry } from './error-code-registry.js';
+export { ErrorCodeRegistry } from "./error-code-registry.js";
 
-export const ERROR_CODE_REGISTRY = Symbol.for('lt:ErrorCodeRegistry');
+export const ERROR_CODE_REGISTRY = Symbol.for("lt:ErrorCodeRegistry");

@@ -1,4 +1,4 @@
-import { uuidV7 } from '../uuid/uuid-v7.js';
+import { uuidV7 } from "../uuid/uuid-v7.js";
 
 /**
  * Folder CRUD service (PLAN.md §8 + §32 Phase 4).
@@ -28,7 +28,7 @@ export interface FolderStorage {
 export class FolderNotFoundError extends Error {
   constructor(id: string) {
     super(`folder not found: ${id}`);
-    this.name = 'FolderNotFoundError';
+    this.name = "FolderNotFoundError";
   }
 }
 

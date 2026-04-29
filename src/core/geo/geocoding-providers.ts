@@ -46,18 +46,18 @@ export interface NominatimOptions {
 }
 
 export class NominatimGeocodingProvider implements GeocodingProvider {
-  readonly name = 'nominatim';
+  readonly name = "nominatim";
   constructor(private readonly opts: NominatimOptions) {}
 
   async geocode(query: string): Promise<GeocodingResult | null> {
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=jsonv2&limit=1`;
-    const res = await this.opts.http.get(url, { 'User-Agent': this.opts.userAgent });
+    const res = await this.opts.http.get(url, { "User-Agent": this.opts.userAgent });
     return this.normaliseFirst(res.body);
   }
 
   async reverseGeocode(lat: number, lng: number): Promise<GeocodingResult | null> {
     const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=jsonv2`;
-    const res = await this.opts.http.get(url, { 'User-Agent': this.opts.userAgent });
+    const res = await this.opts.http.get(url, { "User-Agent": this.opts.userAgent });
     return this.normaliseFirst(res.body);
   }
 
@@ -68,17 +68,17 @@ export class NominatimGeocodingProvider implements GeocodingProvider {
       return {
         lat: Number(first.lat),
         lng: Number(first.lon),
-        formatted: first.display_name ?? '',
+        formatted: first.display_name ?? "",
         providerMetadata: first,
       };
     }
-    if (body && typeof body === 'object') {
+    if (body && typeof body === "object") {
       const r = body as { lat?: string; lon?: string; display_name?: string };
       if (r.lat !== undefined && r.lon !== undefined) {
         return {
           lat: Number(r.lat),
           lng: Number(r.lon),
-          formatted: r.display_name ?? '',
+          formatted: r.display_name ?? "",
           providerMetadata: r,
         };
       }
@@ -97,7 +97,7 @@ export interface MapboxOptions {
 }
 
 export class MapboxGeocodingProvider implements GeocodingProvider {
-  readonly name = 'mapbox';
+  readonly name = "mapbox";
   constructor(private readonly opts: MapboxOptions) {}
 
   async geocode(query: string): Promise<GeocodingResult | null> {
@@ -113,14 +113,16 @@ export class MapboxGeocodingProvider implements GeocodingProvider {
   }
 
   private normaliseFirst(body: unknown): GeocodingResult | null {
-    const obj = body as { features?: Array<{ center?: [number, number]; place_name?: string }> } | undefined;
+    const obj = body as
+      | { features?: Array<{ center?: [number, number]; place_name?: string }> }
+      | undefined;
     const first = obj?.features?.[0];
     if (!first?.center) return null;
     const [lng, lat] = first.center;
     return {
       lat,
       lng,
-      formatted: first.place_name ?? '',
+      formatted: first.place_name ?? "",
       providerMetadata: first,
     };
   }
@@ -136,7 +138,7 @@ export interface GoogleOptions {
 }
 
 export class GoogleGeocodingProvider implements GeocodingProvider {
-  readonly name = 'google';
+  readonly name = "google";
   constructor(private readonly opts: GoogleOptions) {}
 
   async geocode(query: string): Promise<GeocodingResult | null> {
@@ -152,21 +154,23 @@ export class GoogleGeocodingProvider implements GeocodingProvider {
   }
 
   private normaliseFirst(body: unknown): GeocodingResult | null {
-    const obj = body as {
-      status?: string;
-      results?: Array<{
-        geometry?: { location?: { lat?: number; lng?: number } };
-        formatted_address?: string;
-      }>;
-    } | undefined;
-    if (!obj || obj.status !== 'OK') return null;
+    const obj = body as
+      | {
+          status?: string;
+          results?: Array<{
+            geometry?: { location?: { lat?: number; lng?: number } };
+            formatted_address?: string;
+          }>;
+        }
+      | undefined;
+    if (!obj || obj.status !== "OK") return null;
     const first = obj.results?.[0];
     const loc = first?.geometry?.location;
     if (!loc || loc.lat === undefined || loc.lng === undefined) return null;
     return {
       lat: loc.lat,
       lng: loc.lng,
-      formatted: first?.formatted_address ?? '',
+      formatted: first?.formatted_address ?? "",
       providerMetadata: first,
     };
   }
@@ -188,7 +192,7 @@ export interface LocalStubOptions {
 }
 
 export class LocalStubGeocodingProvider implements GeocodingProvider {
-  readonly name = 'local';
+  readonly name = "local";
   constructor(private readonly opts: LocalStubOptions) {}
 
   async geocode(query: string): Promise<GeocodingResult | null> {

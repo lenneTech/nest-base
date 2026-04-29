@@ -20,7 +20,7 @@
  *   3. The same call can power a GitLab/GitHub PR-creation runner.
  */
 
-const CORE_PREFIX = 'src/core/';
+const CORE_PREFIX = "src/core/";
 
 export interface SyncToTemplateInput {
   /** Local working tree — only `src/core/**` is in scope. */
@@ -52,7 +52,7 @@ export interface SyncToTemplatePlan {
 export class ProtectedPathTouchedError extends Error {
   constructor(path: string) {
     super(`sync-to-template: refusing to read "${path}" — only src/core/ is in scope`);
-    this.name = 'ProtectedPathTouchedError';
+    this.name = "ProtectedPathTouchedError";
   }
 }
 
@@ -107,7 +107,7 @@ export function planSyncToTemplate(input: SyncToTemplateInput): SyncToTemplatePl
     renderUnifiedPatch(): string {
       return modify
         .map((entry) => `diff --git a/${entry.path} b/${entry.path}\n${entry.diff}`)
-        .join('\n');
+        .join("\n");
     },
   };
 }
@@ -119,13 +119,13 @@ export function planSyncToTemplate(input: SyncToTemplateInput): SyncToTemplatePl
  * dependency surface stays small.
  */
 function makeUnifiedDiff(path: string, before: string, after: string): string {
-  const beforeLines = before.split('\n');
-  const afterLines = after.split('\n');
+  const beforeLines = before.split("\n");
+  const afterLines = after.split("\n");
   const lines: string[] = [];
   lines.push(`--- a/${path}`);
   lines.push(`+++ b/${path}`);
   lines.push(`@@ -1,${beforeLines.length} +1,${afterLines.length} @@`);
   for (const line of beforeLines) lines.push(`-${line}`);
   for (const line of afterLines) lines.push(`+${line}`);
-  return lines.join('\n') + '\n';
+  return lines.join("\n") + "\n";
 }

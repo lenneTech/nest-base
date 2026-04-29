@@ -3,15 +3,15 @@ import {
   type ExecutionContext,
   Injectable,
   type NestInterceptor,
-} from '@nestjs/common';
-import { type Observable, from, mergeMap } from 'rxjs';
+} from "@nestjs/common";
+import { type Observable, from, mergeMap } from "rxjs";
 
-import { buildAbility } from './casl-ability.js';
-import { PermissionService } from './permission.service.js';
+import { buildAbility } from "./casl-ability.js";
+import { PermissionService } from "./permission.service.js";
 
 interface AuthenticatedRequest {
   user?: { id: string; tenantId: string };
-  ability?: import('./casl-ability.js').Ability;
+  ability?: import("./casl-ability.js").Ability;
 }
 
 /**

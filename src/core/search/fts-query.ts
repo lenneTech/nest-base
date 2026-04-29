@@ -14,9 +14,9 @@ const OPERATOR_RE = /[&|!:*()]/g;
 const NON_WORD_RE = /[\s]+/g;
 
 export function sanitizeFtsQuery(input: string): string {
-  const stripped = input.replace(OPERATOR_RE, ' ').replace(NON_WORD_RE, ' ').trim();
-  if (stripped === '') {
-    throw new Error('fts: query is empty after sanitization');
+  const stripped = input.replace(OPERATOR_RE, " ").replace(NON_WORD_RE, " ").trim();
+  if (stripped === "") {
+    throw new Error("fts: query is empty after sanitization");
   }
   return stripped;
 }
@@ -28,9 +28,9 @@ export interface ToTsqueryOptions {
 
 export function toTsquery(input: string, options: ToTsqueryOptions = {}): string {
   const sanitized = sanitizeFtsQuery(input);
-  const tokens = sanitized.split(' ').filter(Boolean);
+  const tokens = sanitized.split(" ").filter(Boolean);
   if (options.prefix && tokens.length > 0) {
     tokens[tokens.length - 1] = `${tokens[tokens.length - 1]}:*`;
   }
-  return tokens.join(' & ');
+  return tokens.join(" & ");
 }

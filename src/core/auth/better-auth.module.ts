@@ -1,10 +1,10 @@
-import { Module } from '@nestjs/common';
+import { Module } from "@nestjs/common";
 
-import { type Features, loadFeatures } from '../features/features.js';
-import { serverConfigFromEnv } from '../server/server-config.js';
-import { BetterAuthController } from './better-auth.controller.js';
-import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from './better-auth.token.js';
-import { type SocialProviderConfig, buildBetterAuth } from './better-auth.js';
+import { type Features, loadFeatures } from "../features/features.js";
+import { serverConfigFromEnv } from "../server/server-config.js";
+import { BetterAuthController } from "./better-auth.controller.js";
+import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from "./better-auth.token.js";
+import { type SocialProviderConfig, buildBetterAuth } from "./better-auth.js";
 
 const MIN_SECRET_LEN = 32;
 
@@ -28,7 +28,7 @@ const MIN_SECRET_LEN = 32;
     {
       provide: BETTER_AUTH_INSTANCE,
       useFactory: (): BetterAuthInstance | null => {
-        const secret = process.env.BETTER_AUTH_SECRET ?? '';
+        const secret = process.env.BETTER_AUTH_SECRET ?? "";
         if (secret.length < MIN_SECRET_LEN) return null;
 
         const cfg = serverConfigFromEnv(process.env);
@@ -38,16 +38,14 @@ const MIN_SECRET_LEN = 32;
           secret,
           baseUrl: cfg.baseUrl,
           sessionExpiresInSeconds: 60 * 60 * 24 * 7,
-          ...(features.authMethods.twoFactor ? { twoFactor: { issuer: 'nest-server' } } : {}),
-          ...(features.authMethods.passkey ? { passkey: { rpName: 'nest-server' } } : {}),
+          ...(features.authMethods.twoFactor ? { twoFactor: { issuer: "nest-server" } } : {}),
+          ...(features.authMethods.passkey ? { passkey: { rpName: "nest-server" } } : {}),
           ...(features.authMethods.socialProviders.length > 0
             ? { socialProviders: pickSocialProviders(features) }
             : {}),
           // PowerSync needs JWT-with-audience + JWKS — Better-Auth's `jwt`
           // plugin auto-exposes `/api/auth/.well-known/jwks` once enabled.
-          ...(features.powerSync.enabled
-            ? { jwtPlugin: { audience: 'powersync' } }
-            : {}),
+          ...(features.powerSync.enabled ? { jwtPlugin: { audience: "powersync" } } : {}),
         });
       },
     },

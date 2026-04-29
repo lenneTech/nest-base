@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * Geo DTOs (PLAN.md §15 + §32 Phase 5c).
@@ -14,7 +14,7 @@ const NonEmptyString = z.string().min(1);
 /** ISO 3166-1 alpha-2 (DE, AT, US, ...). Two upper-case letters. */
 const CountryCode = z
   .string()
-  .regex(/^[A-Z]{2}$/, 'country must be a 2-letter ISO 3166-1 alpha-2 code');
+  .regex(/^[A-Z]{2}$/, "country must be a 2-letter ISO 3166-1 alpha-2 code");
 
 const Latitude = z.coerce.number().min(-90).max(90);
 const Longitude = z.coerce.number().min(-180).max(180);
@@ -34,14 +34,14 @@ export const UpdateAddressSchema = CreateAddressSchema.partial();
 
 const ClosedRing = z
   .array(LngLatPair)
-  .min(4, 'polygon must have at least 4 points (3 unique + closing)')
+  .min(4, "polygon must have at least 4 points (3 unique + closing)")
   .refine(
     (pts) => {
       const first = pts[0]!;
       const last = pts[pts.length - 1]!;
       return first[0] === last[0] && first[1] === last[1];
     },
-    { message: 'polygon must be closed (first point equals last point)' },
+    { message: "polygon must be closed (first point equals last point)" },
   );
 
 export const CreateGeofenceSchema = z.object({
@@ -68,8 +68,11 @@ export const PlacesNearbySchema = z.object({
   lng: Longitude,
   radiusMeters: z.coerce
     .number()
-    .positive('radiusMeters must be > 0')
-    .max(MAX_PLACES_NEARBY_RADIUS_METERS, `radiusMeters must be ≤ ${MAX_PLACES_NEARBY_RADIUS_METERS} (100 km)`),
+    .positive("radiusMeters must be > 0")
+    .max(
+      MAX_PLACES_NEARBY_RADIUS_METERS,
+      `radiusMeters must be ≤ ${MAX_PLACES_NEARBY_RADIUS_METERS} (100 km)`,
+    ),
 });
 
 export type CreateAddressInput = z.infer<typeof CreateAddressSchema>;

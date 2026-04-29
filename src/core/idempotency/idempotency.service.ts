@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash } from "node:crypto";
 
 /**
  * Idempotency-Key service (PLAN.md §19.6 + §32 Phase 8).
@@ -61,14 +61,14 @@ export interface RunOrCacheInput<TBody = unknown> {
 export class IdempotencyConflictError extends Error {
   constructor(public readonly key: string) {
     super(`idempotency: key "${key}" was used with a different request body`);
-    this.name = 'IdempotencyConflictError';
+    this.name = "IdempotencyConflictError";
   }
 }
 
 export function computeRequestHash(input: RequestFingerprintInput): string {
   const normalisedBody = stableStringify(input.body);
   const fingerprint = `${input.method.toUpperCase()}\n${input.path}\n${normalisedBody}`;
-  return createHash('sha256').update(fingerprint).digest('hex');
+  return createHash("sha256").update(fingerprint).digest("hex");
 }
 
 export class IdempotencyService {
@@ -112,8 +112,10 @@ export class IdempotencyService {
  * usually semantic for the request body.
  */
 function stableStringify(value: unknown): string {
-  if (value === null || typeof value !== 'object') return JSON.stringify(value);
-  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
-  const entries = Object.entries(value as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b));
-  return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stableStringify(v)}`).join(',')}}`;
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
+  const entries = Object.entries(value as Record<string, unknown>).sort(([a], [b]) =>
+    a.localeCompare(b),
+  );
+  return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stableStringify(v)}`).join(",")}}`;
 }

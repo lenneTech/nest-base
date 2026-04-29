@@ -36,6 +36,6 @@ export const MODULES_COVERAGE_THRESHOLD: CoverageThreshold = {
 };
 
 export const coverageThresholds: Record<string, CoverageThreshold> = {
-  'src/core/**': CORE_COVERAGE_THRESHOLD,
-  'src/modules/**': MODULES_COVERAGE_THRESHOLD,
+  "src/core/**": CORE_COVERAGE_THRESHOLD,
+  "src/modules/**": MODULES_COVERAGE_THRESHOLD,
 };

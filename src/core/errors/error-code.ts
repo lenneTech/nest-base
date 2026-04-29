@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * Error-Code conventions (PLAN.md §28.8/#22).
@@ -12,16 +12,16 @@ import { z } from 'zod';
  * itself (#23).
  */
 
-export const CORE_ERROR_CODE_PREFIX = 'CORE_' as const;
+export const CORE_ERROR_CODE_PREFIX = "CORE_" as const;
 
 export const CORE_ERROR_CODES = {
-  INTERNAL: 'CORE_INTERNAL',
-  NOT_FOUND: 'CORE_NOT_FOUND',
-  UNAUTHORIZED: 'CORE_UNAUTHORIZED',
-  FORBIDDEN: 'CORE_FORBIDDEN',
-  VALIDATION: 'CORE_VALIDATION',
-  CONFLICT: 'CORE_CONFLICT',
-  RATE_LIMITED: 'CORE_RATE_LIMITED',
+  INTERNAL: "CORE_INTERNAL",
+  NOT_FOUND: "CORE_NOT_FOUND",
+  UNAUTHORIZED: "CORE_UNAUTHORIZED",
+  FORBIDDEN: "CORE_FORBIDDEN",
+  VALIDATION: "CORE_VALIDATION",
+  CONFLICT: "CORE_CONFLICT",
+  RATE_LIMITED: "CORE_RATE_LIMITED",
 } as const;
 
 export type CoreErrorCode = (typeof CORE_ERROR_CODES)[keyof typeof CORE_ERROR_CODES];
@@ -54,7 +54,7 @@ export interface ProblemDetailsInput {
 }
 
 export function problemDetails(input: ProblemDetailsInput): ProblemDetails {
-  const base = process.env.ERROR_DOC_BASE_URL?.replace(/\/$/, '') ?? '/docs/errors';
+  const base = process.env.ERROR_DOC_BASE_URL?.replace(/\/$/, "") ?? "/docs/errors";
   const type = input.type ?? `${base}/${input.code}`;
   return {
     type,

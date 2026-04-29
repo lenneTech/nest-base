@@ -1,4 +1,4 @@
-import { uuidV7 } from '../uuid/uuid-v7.js';
+import { uuidV7 } from "../uuid/uuid-v7.js";
 
 /**
  * Tenant-Member CRUD (PLAN.md §5.3).
@@ -9,7 +9,7 @@ import { uuidV7 } from '../uuid/uuid-v7.js';
  * the schema.
  */
 
-export type TenantMemberStatus = 'ACTIVE' | 'INVITED' | 'SUSPENDED';
+export type TenantMemberStatus = "ACTIVE" | "INVITED" | "SUSPENDED";
 
 export interface TenantMemberRecord {
   id: string;
@@ -32,14 +32,14 @@ export interface TenantMemberStorage {
 export class TenantMemberAlreadyExistsError extends Error {
   constructor(userId: string, tenantId: string) {
     super(`tenant member already exists for (userId=${userId}, tenantId=${tenantId})`);
-    this.name = 'TenantMemberAlreadyExistsError';
+    this.name = "TenantMemberAlreadyExistsError";
   }
 }
 
 export class TenantMemberNotFoundError extends Error {
   constructor(id: string) {
     super(`tenant member not found: ${id}`);
-    this.name = 'TenantMemberNotFoundError';
+    this.name = "TenantMemberNotFoundError";
   }
 }
 
@@ -62,7 +62,7 @@ export class TenantMemberService {
       userId: input.userId,
       tenantId: input.tenantId,
       role: input.role,
-      status: 'INVITED',
+      status: "INVITED",
       invitedAt: new Date(),
     };
     return this.storage.insert(record);
@@ -73,7 +73,7 @@ export class TenantMemberService {
   }
 
   async activate(id: string): Promise<TenantMemberRecord> {
-    const updated = await this.storage.updateStatus(id, 'ACTIVE');
+    const updated = await this.storage.updateStatus(id, "ACTIVE");
     if (!updated) throw new TenantMemberNotFoundError(id);
     if (!updated.joinedAt) {
       updated.joinedAt = new Date();
@@ -82,7 +82,7 @@ export class TenantMemberService {
   }
 
   async suspend(id: string): Promise<TenantMemberRecord> {
-    const updated = await this.storage.updateStatus(id, 'SUSPENDED');
+    const updated = await this.storage.updateStatus(id, "SUSPENDED");
     if (!updated) throw new TenantMemberNotFoundError(id);
     return updated;
   }

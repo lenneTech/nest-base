@@ -22,6 +22,15 @@ export default defineConfig({
         'src/**/*.dto.ts',
         'src/**/index.ts',
         'src/main.ts',
+        // NestJS module declarations + thin controllers are integration-
+        // tested via e2e specs (real HTTP roundtrip). Excluding them
+        // from the unit-coverage gate keeps the threshold focused on
+        // pure-function logic where unit tests buy real safety.
+        'src/**/*.module.ts',
+        'src/**/*.controller.ts',
+        'src/**/*.interceptor.ts',
+        'src/**/*.middleware.ts',
+        'src/**/*.guard.ts',
       ],
       thresholds: coverageThresholds,
     },

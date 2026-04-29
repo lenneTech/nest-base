@@ -1,4 +1,4 @@
-import { uuidV7 } from '../uuid/uuid-v7.js';
+import { uuidV7 } from "../uuid/uuid-v7.js";
 
 export type CleanupFn = () => void | Promise<void>;
 export type IdDeleter = (id: string) => void | Promise<void>;
@@ -26,7 +26,7 @@ export class TestHelper {
     return uuidV7();
   }
 
-  uniqueEmail(localPart = 'user'): string {
+  uniqueEmail(localPart = "user"): string {
     return `${localPart}+${this.id}@test.com`;
   }
 

@@ -1,6 +1,6 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-import type { AppEnv } from '../http/cookie-cors-config.js';
+import type { AppEnv } from "../http/cookie-cors-config.js";
 
 /**
  * Server boot config (Phase 1).
@@ -9,7 +9,7 @@ import type { AppEnv } from '../http/cookie-cors-config.js';
  * `serverConfigFromEnv()` is the env-vars adapter and applies dev defaults.
  */
 
-const APP_ENV_VALUES = ['development', 'staging', 'production'] as const;
+const APP_ENV_VALUES = ["development", "staging", "production"] as const;
 
 export const ServerConfigSchema = z.object({
   port: z.number().int().min(1).max(65_535),
@@ -21,9 +21,9 @@ export const ServerConfigSchema = z.object({
 export type ServerConfig = z.infer<typeof ServerConfigSchema>;
 
 const DEFAULT_PORT = 3000;
-const DEFAULT_HOST = '0.0.0.0';
+const DEFAULT_HOST = "0.0.0.0";
 const DEFAULT_BASE_URL = `http://localhost:${DEFAULT_PORT}`;
-const DEFAULT_ENV: AppEnv = 'development';
+const DEFAULT_ENV: AppEnv = "development";
 
 export function defaultServerConfig(): ServerConfig {
   return {
@@ -78,14 +78,14 @@ function presentValidBaseUrl(value: string | undefined): string | undefined {
 }
 
 function normalizeAppEnv(raw: string | undefined): AppEnv {
-  if (raw === undefined || raw === 'test') return DEFAULT_ENV;
+  if (raw === undefined || raw === "test") return DEFAULT_ENV;
   return raw as AppEnv;
 }
 
 /** Treat empty strings the same as undefined — many CI runners surface unset
  *  env-vars as empty rather than missing keys. */
 function present(value: string | undefined): string | undefined {
-  return value === undefined || value === '' ? undefined : value;
+  return value === undefined || value === "" ? undefined : value;
 }
 
 function parseTcpPort(raw: string): number {

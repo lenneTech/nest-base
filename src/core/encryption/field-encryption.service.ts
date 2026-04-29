@@ -1,8 +1,8 @@
-import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
+import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from "@nestjs/common";
 
-import { KEK_PROVIDER, type KekProvider } from './kek-provider.js';
+import { KEK_PROVIDER, type KekProvider } from "./kek-provider.js";
 
 /**
  * Field-level encryption (PLAN.md §14).
@@ -19,7 +19,7 @@ import { KEK_PROVIDER, type KekProvider } from './kek-provider.js';
 const IV_BYTES = 12;
 const TAG_BYTES = 16;
 const KEK_BYTES = 32;
-const VERSION = 'v1';
+const VERSION = "v1";
 
 @Injectable()
 export class FieldEncryptionService {
@@ -28,31 +28,31 @@ export class FieldEncryptionService {
   encrypt(plaintext: string): string {
     const key = this.assertKey();
     const iv = randomBytes(IV_BYTES);
-    const cipher = createCipheriv('aes-256-gcm', key, iv);
-    const ct = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+    const cipher = createCipheriv("aes-256-gcm", key, iv);
+    const ct = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
     const tag = cipher.getAuthTag();
     const payload = Buffer.concat([iv, tag, ct]);
     return `${VERSION}:${base64UrlEncode(payload)}`;
   }
 
   decrypt(input: string): string {
-    const colon = input.indexOf(':');
-    if (colon < 0) throw new Error('field-encryption: malformed ciphertext');
+    const colon = input.indexOf(":");
+    if (colon < 0) throw new Error("field-encryption: malformed ciphertext");
     const version = input.slice(0, colon);
     if (version !== VERSION) throw new Error(`field-encryption: unsupported version "${version}"`);
 
     const payload = base64UrlDecode(input.slice(colon + 1));
     if (payload.length < IV_BYTES + TAG_BYTES) {
-      throw new Error('field-encryption: ciphertext too short');
+      throw new Error("field-encryption: ciphertext too short");
     }
     const iv = payload.subarray(0, IV_BYTES);
     const tag = payload.subarray(IV_BYTES, IV_BYTES + TAG_BYTES);
     const ct = payload.subarray(IV_BYTES + TAG_BYTES);
 
     const key = this.assertKey();
-    const decipher = createDecipheriv('aes-256-gcm', key, iv);
+    const decipher = createDecipheriv("aes-256-gcm", key, iv);
     decipher.setAuthTag(tag);
-    return Buffer.concat([decipher.update(ct), decipher.final()]).toString('utf8');
+    return Buffer.concat([decipher.update(ct), decipher.final()]).toString("utf8");
   }
 
   private assertKey(): Buffer {
@@ -65,11 +65,11 @@ export class FieldEncryptionService {
 }
 
 function base64UrlEncode(buf: Buffer): string {
-  return buf.toString('base64').replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
+  return buf.toString("base64").replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
 }
 
 function base64UrlDecode(value: string): Buffer {
-  const restored = value.replaceAll('-', '+').replaceAll('_', '/');
-  const pad = restored.length % 4 === 0 ? '' : '='.repeat(4 - (restored.length % 4));
-  return Buffer.from(restored + pad, 'base64');
+  const restored = value.replaceAll("-", "+").replaceAll("_", "/");
+  const pad = restored.length % 4 === 0 ? "" : "=".repeat(4 - (restored.length % 4));
+  return Buffer.from(restored + pad, "base64");
 }

@@ -1,4 +1,4 @@
-import type { AppEnv } from '../http/cookie-cors-config.js';
+import type { AppEnv } from "../http/cookie-cors-config.js";
 
 /**
  * Minimal OpenTelemetry SDK shape that we depend on. Kept narrow so we
@@ -12,7 +12,7 @@ export interface OtelSdk {
 
 export interface InitObservabilityOptions {
   enabled: boolean;
-  env: AppEnv | 'test';
+  env: AppEnv | "test";
   serviceName: string;
   /**
    * Override the SDK construction. Defaults to a no-op factory; consumers
@@ -20,7 +20,7 @@ export interface InitObservabilityOptions {
    * real OTLP exports. Letting the factory be injectable keeps the unit
    * tests deterministic without spinning up a collector.
    */
-  sdkFactory?: (ctx: { serviceName: string; env: AppEnv | 'test' }) => OtelSdk;
+  sdkFactory?: (ctx: { serviceName: string; env: AppEnv | "test" }) => OtelSdk;
 }
 
 export type ShutdownFn = () => Promise<void>;
@@ -38,7 +38,7 @@ export type ShutdownFn = () => Promise<void>;
  *                       shutdown calls `sdk.shutdown()` exactly once.
  */
 export async function initObservability(options: InitObservabilityOptions): Promise<ShutdownFn> {
-  if (!options.enabled || options.env === 'test') {
+  if (!options.enabled || options.env === "test") {
     return async () => {};
   }
 
@@ -60,6 +60,6 @@ function defaultSdkFactory(): OtelSdk {
   // so consumers that flip `observability.enabled=true` get a clear
   // signal rather than a silent failure.
   throw new Error(
-    'observability.enabled=true but no sdkFactory was provided. Pass an `@opentelemetry/sdk-node` factory or keep observability disabled.',
+    "observability.enabled=true but no sdkFactory was provided. Pass an `@opentelemetry/sdk-node` factory or keep observability disabled.",
   );
 }

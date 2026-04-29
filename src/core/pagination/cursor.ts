@@ -28,30 +28,30 @@ export interface CursorPage<T extends CursorRecord> {
 export class CursorMalformedError extends Error {
   constructor(reason: string) {
     super(`cursor: malformed (${reason})`);
-    this.name = 'CursorMalformedError';
+    this.name = "CursorMalformedError";
   }
 }
 
 export function encodeCursor(record: CursorRecord): string {
   const payload = JSON.stringify({ s: record.sortValue, i: record.id });
-  return Buffer.from(payload, 'utf8').toString('base64url');
+  return Buffer.from(payload, "utf8").toString("base64url");
 }
 
 export function decodeCursor(cursor: string): CursorRecord {
-  if (!cursor) throw new CursorMalformedError('empty');
+  if (!cursor) throw new CursorMalformedError("empty");
   let parsed: unknown;
   try {
-    const decoded = Buffer.from(cursor, 'base64url').toString('utf8');
+    const decoded = Buffer.from(cursor, "base64url").toString("utf8");
     parsed = JSON.parse(decoded);
   } catch (err) {
-    throw new CursorMalformedError(err instanceof Error ? err.message : 'parse failed');
+    throw new CursorMalformedError(err instanceof Error ? err.message : "parse failed");
   }
-  if (!parsed || typeof parsed !== 'object') {
-    throw new CursorMalformedError('payload is not an object');
+  if (!parsed || typeof parsed !== "object") {
+    throw new CursorMalformedError("payload is not an object");
   }
   const { s, i } = parsed as { s?: unknown; i?: unknown };
-  if ((typeof s !== 'string' && typeof s !== 'number') || typeof i !== 'string') {
-    throw new CursorMalformedError('missing sortValue or id');
+  if ((typeof s !== "string" && typeof s !== "number") || typeof i !== "string") {
+    throw new CursorMalformedError("missing sortValue or id");
   }
   return { sortValue: s, id: i };
 }

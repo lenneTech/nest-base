@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 
 import {
   IdempotencyConflictError,
@@ -6,7 +6,7 @@ import {
   computeRequestHash,
   type IdempotencyRecord,
   type IdempotencyStore,
-} from '../../src/core/idempotency/idempotency.service.js';
+} from "../../src/core/idempotency/idempotency.service.js";
 
 /**
  * Story · Idempotency-Key (PLAN.md §19.6 + §32 Phase 8).
@@ -24,7 +24,7 @@ import {
  * this slice ships the pure service that owns the lookup / store /
  * conflict logic.
  */
-describe('Story · Idempotency service', () => {
+describe("Story · Idempotency service", () => {
   function inMemoryStore(): IdempotencyStore & { records: Map<string, IdempotencyRecord> } {
     const records = new Map<string, IdempotencyRecord>();
     return {
@@ -47,103 +47,107 @@ describe('Story · Idempotency service', () => {
     body: unknown;
   } {
     return {
-      method: 'POST',
-      path: '/projects',
-      body: { name: 'Quarterly Plan' },
+      method: "POST",
+      path: "/projects",
+      body: { name: "Quarterly Plan" },
       ...overrides,
     };
   }
 
-  describe('computeRequestHash()', () => {
-    it('returns the same hash for the same request shape', () => {
+  describe("computeRequestHash()", () => {
+    it("returns the same hash for the same request shape", () => {
       const a = computeRequestHash(makeRequest());
       const b = computeRequestHash(makeRequest());
       expect(a).toBe(b);
     });
 
-    it('differs when the body changes', () => {
-      const a = computeRequestHash(makeRequest({ body: { name: 'A' } }));
-      const b = computeRequestHash(makeRequest({ body: { name: 'B' } }));
+    it("differs when the body changes", () => {
+      const a = computeRequestHash(makeRequest({ body: { name: "A" } }));
+      const b = computeRequestHash(makeRequest({ body: { name: "B" } }));
       expect(a).not.toBe(b);
     });
 
-    it('differs when the path changes', () => {
-      const a = computeRequestHash(makeRequest({ path: '/projects' }));
-      const b = computeRequestHash(makeRequest({ path: '/orders' }));
+    it("differs when the path changes", () => {
+      const a = computeRequestHash(makeRequest({ path: "/projects" }));
+      const b = computeRequestHash(makeRequest({ path: "/orders" }));
       expect(a).not.toBe(b);
     });
 
-    it('is method-aware (POST and PATCH on the same body must differ)', () => {
-      const a = computeRequestHash(makeRequest({ method: 'POST' }));
-      const b = computeRequestHash(makeRequest({ method: 'PATCH' }));
+    it("is method-aware (POST and PATCH on the same body must differ)", () => {
+      const a = computeRequestHash(makeRequest({ method: "POST" }));
+      const b = computeRequestHash(makeRequest({ method: "PATCH" }));
       expect(a).not.toBe(b);
     });
 
-    it('returns a 64-char lowercase hex string (sha256)', () => {
+    it("returns a 64-char lowercase hex string (sha256)", () => {
       expect(computeRequestHash(makeRequest())).toMatch(/^[0-9a-f]{64}$/);
     });
   });
 
-  describe('IdempotencyService.runOrCache()', () => {
-    it('runs the handler on a cache miss and stores the response', async () => {
+  describe("IdempotencyService.runOrCache()", () => {
+    it("runs the handler on a cache miss and stores the response", async () => {
       const store = inMemoryStore();
       const svc = new IdempotencyService(store, { now: () => 0, ttlMs: 60_000 });
       const result = await svc.runOrCache({
-        key: 'k-1',
+        key: "k-1",
         request: makeRequest(),
-        handler: async () => ({ status: 201, body: { id: 'p-1' } }),
+        handler: async () => ({ status: 201, body: { id: "p-1" } }),
       });
-      expect(result).toEqual({ status: 201, body: { id: 'p-1' }, replayed: false });
-      expect(store.records.has('k-1')).toBe(true);
+      expect(result).toEqual({ status: 201, body: { id: "p-1" }, replayed: false });
+      expect(store.records.has("k-1")).toBe(true);
     });
 
-    it('returns the cached response on a hit with matching fingerprint', async () => {
+    it("returns the cached response on a hit with matching fingerprint", async () => {
       const store = inMemoryStore();
       const svc = new IdempotencyService(store, { now: () => 0, ttlMs: 60_000 });
       const request = makeRequest();
-      await svc.runOrCache({ key: 'k-1', request, handler: async () => ({ status: 201, body: { id: 'p-1' } }) });
+      await svc.runOrCache({
+        key: "k-1",
+        request,
+        handler: async () => ({ status: 201, body: { id: "p-1" } }),
+      });
       let handlerCalled = false;
       const result = await svc.runOrCache({
-        key: 'k-1',
+        key: "k-1",
         request,
         handler: async () => {
           handlerCalled = true;
-          return { status: 500, body: { id: 'never' } };
+          return { status: 500, body: { id: "never" } };
         },
       });
-      expect(result).toEqual({ status: 201, body: { id: 'p-1' }, replayed: true });
+      expect(result).toEqual({ status: 201, body: { id: "p-1" }, replayed: true });
       expect(handlerCalled).toBe(false);
     });
 
-    it('throws IdempotencyConflictError on a hit with a different fingerprint', async () => {
+    it("throws IdempotencyConflictError on a hit with a different fingerprint", async () => {
       const store = inMemoryStore();
       const svc = new IdempotencyService(store, { now: () => 0, ttlMs: 60_000 });
       await svc.runOrCache({
-        key: 'k-1',
-        request: makeRequest({ body: { name: 'A' } }),
+        key: "k-1",
+        request: makeRequest({ body: { name: "A" } }),
         handler: async () => ({ status: 201, body: {} }),
       });
       await expect(
         svc.runOrCache({
-          key: 'k-1',
-          request: makeRequest({ body: { name: 'B' } }),
+          key: "k-1",
+          request: makeRequest({ body: { name: "B" } }),
           handler: async () => ({ status: 201, body: {} }),
         }),
       ).rejects.toThrow(IdempotencyConflictError);
     });
 
-    it('treats expired records as a cache miss (handler runs again, record refreshed)', async () => {
+    it("treats expired records as a cache miss (handler runs again, record refreshed)", async () => {
       const store = inMemoryStore();
       let now = 0;
       const svc = new IdempotencyService(store, { now: () => now, ttlMs: 60_000 });
       await svc.runOrCache({
-        key: 'k-1',
+        key: "k-1",
         request: makeRequest(),
         handler: async () => ({ status: 201, body: { round: 1 } }),
       });
       now = 60_001;
       const result = await svc.runOrCache({
-        key: 'k-1',
+        key: "k-1",
         request: makeRequest(),
         handler: async () => ({ status: 201, body: { round: 2 } }),
       });
@@ -151,42 +155,42 @@ describe('Story · Idempotency service', () => {
       expect(result.replayed).toBe(false);
     });
 
-    it('does not cache a handler that threw', async () => {
+    it("does not cache a handler that threw", async () => {
       const store = inMemoryStore();
       const svc = new IdempotencyService(store, { now: () => 0, ttlMs: 60_000 });
       await expect(
         svc.runOrCache({
-          key: 'k-1',
+          key: "k-1",
           request: makeRequest(),
           handler: async () => {
-            throw new Error('boom');
+            throw new Error("boom");
           },
         }),
       ).rejects.toThrow(/boom/);
-      expect(store.records.has('k-1')).toBe(false);
+      expect(store.records.has("k-1")).toBe(false);
     });
 
-    it('records expiresAt = now + ttlMs', async () => {
+    it("records expiresAt = now + ttlMs", async () => {
       const store = inMemoryStore();
       const svc = new IdempotencyService(store, { now: () => 1000, ttlMs: 60_000 });
       await svc.runOrCache({
-        key: 'k-1',
+        key: "k-1",
         request: makeRequest(),
         handler: async () => ({ status: 201, body: {} }),
       });
-      expect(store.records.get('k-1')?.expiresAt).toBe(61_000);
+      expect(store.records.get("k-1")?.expiresAt).toBe(61_000);
     });
 
-    it('forwards userId on the stored record when provided', async () => {
+    it("forwards userId on the stored record when provided", async () => {
       const store = inMemoryStore();
       const svc = new IdempotencyService(store, { now: () => 0, ttlMs: 60_000 });
       await svc.runOrCache({
-        key: 'k-1',
+        key: "k-1",
         request: makeRequest(),
-        userId: 'u-42',
+        userId: "u-42",
         handler: async () => ({ status: 201, body: {} }),
       });
-      expect(store.records.get('k-1')?.userId).toBe('u-42');
+      expect(store.records.get("k-1")?.userId).toBe("u-42");
     });
   });
 });

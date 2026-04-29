@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash } from "node:crypto";
 
 /**
  * ETag / If-Match optimistic-concurrency primitives
@@ -23,28 +23,28 @@ export interface ETagSourceFields {
 
 export class ETagMissingError extends Error {
   constructor() {
-    super('etag: If-Match header is required for this mutation');
-    this.name = 'ETagMissingError';
+    super("etag: If-Match header is required for this mutation");
+    this.name = "ETagMissingError";
   }
 }
 
 export class ETagPreconditionFailedError extends Error {
   constructor(public readonly currentETag: string) {
     super(`etag: If-Match did not match current ETag ${currentETag}`);
-    this.name = 'ETagPreconditionFailedError';
+    this.name = "ETagPreconditionFailedError";
   }
 }
 
 export function computeETag(source: ETagSourceFields): string {
   const fingerprint = `${source.version}|${source.updatedAt}`;
-  const hash = createHash('sha256').update(fingerprint).digest('hex').slice(0, 16);
+  const hash = createHash("sha256").update(fingerprint).digest("hex").slice(0, 16);
   return `"v${source.version}-${hash}"`;
 }
 
 export function parseIfMatch(header: string | undefined | null): string[] {
   if (!header) return [];
   return header
-    .split(',')
+    .split(",")
     .map((part) => part.trim())
     .filter((part) => part.length > 0);
 }
@@ -55,8 +55,8 @@ export function verifyIfMatch(currentETag: string, header: string | undefined | 
   }
   const candidates = parseIfMatch(header);
   for (const candidate of candidates) {
-    if (candidate === '*') return;
-    if (candidate.startsWith('W/')) continue; // strong-comparison: weak tags never match
+    if (candidate === "*") return;
+    if (candidate.startsWith("W/")) continue; // strong-comparison: weak tags never match
     if (candidate === currentETag) return;
   }
   throw new ETagPreconditionFailedError(currentETag);

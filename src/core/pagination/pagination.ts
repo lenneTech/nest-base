@@ -29,9 +29,9 @@ export interface PaginateInput<T> {
 }
 
 export function paginate<T>(input: PaginateInput<T>): Pagination<T> {
-  if (input.perPage <= 0) throw new Error('paginate: perPage must be positive');
-  if (input.page <= 0) throw new Error('paginate: page must be positive');
-  if (input.total < 0) throw new Error('paginate: total cannot be negative');
+  if (input.perPage <= 0) throw new Error("paginate: perPage must be positive");
+  if (input.page <= 0) throw new Error("paginate: page must be positive");
+  if (input.total < 0) throw new Error("paginate: total cannot be negative");
 
   const totalPages = Math.ceil(input.total / input.perPage);
   return {

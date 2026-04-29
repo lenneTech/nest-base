@@ -16,17 +16,17 @@
  */
 
 export type ScalarTheme =
-  | 'default'
-  | 'alternate'
-  | 'moon'
-  | 'purple'
-  | 'solarized'
-  | 'bluePlanet'
-  | 'saturn'
-  | 'kepler'
-  | 'mars'
-  | 'deepSpace'
-  | 'none';
+  | "default"
+  | "alternate"
+  | "moon"
+  | "purple"
+  | "solarized"
+  | "bluePlanet"
+  | "saturn"
+  | "kepler"
+  | "mars"
+  | "deepSpace"
+  | "none";
 
 export interface ScalarConfigInput {
   /** Path the OpenAPI document is served from (e.g. `/api/openapi.json`). */
@@ -52,14 +52,14 @@ export interface ScalarConfig {
   mountPath: string;
 }
 
-const DEFAULT_MOUNT_PATH = '/api/docs';
-const DEFAULT_THEME: ScalarTheme = 'default';
-const DEFAULT_TITLE = 'API Reference';
+const DEFAULT_MOUNT_PATH = "/api/docs";
+const DEFAULT_THEME: ScalarTheme = "default";
+const DEFAULT_TITLE = "API Reference";
 
 export class ScalarSpecRequiredError extends Error {
   constructor() {
-    super('scalar-config: either `specUrl` or `spec` is required');
-    this.name = 'ScalarSpecRequiredError';
+    super("scalar-config: either `specUrl` or `spec` is required");
+    this.name = "ScalarSpecRequiredError";
   }
 }
 
@@ -68,8 +68,10 @@ export function buildScalarConfig(input: ScalarConfigInput): ScalarConfig {
     throw new ScalarSpecRequiredError();
   }
   const mountPath = input.mountPath ?? DEFAULT_MOUNT_PATH;
-  if (!mountPath || !mountPath.startsWith('/')) {
-    throw new Error(`scalar-config: mountPath must be a non-empty path starting with "/" (got "${mountPath}")`);
+  if (!mountPath || !mountPath.startsWith("/")) {
+    throw new Error(
+      `scalar-config: mountPath must be a non-empty path starting with "/" (got "${mountPath}")`,
+    );
   }
   const config: ScalarConfig = {
     theme: input.theme ?? DEFAULT_THEME,

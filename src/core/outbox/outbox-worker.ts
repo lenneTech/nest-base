@@ -1,4 +1,4 @@
-import type { OutboxEntry, OutboxStorage } from './outbox.js';
+import type { OutboxEntry, OutboxStorage } from "./outbox.js";
 
 /**
  * Outbox Worker (PLAN.md §28.4/#18).
@@ -45,7 +45,10 @@ export class OutboxWorker {
             await d.dispatch(entry);
             return { ok: true } as const;
           } catch (error) {
-            return { ok: false, error: error instanceof Error ? error : new Error(String(error)) } as const;
+            return {
+              ok: false,
+              error: error instanceof Error ? error : new Error(String(error)),
+            } as const;
           }
         }),
       );

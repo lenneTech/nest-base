@@ -1,4 +1,4 @@
-import { uuidV7 } from '../uuid/uuid-v7.js';
+import { uuidV7 } from "../uuid/uuid-v7.js";
 
 /**
  * TUS upload-session state machine (PLAN.md §8 + §32 Phase 4).
@@ -17,7 +17,7 @@ import { uuidV7 } from '../uuid/uuid-v7.js';
  * the controller's job; this module owns the state contract.
  */
 
-export type UploadStatus = 'pending' | 'partial' | 'complete';
+export type UploadStatus = "pending" | "partial" | "complete";
 
 export interface UploadSession {
   id: string;
@@ -42,21 +42,21 @@ export interface UploadSessionManagerOptions {
 export class UploadSessionNotFoundError extends Error {
   constructor(id: string) {
     super(`upload session not found: ${id}`);
-    this.name = 'UploadSessionNotFoundError';
+    this.name = "UploadSessionNotFoundError";
   }
 }
 
 export class UploadOffsetMismatchError extends Error {
   constructor(expected: number, actual: number) {
     super(`upload offset mismatch: expected ${expected}, got ${actual}`);
-    this.name = 'UploadOffsetMismatchError';
+    this.name = "UploadOffsetMismatchError";
   }
 }
 
 export class UploadTooLargeError extends Error {
   constructor(public readonly limit: number) {
     super(`upload exceeds the configured limit of ${limit} bytes`);
-    this.name = 'UploadTooLargeError';
+    this.name = "UploadTooLargeError";
   }
 }
 
@@ -83,7 +83,7 @@ export class UploadSessionManager {
       uploadLength: input.uploadLength,
       offset: 0,
       mimeType: input.mimeType,
-      status: 'pending',
+      status: "pending",
     };
     await this.storage.insert(session);
     return session;
@@ -92,7 +92,7 @@ export class UploadSessionManager {
   async appendChunk(id: string, offset: number, chunk: Uint8Array): Promise<UploadSession> {
     const session = await this.storage.get(id);
     if (!session) throw new UploadSessionNotFoundError(id);
-    if (session.status === 'complete') {
+    if (session.status === "complete") {
       throw new Error(`upload session ${id} is already complete`);
     }
     if (offset !== session.offset) {
@@ -102,7 +102,7 @@ export class UploadSessionManager {
     if (newOffset > session.uploadLength) {
       throw new UploadTooLargeError(session.uploadLength);
     }
-    const status: UploadStatus = newOffset === session.uploadLength ? 'complete' : 'partial';
+    const status: UploadStatus = newOffset === session.uploadLength ? "complete" : "partial";
     const updated = await this.storage.update(id, { offset: newOffset, status });
     if (!updated) throw new UploadSessionNotFoundError(id);
     return updated;

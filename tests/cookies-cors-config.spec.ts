@@ -1,63 +1,68 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 
-import { CookieConfigSchema, CorsConfigSchema, cookieDefaults, corsDefaults } from '../src/core/http/cookie-cors-config.js';
+import {
+  CookieConfigSchema,
+  CorsConfigSchema,
+  cookieDefaults,
+  corsDefaults,
+} from "../src/core/http/cookie-cors-config.js";
 
 /**
  * Adapted from nest-server `cookies-cors-config.spec.ts`.
  * Validates the config schemas only — actual middleware wiring lands when
  * the NestJS app boots (Phase 1 / Helmet + CSP / Phase 2 / auth-cookie).
  */
-describe('Cookie & CORS Config', () => {
-  describe('CookieConfigSchema', () => {
-    it('accepts a complete production-grade cookie config', () => {
+describe("Cookie & CORS Config", () => {
+  describe("CookieConfigSchema", () => {
+    it("accepts a complete production-grade cookie config", () => {
       const parsed = CookieConfigSchema.safeParse({
-        name: 'nst_session',
+        name: "nst_session",
         httpOnly: true,
         secure: true,
-        sameSite: 'lax',
-        path: '/',
-        domain: 'api.example.com',
+        sameSite: "lax",
+        path: "/",
+        domain: "api.example.com",
         maxAgeSeconds: 60 * 60 * 24,
       });
       expect(parsed.success).toBe(true);
     });
 
-    it('rejects sameSite values outside the RFC-allowed set', () => {
+    it("rejects sameSite values outside the RFC-allowed set", () => {
       const parsed = CookieConfigSchema.safeParse({
-        name: 'x',
+        name: "x",
         httpOnly: true,
         secure: true,
-        sameSite: 'sometimes',
-        path: '/',
+        sameSite: "sometimes",
+        path: "/",
         maxAgeSeconds: 1,
       });
       expect(parsed.success).toBe(false);
     });
 
-    it('rejects empty cookie names', () => {
+    it("rejects empty cookie names", () => {
       const parsed = CookieConfigSchema.safeParse({
-        name: '',
+        name: "",
         httpOnly: true,
         secure: true,
-        sameSite: 'lax',
-        path: '/',
+        sameSite: "lax",
+        path: "/",
         maxAgeSeconds: 1,
       });
       expect(parsed.success).toBe(false);
     });
   });
 
-  describe('CorsConfigSchema', () => {
-    it('accepts an explicit origin allowlist', () => {
+  describe("CorsConfigSchema", () => {
+    it("accepts an explicit origin allowlist", () => {
       const parsed = CorsConfigSchema.safeParse({
-        allowedOrigins: ['https://app.example.com'],
+        allowedOrigins: ["https://app.example.com"],
         credentials: true,
         maxAgeSeconds: 600,
       });
       expect(parsed.success).toBe(true);
     });
 
-    it('rejects an empty allowlist when credentials=true (would block all browsers)', () => {
+    it("rejects an empty allowlist when credentials=true (would block all browsers)", () => {
       const parsed = CorsConfigSchema.safeParse({
         allowedOrigins: [],
         credentials: true,
@@ -66,7 +71,7 @@ describe('Cookie & CORS Config', () => {
       expect(parsed.success).toBe(false);
     });
 
-    it('allows an empty allowlist when credentials=false (public API)', () => {
+    it("allows an empty allowlist when credentials=false (public API)", () => {
       const parsed = CorsConfigSchema.safeParse({
         allowedOrigins: [],
         credentials: false,
@@ -76,27 +81,27 @@ describe('Cookie & CORS Config', () => {
     });
   });
 
-  describe('Defaults', () => {
+  describe("Defaults", () => {
     it('cookieDefaults("production") returns Secure + SameSite=Lax + HttpOnly', () => {
-      const cfg = cookieDefaults('production');
+      const cfg = cookieDefaults("production");
       expect(cfg.httpOnly).toBe(true);
       expect(cfg.secure).toBe(true);
-      expect(cfg.sameSite).toBe('lax');
+      expect(cfg.sameSite).toBe("lax");
     });
 
     it('cookieDefaults("development") drops Secure to allow http://localhost', () => {
-      const cfg = cookieDefaults('development');
+      const cfg = cookieDefaults("development");
       expect(cfg.httpOnly).toBe(true);
       expect(cfg.secure).toBe(false);
     });
 
     it('corsDefaults("development") allows localhost origins', () => {
-      const cfg = corsDefaults('development');
-      expect(cfg.allowedOrigins.some((origin) => origin.includes('localhost'))).toBe(true);
+      const cfg = corsDefaults("development");
+      expect(cfg.allowedOrigins.some((origin) => origin.includes("localhost"))).toBe(true);
     });
 
     it('corsDefaults("production") returns no origins (must be configured explicitly)', () => {
-      const cfg = corsDefaults('production');
+      const cfg = corsDefaults("production");
       expect(cfg.allowedOrigins).toEqual([]);
     });
   });

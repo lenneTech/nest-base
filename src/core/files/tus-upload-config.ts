@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * TUS resumable upload config (PLAN.md §8 + §28.2/#6).
@@ -7,7 +7,7 @@ import { z } from 'zod';
  * is wired. This module owns the config schema + sensible defaults.
  */
 
-const DEFAULT_MOUNT = '/api/files/upload';
+const DEFAULT_MOUNT = "/api/files/upload";
 const DEFAULT_MAX_BYTES = 50 * 1024 * 1024; // 50 MB
 const DEFAULT_CHUNK_TTL_SECONDS = 60 * 60 * 24; // 24 h
 
@@ -31,7 +31,7 @@ export function tusUploadConfigDefaults(): TusUploadConfig {
 
 export function resolveTusMountPath(custom?: string): string {
   const candidate = custom ?? DEFAULT_MOUNT;
-  if (!candidate.startsWith('/')) {
+  if (!candidate.startsWith("/")) {
     throw new Error(`mount path must start with "/" (received: ${candidate})`);
   }
   return candidate;

@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
+import { Module } from "@nestjs/common";
 
-import { PowerSyncController } from './powersync.controller.js';
+import { PowerSyncController } from "./powersync.controller.js";
 
 /**
  * PowerSyncModule — exposes `/powersync/crud` for the offline-sync

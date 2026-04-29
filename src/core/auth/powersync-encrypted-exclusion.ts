@@ -25,7 +25,7 @@ export function buildSyncSelectExcludingEncrypted(
   encryptedColumns: ReadonlyArray<string>,
 ): string[] {
   if (allColumns.length === 0) {
-    throw new Error('powersync-encrypted-exclusion: at least one column is required');
+    throw new Error("powersync-encrypted-exclusion: at least one column is required");
   }
   const allSet = new Set(allColumns);
   for (const col of encryptedColumns) {
@@ -46,7 +46,7 @@ export function assertSyncRulesExcludeEncrypted(
   for (const [table, columns] of Object.entries(registry)) {
     // Look for `FROM <table>` (case-insensitive) in any sync-rule body
     // followed by a SELECT that mentions a forbidden column.
-    const tableRegex = new RegExp(`SELECT[\\s\\S]*?FROM\\s+${escapeRegex(table)}\\b`, 'gi');
+    const tableRegex = new RegExp(`SELECT[\\s\\S]*?FROM\\s+${escapeRegex(table)}\\b`, "gi");
     const selects = matchAll(yamlText, tableRegex).map((m) => m[0]);
     for (const selectClause of selects) {
       for (const col of columns) {
@@ -62,13 +62,13 @@ export function assertSyncRulesExcludeEncrypted(
 }
 
 function escapeRegex(input: string): string {
-  return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function matchAll(input: string, regex: RegExp): RegExpExecArray[] {
   const out: RegExpExecArray[] = [];
   let match: RegExpExecArray | null;
-  const re = new RegExp(regex.source, regex.flags.includes('g') ? regex.flags : `${regex.flags}g`);
+  const re = new RegExp(regex.source, regex.flags.includes("g") ? regex.flags : `${regex.flags}g`);
   while ((match = re.exec(input)) !== null) {
     out.push(match);
     if (match.index === re.lastIndex) re.lastIndex++;

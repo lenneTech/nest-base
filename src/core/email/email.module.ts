@@ -1,4 +1,4 @@
-import { Logger, Module } from '@nestjs/common';
+import { Logger, Module } from "@nestjs/common";
 
 import {
   type EmailDriver,
@@ -6,8 +6,8 @@ import {
   type EmailSendResult,
   type EmailTemplateRenderer,
   EmailService,
-} from './email.service.js';
-import { EjsEmailTemplateRenderer, buildBuiltInEmailTemplateRegistry } from './email-templates.js';
+} from "./email.service.js";
+import { EjsEmailTemplateRenderer, buildBuiltInEmailTemplateRegistry } from "./email-templates.js";
 
 /**
  * Logs the message to stdout instead of sending.  Default driver
@@ -16,15 +16,19 @@ import { EjsEmailTemplateRenderer, buildBuiltInEmailTemplateRegistry } from './e
  * deps.
  */
 class LogOnlyEmailDriver implements EmailDriver {
-  readonly name = 'log-only';
-  private readonly logger = new Logger('EmailService');
+  readonly name = "log-only";
+  private readonly logger = new Logger("EmailService");
 
   async send(msg: EmailMessage): Promise<EmailSendResult> {
     this.logger.log(`[email] to=${msg.to} subject="${msg.subject}" via=${this.name}`);
     return { messageId: `log-${Date.now()}`, driver: this.name };
   }
 
-  async sendTemplate(msg: EmailMessage, templateId: number, vars: object): Promise<EmailSendResult> {
+  async sendTemplate(
+    msg: EmailMessage,
+    templateId: number,
+    vars: object,
+  ): Promise<EmailSendResult> {
     this.logger.log(
       `[email] templateId=${templateId} to=${msg.to} vars=${JSON.stringify(vars)} via=${this.name}`,
     );
@@ -51,7 +55,7 @@ class LogOnlyEmailDriver implements EmailDriver {
         return new EmailService({
           primary: new LogOnlyEmailDriver(),
           renderer,
-          defaultFrom: process.env.SMTP_FROM ?? 'no-reply@example.com',
+          defaultFrom: process.env.SMTP_FROM ?? "no-reply@example.com",
         });
       },
     },

@@ -3,7 +3,7 @@ import {
   type StorageObjectMetadata,
   type StoragePutInput,
   StorageObjectNotFoundError,
-} from './storage-adapter.js';
+} from "./storage-adapter.js";
 
 /**
  * Postgres Storage Adapter (PLAN.md §8 + §32 Phase 4).
@@ -42,11 +42,11 @@ export class PostgresStorageAdapter implements StorageAdapter {
     private readonly ops: FileBlobOperations,
     options: PostgresStorageOptions,
   ) {
-    this.baseUrl = options.baseUrl.replace(/\/+$/, '');
+    this.baseUrl = options.baseUrl.replace(/\/+$/, "");
   }
 
   async put(input: StoragePutInput): Promise<StorageObjectMetadata> {
-    if (!input.key) throw new Error('storage: key is required');
+    if (!input.key) throw new Error("storage: key is required");
     await this.ops.upsert(input.key, input.body, input.mimeType);
     return { key: input.key, sizeBytes: input.body.byteLength, mimeType: input.mimeType };
   }
@@ -84,7 +84,7 @@ export class PostgresStorageAdapter implements StorageAdapter {
 
 function encodePathKey(key: string): string {
   return key
-    .split('/')
+    .split("/")
     .map((segment) => encodeURIComponent(segment))
-    .join('/');
+    .join("/");
 }

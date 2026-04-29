@@ -1,7 +1,7 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 
 import {
   TenantMemberAlreadyExistsError,
@@ -9,9 +9,9 @@ import {
   TenantMemberService,
   type TenantMemberRecord,
   type TenantMemberStorage,
-} from '../../src/core/multi-tenancy/tenant-member.service.js';
+} from "../../src/core/multi-tenancy/tenant-member.service.js";
 
-const ROOT = resolve(import.meta.dirname, '..', '..');
+const ROOT = resolve(import.meta.dirname, "..", "..");
 
 /**
  * Story · Tenant-Member-CRUD (PLAN.md §5.3)
@@ -20,8 +20,10 @@ const ROOT = resolve(import.meta.dirname, '..', '..');
  * lifecycle status (ACTIVE / INVITED / SUSPENDED). This service is
  * storage-agnostic — the Prisma adapter wires up in a follow-up slice.
  */
-describe('Story · Tenant-Member CRUD', () => {
-  function makeStorage(initial: TenantMemberRecord[] = []): TenantMemberStorage & { records: TenantMemberRecord[] } {
+describe("Story · Tenant-Member CRUD", () => {
+  function makeStorage(
+    initial: TenantMemberRecord[] = [],
+  ): TenantMemberStorage & { records: TenantMemberRecord[] } {
     const records: TenantMemberRecord[] = [...initial];
     return {
       get records() {
@@ -52,94 +54,96 @@ describe('Story · Tenant-Member CRUD', () => {
     };
   }
 
-  describe('add()', () => {
-    it('creates an INVITED membership by default with invitedAt set', async () => {
+  describe("add()", () => {
+    it("creates an INVITED membership by default with invitedAt set", async () => {
       const storage = makeStorage();
       const svc = new TenantMemberService(storage);
-      const member = await svc.add({ userId: 'u1', tenantId: 't1', role: 'editor' });
-      expect(member.status).toBe('INVITED');
+      const member = await svc.add({ userId: "u1", tenantId: "t1", role: "editor" });
+      expect(member.status).toBe("INVITED");
       expect(member.invitedAt).toBeInstanceOf(Date);
       expect(member.joinedAt).toBeUndefined();
       expect(storage.records).toHaveLength(1);
     });
 
-    it('rejects a duplicate (userId, tenantId) pair', async () => {
+    it("rejects a duplicate (userId, tenantId) pair", async () => {
       const storage = makeStorage();
       const svc = new TenantMemberService(storage);
-      await svc.add({ userId: 'u1', tenantId: 't1', role: 'editor' });
-      await expect(svc.add({ userId: 'u1', tenantId: 't1', role: 'admin' })).rejects.toThrow(
+      await svc.add({ userId: "u1", tenantId: "t1", role: "editor" });
+      await expect(svc.add({ userId: "u1", tenantId: "t1", role: "admin" })).rejects.toThrow(
         TenantMemberAlreadyExistsError,
       );
     });
   });
 
-  describe('listByTenant()', () => {
-    it('returns members of the given tenant only', async () => {
+  describe("listByTenant()", () => {
+    it("returns members of the given tenant only", async () => {
       const storage = makeStorage();
       const svc = new TenantMemberService(storage);
-      await svc.add({ userId: 'u1', tenantId: 't1', role: 'editor' });
-      await svc.add({ userId: 'u2', tenantId: 't1', role: 'viewer' });
-      await svc.add({ userId: 'u3', tenantId: 't2', role: 'admin' });
+      await svc.add({ userId: "u1", tenantId: "t1", role: "editor" });
+      await svc.add({ userId: "u2", tenantId: "t1", role: "viewer" });
+      await svc.add({ userId: "u3", tenantId: "t2", role: "admin" });
 
-      const t1 = await svc.listByTenant('t1');
-      expect(t1.map((m) => m.userId).sort()).toEqual(['u1', 'u2']);
+      const t1 = await svc.listByTenant("t1");
+      expect(t1.map((m) => m.userId).sort()).toEqual(["u1", "u2"]);
     });
   });
 
-  describe('activate() / suspend()', () => {
-    it('activate() flips INVITED → ACTIVE and sets joinedAt', async () => {
+  describe("activate() / suspend()", () => {
+    it("activate() flips INVITED → ACTIVE and sets joinedAt", async () => {
       const storage = makeStorage();
       const svc = new TenantMemberService(storage);
-      const m = await svc.add({ userId: 'u1', tenantId: 't1', role: 'editor' });
+      const m = await svc.add({ userId: "u1", tenantId: "t1", role: "editor" });
       const activated = await svc.activate(m.id);
-      expect(activated.status).toBe('ACTIVE');
+      expect(activated.status).toBe("ACTIVE");
       expect(activated.joinedAt).toBeInstanceOf(Date);
     });
 
-    it('suspend() flips status to SUSPENDED', async () => {
+    it("suspend() flips status to SUSPENDED", async () => {
       const storage = makeStorage();
       const svc = new TenantMemberService(storage);
-      const m = await svc.add({ userId: 'u1', tenantId: 't1', role: 'editor' });
+      const m = await svc.add({ userId: "u1", tenantId: "t1", role: "editor" });
       const suspended = await svc.suspend(m.id);
-      expect(suspended.status).toBe('SUSPENDED');
+      expect(suspended.status).toBe("SUSPENDED");
     });
 
-    it('throws TenantMemberNotFoundError for an unknown id', async () => {
+    it("throws TenantMemberNotFoundError for an unknown id", async () => {
       const svc = new TenantMemberService(makeStorage());
-      await expect(svc.activate('missing')).rejects.toThrow(TenantMemberNotFoundError);
-      await expect(svc.suspend('missing')).rejects.toThrow(TenantMemberNotFoundError);
+      await expect(svc.activate("missing")).rejects.toThrow(TenantMemberNotFoundError);
+      await expect(svc.suspend("missing")).rejects.toThrow(TenantMemberNotFoundError);
     });
   });
 
-  describe('remove()', () => {
-    it('removes the membership by id', async () => {
+  describe("remove()", () => {
+    it("removes the membership by id", async () => {
       const storage = makeStorage();
       const svc = new TenantMemberService(storage);
-      const m = await svc.add({ userId: 'u1', tenantId: 't1', role: 'editor' });
+      const m = await svc.add({ userId: "u1", tenantId: "t1", role: "editor" });
       await svc.remove(m.id);
       expect(storage.records).toHaveLength(0);
     });
 
-    it('throws TenantMemberNotFoundError when the id is unknown', async () => {
+    it("throws TenantMemberNotFoundError when the id is unknown", async () => {
       const svc = new TenantMemberService(makeStorage());
-      await expect(svc.remove('missing')).rejects.toThrow(TenantMemberNotFoundError);
+      await expect(svc.remove("missing")).rejects.toThrow(TenantMemberNotFoundError);
     });
   });
 
-  describe('Prisma schema', () => {
-    const SCHEMA = readFileSync(resolve(ROOT, 'prisma/schema.prisma'), 'utf8');
+  describe("Prisma schema", () => {
+    const SCHEMA = readFileSync(resolve(ROOT, "prisma/schema.prisma"), "utf8");
 
-    it('declares a TenantMember model mapped to `tenant_members`', () => {
+    it("declares a TenantMember model mapped to `tenant_members`", () => {
       expect(SCHEMA).toMatch(/model\s+TenantMember\s*\{/);
       expect(SCHEMA).toMatch(/@@map\(\s*"tenant_members"\s*\)/);
     });
 
-    it('declares the TenantMemberStatus enum', () => {
-      expect(SCHEMA).toMatch(/enum\s+TenantMemberStatus\s*\{[\s\S]*ACTIVE[\s\S]*INVITED[\s\S]*SUSPENDED[\s\S]*\}/);
+    it("declares the TenantMemberStatus enum", () => {
+      expect(SCHEMA).toMatch(
+        /enum\s+TenantMemberStatus\s*\{[\s\S]*ACTIVE[\s\S]*INVITED[\s\S]*SUSPENDED[\s\S]*\}/,
+      );
     });
 
-    it('enforces a unique (user_id, tenant_id) pair on the membership', () => {
-      const block = SCHEMA.match(/model\s+TenantMember\s*\{[\s\S]*?\n\}/m)?.[0] ?? '';
+    it("enforces a unique (user_id, tenant_id) pair on the membership", () => {
+      const block = SCHEMA.match(/model\s+TenantMember\s*\{[\s\S]*?\n\}/m)?.[0] ?? "";
       expect(block).toMatch(/@@unique\(\s*\[\s*userId\s*,\s*tenantId\s*\]\s*\)/);
     });
   });

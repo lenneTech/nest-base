@@ -1,13 +1,13 @@
-import { Injectable, Logger, Module, type OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, Module, type OnModuleInit } from "@nestjs/common";
 
-import { AddressController } from './address.controller.js';
-import { GeoController } from './geo.controller.js';
+import { AddressController } from "./address.controller.js";
+import { GeoController } from "./geo.controller.js";
 import {
   DEFAULT_GEOCODING_CACHE_RETENTION_DAYS,
   buildGeocodingCleanupPlan,
-} from './geocoding-cache-cleanup.js';
-import { GeoService, type GeocodingCacheStore } from './geo-service.js';
-import { LocalStubGeocodingProvider } from './geocoding-providers.js';
+} from "./geocoding-cache-cleanup.js";
+import { GeoService, type GeocodingCacheStore } from "./geo-service.js";
+import { LocalStubGeocodingProvider } from "./geocoding-providers.js";
 
 const GEO_SERVICE = GeoService;
 
@@ -31,7 +31,7 @@ class InMemoryGeocodingCache implements GeocodingCacheStore {
  */
 @Injectable()
 class GeocodingCacheCleanupCron implements OnModuleInit {
-  private readonly logger = new Logger('GeocodingCacheCleanup');
+  private readonly logger = new Logger("GeocodingCacheCleanup");
   private timer?: ReturnType<typeof setInterval>;
 
   onModuleInit(): void {

@@ -1,13 +1,13 @@
-import { Injectable, Module, type OnApplicationBootstrap } from '@nestjs/common';
-import { DiscoveryModule, DiscoveryService } from '@nestjs/core';
+import { Injectable, Module, type OnApplicationBootstrap } from "@nestjs/common";
+import { DiscoveryModule, DiscoveryService } from "@nestjs/core";
 
 import {
   FILTER_FOR_METADATA,
   type FilterService,
   FilterServiceRegistry,
-} from './filter-service.js';
+} from "./filter-service.js";
 
-export const FILTER_SERVICE_REGISTRY = Symbol.for('lt:FilterServiceRegistry');
+export const FILTER_SERVICE_REGISTRY = Symbol.for("lt:FilterServiceRegistry");
 
 @Injectable()
 class FilterDiscoveryService implements OnApplicationBootstrap {
@@ -20,9 +20,9 @@ class FilterDiscoveryService implements OnApplicationBootstrap {
     const providers = this.discovery.getProviders();
     for (const wrapper of providers) {
       const instance = wrapper.instance as unknown;
-      if (!instance || typeof instance !== 'object') continue;
+      if (!instance || typeof instance !== "object") continue;
       const ctor = (instance as { constructor?: unknown }).constructor;
-      if (typeof ctor !== 'function') continue;
+      if (typeof ctor !== "function") continue;
       const subject = Reflect.getMetadata(FILTER_FOR_METADATA, ctor) as string | undefined;
       if (!subject) continue;
       // Avoid double-registration if multiple boots share a registry instance.

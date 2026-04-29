@@ -1,6 +1,6 @@
-import { Injectable, type LoggerService } from '@nestjs/common';
+import { Injectable, type LoggerService } from "@nestjs/common";
 
-import type { Logger } from './logger.js';
+import type { Logger } from "./logger.js";
 
 /**
  * Bridges NestJS' `LoggerService` interface into a Pino logger.
@@ -34,6 +34,6 @@ export class PinoLoggerService implements LoggerService {
   }
 
   private format(message: unknown): string {
-    return typeof message === 'string' ? message : JSON.stringify(message);
+    return typeof message === "string" ? message : JSON.stringify(message);
   }
 }

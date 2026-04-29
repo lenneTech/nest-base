@@ -1,14 +1,7 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  HttpCode,
-  HttpStatus,
-  Post,
-} from '@nestjs/common';
+import { BadRequestException, Body, Controller, HttpCode, HttpStatus, Post } from "@nestjs/common";
 
-import { applyPowerSyncCrudBatch } from './powersync-demo-client.js';
-import { parsePowerSyncCrudBatch } from './powersync-upload.js';
+import { applyPowerSyncCrudBatch } from "./powersync-demo-client.js";
+import { parsePowerSyncCrudBatch } from "./powersync-upload.js";
 
 interface StoreRow {
   id: string;
@@ -24,11 +17,11 @@ interface StoreRow {
  * adapter). A Prisma-backed Repository upgrade is a separate slice
  * that ties into the conflict-resolution hook on `BaseRepository`.
  */
-@Controller('powersync')
+@Controller("powersync")
 export class PowerSyncController {
   private readonly store = new Map<string, StoreRow>();
 
-  @Post('crud')
+  @Post("crud")
   @HttpCode(HttpStatus.NO_CONTENT)
   async crud(@Body() body: unknown): Promise<{ rejected?: unknown[] }> {
     let batch;

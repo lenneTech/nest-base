@@ -5,21 +5,21 @@ import {
   Injectable,
   Module,
   type NestInterceptor,
-} from '@nestjs/common';
-import { APP_INTERCEPTOR } from '@nestjs/core';
-import { type Observable, from, mergeMap } from 'rxjs';
-import type { Request, Response } from 'express';
+} from "@nestjs/common";
+import { APP_INTERCEPTOR } from "@nestjs/core";
+import { type Observable, from, mergeMap } from "rxjs";
+import type { Request, Response } from "express";
 
 import {
   IdempotencyService,
   type IdempotencyStore,
   type IdempotencyRecord,
-} from './idempotency.service.js';
+} from "./idempotency.service.js";
 
-const IDEMPOTENCY_STORE = Symbol.for('lt:IdempotencyStore');
+const IDEMPOTENCY_STORE = Symbol.for("lt:IdempotencyStore");
 const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000; // 24h
-const HEADER = 'idempotency-key';
-const METHODS = new Set(['POST', 'PATCH', 'PUT', 'DELETE']);
+const HEADER = "idempotency-key";
+const METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
 
 class InMemoryIdempotencyStore implements IdempotencyStore {
   private readonly map = new Map<string, IdempotencyRecord>();
@@ -39,20 +39,20 @@ class IdempotencyKeyInterceptor implements NestInterceptor {
   constructor(@Inject(IdempotencyService) private readonly svc: IdempotencyService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
-    if (context.getType() !== 'http') return next.handle();
+    if (context.getType() !== "http") return next.handle();
     const req = context.switchToHttp().getRequest<Request>();
     const res = context.switchToHttp().getResponse<Response>();
 
-    const method = (req.method ?? '').toUpperCase();
+    const method = (req.method ?? "").toUpperCase();
     if (!METHODS.has(method)) return next.handle();
 
-    const key = (req.headers[HEADER] as string | undefined) ?? '';
+    const key = (req.headers[HEADER] as string | undefined) ?? "";
     if (!key) return next.handle();
 
     return from(
       this.svc.runOrCache({
         key,
-        request: { method, path: req.path ?? req.url ?? '', body: req.body },
+        request: { method, path: req.path ?? req.url ?? "", body: req.body },
         handler: async () => {
           const resolvedBody = await new Promise<unknown>((resolveResult, rejectResult) => {
             let last: unknown;
@@ -70,7 +70,7 @@ class IdempotencyKeyInterceptor implements NestInterceptor {
     ).pipe(
       mergeMap((resolved) => {
         if (resolved.replayed) {
-          res.setHeader('idempotency-replay', '1');
+          res.setHeader("idempotency-replay", "1");
           res.status(resolved.status);
         }
         return [resolved.body];

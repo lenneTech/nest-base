@@ -3,7 +3,7 @@ import {
   type StorageObjectMetadata,
   type StoragePutInput,
   StorageObjectNotFoundError,
-} from './storage-adapter.js';
+} from "./storage-adapter.js";
 
 /**
  * S3 Storage Adapter (PLAN.md §8 + §32 Phase 4).
@@ -35,7 +35,7 @@ export class S3StorageAdapter implements StorageAdapter {
   constructor(private readonly ops: S3Operations) {}
 
   async put(input: StoragePutInput): Promise<StorageObjectMetadata> {
-    if (!input.key) throw new Error('storage: key is required');
+    if (!input.key) throw new Error("storage: key is required");
     await this.ops.putObject(input.key, input.body, input.mimeType);
     return { key: input.key, sizeBytes: input.body.byteLength, mimeType: input.mimeType };
   }

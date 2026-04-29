@@ -8,7 +8,7 @@ import {
   NotFoundException,
   Param,
   Post,
-} from '@nestjs/common';
+} from "@nestjs/common";
 
 import {
   type ApiKeyRecord,
@@ -17,9 +17,9 @@ import {
   type CreateKeyResult,
   ApiKeyNotFoundError,
   ApiKeyService,
-} from './api-key.service.js';
+} from "./api-key.service.js";
 
-const API_KEY_STORAGE = Symbol.for('lt:ApiKeyStorage');
+const API_KEY_STORAGE = Symbol.for("lt:ApiKeyStorage");
 
 class InMemoryApiKeyStorage implements ApiKeyStorage {
   private readonly map = new Map<string, ApiKeyRecord>();
@@ -56,25 +56,25 @@ class InMemoryApiKeyStorage implements ApiKeyStorage {
   }
 }
 
-@Controller('api-keys')
+@Controller("api-keys")
 class ApiKeyController {
   constructor(private readonly service: ApiKeyService) {}
 
-  @Get(':userId')
-  async list(@Param('userId') userId: string): Promise<ApiKeyRecord[]> {
+  @Get(":userId")
+  async list(@Param("userId") userId: string): Promise<ApiKeyRecord[]> {
     return this.service.listByUser(userId);
   }
 
   @Post()
   async create(@Body() body: CreateKeyInput): Promise<CreateKeyResult> {
     if (!body?.userId || !body?.name || !Array.isArray(body?.scopes)) {
-      throw new BadRequestException('userId, name, scopes[] are required');
+      throw new BadRequestException("userId, name, scopes[] are required");
     }
     return this.service.createKey(body);
   }
 
-  @Post(':id/rotate')
-  async rotate(@Param('id') id: string): Promise<CreateKeyResult> {
+  @Post(":id/rotate")
+  async rotate(@Param("id") id: string): Promise<CreateKeyResult> {
     try {
       return await this.service.rotateKey(id);
     } catch (err) {
@@ -85,8 +85,8 @@ class ApiKeyController {
     }
   }
 
-  @Delete(':id')
-  async remove(@Param('id') id: string): Promise<{ removed: boolean }> {
+  @Delete(":id")
+  async remove(@Param("id") id: string): Promise<{ removed: boolean }> {
     try {
       await this.service.revoke(id);
       return { removed: true };

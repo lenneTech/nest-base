@@ -1,7 +1,7 @@
-import { Controller, Delete, ForbiddenException, Get, Req } from '@nestjs/common';
-import type { Request } from 'express';
+import { Controller, Delete, ForbiddenException, Get, Req } from "@nestjs/common";
+import type { Request } from "express";
 
-import { type GdprExportPayload, buildGdprExport } from './gdpr.service.js';
+import { type GdprExportPayload, buildGdprExport } from "./gdpr.service.js";
 
 interface AuthedRequest extends Request {
   user?: { id: string; tenantId?: string };
@@ -15,12 +15,12 @@ interface AuthedRequest extends Request {
  * shape. Full data plumbing lands once Better-Auth's Prisma adapter
  * + project-specific erasure-plan registries are in place.
  */
-@Controller('me')
+@Controller("me")
 export class GdprController {
-  @Get('export')
+  @Get("export")
   async export(@Req() req: AuthedRequest): Promise<GdprExportPayload> {
     if (!req.user) {
-      throw new ForbiddenException('authentication required');
+      throw new ForbiddenException("authentication required");
     }
     // Stub: empty resource map. Populates with real data once
     // domain modules register `GdprExportContributor`s.
@@ -31,13 +31,13 @@ export class GdprController {
     });
   }
 
-  @Delete('account')
-  async deleteAccount(@Req() req: AuthedRequest): Promise<{ status: 'pending'; userId: string }> {
+  @Delete("account")
+  async deleteAccount(@Req() req: AuthedRequest): Promise<{ status: "pending"; userId: string }> {
     if (!req.user) {
-      throw new ForbiddenException('authentication required');
+      throw new ForbiddenException("authentication required");
     }
     // Stub: real erasure executes the GdprErasure plan against the
     // PII-field registry. Records the request and returns immediately.
-    return { status: 'pending', userId: req.user.id };
+    return { status: "pending", userId: req.user.id };
   }
 }

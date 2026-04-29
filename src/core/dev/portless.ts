@@ -23,7 +23,7 @@ export interface ShouldUsePortlessInput {
 
 export function shouldUsePortless(input: ShouldUsePortlessInput): boolean {
   if (input.disable) return false;
-  return input.portlessPath !== undefined && input.portlessPath !== '';
+  return input.portlessPath !== undefined && input.portlessPath !== "";
 }
 
 export interface ResolveDevPortInput {
@@ -45,7 +45,7 @@ const PORTLESS_DEFAULT_PORT = 3000;
  */
 export function resolveDevPort(input: ResolveDevPortInput): number {
   const raw = input.env.PORT;
-  if (raw !== undefined && raw !== '') {
+  if (raw !== undefined && raw !== "") {
     const n = Number(raw);
     if (!Number.isFinite(n) || !Number.isInteger(n)) {
       throw new Error(`PORT must be an integer (received: ${raw})`);
@@ -75,11 +75,11 @@ export interface BuildPortlessRunCommandInput {
  */
 export function buildPortlessRunCommand(input: BuildPortlessRunCommandInput): string[] {
   if (!input.projectName) {
-    throw new Error('buildPortlessRunCommand: projectName must not be empty');
+    throw new Error("buildPortlessRunCommand: projectName must not be empty");
   }
   if (input.target.length === 0) {
-    throw new Error('buildPortlessRunCommand: target must not be empty');
+    throw new Error("buildPortlessRunCommand: target must not be empty");
   }
   const fullName = input.app ? `${input.app}.${input.projectName}` : input.projectName;
-  return ['run', '--name', fullName, '--', ...input.target];
+  return ["run", "--name", fullName, "--", ...input.target];
 }

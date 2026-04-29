@@ -7,13 +7,13 @@
  */
 
 export const AUTH_SCENARIOS = [
-  'email-password-signup',
-  'email-password-signin',
-  'email-password-signin-wrong-password',
-  'session-refresh',
-  'sign-out',
-  'password-reset',
-  'email-verification',
+  "email-password-signup",
+  "email-password-signin",
+  "email-password-signin-wrong-password",
+  "session-refresh",
+  "sign-out",
+  "password-reset",
+  "email-verification",
 ] as const;
 
 export type AuthScenario = (typeof AUTH_SCENARIOS)[number];

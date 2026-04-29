@@ -1,8 +1,8 @@
-import type { INestApplication } from '@nestjs/common';
-import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import type { INestApplication } from "@nestjs/common";
+import request from "supertest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { bootstrap } from '../src/core/app/bootstrap.js';
+import { bootstrap } from "../src/core/app/bootstrap.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 
@@ -14,19 +14,19 @@ const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {
  * only need to verify the plugin paths are reachable (not 404 from
  * NestJS).
  */
-describe('Better-Auth · plugin mount', () => {
+describe("Better-Auth · plugin mount", () => {
   let app: INestApplication;
   const originalEnv = { ...process.env };
 
   beforeAll(async () => {
-    process.env.BETTER_AUTH_SECRET = 'test-secret-32-chars-minimum-aaaaaaaa';
-    process.env.APP_BASE_URL = 'http://localhost:3000';
+    process.env.BETTER_AUTH_SECRET = "test-secret-32-chars-minimum-aaaaaaaa";
+    process.env.APP_BASE_URL = "http://localhost:3000";
     // Plugins are on by default (twoFactor=true, passkey=true). Social
     // providers stay empty unless we set credentials, which we do here
     // for `google`.
-    process.env.FEATURE_AUTH_METHODS_SOCIAL_PROVIDERS = 'google';
-    process.env.GOOGLE_CLIENT_ID = 'test-client-id';
-    process.env.GOOGLE_CLIENT_SECRET = 'test-client-secret';
+    process.env.FEATURE_AUTH_METHODS_SOCIAL_PROVIDERS = "google";
+    process.env.GOOGLE_CLIENT_ID = "test-client-id";
+    process.env.GOOGLE_CLIENT_SECRET = "test-client-secret";
 
     app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
   });
@@ -36,29 +36,29 @@ describe('Better-Auth · plugin mount', () => {
     process.env = { ...originalEnv };
   });
 
-  it('2FA route is registered (POST /api/auth/two-factor/enable not 404)', async () => {
+  it("2FA route is registered (POST /api/auth/two-factor/enable not 404)", async () => {
     const res = await request(app.getHttpServer())
-      .post('/api/auth/two-factor/enable')
-      .set('content-type', 'application/json')
-      .send({ password: 'wrong' });
+      .post("/api/auth/two-factor/enable")
+      .set("content-type", "application/json")
+      .send({ password: "wrong" });
     expect(res.status).not.toBe(404);
   });
 
-  it('Passkey route is registered (POST /api/auth/passkey/list-user-passkeys not 404)', async () => {
+  it("Passkey route is registered (POST /api/auth/passkey/list-user-passkeys not 404)", async () => {
     // Better-Auth's passkey plugin registers routes under
     // /api/auth/passkey/*. Without a session this responds 401 — what
     // matters is that NestJS doesn't 404 the route.
     const res = await request(app.getHttpServer())
-      .get('/api/auth/passkey/list-user-passkeys')
-      .set('content-type', 'application/json');
+      .get("/api/auth/passkey/list-user-passkeys")
+      .set("content-type", "application/json");
     expect(res.status).not.toBe(404);
   });
 
-  it('Social provider sign-in route is registered (POST /api/auth/sign-in/social not 404)', async () => {
+  it("Social provider sign-in route is registered (POST /api/auth/sign-in/social not 404)", async () => {
     const res = await request(app.getHttpServer())
-      .post('/api/auth/sign-in/social')
-      .set('content-type', 'application/json')
-      .send({ provider: 'google', callbackURL: '/' });
+      .post("/api/auth/sign-in/social")
+      .set("content-type", "application/json")
+      .send({ provider: "google", callbackURL: "/" });
     expect(res.status).not.toBe(404);
   });
 });

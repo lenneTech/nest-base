@@ -1,4 +1,4 @@
-import { uuidV7 } from '../uuid/uuid-v7.js';
+import { uuidV7 } from "../uuid/uuid-v7.js";
 
 /**
  * Job-Queue contract (PLAN.md §32 Phase 5).
@@ -16,14 +16,14 @@ import { uuidV7 } from '../uuid/uuid-v7.js';
 export type JobHandler<TPayload = unknown> = (payload: TPayload) => Promise<void> | void;
 
 export interface JobResult {
-  status: 'pending' | 'completed' | 'failed';
+  status: "pending" | "completed" | "failed";
   error?: Error;
 }
 
 export class JobHandlerNotRegisteredError extends Error {
   constructor(name: string) {
     super(`job handler not registered: ${name}`);
-    this.name = 'JobHandlerNotRegisteredError';
+    this.name = "JobHandlerNotRegisteredError";
   }
 }
 
@@ -50,7 +50,7 @@ export class InMemoryJobQueue {
     }
     const id = uuidV7();
     this.queue.push({ id, name, payload });
-    this.results.set(id, { status: 'pending' });
+    this.results.set(id, { status: "pending" });
     if (this.running) this.scheduleProcess();
     return id;
   }
@@ -92,17 +92,17 @@ export class InMemoryJobQueue {
     const handler = this.handlers.get(job.name);
     if (!handler) {
       this.results.set(job.id, {
-        status: 'failed',
+        status: "failed",
         error: new JobHandlerNotRegisteredError(job.name),
       });
       return;
     }
     try {
       await handler(job.payload);
-      this.results.set(job.id, { status: 'completed' });
+      this.results.set(job.id, { status: "completed" });
     } catch (error) {
       this.results.set(job.id, {
-        status: 'failed',
+        status: "failed",
         error: error instanceof Error ? error : new Error(String(error)),
       });
     }

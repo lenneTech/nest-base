@@ -1,8 +1,17 @@
-import { Injectable, type NestMiddleware } from '@nestjs/common';
-import type { Request, Response, NextFunction } from 'express';
+import { Injectable, type NestMiddleware } from "@nestjs/common";
+import type { Request, Response, NextFunction } from "express";
 
-import { type RequestContext, generateRequestId, runWithRequestContext } from './request-context.js';
-import { formatTraceparent, generateSpanId, generateTraceId, parseTraceparent } from './traceparent.js';
+import {
+  type RequestContext,
+  generateRequestId,
+  runWithRequestContext,
+} from "./request-context.js";
+import {
+  formatTraceparent,
+  generateSpanId,
+  generateTraceId,
+  parseTraceparent,
+} from "./traceparent.js";
 
 /**
  * Express middleware that initializes a `RequestContext` for every
@@ -20,9 +29,9 @@ export class RequestContextMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction): void {
     const ctx = this.buildContext(req);
 
-    res.setHeader('x-request-id', ctx.requestId);
+    res.setHeader("x-request-id", ctx.requestId);
     res.setHeader(
-      'traceparent',
+      "traceparent",
       formatTraceparent({ traceId: ctx.traceId, parentId: ctx.parentId, sampled: ctx.sampled }),
     );
 

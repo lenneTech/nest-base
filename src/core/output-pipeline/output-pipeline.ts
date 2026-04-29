@@ -1,6 +1,6 @@
-import type { Ability } from '../permissions/casl-ability.js';
-import { removeSecrets } from './remove-secrets.js';
-import { applySafetyNet, type SafetyNetMode } from './safety-net.js';
+import type { Ability } from "../permissions/casl-ability.js";
+import { removeSecrets } from "./remove-secrets.js";
+import { applySafetyNet, type SafetyNetMode } from "./safety-net.js";
 
 /**
  * Output-Pipeline (PLAN.md §7).
@@ -35,7 +35,7 @@ export class OutputPipeline {
 
   constructor(options: OutputPipelineOptions) {
     this.ability = options.ability;
-    this.safetyNetMode = options.safetyNetMode ?? 'throw';
+    this.safetyNetMode = options.safetyNetMode ?? "throw";
     this.safetyNetExtraFields = options.safetyNetExtraFields ?? [];
   }
 
@@ -67,7 +67,7 @@ export class OutputPipeline {
     // CASL's rule index is internal; we read the raw rules off the ability
     // for this subject and union the field arrays. Empty/undefined means
     // "no field-level constraint".
-    const raw = this.ability.rulesFor('read', subject as never);
+    const raw = this.ability.rulesFor("read", subject as never);
     let union: string[] | null = null;
     let sawWithoutFields = false;
     for (const rule of raw) {
@@ -85,21 +85,25 @@ export class OutputPipeline {
 }
 
 const DEFAULTS_FOR_SAFETY_NET = [
-  'password',
-  'passwordHash',
-  'token',
-  'apiKey',
-  'secret',
-  'authToken',
-  'refreshToken',
-  'sessionToken',
-  'pinHash',
-  'mfaSecret',
+  "password",
+  "passwordHash",
+  "token",
+  "apiKey",
+  "secret",
+  "authToken",
+  "refreshToken",
+  "sessionToken",
+  "pinHash",
+  "mfaSecret",
 ];
 
-function walk(value: unknown, transform: (obj: Record<string, unknown>) => Record<string, unknown>): unknown {
+function walk(
+  value: unknown,
+  transform: (obj: Record<string, unknown>) => Record<string, unknown>,
+): unknown {
   if (Array.isArray(value)) return value.map((item) => walk(item, transform));
-  if (value !== null && typeof value === 'object') return transform(value as Record<string, unknown>);
+  if (value !== null && typeof value === "object")
+    return transform(value as Record<string, unknown>);
   return value;
 }
 

@@ -23,7 +23,9 @@ export const WEBHOOK_RETRY_DEFAULTS: RetryConfig = {
 
 export function computeRetryDelayMs(attempt: number, config: RetryConfig): number {
   if (attempt < 1 || !Number.isInteger(attempt)) {
-    throw new Error(`computeRetryDelayMs: attempt must be a positive integer (received: ${attempt})`);
+    throw new Error(
+      `computeRetryDelayMs: attempt must be a positive integer (received: ${attempt})`,
+    );
   }
   const raw = config.initialDelayMs * config.factor ** (attempt - 1);
   return Math.min(raw, config.maxDelayMs);

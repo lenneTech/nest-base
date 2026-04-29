@@ -1,6 +1,6 @@
-import { createHash } from 'node:crypto';
+import { createHash } from "node:crypto";
 
-import type { StorageAdapter } from './storage-adapter.js';
+import type { StorageAdapter } from "./storage-adapter.js";
 
 /**
  * Asset transform + cache service (PLAN.md §8 + §32 Phase 4).
@@ -22,9 +22,9 @@ import type { StorageAdapter } from './storage-adapter.js';
 export interface TransformOptions {
   width?: number;
   height?: number;
-  format?: 'webp' | 'jpeg' | 'png' | 'avif';
+  format?: "webp" | "jpeg" | "png" | "avif";
   quality?: number;
-  fit?: 'cover' | 'contain' | 'inside' | 'outside';
+  fit?: "cover" | "contain" | "inside" | "outside";
 }
 
 export interface AssetTransformer {
@@ -45,22 +45,22 @@ export interface AssetDeliveryResult {
   mimeType: string;
 }
 
-const CACHE_PREFIX = 'assets/';
+const CACHE_PREFIX = "assets/";
 
 export function computeCacheKey(originalKey: string, options: TransformOptions): string {
   const stable = stableStringify({ key: originalKey, options });
-  const digest = createHash('sha256').update(stable).digest('hex').slice(0, 32);
+  const digest = createHash("sha256").update(stable).digest("hex").slice(0, 32);
   return `${CACHE_PREFIX}${digest}`;
 }
 
 function stableStringify(value: unknown): string {
-  if (value === null || typeof value !== 'object') return JSON.stringify(value);
-  if (Array.isArray(value)) return `[${value.map((v) => stableStringify(v)).join(',')}]`;
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map((v) => stableStringify(v)).join(",")}]`;
   const entries = Object.entries(value as Record<string, unknown>)
     .filter(([, v]) => v !== undefined)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([k, v]) => `${JSON.stringify(k)}:${stableStringify(v)}`);
-  return `{${entries.join(',')}}`;
+  return `{${entries.join(",")}}`;
 }
 
 function isPassthrough(options: TransformOptions): boolean {
@@ -85,7 +85,7 @@ export class AssetService {
     if (isPassthrough(options)) {
       // No transform requested — return the origin bytes directly.
       const bytes = await this.origin.get(key);
-      return { bytes, mimeType: 'application/octet-stream' };
+      return { bytes, mimeType: "application/octet-stream" };
     }
 
     const cacheKey = computeCacheKey(key, options);
@@ -103,15 +103,15 @@ export class AssetService {
 
 function mimeTypeForOptions(options: TransformOptions): string {
   switch (options.format) {
-    case 'webp':
-      return 'image/webp';
-    case 'jpeg':
-      return 'image/jpeg';
-    case 'png':
-      return 'image/png';
-    case 'avif':
-      return 'image/avif';
+    case "webp":
+      return "image/webp";
+    case "jpeg":
+      return "image/jpeg";
+    case "png":
+      return "image/png";
+    case "avif":
+      return "image/avif";
     default:
-      return 'application/octet-stream';
+      return "application/octet-stream";
   }
 }

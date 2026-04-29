@@ -13,7 +13,7 @@
  * gate.
  */
 
-export type DevToolsEnv = 'development' | 'production' | 'test';
+export type DevToolsEnv = "development" | "production" | "test";
 
 export interface DevToolsConfigInput {
   /** Master switch. When omitted, derives from `env`. */
@@ -36,17 +36,19 @@ export interface DevToolsConfig {
 }
 
 const DEFAULT_PORT = 8000;
-const VALID_ENVS: DevToolsEnv[] = ['development', 'production', 'test'];
+const VALID_ENVS: DevToolsEnv[] = ["development", "production", "test"];
 
 export function buildDevToolsConfig(input: DevToolsConfigInput): DevToolsConfig {
   if (!VALID_ENVS.includes(input.env)) {
-    throw new Error(`devtools-config: env must be one of ${VALID_ENVS.join(', ')} (got "${input.env}")`);
+    throw new Error(
+      `devtools-config: env must be one of ${VALID_ENVS.join(", ")} (got "${input.env}")`,
+    );
   }
   const port = input.port ?? DEFAULT_PORT;
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw new Error(`devtools-config: port must be an integer in [1, 65535] (got ${port})`);
   }
-  const enabled = input.enabled ?? input.env === 'development';
+  const enabled = input.enabled ?? input.env === "development";
   return {
     enabled,
     port,

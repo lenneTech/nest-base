@@ -11,7 +11,7 @@ export interface KekProvider {
 }
 
 /** DI token for the KekProvider. NestJS providers register against it. */
-export const KEK_PROVIDER = Symbol.for('lt:KekProvider');
+export const KEK_PROVIDER = Symbol.for("lt:KekProvider");
 
 const KEK_BYTES = 32; // AES-256
 
@@ -22,11 +22,13 @@ export class EnvKekProvider implements KekProvider {
   getKek(): Buffer {
     const raw = this.env.FIELD_ENCRYPTION_KEK;
     if (!raw) {
-      throw new Error('FIELD_ENCRYPTION_KEK env-var is required');
+      throw new Error("FIELD_ENCRYPTION_KEK env-var is required");
     }
-    const buf = Buffer.from(raw, 'base64');
+    const buf = Buffer.from(raw, "base64");
     if (buf.length !== KEK_BYTES) {
-      throw new Error(`FIELD_ENCRYPTION_KEK must decode to ${KEK_BYTES} bytes (received ${buf.length})`);
+      throw new Error(
+        `FIELD_ENCRYPTION_KEK must decode to ${KEK_BYTES} bytes (received ${buf.length})`,
+      );
     }
     return buf;
   }

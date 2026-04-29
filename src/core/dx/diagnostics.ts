@@ -1,4 +1,4 @@
-import type { Features } from '../features/features.js';
+import type { Features } from "../features/features.js";
 
 /**
  * Diagnostics report builder (PLAN.md §27 + §32 Phase 8).
@@ -30,7 +30,7 @@ export interface DiagnosticsRuntimeEnv {
 }
 
 export interface DiagnosticsAppInfo {
-  env: 'development' | 'production' | 'test';
+  env: "development" | "production" | "test";
   version: string;
   baseUrl: string;
 }
@@ -78,7 +78,7 @@ export interface DiagnosticsFeaturesReport {
 }
 
 export interface DiagnosticsReport {
-  kind: 'diagnostics-report';
+  kind: "diagnostics-report";
   version: 1;
   app: DiagnosticsAppInfo;
   runtime: DiagnosticsRuntimeReport;
@@ -90,7 +90,9 @@ export interface DiagnosticsReport {
 export function buildDiagnosticsReport(input: DiagnosticsInput): DiagnosticsReport {
   const nowMs = input.now();
   if (nowMs < input.processStartTime) {
-    throw new Error(`diagnostics: negative uptime (now=${nowMs} < startTime=${input.processStartTime})`);
+    throw new Error(
+      `diagnostics: negative uptime (now=${nowMs} < startTime=${input.processStartTime})`,
+    );
   }
   const uptimeSeconds = Math.floor((nowMs - input.processStartTime) / 1000);
 
@@ -102,7 +104,7 @@ export function buildDiagnosticsReport(input: DiagnosticsInput): DiagnosticsRepo
   };
 
   return {
-    kind: 'diagnostics-report',
+    kind: "diagnostics-report",
     version: 1,
     app: { ...input.app },
     runtime,
@@ -118,10 +120,10 @@ export function buildDiagnosticsReport(input: DiagnosticsInput): DiagnosticsRepo
 
 function summariseFeatures(features: Features): DiagnosticsFeaturesReport {
   const authToggles: string[] = [];
-  if (features.authMethods.emailPassword) authToggles.push('emailPassword');
-  if (features.authMethods.twoFactor) authToggles.push('twoFactor');
-  if (features.authMethods.passkey) authToggles.push('passkey');
-  if (features.authMethods.apiKeys) authToggles.push('apiKeys');
+  if (features.authMethods.emailPassword) authToggles.push("emailPassword");
+  if (features.authMethods.twoFactor) authToggles.push("twoFactor");
+  if (features.authMethods.passkey) authToggles.push("passkey");
+  if (features.authMethods.apiKeys) authToggles.push("apiKeys");
   authToggles.sort();
   return {
     authMethods: authToggles,

@@ -13,7 +13,7 @@
  * Inspector uses for failed deliveries).
  */
 
-export type AuditAction = 'create' | 'update' | 'delete' | string;
+export type AuditAction = "create" | "update" | "delete" | string;
 
 export interface AuditLogEntry {
   id: string;
@@ -75,13 +75,13 @@ ${renderEntries(input.entries)}
 }
 
 function renderFilter(filter: AuditBrowserFilter): string {
-  const value = (key: keyof AuditBrowserFilter): string => escapeHtml(filter[key] ?? '');
+  const value = (key: keyof AuditBrowserFilter): string => escapeHtml(filter[key] ?? "");
   return `<form class="filter" method="get">
-  <label>Action <input name="action" value="${value('action')}" placeholder="create / update / delete"></label>
-  <label>Resource <input name="resource" value="${value('resource')}" placeholder="Project"></label>
-  <label>Actor <input name="actorUserId" value="${value('actorUserId')}" placeholder="user uuid"></label>
-  <label>From <input name="from" type="date" value="${value('from')}"></label>
-  <label>To <input name="to" type="date" value="${value('to')}"></label>
+  <label>Action <input name="action" value="${value("action")}" placeholder="create / update / delete"></label>
+  <label>Resource <input name="resource" value="${value("resource")}" placeholder="Project"></label>
+  <label>Actor <input name="actorUserId" value="${value("actorUserId")}" placeholder="user uuid"></label>
+  <label>From <input name="from" type="date" value="${value("from")}"></label>
+  <label>To <input name="to" type="date" value="${value("to")}"></label>
   <button type="submit">Filter</button>
 </form>`;
 }
@@ -90,7 +90,7 @@ function renderEntries(entries: AuditLogEntry[]): string {
   if (entries.length === 0) {
     return `<div class="empty">No audit entries match the current filter.</div>`;
   }
-  const rows = entries.map(renderEntryRow).join('');
+  const rows = entries.map(renderEntryRow).join("");
   return `<table data-audit-entries="true">
 <thead><tr><th>When</th><th>Action</th><th>Resource</th><th>ID</th><th>Actor</th><th>Diff</th></tr></thead>
 <tbody>${rows}</tbody>
@@ -103,17 +103,28 @@ function renderEntryRow(entry: AuditLogEntry): string {
 <td>${escapeHtml(entry.occurredAt)}</td>
 <td>${safeAction}</td>
 <td>${escapeHtml(entry.resource)}</td>
-<td>${escapeHtml(entry.resourceId ?? '')}</td>
-<td>${escapeHtml(entry.actorUserId ?? '')}</td>
+<td>${escapeHtml(entry.resourceId ?? "")}</td>
+<td>${escapeHtml(entry.actorUserId ?? "")}</td>
 <td>${renderDiff(entry.before, entry.after)}</td>
 </tr>`;
 }
 
-function renderDiff(before: Record<string, unknown> | undefined, after: Record<string, unknown> | undefined): string {
-  if (!before && !after) return '';
-  const beforeLines = before ? formatJson(before).split('\n').map((l) => `<span class="del">- ${escapeHtml(l)}</span>`) : [];
-  const afterLines = after ? formatJson(after).split('\n').map((l) => `<span class="add">+ ${escapeHtml(l)}</span>`) : [];
-  return `<pre class="diff">${[...beforeLines, ...afterLines].join('\n')}</pre>`;
+function renderDiff(
+  before: Record<string, unknown> | undefined,
+  after: Record<string, unknown> | undefined,
+): string {
+  if (!before && !after) return "";
+  const beforeLines = before
+    ? formatJson(before)
+        .split("\n")
+        .map((l) => `<span class="del">- ${escapeHtml(l)}</span>`)
+    : [];
+  const afterLines = after
+    ? formatJson(after)
+        .split("\n")
+        .map((l) => `<span class="add">+ ${escapeHtml(l)}</span>`)
+    : [];
+  return `<pre class="diff">${[...beforeLines, ...afterLines].join("\n")}</pre>`;
 }
 
 function formatJson(value: Record<string, unknown>): string {
@@ -122,9 +133,9 @@ function formatJson(value: Record<string, unknown>): string {
 
 function escapeHtml(input: string): string {
   return input
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }

@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 /**
  * HMAC-SHA256 signature for webhook delivery (PLAN.md §10).
@@ -8,10 +8,10 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
  * stale body is only valid inside the timestamp tolerance window.
  */
 
-const SCHEME_VERSION = 'v1';
+const SCHEME_VERSION = "v1";
 
 export function signWebhookBody(secret: string, timestamp: string, body: string): string {
-  return createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('base64');
+  return createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("base64");
 }
 
 export function buildHmacSignatureHeader(secret: string, timestamp: string, body: string): string {
@@ -41,8 +41,8 @@ export function verifyHmacSignatureHeader(
   if (Math.abs(ts - options.now) > options.toleranceSeconds) return false;
 
   const expected = signWebhookBody(secret, String(ts), body);
-  const a = Buffer.from(expected, 'base64');
-  const b = Buffer.from(sig, 'base64');
+  const a = Buffer.from(expected, "base64");
+  const b = Buffer.from(sig, "base64");
   if (a.length !== b.length) return false;
   return timingSafeEqual(a, b);
 }

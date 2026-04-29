@@ -18,32 +18,32 @@
  */
 
 const VALID_GEOMETRY_TYPES = new Set([
-  'Point',
-  'LineString',
-  'Polygon',
-  'MultiPoint',
-  'MultiLineString',
-  'MultiPolygon',
-  'GeometryCollection',
-  'Feature',
-  'FeatureCollection',
+  "Point",
+  "LineString",
+  "Polygon",
+  "MultiPoint",
+  "MultiLineString",
+  "MultiPolygon",
+  "GeometryCollection",
+  "Feature",
+  "FeatureCollection",
 ]);
 
 export type GeoJsonGeometry =
-  | { type: 'Point'; coordinates: [number, number] | [number, number, number] }
-  | { type: 'LineString'; coordinates: number[][] }
-  | { type: 'Polygon'; coordinates: number[][][] }
-  | { type: 'MultiPoint'; coordinates: number[][] }
-  | { type: 'MultiLineString'; coordinates: number[][][] }
-  | { type: 'MultiPolygon'; coordinates: number[][][][] }
-  | { type: 'GeometryCollection'; geometries: unknown[] }
-  | { type: 'Feature'; geometry: unknown; properties: Record<string, unknown> }
-  | { type: 'FeatureCollection'; features: unknown[] };
+  | { type: "Point"; coordinates: [number, number] | [number, number, number] }
+  | { type: "LineString"; coordinates: number[][] }
+  | { type: "Polygon"; coordinates: number[][][] }
+  | { type: "MultiPoint"; coordinates: number[][] }
+  | { type: "MultiLineString"; coordinates: number[][][] }
+  | { type: "MultiPolygon"; coordinates: number[][][][] }
+  | { type: "GeometryCollection"; geometries: unknown[] }
+  | { type: "Feature"; geometry: unknown; properties: Record<string, unknown> }
+  | { type: "FeatureCollection"; features: unknown[] };
 
 export class GeoJsonMalformedError extends Error {
   constructor(reason: string) {
     super(`geo: malformed GeoJSON (${reason})`);
-    this.name = 'GeoJsonMalformedError';
+    this.name = "GeoJsonMalformedError";
   }
 }
 
@@ -51,7 +51,7 @@ export function mapGeometryToGeoJson(value: unknown): GeoJsonGeometry | null {
   if (value === null || value === undefined) return null;
 
   let candidate: unknown = value;
-  if (typeof candidate === 'string') {
+  if (typeof candidate === "string") {
     try {
       candidate = JSON.parse(candidate);
     } catch (err) {
@@ -59,11 +59,11 @@ export function mapGeometryToGeoJson(value: unknown): GeoJsonGeometry | null {
     }
   }
 
-  if (!candidate || typeof candidate !== 'object') {
-    throw new GeoJsonMalformedError('value is not an object');
+  if (!candidate || typeof candidate !== "object") {
+    throw new GeoJsonMalformedError("value is not an object");
   }
   const obj = candidate as { type?: unknown };
-  if (typeof obj.type !== 'string' || !VALID_GEOMETRY_TYPES.has(obj.type)) {
+  if (typeof obj.type !== "string" || !VALID_GEOMETRY_TYPES.has(obj.type)) {
     throw new GeoJsonMalformedError(`unknown type "${String(obj.type)}"`);
   }
   return candidate as GeoJsonGeometry;

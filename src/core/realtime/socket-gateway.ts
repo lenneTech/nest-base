@@ -1,5 +1,5 @@
-import type { Ability } from '../permissions/casl-ability.js';
-import { canSubscribeToChannel, parseChannelName } from './channel-permission.js';
+import type { Ability } from "../permissions/casl-ability.js";
+import { canSubscribeToChannel, parseChannelName } from "./channel-permission.js";
 
 /**
  * Socket.IO Gateway (PLAN.md §12 + §32 Phase 5).
@@ -22,14 +22,14 @@ import { canSubscribeToChannel, parseChannelName } from './channel-permission.js
 export class HandshakeFailedError extends Error {
   constructor(reason: string) {
     super(`socket-gateway: handshake failed (${reason})`);
-    this.name = 'HandshakeFailedError';
+    this.name = "HandshakeFailedError";
   }
 }
 
 export class PermissionDeniedError extends Error {
   constructor(channel: string) {
     super(`socket-gateway: permission denied for channel "${channel}"`);
-    this.name = 'PermissionDeniedError';
+    this.name = "PermissionDeniedError";
   }
 }
 
@@ -61,13 +61,17 @@ export class SocketGateway {
   ) {}
 
   async handshake(token: string): Promise<SocketSession> {
-    if (!token) throw new HandshakeFailedError('empty token');
+    if (!token) throw new HandshakeFailedError("empty token");
     const session = await this.resolver.resolve(token);
-    if (!session) throw new HandshakeFailedError('unknown token');
+    if (!session) throw new HandshakeFailedError("unknown token");
     return session;
   }
 
-  async subscribe(socket: SocketClient, session: SocketSession, channelName: string): Promise<void> {
+  async subscribe(
+    socket: SocketClient,
+    session: SocketSession,
+    channelName: string,
+  ): Promise<void> {
     const channel = parseChannelName(channelName);
     if (!canSubscribeToChannel(session.ability, channel)) {
       throw new PermissionDeniedError(channelName);

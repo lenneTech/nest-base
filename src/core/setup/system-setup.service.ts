@@ -1,4 +1,4 @@
-import type { SystemSetupConfig } from './system-setup-config.js';
+import type { SystemSetupConfig } from "./system-setup-config.js";
 
 /**
  * System-Setup (PLAN.md §25).
@@ -20,21 +20,21 @@ export interface AdminProvisioningStorage {
 }
 
 export type ProvisionResult =
-  | { status: 'created'; email: string }
-  | { status: 'already_exists'; email: string }
-  | { status: 'disabled' };
+  | { status: "created"; email: string }
+  | { status: "already_exists"; email: string }
+  | { status: "disabled" };
 
 export class SystemSetupService {
   constructor(private readonly storage: AdminProvisioningStorage) {}
 
   async provisionInitialAdmin(config: SystemSetupConfig): Promise<ProvisionResult> {
     if (!config.enabled) {
-      return { status: 'disabled' };
+      return { status: "disabled" };
     }
 
     const existing = await this.storage.findAdminByEmail(config.adminEmail);
     if (existing) {
-      return { status: 'already_exists', email: existing.email };
+      return { status: "already_exists", email: existing.email };
     }
 
     try {
@@ -42,7 +42,7 @@ export class SystemSetupService {
         email: config.adminEmail,
         password: config.adminPassword,
       });
-      return { status: 'created', email: created.email };
+      return { status: "created", email: created.email };
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       throw new Error(`system-setup: failed to provision initial admin (${reason})`);

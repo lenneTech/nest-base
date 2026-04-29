@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 
-import { buildAbility } from '../../src/core/permissions/casl-ability.js';
-import { OutputPipeline } from '../../src/core/output-pipeline/output-pipeline.js';
+import { buildAbility } from "../../src/core/permissions/casl-ability.js";
+import { OutputPipeline } from "../../src/core/output-pipeline/output-pipeline.js";
 
 /**
  * Story · Output-Pipeline (4 stages, PLAN.md §7).
@@ -19,83 +19,82 @@ import { OutputPipeline } from '../../src/core/output-pipeline/output-pipeline.j
  * in order. Each stage is composable in isolation (existing
  * `remove-secrets` / `safety-net` modules) and the pipeline glues them.
  */
-describe('Story · Output-Pipeline (4-Stage)', () => {
-  describe('Stage 2 · Field allowlist', () => {
-    it('keeps only the fields the ability allows for a given subject', () => {
-      const ability = buildAbility([
-        { action: 'read', subject: 'User', fields: ['id', 'email'] },
-      ]);
+describe("Story · Output-Pipeline (4-Stage)", () => {
+  describe("Stage 2 · Field allowlist", () => {
+    it("keeps only the fields the ability allows for a given subject", () => {
+      const ability = buildAbility([{ action: "read", subject: "User", fields: ["id", "email"] }]);
       const pipeline = new OutputPipeline({ ability });
-      const out = pipeline.run({ id: '1', email: 'a@x.com', passwordHash: 'h' }, { subject: 'User' });
-      expect(out).toEqual({ id: '1', email: 'a@x.com' });
+      const out = pipeline.run(
+        { id: "1", email: "a@x.com", passwordHash: "h" },
+        { subject: "User" },
+      );
+      expect(out).toEqual({ id: "1", email: "a@x.com" });
     });
 
-    it('returns the value untouched when the ability has no field rule for that subject', () => {
-      const ability = buildAbility([{ action: 'read', subject: 'Project' }]);
+    it("returns the value untouched when the ability has no field rule for that subject", () => {
+      const ability = buildAbility([{ action: "read", subject: "Project" }]);
       const pipeline = new OutputPipeline({ ability });
-      const out = pipeline.run({ id: '1', name: 'p' }, { subject: 'Project' });
-      expect(out).toEqual({ id: '1', name: 'p' });
+      const out = pipeline.run({ id: "1", name: "p" }, { subject: "Project" });
+      expect(out).toEqual({ id: "1", name: "p" });
     });
 
-    it('is applied per-item over arrays', () => {
-      const ability = buildAbility([{ action: 'read', subject: 'User', fields: ['id'] }]);
+    it("is applied per-item over arrays", () => {
+      const ability = buildAbility([{ action: "read", subject: "User", fields: ["id"] }]);
       const pipeline = new OutputPipeline({ ability });
       const out = pipeline.run(
         [
-          { id: '1', email: 'a@x.com' },
-          { id: '2', email: 'b@x.com' },
+          { id: "1", email: "a@x.com" },
+          { id: "2", email: "b@x.com" },
         ],
-        { subject: 'User' },
+        { subject: "User" },
       );
-      expect(out).toEqual([{ id: '1' }, { id: '2' }]);
+      expect(out).toEqual([{ id: "1" }, { id: "2" }]);
     });
   });
 
-  describe('Stage 3 · removeSecrets', () => {
-    it('strips top-level secret-named fields after the field allowlist runs', () => {
-      const ability = buildAbility([{ action: 'read', subject: 'User' }]);
+  describe("Stage 3 · removeSecrets", () => {
+    it("strips top-level secret-named fields after the field allowlist runs", () => {
+      const ability = buildAbility([{ action: "read", subject: "User" }]);
       const pipeline = new OutputPipeline({ ability });
-      const out = pipeline.run({ id: '1', token: 't' }, { subject: 'User' });
-      expect(out).toEqual({ id: '1' });
+      const out = pipeline.run({ id: "1", token: "t" }, { subject: "User" });
+      expect(out).toEqual({ id: "1" });
     });
   });
 
-  describe('Stage 4 · Safety-net', () => {
-    it('throws SafetyNetViolationError when an unknown secret-shaped key survives Stage 3', () => {
+  describe("Stage 4 · Safety-net", () => {
+    it("throws SafetyNetViolationError when an unknown secret-shaped key survives Stage 3", () => {
       // Custom secret list at the safety-net so this test case can craft a
       // path where Stage 3 does NOT know about the field but Stage 4 does.
-      const ability = buildAbility([{ action: 'read', subject: 'User' }]);
+      const ability = buildAbility([{ action: "read", subject: "User" }]);
       const pipeline = new OutputPipeline({
         ability,
-        safetyNetMode: 'throw',
-        safetyNetExtraFields: ['surprisePin'],
+        safetyNetMode: "throw",
+        safetyNetExtraFields: ["surprisePin"],
       });
-      expect(() => pipeline.run({ id: '1', surprisePin: 'p' }, { subject: 'User' })).toThrow(
+      expect(() => pipeline.run({ id: "1", surprisePin: "p" }, { subject: "User" })).toThrow(
         /surprisePin/,
       );
     });
 
-    it('mask mode redacts instead of throwing', () => {
-      const ability = buildAbility([{ action: 'read', subject: 'User' }]);
+    it("mask mode redacts instead of throwing", () => {
+      const ability = buildAbility([{ action: "read", subject: "User" }]);
       const pipeline = new OutputPipeline({
         ability,
-        safetyNetMode: 'mask',
-        safetyNetExtraFields: ['surprisePin'],
+        safetyNetMode: "mask",
+        safetyNetExtraFields: ["surprisePin"],
       });
-      const out = pipeline.run({ id: '1', surprisePin: 'p' }, { subject: 'User' });
-      expect(out).toEqual({ id: '1', surprisePin: '[redacted]' });
+      const out = pipeline.run({ id: "1", surprisePin: "p" }, { subject: "User" });
+      expect(out).toEqual({ id: "1", surprisePin: "[redacted]" });
     });
   });
 
-  describe('Order of stages', () => {
-    it('field allowlist runs BEFORE secret strip (so an allowed `token` field is dropped by Stage 3)', () => {
-      const ability = buildAbility([
-        { action: 'read', subject: 'User', fields: ['id', 'token'] },
-      ]);
+  describe("Order of stages", () => {
+    it("field allowlist runs BEFORE secret strip (so an allowed `token` field is dropped by Stage 3)", () => {
+      const ability = buildAbility([{ action: "read", subject: "User", fields: ["id", "token"] }]);
       const pipeline = new OutputPipeline({ ability });
-      const out = pipeline.run({ id: '1', token: 't', email: 'a@x.com' }, { subject: 'User' });
+      const out = pipeline.run({ id: "1", token: "t", email: "a@x.com" }, { subject: "User" });
       // Stage 2 keeps id+token (allowed), Stage 3 strips token (secret name).
-      expect(out).toEqual({ id: '1' });
+      expect(out).toEqual({ id: "1" });
     });
   });
 });

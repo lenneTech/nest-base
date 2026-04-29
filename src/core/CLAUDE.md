@@ -73,7 +73,7 @@ final thin wrapper.
 ### Error sentinels
 
 Every public function that can fail in a user-distinguishable way throws
-a *named* error class, not a bare `Error`. Examples:
+a _named_ error class, not a bare `Error`. Examples:
 `HandshakeFailedError`, `IdempotencyConflictError`,
 `ETagPreconditionFailedError`, `ScalarSpecRequiredError`.
 
@@ -88,11 +88,11 @@ resolves `.js` to the compiled (or Bun-handled) source.
 
 ```typescript
 // ✅
-import { buildAbility } from '../permissions/casl-ability.js';
+import { buildAbility } from "../permissions/casl-ability.js";
 
 // ❌
-import { buildAbility } from '../permissions/casl-ability';
-import { buildAbility } from '../permissions/casl-ability.ts';
+import { buildAbility } from "../permissions/casl-ability";
+import { buildAbility } from "../permissions/casl-ability.ts";
 ```
 
 ### Coverage threshold
@@ -119,11 +119,11 @@ user-controlled fragments via the standard five-char table:
 ```typescript
 function escapeHtml(input: string): string {
   return input
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 ```
 
@@ -150,6 +150,6 @@ on their side. That means:
 
 ## When you touch a file here
 
-Ask: would this make sense to ship to *every* project consuming the
+Ask: would this make sense to ship to _every_ project consuming the
 template? If not, it belongs in `src/modules/`. If yes, write the story
 first, then the code, and run all six gates before committing.

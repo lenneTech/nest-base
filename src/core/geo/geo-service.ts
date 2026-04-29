@@ -1,6 +1,6 @@
-import { createHash } from 'node:crypto';
+import { createHash } from "node:crypto";
 
-import type { GeocodingProvider, GeocodingResult } from './geocoding-providers.js';
+import type { GeocodingProvider, GeocodingResult } from "./geocoding-providers.js";
 
 /**
  * GeoService (PLAN.md §15 + §32 Phase 5c).
@@ -33,8 +33,8 @@ export interface GeoServiceOptions {
 
 export class GeocodingProviderMissingError extends Error {
   constructor() {
-    super('geo: no GeocodingProvider configured — set features.geo.provider');
-    this.name = 'GeocodingProviderMissingError';
+    super("geo: no GeocodingProvider configured — set features.geo.provider");
+    this.name = "GeocodingProviderMissingError";
   }
 }
 
@@ -67,7 +67,12 @@ export class GeoService {
 // ────────────────────────────────────────────────────────────────────
 
 /** Haversine great-circle distance between two WGS-84 lat/lng pairs, in metres. */
-export function haversineDistanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+export function haversineDistanceMeters(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number,
+): number {
   const R = 6_371_000; // mean Earth radius in metres
   const toRad = (deg: number): number => (deg * Math.PI) / 180;
   const dLat = toRad(lat2 - lat1);
@@ -98,7 +103,7 @@ export function buildFindNearbyQuery(input: FindNearbyInput): string {
   if (input.radiusMeters <= 0) {
     throw new Error(`geo: findNearby radius must be > 0 (got ${input.radiusMeters})`);
   }
-  const col = input.locationColumn ?? 'location';
+  const col = input.locationColumn ?? "location";
   return (
     `SELECT * FROM "${input.table}" ` +
     `WHERE ST_DWithin(` +
@@ -119,8 +124,8 @@ export interface WithinGeofenceInput {
 
 /** Returns the SQL fragment for a `ST_Contains(geofence.area, point.location)` filter. */
 export function buildWithinGeofenceQuery(input: WithinGeofenceInput): string {
-  const pCol = input.pointColumn ?? 'location';
-  const aCol = input.areaColumn ?? 'area';
+  const pCol = input.pointColumn ?? "location";
+  const aCol = input.areaColumn ?? "area";
   return (
     `SELECT p.* FROM "${input.pointTable}" p, "${input.geofenceTable}" g ` +
     `WHERE g.id = '${input.geofenceId}' ` +
@@ -133,5 +138,5 @@ export function buildWithinGeofenceQuery(input: WithinGeofenceInput): string {
 // ────────────────────────────────────────────────────────────────────
 
 function sha256(input: string): string {
-  return createHash('sha256').update(input).digest('hex');
+  return createHash("sha256").update(input).digest("hex");
 }

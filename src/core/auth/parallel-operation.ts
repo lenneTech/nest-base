@@ -7,15 +7,15 @@
  * before the second request hits Postgres.
  */
 
-export type ReserveResult = 'reserved' | 'busy';
+export type ReserveResult = "reserved" | "busy";
 
 export class ParallelSignupRegistry {
   private readonly reserved = new Set<string>();
 
   async tryReserve(key: string): Promise<ReserveResult> {
-    if (this.reserved.has(key)) return 'busy';
+    if (this.reserved.has(key)) return "busy";
     this.reserved.add(key);
-    return 'reserved';
+    return "reserved";
   }
 
   release(key: string): void {

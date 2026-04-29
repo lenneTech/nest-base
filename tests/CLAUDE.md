@@ -25,7 +25,7 @@ path. `bun run test:unit` matches files in `tests/unit/`.
 
 ## Story tests — the red-first workflow
 
-Story tests are *the* TDD vehicle. One file per behaviour surface; each
+Story tests are _the_ TDD vehicle. One file per behaviour surface; each
 file defines a single `describe('Story · <name>', ...)` with nested
 describes for sub-aspects.
 
@@ -33,14 +33,14 @@ A story test is RED before the source file even exists:
 
 ```typescript
 // tests/stories/widgets.story.test.ts (red — module does not exist yet)
-import { describe, expect, it } from 'vitest';
-import { WidgetService } from '../../src/core/widgets/widget.service.js';
+import { describe, expect, it } from "vitest";
+import { WidgetService } from "../../src/core/widgets/widget.service.js";
 
-describe('Story · Widgets', () => {
-  it('creates a widget with the supplied name', async () => {
+describe("Story · Widgets", () => {
+  it("creates a widget with the supplied name", async () => {
     const svc = new WidgetService(/* ... */);
-    const widget = await svc.create({ name: 'foo' });
-    expect(widget.name).toBe('foo');
+    const widget = await svc.create({ name: "foo" });
+    expect(widget.name).toBe("foo");
   });
 });
 ```
@@ -67,7 +67,10 @@ function fakeStore(): Store & { records: Record[] } {
   const records: Record[] = [];
   return {
     records,
-    async insert(record) { records.push(record); return record; },
+    async insert(record) {
+      records.push(record);
+      return record;
+    },
     // …
   };
 }
@@ -112,10 +115,10 @@ the Postgres testcontainer that `global-setup.ts` starts.
 Pattern:
 
 ```typescript
-import { Test } from '@nestjs/testing';
-import request from 'supertest';
+import { Test } from "@nestjs/testing";
+import request from "supertest";
 
-describe('GET /widgets', () => {
+describe("GET /widgets", () => {
   let app: INestApplication;
 
   beforeAll(async () => {
@@ -126,12 +129,14 @@ describe('GET /widgets', () => {
     await app.init();
   });
 
-  afterAll(async () => { await app.close(); });
+  afterAll(async () => {
+    await app.close();
+  });
 
-  it('lists widgets for the authenticated user', async () => {
+  it("lists widgets for the authenticated user", async () => {
     const res = await request(app.getHttpServer())
-      .get('/widgets')
-      .set('Authorization', `Bearer ${token}`);
+      .get("/widgets")
+      .set("Authorization", `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body.items).toBeInstanceOf(Array);
   });
@@ -148,8 +153,8 @@ shape — useful for ensuring generic inference, never-types, and discriminated-
 union narrowing work as documented:
 
 ```typescript
-import { expectTypeOf } from 'expect-type';
-import { foo } from '../../src/core/foo.js';
+import { expectTypeOf } from "expect-type";
+import { foo } from "../../src/core/foo.js";
 
 // Compile-time assertion only — runs as part of `bun run test:types`
 expectTypeOf(foo({ x: 1 })).toMatchTypeOf<{ y: string }>();
@@ -173,7 +178,7 @@ and start a `GenericContainer` per test (or per file with a
 ## Phase audits
 
 `tests/stories/phase-N-test-first-audit.story.test.ts` files lock the
-*existence* of the story files PLAN.md §32 mandates per phase. They're
+_existence_ of the story files PLAN.md §32 mandates per phase. They're
 regression guards — a future doc rewrite that renames a story file
 wakes the audit.
 
@@ -185,7 +190,7 @@ wakes the audit.
 
 ## When you write a test
 
-Remember the loop: **red first**. The test file exists *before* the
+Remember the loop: **red first**. The test file exists _before_ the
 source it tests. Verify red with `bun run test:e2e <path>` (or
 `test:unit`), commit the red, then write the source until green. The
 discipline is what keeps the coverage bar honest.

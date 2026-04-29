@@ -1,6 +1,6 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get } from "@nestjs/common";
 
-import { APP_NAME, APP_VERSION } from './app.metadata.js';
+import { APP_NAME, APP_VERSION } from "./app.metadata.js";
 
 /**
  * Root controller. Exposes the public-facing server identity at `GET /`.

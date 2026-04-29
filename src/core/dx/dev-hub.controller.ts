@@ -1,14 +1,11 @@
-import { Controller, Get, Header, NotFoundException, Query } from '@nestjs/common';
+import { Controller, Get, Header, NotFoundException, Query } from "@nestjs/common";
 
-import { type Features, loadFeatures } from '../features/features.js';
-import {
-  type PrismaWhere,
-  parsePostgrestQuery,
-} from '../permissions/postgrest-query.js';
-import { serverConfigFromEnv } from '../server/server-config.js';
-import { APP_NAME, APP_VERSION } from '../app/app.metadata.js';
-import { buildDiagnosticsReport, type DiagnosticsReport } from './diagnostics.js';
-import { type DevHubLink, planDevHub } from './dev-hub.js';
+import { type Features, loadFeatures } from "../features/features.js";
+import { type PrismaWhere, parsePostgrestQuery } from "../permissions/postgrest-query.js";
+import { serverConfigFromEnv } from "../server/server-config.js";
+import { APP_NAME, APP_VERSION } from "../app/app.metadata.js";
+import { buildDiagnosticsReport, type DiagnosticsReport } from "./diagnostics.js";
+import { type DevHubLink, planDevHub } from "./dev-hub.js";
 
 /**
  * `/dev/*` — Developer-only landing + JSON inspection routes.
@@ -20,23 +17,23 @@ import { type DevHubLink, planDevHub } from './dev-hub.js';
  * Every route 404s outside `NODE_ENV=development` so the surface can
  * never leak in production.
  */
-@Controller('dev')
+@Controller("dev")
 export class DevHubController {
   @Get()
-  @Header('content-type', 'text/html; charset=utf-8')
+  @Header("content-type", "text/html; charset=utf-8")
   index(): string {
     this.assertDev();
-    const links = planDevHub({ env: 'development', features: this.featuresOnly() });
+    const links = planDevHub({ env: "development", features: this.featuresOnly() });
     return renderHtml(links);
   }
 
-  @Get('features')
+  @Get("features")
   features(): Features {
     this.assertDev();
     return this.featuresOnly();
   }
 
-  @Get('postgrest-parse')
+  @Get("postgrest-parse")
   postgrestParse(@Query() query: Record<string, string>): { where: PrismaWhere } {
     this.assertDev();
     // Strips off the controller's own NestJS-overhead query params if any
@@ -44,7 +41,7 @@ export class DevHubController {
     return { where: parsePostgrestQuery(query) };
   }
 
-  @Get('diagnostics')
+  @Get("diagnostics")
   diagnostics(): DiagnosticsReport {
     this.assertDev();
     const features = this.featuresOnly();
@@ -69,7 +66,7 @@ export class DevHubController {
         arch: process.arch,
       },
       app: {
-        env: 'development',
+        env: "development",
         version: APP_VERSION,
         baseUrl: cfg.baseUrl,
       },
@@ -80,7 +77,7 @@ export class DevHubController {
 
   private assertDev(): void {
     const cfg = serverConfigFromEnv(process.env);
-    if (cfg.env !== 'development') {
+    if (cfg.env !== "development") {
       throw new NotFoundException();
     }
   }
@@ -90,15 +87,15 @@ export class DevHubController {
   }
 }
 
-const CATEGORY_LABELS: Record<DevHubLink['category'], string> = {
-  api: 'API',
-  architecture: 'Architecture',
-  data: 'Data',
-  async: 'Async',
+const CATEGORY_LABELS: Record<DevHubLink["category"], string> = {
+  api: "API",
+  architecture: "Architecture",
+  data: "Data",
+  async: "Async",
 };
 
 function renderHtml(links: ReadonlyArray<DevHubLink>): string {
-  const grouped: Partial<Record<DevHubLink['category'], DevHubLink[]>> = {};
+  const grouped: Partial<Record<DevHubLink["category"], DevHubLink[]>> = {};
   for (const link of links) {
     (grouped[link.category] ??= []).push(link);
   }
@@ -106,10 +103,10 @@ function renderHtml(links: ReadonlyArray<DevHubLink>): string {
     .map(([category, list]) => {
       const items = list!
         .map((l) => `      <li><a href="${escapeHtml(l.url)}">${escapeHtml(l.label)}</a></li>`)
-        .join('\n');
-      return `    <section>\n      <h2>${escapeHtml(CATEGORY_LABELS[category as DevHubLink['category']])}</h2>\n      <ul>\n${items}\n      </ul>\n    </section>`;
+        .join("\n");
+      return `    <section>\n      <h2>${escapeHtml(CATEGORY_LABELS[category as DevHubLink["category"]])}</h2>\n      <ul>\n${items}\n      </ul>\n    </section>`;
     })
-    .join('\n');
+    .join("\n");
 
   return `<!doctype html>
 <html lang="en">
@@ -143,9 +140,9 @@ function readBunVersion(): string | undefined {
 
 function escapeHtml(input: string): string {
   return input
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }

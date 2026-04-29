@@ -1,11 +1,11 @@
-import { Logger, Module } from '@nestjs/common';
+import { Logger, Module } from "@nestjs/common";
 import {
   type OnGatewayConnection,
   type OnGatewayDisconnect,
   WebSocketGateway,
   WebSocketServer,
-} from '@nestjs/websockets';
-import type { Server, Socket } from 'socket.io';
+} from "@nestjs/websockets";
+import type { Server, Socket } from "socket.io";
 
 /**
  * RealtimeGateway — Socket.IO endpoint mounted at the default `/`
@@ -27,14 +27,14 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   @WebSocketServer()
   server!: Server;
 
-  private readonly logger = new Logger('RealtimeGateway');
+  private readonly logger = new Logger("RealtimeGateway");
   private readonly sockets = new Map<string, { userId?: string; rooms: Set<string> }>();
 
   handleConnection(client: Socket): void {
     this.sockets.set(client.id, { rooms: new Set() });
     this.logger.log(`socket connected: ${client.id}`);
-    client.on('subscribe', (channel: unknown) => {
-      if (typeof channel !== 'string' || !channel) return;
+    client.on("subscribe", (channel: unknown) => {
+      if (typeof channel !== "string" || !channel) return;
       // Permission-aware filter placeholder: every channel is allowed
       // for now. Once Ability resolution is wired into handshake auth,
       // the gateway calls `ChannelFilter.canSubscribe()` here.
@@ -42,8 +42,8 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       const session = this.sockets.get(client.id);
       if (session) session.rooms.add(channel);
     });
-    client.on('unsubscribe', (channel: unknown) => {
-      if (typeof channel !== 'string' || !channel) return;
+    client.on("unsubscribe", (channel: unknown) => {
+      if (typeof channel !== "string" || !channel) return;
       client.leave(channel);
       const session = this.sockets.get(client.id);
       if (session) session.rooms.delete(channel);

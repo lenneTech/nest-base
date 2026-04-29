@@ -86,21 +86,23 @@ export interface SendTemplateOptions {
 export class EmailRecipientNotAllowedError extends Error {
   constructor(recipient: string) {
     super(`email: recipient "${recipient}" is not in the dev whitelist`);
-    this.name = 'EmailRecipientNotAllowedError';
+    this.name = "EmailRecipientNotAllowedError";
   }
 }
 
 export class EmailRateLimitedError extends Error {
   constructor(recipient: string, resetMs?: number) {
-    super(`email: rate limit reached for "${recipient}"${resetMs ? ` (reset in ${resetMs}ms)` : ''}`);
-    this.name = 'EmailRateLimitedError';
+    super(
+      `email: rate limit reached for "${recipient}"${resetMs ? ` (reset in ${resetMs}ms)` : ""}`,
+    );
+    this.name = "EmailRateLimitedError";
   }
 }
 
 export class TransactionalDriverMissingError extends Error {
   constructor() {
-    super('email: brevoTemplateId is set but no transactional driver was configured');
-    this.name = 'TransactionalDriverMissingError';
+    super("email: brevoTemplateId is set but no transactional driver was configured");
+    this.name = "TransactionalDriverMissingError";
   }
 }
 
@@ -126,11 +128,15 @@ export class EmailService {
       const baseMessage: EmailMessage = {
         to: opts.to,
         from: opts.from ?? this.options.defaultFrom,
-        subject: '',
+        subject: "",
       };
-      result = await this.options.transactional.sendTemplate(baseMessage, opts.brevoTemplateId, vars);
+      result = await this.options.transactional.sendTemplate(
+        baseMessage,
+        opts.brevoTemplateId,
+        vars,
+      );
     } else {
-      const locale = opts.locale ?? 'en';
+      const locale = opts.locale ?? "en";
       const rendered = await this.options.renderer.render(opts.template, locale, vars);
       const message: EmailMessage = {
         to: opts.to,
@@ -174,8 +180,8 @@ export class EmailService {
 
 function matchesPattern(recipient: string, pattern: string): boolean {
   if (pattern === recipient) return true;
-  if (!pattern.includes('*')) return false;
+  if (!pattern.includes("*")) return false;
   // Translate `*@example.com` style globs into a regex anchored at both ends.
-  const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+  const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
   return new RegExp(`^${escaped}$`).test(recipient);
 }

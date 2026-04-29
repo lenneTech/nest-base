@@ -16,11 +16,7 @@
  * batch import) without hauling Prisma into the test surface.
  */
 
-export type PowerSyncConflictOutcome =
-  | 'client-wins'
-  | 'server-wins'
-  | 'partial-conflict'
-  | 'no-op';
+export type PowerSyncConflictOutcome = "client-wins" | "server-wins" | "partial-conflict" | "no-op";
 
 export interface PowerSyncConflictDecision<T extends { updatedAt?: Date }> {
   outcome: PowerSyncConflictOutcome;
@@ -42,17 +38,16 @@ export function resolvePowerSyncConflict<T extends { updatedAt?: Date }>(
 
   const patchKeys = Object.keys(clientPatch) as Array<keyof T & string>;
   if (patchKeys.length === 0) {
-    return { outcome: 'no-op', merged: serverRow, rejectedFields: [] };
+    return { outcome: "no-op", merged: serverRow, rejectedFields: [] };
   }
 
   const protectedSet = new Set(protectedFields);
   const rejectedFields = patchKeys.filter((k) => protectedSet.has(k));
 
-  const serverNewer =
-    serverRow.updatedAt instanceof Date && serverRow.updatedAt > clientUpdatedAt;
+  const serverNewer = serverRow.updatedAt instanceof Date && serverRow.updatedAt > clientUpdatedAt;
 
   if (serverNewer && rejectedFields.length === 0) {
-    return { outcome: 'server-wins', merged: serverRow, rejectedFields: [] };
+    return { outcome: "server-wins", merged: serverRow, rejectedFields: [] };
   }
 
   // Apply non-protected fields; preserve server values for protected ones.
@@ -63,7 +58,7 @@ export function resolvePowerSyncConflict<T extends { updatedAt?: Date }>(
   }
 
   if (rejectedFields.length > 0) {
-    return { outcome: 'partial-conflict', merged, rejectedFields };
+    return { outcome: "partial-conflict", merged, rejectedFields };
   }
-  return { outcome: 'client-wins', merged, rejectedFields: [] };
+  return { outcome: "client-wins", merged, rejectedFields: [] };
 }

@@ -1,4 +1,4 @@
-import { randomFillSync } from 'node:crypto';
+import { randomFillSync } from "node:crypto";
 
 /**
  * UUID v7 (RFC 9562) — time-ordered identifier.
@@ -31,8 +31,8 @@ export function uuidV7(): string {
   bytes[8] = (bytes[8]! & 0x3f) | 0x80;
 
   const hex: string[] = [];
-  for (const b of bytes) hex.push(b.toString(16).padStart(2, '0'));
-  return `${hex.slice(0, 4).join('')}-${hex.slice(4, 6).join('')}-${hex.slice(6, 8).join('')}-${hex.slice(8, 10).join('')}-${hex.slice(10, 16).join('')}`;
+  for (const b of bytes) hex.push(b.toString(16).padStart(2, "0"));
+  return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex.slice(8, 10).join("")}-${hex.slice(10, 16).join("")}`;
 }
 
 const UUID_V7_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;

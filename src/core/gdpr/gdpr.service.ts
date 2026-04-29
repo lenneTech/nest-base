@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash } from "node:crypto";
 
 /**
  * GDPR endpoints (PLAN.md §32 Phase 8).
@@ -26,7 +26,7 @@ export interface GdprExportInput {
 }
 
 export interface GdprExportPayload {
-  kind: 'gdpr-export';
+  kind: "gdpr-export";
   version: 1;
   exportedAt: string;
   user: object;
@@ -35,15 +35,15 @@ export interface GdprExportPayload {
 
 export class GdprExportEmptyError extends Error {
   constructor() {
-    super('gdpr: export requires a user record');
-    this.name = 'GdprExportEmptyError';
+    super("gdpr: export requires a user record");
+    this.name = "GdprExportEmptyError";
   }
 }
 
 export function buildGdprExport(input: GdprExportInput): GdprExportPayload {
   if (!input.user) throw new GdprExportEmptyError();
   return {
-    kind: 'gdpr-export',
+    kind: "gdpr-export",
     version: 1,
     exportedAt: new Date(input.now()).toISOString(),
     user: input.user,
@@ -51,9 +51,9 @@ export function buildGdprExport(input: GdprExportInput): GdprExportPayload {
   };
 }
 
-export type GdprErasureMode = 'hard-delete' | 'anonymise';
+export type GdprErasureMode = "hard-delete" | "anonymise";
 
-export type GdprPiiStrategy = 'hash' | 'null' | 'mask';
+export type GdprPiiStrategy = "hash" | "null" | "mask";
 
 export interface GdprPiiField {
   name: string;
@@ -67,12 +67,12 @@ export interface GdprErasureInput {
 }
 
 export interface GdprDeleteOperation {
-  type: 'delete';
+  type: "delete";
   userId: string;
 }
 
 export interface GdprUpdateOperation {
-  type: 'update';
+  type: "update";
   userId: string;
   updates: Record<string, string | null>;
 }
@@ -83,24 +83,24 @@ export interface GdprErasurePlan {
   operations: GdprErasureOperation[];
 }
 
-const ANON_DOMAIN = 'anonymous.invalid';
+const ANON_DOMAIN = "anonymous.invalid";
 
 export function planGdprErasure(input: GdprErasureInput): GdprErasurePlan {
-  if (!input.userId) throw new Error('gdpr: userId must be a non-empty string');
-  if (input.mode === 'hard-delete') {
-    return { operations: [{ type: 'delete', userId: input.userId }] };
+  if (!input.userId) throw new Error("gdpr: userId must be a non-empty string");
+  if (input.mode === "hard-delete") {
+    return { operations: [{ type: "delete", userId: input.userId }] };
   }
-  if (input.mode === 'anonymise') {
+  if (input.mode === "anonymise") {
     if (input.piiFields.length === 0) {
-      throw new Error('gdpr: piiFields must contain at least one entry for anonymise mode');
+      throw new Error("gdpr: piiFields must contain at least one entry for anonymise mode");
     }
     const updates: Record<string, string | null> = {};
-    const hashSlice = createHash('sha256').update(input.userId).digest('hex').slice(0, 16);
+    const hashSlice = createHash("sha256").update(input.userId).digest("hex").slice(0, 16);
     for (const field of input.piiFields) {
       updates[field.name] = substitute(field, hashSlice);
     }
     return {
-      operations: [{ type: 'update', userId: input.userId, updates }],
+      operations: [{ type: "update", userId: input.userId, updates }],
     };
   }
   throw new Error(`gdpr: unknown erasure mode "${String(input.mode)}"`);
@@ -108,13 +108,11 @@ export function planGdprErasure(input: GdprErasureInput): GdprErasurePlan {
 
 function substitute(field: GdprPiiField, hashSlice: string): string | null {
   switch (field.strategy) {
-    case 'hash':
-      return field.name === 'email'
-        ? `anon-${hashSlice}@${ANON_DOMAIN}`
-        : `anon-${hashSlice}`;
-    case 'null':
+    case "hash":
+      return field.name === "email" ? `anon-${hashSlice}@${ANON_DOMAIN}` : `anon-${hashSlice}`;
+    case "null":
       return null;
-    case 'mask':
-      return '***';
+    case "mask":
+      return "***";
   }
 }

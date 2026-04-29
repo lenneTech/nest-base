@@ -9,7 +9,7 @@ import {
   Param,
   Post,
   Query,
-} from '@nestjs/common';
+} from "@nestjs/common";
 
 import {
   type CreateFileInput,
@@ -17,17 +17,17 @@ import {
   type FileServiceStorage,
   FileNotFoundError,
   FileService,
-} from './file.service.js';
+} from "./file.service.js";
 import {
   type FolderRecord,
   type FolderStorage,
   FolderNotFoundError,
   FolderService,
-} from './folder.service.js';
-import { AssetController } from './asset.controller.js';
+} from "./folder.service.js";
+import { AssetController } from "./asset.controller.js";
 
-const FILE_STORAGE = Symbol.for('lt:FileStorage');
-const FOLDER_STORAGE = Symbol.for('lt:FolderStorage');
+const FILE_STORAGE = Symbol.for("lt:FileStorage");
+const FOLDER_STORAGE = Symbol.for("lt:FolderStorage");
 
 class InMemoryFileStorage implements FileServiceStorage {
   private readonly map = new Map<string, FileRecord>();
@@ -77,19 +77,19 @@ class InMemoryFolderStorage implements FolderStorage {
   }
 }
 
-@Controller('files')
+@Controller("files")
 class FileController {
   constructor(private readonly service: FileService) {}
 
   @Get()
   async list(
-    @Query('tenantId') tenantId: string,
-    @Query('folderId') folderId: string | undefined,
+    @Query("tenantId") tenantId: string,
+    @Query("folderId") folderId: string | undefined,
   ): Promise<FileRecord[]> {
-    if (!tenantId) throw new BadRequestException('tenantId required');
+    if (!tenantId) throw new BadRequestException("tenantId required");
     return this.service.listInFolder(
       tenantId,
-      folderId === '' || folderId === undefined ? null : folderId,
+      folderId === "" || folderId === undefined ? null : folderId,
     );
   }
 
@@ -98,8 +98,8 @@ class FileController {
     return this.service.create(body);
   }
 
-  @Delete(':id')
-  async remove(@Param('id') id: string): Promise<{ removed: boolean }> {
+  @Delete(":id")
+  async remove(@Param("id") id: string): Promise<{ removed: boolean }> {
     try {
       await this.service.remove(id);
       return { removed: true };
@@ -110,29 +110,31 @@ class FileController {
   }
 }
 
-@Controller('folders')
+@Controller("folders")
 class FolderController {
   constructor(private readonly service: FolderService) {}
 
   @Get()
   async list(
-    @Query('tenantId') tenantId: string,
-    @Query('parentId') parentId: string | undefined,
+    @Query("tenantId") tenantId: string,
+    @Query("parentId") parentId: string | undefined,
   ): Promise<FolderRecord[]> {
-    if (!tenantId) throw new BadRequestException('tenantId required');
+    if (!tenantId) throw new BadRequestException("tenantId required");
     return this.service.listChildren(
       tenantId,
-      parentId === '' || parentId === undefined ? null : parentId,
+      parentId === "" || parentId === undefined ? null : parentId,
     );
   }
 
   @Post()
-  async create(@Body() body: { tenantId: string; parentId: string | null; name: string }): Promise<FolderRecord> {
+  async create(
+    @Body() body: { tenantId: string; parentId: string | null; name: string },
+  ): Promise<FolderRecord> {
     return this.service.create(body);
   }
 
-  @Delete(':id')
-  async remove(@Param('id') id: string): Promise<{ removed: boolean }> {
+  @Delete(":id")
+  async remove(@Param("id") id: string): Promise<{ removed: boolean }> {
     try {
       await this.service.remove(id);
       return { removed: true };

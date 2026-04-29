@@ -1,4 +1,4 @@
-import type { Ability } from '../permissions/casl-ability.js';
+import type { Ability } from "../permissions/casl-ability.js";
 
 /**
  * Realtime permission-aware channels (PLAN.md §12).
@@ -30,10 +30,13 @@ export function parseChannelName(name: string): ChannelDescriptor {
 }
 
 export function canSubscribeToChannel(ability: Ability, channel: ChannelDescriptor): boolean {
-  if (channel.scope === 'tenant') {
+  if (channel.scope === "tenant") {
     // Use a synthetic subject that carries the tenant id so CASL's
     // mongoQueryMatcher can evaluate `conditions: { tenantId: <id> }`.
-    return ability.can('read', { __caslSubjectType__: channel.subject, tenantId: channel.id } as never);
+    return ability.can("read", {
+      __caslSubjectType__: channel.subject,
+      tenantId: channel.id,
+    } as never);
   }
-  return ability.can('read', channel.subject as never);
+  return ability.can("read", channel.subject as never);
 }

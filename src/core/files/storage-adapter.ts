@@ -32,7 +32,7 @@ export interface StorageAdapter {
 export class StorageObjectNotFoundError extends Error {
   constructor(public readonly key: string) {
     super(`storage: object not found at key "${key}"`);
-    this.name = 'StorageObjectNotFoundError';
+    this.name = "StorageObjectNotFoundError";
   }
 }
 
@@ -45,7 +45,7 @@ export class InMemoryStorageAdapter implements StorageAdapter {
   private readonly objects = new Map<string, StoredObject>();
 
   async put(input: StoragePutInput): Promise<StorageObjectMetadata> {
-    if (!input.key) throw new Error('storage: key is required');
+    if (!input.key) throw new Error("storage: key is required");
     this.objects.set(input.key, { body: input.body, mimeType: input.mimeType });
     return { key: input.key, sizeBytes: input.body.byteLength, mimeType: input.mimeType };
   }
@@ -65,7 +65,8 @@ export class InMemoryStorageAdapter implements StorageAdapter {
   }
 
   async signUrl(key: string, ttlSeconds: number): Promise<string> {
-    if (ttlSeconds <= 0) throw new Error(`storage: ttlSeconds must be positive (received: ${ttlSeconds})`);
+    if (ttlSeconds <= 0)
+      throw new Error(`storage: ttlSeconds must be positive (received: ${ttlSeconds})`);
     if (!this.objects.has(key)) throw new StorageObjectNotFoundError(key);
     const expires = Math.floor(Date.now() / 1000) + ttlSeconds;
     return `memory://${encodeURIComponent(key)}?expires=${expires}`;

@@ -1,11 +1,7 @@
-import 'reflect-metadata';
-import type { z } from 'zod';
+import "reflect-metadata";
+import type { z } from "zod";
 
-import {
-  type McpContext,
-  type McpPermission,
-  type McpServerModule,
-} from './mcp-server.js';
+import { type McpContext, type McpPermission, type McpServerModule } from "./mcp-server.js";
 
 /**
  * @McpTool / @McpResource decorators + auto-discovery (PLAN.md §16.4 +
@@ -21,8 +17,8 @@ import {
  * `module.invokeTool(...)`.
  */
 
-const TOOL_META = Symbol.for('lt:mcp:tool');
-const RESOURCE_META = Symbol.for('lt:mcp:resource');
+const TOOL_META = Symbol.for("lt:mcp:tool");
+const RESOURCE_META = Symbol.for("lt:mcp:resource");
 
 export interface McpToolDecoratorOptions {
   name: string;
@@ -60,7 +56,9 @@ export function getMcpResourceMetadata(
   target: object,
   propertyKey: string | symbol,
 ): McpResourceDecoratorOptions | undefined {
-  return Reflect.getMetadata(RESOURCE_META, target, propertyKey) as McpResourceDecoratorOptions | undefined;
+  return Reflect.getMetadata(RESOURCE_META, target, propertyKey) as
+    | McpResourceDecoratorOptions
+    | undefined;
 }
 
 export function discoverMcpHandlers(module: McpServerModule, instance: object): void {
@@ -68,13 +66,15 @@ export function discoverMcpHandlers(module: McpServerModule, instance: object): 
   if (!proto || proto === Object.prototype) return;
 
   for (const key of Object.getOwnPropertyNames(proto)) {
-    if (key === 'constructor') continue;
+    if (key === "constructor") continue;
     const member = (proto as Record<string, unknown>)[key];
-    if (typeof member !== 'function') continue;
+    if (typeof member !== "function") continue;
 
     const toolMeta = getMcpToolMetadata(proto, key);
     if (toolMeta) {
-      const handler = (member as (input: unknown, ctx: McpContext) => Promise<unknown>).bind(instance);
+      const handler = (member as (input: unknown, ctx: McpContext) => Promise<unknown>).bind(
+        instance,
+      );
       module.registerTool({
         name: toolMeta.name,
         description: toolMeta.description,

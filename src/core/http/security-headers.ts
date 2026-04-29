@@ -1,4 +1,4 @@
-import type { AppEnv } from './cookie-cors-config.js';
+import type { AppEnv } from "./cookie-cors-config.js";
 
 /**
  * Helmet + CSP configuration (PLAN.md §30).
@@ -12,16 +12,16 @@ import type { AppEnv } from './cookie-cors-config.js';
  */
 
 export interface CspDirectives {
-  'default-src': string[];
-  'script-src': string[];
-  'style-src': string[];
-  'img-src': string[];
-  'connect-src': string[];
-  'font-src': string[];
-  'object-src': string[];
-  'frame-ancestors': string[];
-  'base-uri': string[];
-  'form-action': string[];
+  "default-src": string[];
+  "script-src": string[];
+  "style-src": string[];
+  "img-src": string[];
+  "connect-src": string[];
+  "font-src": string[];
+  "object-src": string[];
+  "frame-ancestors": string[];
+  "base-uri": string[];
+  "form-action": string[];
   [key: string]: string[];
 }
 
@@ -37,29 +37,29 @@ export interface SecurityHeadersConfig {
 }
 
 const PROD_CSP: CspDirectives = {
-  'default-src': ["'self'"],
-  'script-src': ["'self'"],
-  'style-src': ["'self'"],
-  'img-src': ["'self'", 'data:'],
-  'connect-src': ["'self'"],
-  'font-src': ["'self'"],
-  'object-src': ["'none'"],
-  'frame-ancestors': ["'none'"],
-  'base-uri': ["'self'"],
-  'form-action': ["'self'"],
+  "default-src": ["'self'"],
+  "script-src": ["'self'"],
+  "style-src": ["'self'"],
+  "img-src": ["'self'", "data:"],
+  "connect-src": ["'self'"],
+  "font-src": ["'self'"],
+  "object-src": ["'none'"],
+  "frame-ancestors": ["'none'"],
+  "base-uri": ["'self'"],
+  "form-action": ["'self'"],
 };
 
 const DEV_CSP: CspDirectives = {
-  'default-src': ["'self'"],
-  'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-  'style-src': ["'self'", "'unsafe-inline'"],
-  'img-src': ["'self'", 'data:', 'http:', 'https:'],
-  'connect-src': ["'self'", 'ws:', 'wss:', 'http://localhost:*', 'https://localhost:*'],
-  'font-src': ["'self'", 'data:'],
-  'object-src': ["'none'"],
-  'frame-ancestors': ["'none'"],
-  'base-uri': ["'self'"],
-  'form-action': ["'self'"],
+  "default-src": ["'self'"],
+  "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+  "style-src": ["'self'", "'unsafe-inline'"],
+  "img-src": ["'self'", "data:", "http:", "https:"],
+  "connect-src": ["'self'", "ws:", "wss:", "http://localhost:*", "https://localhost:*"],
+  "font-src": ["'self'", "data:"],
+  "object-src": ["'none'"],
+  "frame-ancestors": ["'none'"],
+  "base-uri": ["'self'"],
+  "form-action": ["'self'"],
 };
 
 const HSTS_PROD: HstsConfig = {
@@ -70,7 +70,7 @@ const HSTS_PROD: HstsConfig = {
 };
 
 export function buildSecurityHeadersConfig(env: AppEnv): SecurityHeadersConfig {
-  if (env === 'development') {
+  if (env === "development") {
     return { contentSecurityPolicy: { directives: DEV_CSP } };
   }
   return { contentSecurityPolicy: { directives: PROD_CSP }, hsts: HSTS_PROD };

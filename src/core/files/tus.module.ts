@@ -1,10 +1,10 @@
-import { type DynamicModule, Logger, Module } from '@nestjs/common';
-import { Server } from '@tus/server';
-import { FileStore } from '@tus/file-store';
-import { tmpdir } from 'node:os';
-import { resolve } from 'node:path';
+import { type DynamicModule, Logger, Module } from "@nestjs/common";
+import { Server } from "@tus/server";
+import { FileStore } from "@tus/file-store";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
 
-const TUS_PATH = '/files/upload';
+const TUS_PATH = "/files/upload";
 
 /**
  * TusModule — mounts the `@tus/server` Server on `/files/upload`
@@ -23,7 +23,7 @@ const TUS_PATH = '/files/upload';
 @Module({})
 export class TusModule {
   static forRoot(options?: { dataPath?: string }): DynamicModule {
-    const dataPath = options?.dataPath ?? resolve(tmpdir(), 'lt-tus');
+    const dataPath = options?.dataPath ?? resolve(tmpdir(), "lt-tus");
     const tusServer = new Server({
       path: TUS_PATH,
       datastore: new FileStore({ directory: dataPath }),
@@ -31,10 +31,10 @@ export class TusModule {
     return {
       module: TusModule,
       providers: [
-        { provide: 'TUS_SERVER', useValue: tusServer },
-        { provide: 'TUS_PATH', useValue: TUS_PATH },
+        { provide: "TUS_SERVER", useValue: tusServer },
+        { provide: "TUS_PATH", useValue: TUS_PATH },
       ],
-      exports: ['TUS_SERVER', 'TUS_PATH'],
+      exports: ["TUS_SERVER", "TUS_PATH"],
     };
   }
 }
@@ -45,7 +45,7 @@ export function mountTus(
   tusServer: Server,
   path: string,
 ): void {
-  const logger = new Logger('TusUpload');
+  const logger = new Logger("TusUpload");
   expressApp.use(path, (req: unknown, res: unknown) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return tusServer.handle(req as any, res as any);

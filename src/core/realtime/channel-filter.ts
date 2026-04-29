@@ -1,5 +1,5 @@
-import { parseChannelName } from './channel-permission.js';
-import type { SocketClient, SocketSession } from './socket-gateway.js';
+import { parseChannelName } from "./channel-permission.js";
+import type { SocketClient, SocketSession } from "./socket-gateway.js";
 
 /**
  * Permission-Aware Channel-Filter (PLAN.md §12 + §32 Phase 5).
@@ -61,7 +61,7 @@ export class ChannelFilter {
     const subject = { __caslSubjectType__: descriptor.subject, ...payload.record };
     let delivered = 0;
     for (const sub of channel.values()) {
-      if (sub.session.ability.can('read', subject as never)) {
+      if (sub.session.ability.can("read", subject as never)) {
         sub.socket.emit(event, payload);
         delivered++;
       }

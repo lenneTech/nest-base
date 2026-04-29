@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * File metadata schema (PLAN.md §8).
@@ -8,7 +8,7 @@ import { z } from 'zod';
  * trimmed to what the template needs.
  */
 
-const STORAGE_DRIVERS = ['s3', 'local', 'postgres'] as const;
+const STORAGE_DRIVERS = ["s3", "local", "postgres"] as const;
 const SHA256_HEX = /^[0-9a-f]{64}$/;
 
 export const FileMetadataSchema = z.object({
@@ -30,7 +30,7 @@ export type FileMetadata = z.infer<typeof FileMetadataSchema>;
  * Format a byte count for display. Returns "0 B", "1023 B", "1.0 KB",
  * "1.4 MB", "2.0 GB", "3.5 TB". Uses 1024 as the base (binary IEC).
  */
-const UNITS = ['B', 'KB', 'MB', 'GB', 'TB'] as const;
+const UNITS = ["B", "KB", "MB", "GB", "TB"] as const;
 const BASE = 1024;
 
 export function formatFileSize(bytes: number): string {

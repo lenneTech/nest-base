@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 
 import {
   resolvePowerSyncConflict,
   type PowerSyncConflictDecision,
-} from '../../src/core/repository/powersync-conflict.js';
+} from "../../src/core/repository/powersync-conflict.js";
 
 /**
  * Story · PowerSync conflict-resolution hook (PLAN.md §15.5 + §32 Phase 5b).
@@ -22,61 +22,67 @@ import {
  *   - the resolver returns a *decision*, never a write — the runner
  *     applies (or rejects with 409) based on the decision.
  */
-describe('Story · PowerSync conflict resolution', () => {
-  it('client wins when its updatedAt is newer than the server row', () => {
+describe("Story · PowerSync conflict resolution", () => {
+  it("client wins when its updatedAt is newer than the server row", () => {
     const decision = resolvePowerSyncConflict({
-      clientPatch: { name: 'fromClient' },
-      clientUpdatedAt: new Date('2026-01-02T00:00:00Z'),
-      serverRow: { id: 'a', name: 'fromServer', updatedAt: new Date('2026-01-01T00:00:00Z') },
+      clientPatch: { name: "fromClient" },
+      clientUpdatedAt: new Date("2026-01-02T00:00:00Z"),
+      serverRow: { id: "a", name: "fromServer", updatedAt: new Date("2026-01-01T00:00:00Z") },
       protectedFields: [],
     });
-    expect(decision.outcome).toBe('client-wins');
-    expect(decision.merged.name).toBe('fromClient');
+    expect(decision.outcome).toBe("client-wins");
+    expect(decision.merged.name).toBe("fromClient");
   });
 
-  it('server wins when the server updatedAt is newer (last-write-wins)', () => {
+  it("server wins when the server updatedAt is newer (last-write-wins)", () => {
     const decision = resolvePowerSyncConflict({
-      clientPatch: { name: 'stale' },
-      clientUpdatedAt: new Date('2026-01-01T00:00:00Z'),
-      serverRow: { id: 'a', name: 'fresh', updatedAt: new Date('2026-01-02T00:00:00Z') },
+      clientPatch: { name: "stale" },
+      clientUpdatedAt: new Date("2026-01-01T00:00:00Z"),
+      serverRow: { id: "a", name: "fresh", updatedAt: new Date("2026-01-02T00:00:00Z") },
       protectedFields: [],
     });
-    expect(decision.outcome).toBe('server-wins');
-    expect(decision.merged.name).toBe('fresh');
+    expect(decision.outcome).toBe("server-wins");
+    expect(decision.merged.name).toBe("fresh");
   });
 
-  it('protected fields are never overwritten by the client (privilege escalation guard)', () => {
+  it("protected fields are never overwritten by the client (privilege escalation guard)", () => {
     const decision = resolvePowerSyncConflict({
-      clientPatch: { name: 'ok', role: 'ADMIN' },
-      clientUpdatedAt: new Date('2026-12-31T00:00:00Z'),
-      serverRow: { id: 'a', name: 'old', role: 'USER', updatedAt: new Date('2026-01-01T00:00:00Z') },
-      protectedFields: ['role'],
+      clientPatch: { name: "ok", role: "ADMIN" },
+      clientUpdatedAt: new Date("2026-12-31T00:00:00Z"),
+      serverRow: {
+        id: "a",
+        name: "old",
+        role: "USER",
+        updatedAt: new Date("2026-01-01T00:00:00Z"),
+      },
+      protectedFields: ["role"],
     });
     // Even though clientUpdatedAt > serverUpdatedAt, role is locked.
-    expect(decision.merged.role).toBe('USER');
+    expect(decision.merged.role).toBe("USER");
     // Conflict status is reported even though the rest of the patch lands.
-    expect(decision.outcome).toBe('partial-conflict');
+    expect(decision.outcome).toBe("partial-conflict");
   });
 
-  it('returns the unchanged server row when the client patch is empty', () => {
+  it("returns the unchanged server row when the client patch is empty", () => {
     const decision = resolvePowerSyncConflict({
       clientPatch: {},
-      clientUpdatedAt: new Date('2026-01-02T00:00:00Z'),
-      serverRow: { id: 'a', name: 'fresh', updatedAt: new Date('2026-01-01T00:00:00Z') },
+      clientUpdatedAt: new Date("2026-01-02T00:00:00Z"),
+      serverRow: { id: "a", name: "fresh", updatedAt: new Date("2026-01-01T00:00:00Z") },
       protectedFields: [],
     });
-    expect(decision.outcome).toBe('no-op');
-    expect(decision.merged.name).toBe('fresh');
+    expect(decision.outcome).toBe("no-op");
+    expect(decision.merged.name).toBe("fresh");
   });
 
-  it('decision shape is statically typed (PowerSyncConflictDecision)', () => {
+  it("decision shape is statically typed (PowerSyncConflictDecision)", () => {
     const decision = resolvePowerSyncConflict({
-      clientPatch: { name: 'x' },
+      clientPatch: { name: "x" },
       clientUpdatedAt: new Date(),
-      serverRow: { id: 'a', name: 'y', updatedAt: new Date() },
+      serverRow: { id: "a", name: "y", updatedAt: new Date() },
       protectedFields: [],
     });
-    const _typed: PowerSyncConflictDecision<{ id: string; name: string; updatedAt: Date }> = decision;
+    const _typed: PowerSyncConflictDecision<{ id: string; name: string; updatedAt: Date }> =
+      decision;
     void _typed;
   });
 });

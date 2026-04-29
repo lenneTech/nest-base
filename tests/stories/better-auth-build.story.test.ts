@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 
-import { buildBetterAuth } from '../../src/core/auth/better-auth.js';
+import { buildBetterAuth } from "../../src/core/auth/better-auth.js";
 
 /**
  * Story · Better-Auth integration (factory).
@@ -10,41 +10,41 @@ import { buildBetterAuth } from '../../src/core/auth/better-auth.js';
  * mounts under `/api/auth/*`. Tests stay unit-level: no DB tables, no
  * network, just the construction surface.
  */
-describe('Story · Better-Auth integration / factory', () => {
-  it('buildBetterAuth() returns an object with a callable `handler`', () => {
+describe("Story · Better-Auth integration / factory", () => {
+  it("buildBetterAuth() returns an object with a callable `handler`", () => {
     const auth = buildBetterAuth({
-      secret: 'a'.repeat(32),
-      baseUrl: 'http://localhost:3000',
+      secret: "a".repeat(32),
+      baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 60 * 60 * 24,
     });
     expect(auth).toBeDefined();
-    expect(typeof auth.handler).toBe('function');
+    expect(typeof auth.handler).toBe("function");
   });
 
-  it('the instance exposes the resolved mount path under `options.basePath`', () => {
+  it("the instance exposes the resolved mount path under `options.basePath`", () => {
     const auth = buildBetterAuth({
-      secret: 'a'.repeat(32),
-      baseUrl: 'http://localhost:3000',
+      secret: "a".repeat(32),
+      baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 60,
     });
-    expect(auth.options.basePath ?? '/api/auth').toBe('/api/auth');
+    expect(auth.options.basePath ?? "/api/auth").toBe("/api/auth");
   });
 
-  it('rejects a baseUrl that is not parseable', () => {
+  it("rejects a baseUrl that is not parseable", () => {
     expect(() =>
       buildBetterAuth({
-        secret: 'a'.repeat(32),
-        baseUrl: 'not-a-url',
+        secret: "a".repeat(32),
+        baseUrl: "not-a-url",
         sessionExpiresInSeconds: 60,
       }),
     ).toThrow();
   });
 
-  it('rejects a secret shorter than 32 chars (auth invariants)', () => {
+  it("rejects a secret shorter than 32 chars (auth invariants)", () => {
     expect(() =>
       buildBetterAuth({
-        secret: 'short',
-        baseUrl: 'http://localhost:3000',
+        secret: "short",
+        baseUrl: "http://localhost:3000",
         sessionExpiresInSeconds: 60,
       }),
     ).toThrow(/secret/i);

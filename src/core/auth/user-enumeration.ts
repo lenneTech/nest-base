@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'node:crypto';
+import { timingSafeEqual } from "node:crypto";
 
 /**
  * Helpers that prevent a user-enumeration oracle on the auth surface.
@@ -19,7 +19,7 @@ export interface MaskedResponse {
 
 export function maskUserExistenceResponse(_input: MaskInput): MaskedResponse {
   return {
-    message: 'If an account matches, instructions will be sent.',
+    message: "If an account matches, instructions will be sent.",
     email: _input.email,
   };
 }
@@ -28,8 +28,8 @@ export function maskUserExistenceResponse(_input: MaskInput): MaskedResponse {
  *  revealing where bytes diverged. */
 export function constantTimeEquals(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
-  const aBuf = Buffer.from(a, 'utf8');
-  const bBuf = Buffer.from(b, 'utf8');
+  const aBuf = Buffer.from(a, "utf8");
+  const bBuf = Buffer.from(b, "utf8");
   if (aBuf.length !== bBuf.length) return false;
   return timingSafeEqual(aBuf, bBuf);
 }

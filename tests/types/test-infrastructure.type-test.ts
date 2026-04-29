@@ -3,7 +3,7 @@
  * Imports the global-setup and asserts its return type matches Vitest's
  * expected `() => Promise<unknown>` teardown contract.
  */
-import type globalSetup from '../global-setup';
+import type globalSetup from "../global-setup";
 
 type GlobalSetupFn = typeof globalSetup;
 type GlobalSetupReturn = Awaited<ReturnType<GlobalSetupFn>>;

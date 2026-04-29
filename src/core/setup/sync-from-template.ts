@@ -18,7 +18,7 @@
  * template) can't smuggle writes into the local modules tree.
  */
 
-const CORE_PREFIX = 'src/core/';
+const CORE_PREFIX = "src/core/";
 
 export interface SyncFromTemplateInput {
   /** Template-side snapshot of `src/core/**` — keys are repo-relative paths. */
@@ -43,7 +43,7 @@ export interface SyncFromTemplatePlan {
 export class ProtectedPathTouchedError extends Error {
   constructor(path: string) {
     super(`sync-from-template: refusing to touch "${path}" — only src/core/ is in scope`);
-    this.name = 'ProtectedPathTouchedError';
+    this.name = "ProtectedPathTouchedError";
   }
 }
 

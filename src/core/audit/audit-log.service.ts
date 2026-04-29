@@ -14,7 +14,7 @@
  * the encrypted column on the source table.
  */
 
-export type AuditAction = 'create' | 'update' | 'delete';
+export type AuditAction = "create" | "update" | "delete";
 
 export interface AuditLogInput {
   action: AuditAction;
@@ -40,13 +40,13 @@ export interface AuditLogEntry {
   after?: Record<string, unknown>;
 }
 
-const VALID_ACTIONS: AuditAction[] = ['create', 'update', 'delete'];
-const ENCRYPTED_PLACEHOLDER = '[encrypted]';
+const VALID_ACTIONS: AuditAction[] = ["create", "update", "delete"];
+const ENCRYPTED_PLACEHOLDER = "[encrypted]";
 
 export class AuditLogActionUnknownError extends Error {
   constructor(action: string) {
     super(`audit-log: unknown action "${action}"`);
-    this.name = 'AuditLogActionUnknownError';
+    this.name = "AuditLogActionUnknownError";
   }
 }
 

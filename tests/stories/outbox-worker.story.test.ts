@@ -1,14 +1,11 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from "vitest";
 
 import {
   OutboxRecorder,
   type OutboxEntry,
   type OutboxStorage,
-} from '../../src/core/outbox/outbox.js';
-import {
-  OutboxWorker,
-  type OutboxDispatcher,
-} from '../../src/core/outbox/outbox-worker.js';
+} from "../../src/core/outbox/outbox.js";
+import { OutboxWorker, type OutboxDispatcher } from "../../src/core/outbox/outbox-worker.js";
 
 /**
  * Story · Outbox Worker (PLAN.md §28.4/#18).
@@ -19,7 +16,7 @@ import {
  * from one dispatcher do NOT stop sibling dispatchers — but a fully
  * failed entry stays unprocessed for the next worker tick.
  */
-describe('Story · Outbox Worker', () => {
+describe("Story · Outbox Worker", () => {
   function makeStorage(): OutboxStorage & { rows: OutboxEntry[] } {
     const rows: OutboxEntry[] = [];
     return {
@@ -41,36 +38,44 @@ describe('Story · Outbox Worker', () => {
     };
   }
 
-  it('runOnce() dispatches every claimed entry to every dispatcher', async () => {
+  it("runOnce() dispatches every claimed entry to every dispatcher", async () => {
     const storage = makeStorage();
     const recorder = new OutboxRecorder(storage);
-    await recorder.record({ tenantId: 't1', type: 'a', payload: { v: 1 } });
-    await recorder.record({ tenantId: 't1', type: 'b', payload: { v: 2 } });
+    await recorder.record({ tenantId: "t1", type: "a", payload: { v: 1 } });
+    await recorder.record({ tenantId: "t1", type: "b", payload: { v: 2 } });
 
     const seenWebhook: string[] = [];
     const seenRealtime: string[] = [];
     const dispatchers: OutboxDispatcher[] = [
-      { name: 'webhook', async dispatch(entry) { seenWebhook.push(entry.type); } },
-      { name: 'realtime', async dispatch(entry) { seenRealtime.push(entry.type); } },
+      {
+        name: "webhook",
+        async dispatch(entry) {
+          seenWebhook.push(entry.type);
+        },
+      },
+      {
+        name: "realtime",
+        async dispatch(entry) {
+          seenRealtime.push(entry.type);
+        },
+      },
     ];
     const worker = new OutboxWorker(storage, dispatchers, { batchSize: 10 });
 
     await worker.runOnce();
 
-    expect(seenWebhook.sort()).toEqual(['a', 'b']);
-    expect(seenRealtime.sort()).toEqual(['a', 'b']);
+    expect(seenWebhook.sort()).toEqual(["a", "b"]);
+    expect(seenRealtime.sort()).toEqual(["a", "b"]);
   });
 
-  it('runOnce() marks entries processed only after every dispatcher succeeds', async () => {
+  it("runOnce() marks entries processed only after every dispatcher succeeds", async () => {
     const storage = makeStorage();
     const recorder = new OutboxRecorder(storage);
-    await recorder.record({ tenantId: 't1', type: 'a', payload: {} });
+    await recorder.record({ tenantId: "t1", type: "a", payload: {} });
 
-    const worker = new OutboxWorker(
-      storage,
-      [{ name: 'webhook', async dispatch() {} }],
-      { batchSize: 10 },
-    );
+    const worker = new OutboxWorker(storage, [{ name: "webhook", async dispatch() {} }], {
+      batchSize: 10,
+    });
     await worker.runOnce();
 
     expect(storage.rows[0]!.processedAt).toBeInstanceOf(Date);
@@ -78,20 +83,20 @@ describe('Story · Outbox Worker', () => {
     expect(second).toBe(0);
   });
 
-  it('a failing dispatcher does not stop sibling dispatchers from running', async () => {
+  it("a failing dispatcher does not stop sibling dispatchers from running", async () => {
     const storage = makeStorage();
     const recorder = new OutboxRecorder(storage);
-    await recorder.record({ tenantId: 't1', type: 'a', payload: {} });
+    await recorder.record({ tenantId: "t1", type: "a", payload: {} });
 
     const seenSibling: string[] = [];
     const failing: OutboxDispatcher = {
-      name: 'webhook',
+      name: "webhook",
       async dispatch() {
-        throw new Error('webhook down');
+        throw new Error("webhook down");
       },
     };
     const sibling: OutboxDispatcher = {
-      name: 'realtime',
+      name: "realtime",
       async dispatch(entry) {
         seenSibling.push(entry.type);
       },
@@ -99,20 +104,20 @@ describe('Story · Outbox Worker', () => {
     const worker = new OutboxWorker(storage, [failing, sibling], { batchSize: 10 });
     await worker.runOnce();
 
-    expect(seenSibling).toEqual(['a']);
+    expect(seenSibling).toEqual(["a"]);
   });
 
-  it('a fully-failed entry stays unprocessed for the next tick', async () => {
+  it("a fully-failed entry stays unprocessed for the next tick", async () => {
     const storage = makeStorage();
     const recorder = new OutboxRecorder(storage);
-    await recorder.record({ tenantId: 't1', type: 'a', payload: {} });
+    await recorder.record({ tenantId: "t1", type: "a", payload: {} });
 
     let calls = 0;
     const failing: OutboxDispatcher = {
-      name: 'webhook',
+      name: "webhook",
       async dispatch() {
         calls++;
-        throw new Error('boom');
+        throw new Error("boom");
       },
     };
     const worker = new OutboxWorker(storage, [failing], { batchSize: 10 });
@@ -122,15 +127,18 @@ describe('Story · Outbox Worker', () => {
     expect(calls).toBe(2);
   });
 
-  it('honors batchSize when claiming entries', async () => {
+  it("honors batchSize when claiming entries", async () => {
     const storage = makeStorage();
     const recorder = new OutboxRecorder(storage);
     for (let i = 0; i < 5; i++) {
-      await recorder.record({ tenantId: 't1', type: `t${i}`, payload: {} });
+      await recorder.record({ tenantId: "t1", type: `t${i}`, payload: {} });
     }
     const dispatcher: OutboxDispatcher & { calls: number } = {
-      name: 'd', calls: 0,
-      async dispatch() { this.calls++; },
+      name: "d",
+      calls: 0,
+      async dispatch() {
+        this.calls++;
+      },
     };
     const worker = new OutboxWorker(storage, [dispatcher], { batchSize: 3 });
     const processed = await worker.runOnce();
@@ -138,10 +146,10 @@ describe('Story · Outbox Worker', () => {
     expect(dispatcher.calls).toBe(3);
   });
 
-  it('runOnce() returns 0 when there are no entries to process', async () => {
+  it("runOnce() returns 0 when there are no entries to process", async () => {
     const storage = makeStorage();
     const dispatch = vi.fn();
-    const worker = new OutboxWorker(storage, [{ name: 'd', dispatch }], { batchSize: 5 });
+    const worker = new OutboxWorker(storage, [{ name: "d", dispatch }], { batchSize: 5 });
     expect(await worker.runOnce()).toBe(0);
     expect(dispatch).not.toHaveBeenCalled();
   });

@@ -50,9 +50,9 @@ export function fanoutMasterEvent(event: MasterEvent, subscribers: WebhookSubscr
 
 function matchesEvent(patterns: string[], type: string): boolean {
   for (const pattern of patterns) {
-    if (pattern === '*') return true;
+    if (pattern === "*") return true;
     if (pattern === type) return true;
-    if (pattern.endsWith('.*')) {
+    if (pattern.endsWith(".*")) {
       const prefix = pattern.slice(0, -2);
       if (type === prefix || type.startsWith(`${prefix}.`)) return true;
     }

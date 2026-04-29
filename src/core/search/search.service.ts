@@ -1,13 +1,13 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from "@nestjs/common";
 
 import {
   CrossResourceSearchService,
   type ResourceSearchExecutor,
   type SearchHit,
   type SearchOptions,
-} from './cross-resource-search.js';
+} from "./cross-resource-search.js";
 
-export const SEARCH_EXECUTORS = Symbol.for('lt:SearchExecutors');
+export const SEARCH_EXECUTORS = Symbol.for("lt:SearchExecutors");
 
 @Injectable()
 export class SearchService {

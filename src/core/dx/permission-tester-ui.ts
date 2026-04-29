@@ -1,4 +1,4 @@
-import type { PermissionReport, ResourceReport } from '../permissions/permission-report.js';
+import type { PermissionReport, ResourceReport } from "../permissions/permission-report.js";
 
 /**
  * Permission-Tester UI renderer (PLAN.md §27.1 + §32 Phase 8).
@@ -22,8 +22,8 @@ export interface PermissionTesterPageInput {
 }
 
 export function renderPermissionTesterPage(input: PermissionTesterPageInput): string {
-  const submittedUser = escapeHtml(input.submitted?.userId ?? '');
-  const submittedTenant = escapeHtml(input.submitted?.tenantId ?? '');
+  const submittedUser = escapeHtml(input.submitted?.userId ?? "");
+  const submittedTenant = escapeHtml(input.submitted?.tenantId ?? "");
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -63,36 +63,40 @@ ${renderReport(input.report)}
 }
 
 function renderReport(report: PermissionReport | undefined): string {
-  if (!report) return '';
+  if (!report) return "";
   const userId = escapeHtml(report.userId);
   const tenantId = escapeHtml(report.tenantId);
   const resources = Object.keys(report.byResource).sort();
   if (resources.length === 0) {
-    return `<p class="meta">User <strong>${userId}</strong> in tenant <strong>${tenantId}</strong></p>` +
-      `<div class="empty">No permissions found for this user.</div>`;
+    return (
+      `<p class="meta">User <strong>${userId}</strong> in tenant <strong>${tenantId}</strong></p>` +
+      `<div class="empty">No permissions found for this user.</div>`
+    );
   }
   const rows = resources
     .map((resource) => renderRow(resource, report.byResource[resource]!))
-    .join('');
-  return `<p class="meta">User <strong>${userId}</strong> in tenant <strong>${tenantId}</strong></p>` +
+    .join("");
+  return (
+    `<p class="meta">User <strong>${userId}</strong> in tenant <strong>${tenantId}</strong></p>` +
     `<table data-permission-report="true">` +
     `<thead><tr><th>Resource</th><th>Actions</th></tr></thead>` +
     `<tbody>${rows}</tbody>` +
-    `</table>`;
+    `</table>`
+  );
 }
 
 function renderRow(resource: string, entry: ResourceReport): string {
   const safeResource = escapeHtml(resource);
-  const safeActions = entry.actions.map(escapeHtml).join(', ');
-  const supersetAttr = entry.isSuperset ? ' data-superset="true"' : '';
+  const safeActions = entry.actions.map(escapeHtml).join(", ");
+  const supersetAttr = entry.isSuperset ? ' data-superset="true"' : "";
   return `<tr${supersetAttr}><td>${safeResource}</td><td>${safeActions}</td></tr>`;
 }
 
 function escapeHtml(input: string): string {
   return input
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }

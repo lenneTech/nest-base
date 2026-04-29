@@ -1,4 +1,4 @@
-import { uuidV7 } from '../uuid/uuid-v7.js';
+import { uuidV7 } from "../uuid/uuid-v7.js";
 
 /**
  * File CRUD service (PLAN.md §8 + §32 Phase 4).
@@ -32,7 +32,7 @@ export interface FileServiceStorage {
 export class FileNotFoundError extends Error {
   constructor(id: string) {
     super(`file not found: ${id}`);
-    this.name = 'FileNotFoundError';
+    this.name = "FileNotFoundError";
   }
 }
 

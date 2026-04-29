@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * PowerSync upload-controller planner (PLAN.md §15.5 + §32 Phase 5b).
@@ -17,14 +17,14 @@ import { z } from 'zod';
 const MAX_BATCH_SIZE = 1000;
 
 const PutOrPatchSchema = z.object({
-  op: z.enum(['PUT', 'PATCH']),
+  op: z.enum(["PUT", "PATCH"]),
   type: z.string().min(1),
   id: z.string().min(1),
   data: z.record(z.string(), z.unknown()),
 });
 
 const DeleteSchema = z.object({
-  op: z.literal('DELETE'),
+  op: z.literal("DELETE"),
   type: z.string().min(1),
   id: z.string().min(1),
   data: z.record(z.string(), z.unknown()).optional(),
@@ -40,8 +40,8 @@ export type PowerSyncCrudOperation = z.infer<typeof PowerSyncCrudOperationSchema
 export type PowerSyncCrudBatch = z.infer<typeof PowerSyncCrudBatchSchema>;
 
 export interface PowerSyncCrudEndpoint {
-  method: 'POST';
-  path: '/powersync/crud';
+  method: "POST";
+  path: "/powersync/crud";
   public: false;
   successStatus: 204;
   conflictStatus: 409;
@@ -53,8 +53,8 @@ export function parsePowerSyncCrudBatch(input: unknown): PowerSyncCrudBatch {
 
 export function describePowerSyncCrudEndpoint(): PowerSyncCrudEndpoint {
   return {
-    method: 'POST',
-    path: '/powersync/crud',
+    method: "POST",
+    path: "/powersync/crud",
     public: false,
     successStatus: 204,
     conflictStatus: 409,

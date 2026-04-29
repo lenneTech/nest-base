@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
+import { Module } from "@nestjs/common";
 
-import { GdprController } from './gdpr.controller.js';
+import { GdprController } from "./gdpr.controller.js";
 
 /**
  * GdprModule — exposes `/me/export` (data export) and

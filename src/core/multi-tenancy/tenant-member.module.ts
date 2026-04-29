@@ -10,7 +10,7 @@ import {
   Param,
   Post,
   Put,
-} from '@nestjs/common';
+} from "@nestjs/common";
 
 import {
   type AddMemberInput,
@@ -20,9 +20,9 @@ import {
   TenantMemberAlreadyExistsError,
   TenantMemberNotFoundError,
   TenantMemberService,
-} from './tenant-member.service.js';
+} from "./tenant-member.service.js";
 
-const TENANT_MEMBER_STORAGE = Symbol.for('lt:TenantMemberStorage');
+const TENANT_MEMBER_STORAGE = Symbol.for("lt:TenantMemberStorage");
 
 class InMemoryTenantMemberStorage implements TenantMemberStorage {
   private readonly map = new Map<string, TenantMemberRecord>();
@@ -52,19 +52,19 @@ class InMemoryTenantMemberStorage implements TenantMemberStorage {
   }
 }
 
-@Controller('tenant-members')
+@Controller("tenant-members")
 class TenantMemberController {
   constructor(private readonly service: TenantMemberService) {}
 
-  @Get(':tenantId')
-  async list(@Param('tenantId') tenantId: string): Promise<TenantMemberRecord[]> {
+  @Get(":tenantId")
+  async list(@Param("tenantId") tenantId: string): Promise<TenantMemberRecord[]> {
     return this.service.listByTenant(tenantId);
   }
 
   @Post()
   async add(@Body() body: AddMemberInput): Promise<TenantMemberRecord> {
     if (!body?.userId || !body?.tenantId || !body?.role) {
-      throw new BadRequestException('userId, tenantId, role are required');
+      throw new BadRequestException("userId, tenantId, role are required");
     }
     try {
       return await this.service.add(body);
@@ -76,14 +76,14 @@ class TenantMemberController {
     }
   }
 
-  @Put(':id/status')
+  @Put(":id/status")
   async updateStatus(
-    @Param('id') id: string,
+    @Param("id") id: string,
     @Body() body: { status: TenantMemberStatus },
   ): Promise<TenantMemberRecord> {
     try {
-      if (body.status === 'ACTIVE') return await this.service.activate(id);
-      if (body.status === 'SUSPENDED') return await this.service.suspend(id);
+      if (body.status === "ACTIVE") return await this.service.activate(id);
+      if (body.status === "SUSPENDED") return await this.service.suspend(id);
       throw new BadRequestException(`unsupported status: ${body.status}`);
     } catch (err) {
       if (err instanceof TenantMemberNotFoundError) {
@@ -93,8 +93,8 @@ class TenantMemberController {
     }
   }
 
-  @Delete(':id')
-  async remove(@Param('id') id: string): Promise<{ removed: true }> {
+  @Delete(":id")
+  async remove(@Param("id") id: string): Promise<{ removed: true }> {
     try {
       await this.service.remove(id);
       return { removed: true };

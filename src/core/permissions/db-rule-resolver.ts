@@ -1,4 +1,4 @@
-import type { AbilityRule } from './casl-ability.js';
+import type { AbilityRule } from "./casl-ability.js";
 
 /**
  * DB-Rule → CASL-Rule resolver (PLAN.md §6.2).
@@ -17,7 +17,7 @@ import type { AbilityRule } from './casl-ability.js';
  * form. Single source of truth for the operator vocabulary lives here.
  */
 
-export type DbAction = 'CREATE' | 'READ' | 'UPDATE' | 'DELETE' | 'SHARE';
+export type DbAction = "CREATE" | "READ" | "UPDATE" | "DELETE" | "SHARE";
 
 export interface DbPermissionRow {
   resource: string;
@@ -34,17 +34,17 @@ export interface ResolveContext {
 const OPERATOR_MAP: Record<string, string | null> = {
   // null = strip operator wrapper, take the bare value (CASL field-equality)
   _eq: null,
-  _neq: '$ne',
-  _in: '$in',
-  _nin: '$nin',
-  _lt: '$lt',
-  _lte: '$lte',
-  _gt: '$gt',
-  _gte: '$gte',
+  _neq: "$ne",
+  _in: "$in",
+  _nin: "$nin",
+  _lt: "$lt",
+  _lte: "$lte",
+  _gt: "$gt",
+  _gte: "$gte",
 };
 
-const VAR_CURRENT_USER = '$CURRENT_USER';
-const VAR_NOW = '$NOW';
+const VAR_CURRENT_USER = "$CURRENT_USER";
+const VAR_NOW = "$NOW";
 
 export function resolveDbRules(rows: DbPermissionRow[], ctx: ResolveContext): AbilityRule[] {
   return rows.map((row) => {
@@ -60,7 +60,10 @@ export function resolveDbRules(rows: DbPermissionRow[], ctx: ResolveContext): Ab
   });
 }
 
-function resolveFilter(filter: Record<string, unknown>, ctx: ResolveContext): Record<string, unknown> {
+function resolveFilter(
+  filter: Record<string, unknown>,
+  ctx: ResolveContext,
+): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [field, raw] of Object.entries(filter)) {
     out[field] = resolveFieldFilter(raw, ctx);
@@ -69,19 +72,21 @@ function resolveFilter(filter: Record<string, unknown>, ctx: ResolveContext): Re
 }
 
 function resolveFieldFilter(raw: unknown, ctx: ResolveContext): unknown {
-  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
     return substituteValue(raw, ctx);
   }
   const ops = raw as Record<string, unknown>;
   const entries = Object.entries(ops);
   // Special-case: a single _eq → bare value (CASL field-equality).
-  if (entries.length === 1 && entries[0]![0] === '_eq') {
+  if (entries.length === 1 && entries[0]![0] === "_eq") {
     return substituteValue(entries[0]![1], ctx);
   }
   const out: Record<string, unknown> = {};
   for (const [op, value] of entries) {
     if (!(op in OPERATOR_MAP)) {
-      throw new Error(`db-rule-resolver: unsupported operator "${op}" — extend OPERATOR_MAP if intentional`);
+      throw new Error(
+        `db-rule-resolver: unsupported operator "${op}" — extend OPERATOR_MAP if intentional`,
+      );
     }
     const mapped = OPERATOR_MAP[op];
     if (mapped === null) {

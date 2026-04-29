@@ -22,6 +22,7 @@ src/modules/<resource>/
 ```
 
 Add fields to the Prisma schema in:
+
 - `prisma/schema.prisma` — for project-required models (always loaded)
 - `prisma/features/<feature>.prisma` — for feature-gated models (loaded
   by `bun run prepare:schema` only when the feature flag is on)
@@ -65,13 +66,13 @@ output-pipeline's record-level filter is sufficient.
 ### DTOs are Zod schemas
 
 ```typescript
-import { z } from 'zod';
-import { createZodDto } from 'nestjs-zod';
+import { z } from "zod";
+import { createZodDto } from "nestjs-zod";
 
 export const CreateProjectSchema = z.object({
   name: z.string().min(1).max(255),
   description: z.string().optional(),
-  status: z.enum(['draft', 'published']).default('draft'),
+  status: z.enum(["draft", "published"]).default("draft"),
 });
 export class CreateProjectDto extends createZodDto(CreateProjectSchema) {}
 ```
@@ -116,7 +117,7 @@ If your resource is opt-in, put the toggle in `src/config/features.ts`
 `AppModule`:
 
 ```typescript
-import { features } from '../config/features.js';
+import { features } from "../config/features.js";
 
 @Module({
   imports: [
@@ -133,7 +134,7 @@ end-to-end zero-cost when off.
 
 ## Don't add here
 
-- **Generic capabilities** — if it would benefit *every* project, send a
+- **Generic capabilities** — if it would benefit _every_ project, send a
   PR to the template via `bun run sync:to-template`.
   See `docs/core-contribution-guide.md`.
 - **Test fixtures shared across resources** — `tests/lib/` is the

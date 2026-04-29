@@ -1,9 +1,9 @@
-import { passkey } from '@better-auth/passkey';
-import { type BetterAuthOptions, type BetterAuthPlugin, betterAuth } from 'better-auth';
-import { jwt } from 'better-auth/plugins/jwt';
-import { twoFactor } from 'better-auth/plugins/two-factor';
+import { passkey } from "@better-auth/passkey";
+import { type BetterAuthOptions, type BetterAuthPlugin, betterAuth } from "better-auth";
+import { jwt } from "better-auth/plugins/jwt";
+import { twoFactor } from "better-auth/plugins/two-factor";
 
-import { resolveBetterAuthMountPath } from './better-auth-config.js';
+import { resolveBetterAuthMountPath } from "./better-auth-config.js";
 
 /**
  * Better-Auth instance factory.
@@ -37,7 +37,7 @@ export interface SocialProviderCredentials {
   clientSecret: string;
 }
 
-export type SocialProviderId = 'google' | 'github' | 'apple' | 'discord';
+export type SocialProviderId = "google" | "github" | "apple" | "discord";
 
 export type SocialProviderConfig = Partial<Record<SocialProviderId, SocialProviderCredentials>>;
 
@@ -64,20 +64,22 @@ export interface BuildBetterAuthInput {
 
 export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof betterAuth> {
   if (input.secret.length < MIN_SECRET_LEN) {
-    throw new Error(`Better-Auth secret must be at least ${MIN_SECRET_LEN} chars (received ${input.secret.length})`);
+    throw new Error(
+      `Better-Auth secret must be at least ${MIN_SECRET_LEN} chars (received ${input.secret.length})`,
+    );
   }
   // throws when not a parseable URL — sealed contract for the caller
   new URL(input.baseUrl);
 
   if (input.twoFactor && !input.twoFactor.issuer) {
-    throw new Error('Better-Auth twoFactor.issuer must be a non-empty string');
+    throw new Error("Better-Auth twoFactor.issuer must be a non-empty string");
   }
   if (input.passkey) {
     if (!input.passkey.rpName) {
-      throw new Error('Better-Auth passkey.rpName must be a non-empty string');
+      throw new Error("Better-Auth passkey.rpName must be a non-empty string");
     }
     if (input.passkey.rpID !== undefined && !input.passkey.rpID) {
-      throw new Error('Better-Auth passkey.rpID must be a non-empty string when provided');
+      throw new Error("Better-Auth passkey.rpID must be a non-empty string when provided");
     }
   }
   if (input.socialProviders) {
@@ -87,7 +89,9 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
         throw new Error(`Better-Auth socialProviders.${id}.clientId must be a non-empty string`);
       }
       if (!credentials.clientSecret) {
-        throw new Error(`Better-Auth socialProviders.${id}.clientSecret must be a non-empty string`);
+        throw new Error(
+          `Better-Auth socialProviders.${id}.clientSecret must be a non-empty string`,
+        );
       }
     }
   }
@@ -112,7 +116,7 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
     },
     ...(plugins.length > 0 ? { plugins } : {}),
     ...(input.socialProviders && Object.keys(input.socialProviders).length > 0
-      ? { socialProviders: input.socialProviders as BetterAuthOptions['socialProviders'] }
+      ? { socialProviders: input.socialProviders as BetterAuthOptions["socialProviders"] }
       : {}),
   };
   return betterAuth(options);

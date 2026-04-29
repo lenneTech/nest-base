@@ -1,10 +1,10 @@
-import { Module } from '@nestjs/common';
-import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { Module } from "@nestjs/common";
+import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 
-import { CanGuard } from './can.guard.js';
-import { PermissionInterceptor } from './permission.interceptor.js';
-import { PermissionService, type PermissionStorage } from './permission.service.js';
-import { PERMISSION_STORAGE } from './permission-storage.token.js';
+import { CanGuard } from "./can.guard.js";
+import { PermissionInterceptor } from "./permission.interceptor.js";
+import { PermissionService, type PermissionStorage } from "./permission.service.js";
+import { PERMISSION_STORAGE } from "./permission-storage.token.js";
 
 /**
  * PermissionsModule — wires PermissionService + interceptor + guard.

@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes } from "node:crypto";
 
 /**
  * Email-verification token + link helpers.
@@ -12,7 +12,7 @@ import { randomBytes } from 'node:crypto';
  */
 
 export function generateVerificationToken(): string {
-  return randomBytes(32).toString('hex');
+  return randomBytes(32).toString("hex");
 }
 
 export interface VerificationLinkInput {
@@ -22,10 +22,10 @@ export interface VerificationLinkInput {
 }
 
 export function verificationLinkUrl(input: VerificationLinkInput): string {
-  const mountPath = input.mountPath ?? '/api/auth';
+  const mountPath = input.mountPath ?? "/api/auth";
   // throws on invalid baseUrl — that is the contract
   const url = new URL(`${mountPath}/verify-email`, input.baseUrl);
-  url.searchParams.set('token', input.token);
+  url.searchParams.set("token", input.token);
   return url.toString();
 }
 

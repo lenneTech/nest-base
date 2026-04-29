@@ -25,43 +25,43 @@ export interface PowerSyncJwtConfig {
   jwt: {
     audience: string;
     issuer: string;
-    definePayload: (input: { userId: string; tenantId?: string }) => Pick<
-      PowerSyncJwtClaims,
-      'sub' | 'tenantId'
-    >;
+    definePayload: (input: {
+      userId: string;
+      tenantId?: string;
+    }) => Pick<PowerSyncJwtClaims, "sub" | "tenantId">;
   };
   jwks: {
-    algorithm: 'RS256';
+    algorithm: "RS256";
   };
 }
 
 export interface PowerSyncJwksEndpoint {
-  method: 'GET';
-  path: '/.well-known/jwks';
+  method: "GET";
+  path: "/.well-known/jwks";
   public: true;
-  contentType: 'application/jwk-set+json';
+  contentType: "application/jwk-set+json";
 }
 
 export function buildPowerSyncJwtConfig(input: { baseUrl: string }): PowerSyncJwtConfig {
   if (!input.baseUrl) {
-    throw new Error('powersync-jwt: baseUrl is required so PowerSync can reach JWKS');
+    throw new Error("powersync-jwt: baseUrl is required so PowerSync can reach JWKS");
   }
   return {
     jwt: {
-      audience: 'powersync',
+      audience: "powersync",
       issuer: input.baseUrl,
       definePayload: ({ userId, tenantId }) =>
         tenantId ? { sub: userId, tenantId } : { sub: userId },
     },
-    jwks: { algorithm: 'RS256' },
+    jwks: { algorithm: "RS256" },
   };
 }
 
 export function describePowerSyncJwksEndpoint(): PowerSyncJwksEndpoint {
   return {
-    method: 'GET',
-    path: '/.well-known/jwks',
+    method: "GET",
+    path: "/.well-known/jwks",
     public: true,
-    contentType: 'application/jwk-set+json',
+    contentType: "application/jwk-set+json",
   };
 }

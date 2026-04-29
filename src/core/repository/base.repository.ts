@@ -1,7 +1,4 @@
-import {
-  type PowerSyncConflictOutcome,
-  resolvePowerSyncConflict,
-} from './powersync-conflict.js';
+import { type PowerSyncConflictOutcome, resolvePowerSyncConflict } from "./powersync-conflict.js";
 
 /**
  * BaseRepository (PLAN.md §19.13).
@@ -24,7 +21,7 @@ export interface FindUniqueArgs {
 }
 export interface FindManyArgs {
   where?: Record<string, unknown>;
-  orderBy?: Record<string, 'asc' | 'desc'>;
+  orderBy?: Record<string, "asc" | "desc">;
   take?: number;
   skip?: number;
 }
@@ -50,7 +47,7 @@ export interface ModelDelegate<T> {
 export interface ListOptions {
   /** When true, soft-deleted rows are NOT filtered out. */
   includeDeleted?: boolean;
-  orderBy?: Record<string, 'asc' | 'desc'>;
+  orderBy?: Record<string, "asc" | "desc">;
   take?: number;
   skip?: number;
 }
@@ -62,7 +59,7 @@ export interface FindByIdOptions {
 export class RepositoryNotFoundError extends Error {
   constructor(id: string) {
     super(`row not found: ${id}`);
-    this.name = 'RepositoryNotFoundError';
+    this.name = "RepositoryNotFoundError";
   }
 }
 
@@ -142,7 +139,7 @@ export abstract class BaseRepository<T extends { id: string } & Partial<SoftDele
         keyof (T & { updatedAt?: Date }) & string
       >,
     });
-    if (decision.outcome === 'no-op' || decision.outcome === 'server-wins') {
+    if (decision.outcome === "no-op" || decision.outcome === "server-wins") {
       return {
         outcome: decision.outcome,
         row: existing,

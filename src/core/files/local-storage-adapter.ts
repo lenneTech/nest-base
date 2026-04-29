@@ -1,13 +1,13 @@
-import { existsSync } from 'node:fs';
-import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
-import { dirname, join, normalize, relative, resolve, sep } from 'node:path';
+import { existsSync } from "node:fs";
+import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { dirname, join, normalize, relative, resolve, sep } from "node:path";
 
 import {
   type StorageAdapter,
   type StorageObjectMetadata,
   type StoragePutInput,
   StorageObjectNotFoundError,
-} from './storage-adapter.js';
+} from "./storage-adapter.js";
 
 /**
  * Local Storage Adapter (PLAN.md §8 + §32 Phase 4).
@@ -38,15 +38,18 @@ export class LocalStorageAdapter implements StorageAdapter {
 
   constructor(options: LocalStorageOptions) {
     this.root = resolve(options.root);
-    this.baseUrl = options.baseUrl.replace(/\/+$/, '');
+    this.baseUrl = options.baseUrl.replace(/\/+$/, "");
   }
 
   async put(input: StoragePutInput): Promise<StorageObjectMetadata> {
-    if (!input.key) throw new Error('storage: key is required');
+    if (!input.key) throw new Error("storage: key is required");
     const filePath = this.resolveSafe(input.key);
     await mkdir(dirname(filePath), { recursive: true });
     await writeFile(filePath, input.body);
-    await writeFile(this.metaPath(filePath), JSON.stringify({ mimeType: input.mimeType } satisfies MetadataSidecar));
+    await writeFile(
+      this.metaPath(filePath),
+      JSON.stringify({ mimeType: input.mimeType } satisfies MetadataSidecar),
+    );
     return { key: input.key, sizeBytes: input.body.byteLength, mimeType: input.mimeType };
   }
 
@@ -90,7 +93,7 @@ export class LocalStorageAdapter implements StorageAdapter {
     await this.walk(this.root, out);
     return out
       .filter((key) => key.startsWith(prefix))
-      .filter((key) => !key.endsWith('.meta.json'))
+      .filter((key) => !key.endsWith(".meta.json"))
       .sort();
   }
 
@@ -105,21 +108,25 @@ export class LocalStorageAdapter implements StorageAdapter {
       }
       if (entry.isFile()) {
         // Use forward slashes in keys regardless of platform separator.
-        const key = relative(this.root, abs).split(sep).join('/');
+        const key = relative(this.root, abs).split(sep).join("/");
         out.push(key);
       }
     }
   }
 
   private resolveSafe(key: string): string {
-    if (!key) throw new Error('storage: key is required');
+    if (!key) throw new Error("storage: key is required");
     const normalized = normalize(key);
-    if (normalized.startsWith('..') || normalized.includes(`..${sep}`) || normalized.startsWith(sep)) {
+    if (
+      normalized.startsWith("..") ||
+      normalized.includes(`..${sep}`) ||
+      normalized.startsWith(sep)
+    ) {
       throw new Error(`storage: path traversal rejected for key "${key}"`);
     }
     const resolved = resolve(this.root, normalized);
     const rel = relative(this.root, resolved);
-    if (rel.startsWith('..') || rel === '..' || rel.startsWith(`..${sep}`)) {
+    if (rel.startsWith("..") || rel === ".." || rel.startsWith(`..${sep}`)) {
       throw new Error(`storage: path traversal rejected for key "${key}"`);
     }
     return resolved;
@@ -132,9 +139,9 @@ export class LocalStorageAdapter implements StorageAdapter {
 
 function encodePathKey(key: string): string {
   return key
-    .split('/')
+    .split("/")
     .map((segment) => encodeURIComponent(segment))
-    .join('/');
+    .join("/");
 }
 
 async function _statIfExists(filePath: string): Promise<{ size: number } | null> {

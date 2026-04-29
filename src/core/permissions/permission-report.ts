@@ -28,7 +28,7 @@ export interface BuildReportInput {
   rules: PermissionRule[];
 }
 
-const SUPERSET_ACTION = 'manage';
+const SUPERSET_ACTION = "manage";
 
 export function buildPermissionReport(input: BuildReportInput): PermissionReport {
   const byResource: Record<string, ResourceReport> = {};

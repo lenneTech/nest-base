@@ -1,19 +1,22 @@
-import { Controller, Get } from '@nestjs/common';
-import { APP_INTERCEPTOR } from '@nestjs/core';
-import { Test } from '@nestjs/testing';
-import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { Controller, Get } from "@nestjs/common";
+import { APP_INTERCEPTOR } from "@nestjs/core";
+import { Test } from "@nestjs/testing";
+import request from "supertest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { TenantInterceptor, getCurrentTenantId } from '../src/core/multi-tenancy/tenant.interceptor.js';
+import {
+  TenantInterceptor,
+  getCurrentTenantId,
+} from "../src/core/multi-tenancy/tenant.interceptor.js";
 
-@Controller('test-tenant')
+@Controller("test-tenant")
 class TestController {
-  @Get('current')
+  @Get("current")
   current(): { tenantId: string | undefined } {
     return { tenantId: getCurrentTenantId() };
   }
 
-  @Get('exempt')
+  @Get("exempt")
   exempt(): { ok: true } {
     return { ok: true };
   }
@@ -32,7 +35,7 @@ class RootController {
  * AsyncLocalStorage tenant context for every non-exempt route.
  * Domain code reads it via `getCurrentTenantId()`.
  */
-describe('TenantInterceptor · global registration', () => {
+describe("TenantInterceptor · global registration", () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let nestApp: any;
 
@@ -49,33 +52,33 @@ describe('TenantInterceptor · global registration', () => {
     await nestApp.close();
   });
 
-  const TENANT = '11111111-1111-1111-1111-111111111111';
+  const TENANT = "11111111-1111-1111-1111-111111111111";
 
-  it('attaches the tenant id from x-tenant-id header for non-exempt routes', async () => {
+  it("attaches the tenant id from x-tenant-id header for non-exempt routes", async () => {
     const res = await request(nestApp.getHttpServer())
-      .get('/test-tenant/current')
-      .set('x-tenant-id', TENANT);
+      .get("/test-tenant/current")
+      .set("x-tenant-id", TENANT);
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ tenantId: TENANT });
   });
 
-  it('rejects requests without the tenant header on non-exempt routes', async () => {
-    const res = await request(nestApp.getHttpServer()).get('/test-tenant/current');
+  it("rejects requests without the tenant header on non-exempt routes", async () => {
+    const res = await request(nestApp.getHttpServer()).get("/test-tenant/current");
     // The interceptor throws TenantIsolationError → NestJS exception filter
     // turns it into a 500 (no specific mapping). What matters: NOT 200.
     expect(res.status).not.toBe(200);
   });
 
-  it('exempts the root path / (no tenant header required)', async () => {
-    const res = await request(nestApp.getHttpServer()).get('/');
+  it("exempts the root path / (no tenant header required)", async () => {
+    const res = await request(nestApp.getHttpServer()).get("/");
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ tenantId: undefined });
   });
 
-  it('rejects malformed tenant headers (not a UUID)', async () => {
+  it("rejects malformed tenant headers (not a UUID)", async () => {
     const res = await request(nestApp.getHttpServer())
-      .get('/test-tenant/current')
-      .set('x-tenant-id', 'not-a-uuid');
+      .get("/test-tenant/current")
+      .set("x-tenant-id", "not-a-uuid");
     expect(res.status).not.toBe(200);
   });
 });

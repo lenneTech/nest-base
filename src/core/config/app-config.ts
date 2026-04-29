@@ -4,9 +4,9 @@ import {
   type CorsConfig,
   cookieDefaults,
   corsDefaults,
-} from '../http/cookie-cors-config.js';
-import { type ServerConfig, serverConfigFromEnv } from '../server/server-config.js';
-import { type SystemSetupConfig, systemSetupConfigFromEnv } from '../setup/system-setup-config.js';
+} from "../http/cookie-cors-config.js";
+import { type ServerConfig, serverConfigFromEnv } from "../server/server-config.js";
+import { type SystemSetupConfig, systemSetupConfigFromEnv } from "../setup/system-setup-config.js";
 
 /**
  * Unified `AppConfig` — single source of truth for everything env-derived.

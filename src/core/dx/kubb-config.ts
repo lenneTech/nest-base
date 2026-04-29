@@ -34,8 +34,8 @@ export interface KubbConfigInput {
 }
 
 export function buildKubbConfig(input: KubbConfigInput): KubbConfig {
-  if (!input.specPath) throw new Error('kubb-config: specPath must be a non-empty string');
-  if (!input.outputDir) throw new Error('kubb-config: outputDir must be a non-empty string');
+  if (!input.specPath) throw new Error("kubb-config: specPath must be a non-empty string");
+  if (!input.outputDir) throw new Error("kubb-config: outputDir must be a non-empty string");
 
   const clientOptions: Record<string, unknown> = {};
   if (input.clientImportPath) clientOptions.importPath = input.clientImportPath;
@@ -45,9 +45,9 @@ export function buildKubbConfig(input: KubbConfigInput): KubbConfig {
     input: { path: input.specPath },
     output: { path: input.outputDir, clean: true },
     plugins: [
-      { name: '@kubb/plugin-oas', options: { validate: true } },
-      { name: '@kubb/plugin-ts', options: { output: { path: 'types' } } },
-      { name: '@kubb/plugin-client', options: clientOptions },
+      { name: "@kubb/plugin-oas", options: { validate: true } },
+      { name: "@kubb/plugin-ts", options: { output: { path: "types" } } },
+      { name: "@kubb/plugin-client", options: clientOptions },
     ],
   };
 }

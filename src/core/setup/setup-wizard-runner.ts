@@ -1,8 +1,8 @@
-import { randomBytes as nodeRandomBytes } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { randomBytes as nodeRandomBytes } from "node:crypto";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
-import { buildDefaultEnvExample } from './setup-wizard.js';
+import { buildDefaultEnvExample } from "./setup-wizard.js";
 
 /**
  * Setup-wizard runner planner (PLAN.md §19.5 + Phase 7 follow-up).
@@ -36,24 +36,24 @@ export interface PlanEnvFromExampleOptions {
   projectName?: string;
 }
 
-const TEMPLATE_NAME = 'nest-server-template';
+const TEMPLATE_NAME = "nest-server-template";
 
 interface SecretSpec {
   /** Bytes of entropy to draw. */
   bytes: number;
   /** Output encoding for the secret value. */
-  encoding: 'base64url' | 'base64' | 'hex';
+  encoding: "base64url" | "base64" | "hex";
 }
 
 const SECRET_VARS: Record<string, SecretSpec> = {
-  BETTER_AUTH_SECRET: { bytes: 32, encoding: 'base64url' },
-  POSTGRES_PASSWORD: { bytes: 24, encoding: 'base64url' },
-  POWERSYNC_DB_PASSWORD: { bytes: 24, encoding: 'base64url' },
-  FIELD_ENCRYPTION_KEK: { bytes: 32, encoding: 'base64' },
-  S3_SECRET_KEY: { bytes: 24, encoding: 'base64url' },
+  BETTER_AUTH_SECRET: { bytes: 32, encoding: "base64url" },
+  POSTGRES_PASSWORD: { bytes: 24, encoding: "base64url" },
+  POWERSYNC_DB_PASSWORD: { bytes: 24, encoding: "base64url" },
+  FIELD_ENCRYPTION_KEK: { bytes: 32, encoding: "base64" },
+  S3_SECRET_KEY: { bytes: 24, encoding: "base64url" },
   // SystemSetupConfigSchema requires ≥ 12 chars; 16 bytes base64url ≈ 22
   // chars, comfortably above the floor and 128 bits of entropy.
-  SYSTEM_SETUP_ADMIN_PASSWORD: { bytes: 16, encoding: 'base64url' },
+  SYSTEM_SETUP_ADMIN_PASSWORD: { bytes: 16, encoding: "base64url" },
 };
 
 export function planEnvFromExample(
@@ -70,7 +70,7 @@ export function planEnvFromExample(
     : exampleText;
 
   const generated: Record<string, string> = {};
-  const lines = sourceText.split('\n');
+  const lines = sourceText.split("\n");
   const out: string[] = [];
 
   for (const line of lines) {
@@ -87,7 +87,7 @@ export function planEnvFromExample(
       out.push(`${key}=${secret}`);
       continue;
     }
-    if (key === 'DATABASE_URL' && generated.POSTGRES_PASSWORD && value) {
+    if (key === "DATABASE_URL" && generated.POSTGRES_PASSWORD && value) {
       // Replace the example POSTGRES_PASSWORD inside the URL with the
       // freshly generated one. Other parts (user, host, port, db) are
       // left intact so the operator's own choices survive.
@@ -98,8 +98,8 @@ export function planEnvFromExample(
     out.push(line);
   }
 
-  const joined = out.join('\n');
-  return joined.endsWith('\n') ? joined : joined + '\n';
+  const joined = out.join("\n");
+  return joined.endsWith("\n") ? joined : joined + "\n";
 }
 
 /**
@@ -121,11 +121,11 @@ function rewriteProjectScopedVars(text: string, projectName: string): string {
   return out;
 }
 
-function encodeBytes(buf: Buffer, encoding: SecretSpec['encoding']): string {
-  if (encoding === 'base64') return buf.toString('base64');
-  if (encoding === 'hex') return buf.toString('hex');
+function encodeBytes(buf: Buffer, encoding: SecretSpec["encoding"]): string {
+  if (encoding === "base64") return buf.toString("base64");
+  if (encoding === "hex") return buf.toString("hex");
   // base64url — Node's Buffer accepts the encoding directly.
-  return buf.toString('base64url');
+  return buf.toString("base64url");
 }
 
 export interface SetupWizardLogger {
@@ -150,34 +150,36 @@ export interface SetupWizardResult {
 const SILENT_LOGGER: SetupWizardLogger = { info: () => {}, warn: () => {} };
 
 function readPackageJsonName(root: string): string | undefined {
-  const pkgPath = join(root, 'package.json');
+  const pkgPath = join(root, "package.json");
   if (!existsSync(pkgPath)) return undefined;
-  const match = /"name"\s*:\s*"([^"]+)"/.exec(readFileSync(pkgPath, 'utf8'));
+  const match = /"name"\s*:\s*"([^"]+)"/.exec(readFileSync(pkgPath, "utf8"));
   return match?.[1];
 }
 
 export function runSetupWizard(options: RunSetupWizardOptions): SetupWizardResult {
   const logger = options.logger ?? SILENT_LOGGER;
-  const examplePath = join(options.projectRoot, '.env.example');
-  const envPath = join(options.projectRoot, '.env');
+  const examplePath = join(options.projectRoot, ".env.example");
+  const envPath = join(options.projectRoot, ".env");
 
   if (!existsSync(examplePath)) {
     logger.info(`generating ${examplePath} from buildDefaultEnvExample()`);
-    writeFileSync(examplePath, buildDefaultEnvExample(), 'utf8');
+    writeFileSync(examplePath, buildDefaultEnvExample(), "utf8");
   }
 
   if (existsSync(envPath)) {
-    logger.warn(`${envPath} already exists — refusing to overwrite (delete it first to regenerate)`);
+    logger.warn(
+      `${envPath} already exists — refusing to overwrite (delete it first to regenerate)`,
+    );
     return { envPath, created: false };
   }
 
-  const exampleText = readFileSync(examplePath, 'utf8');
+  const exampleText = readFileSync(examplePath, "utf8");
   const projectName = readPackageJsonName(options.projectRoot);
   const rendered = planEnvFromExample(exampleText, {
     randomBytes: options.randomBytes ?? ((size) => nodeRandomBytes(size)),
     projectName,
   });
-  writeFileSync(envPath, rendered, 'utf8');
+  writeFileSync(envPath, rendered, "utf8");
   logger.info(`wrote ${envPath} with auto-generated secrets`);
   return { envPath, created: true };
 }

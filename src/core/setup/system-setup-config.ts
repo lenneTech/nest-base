@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * System Setup config (Phase 2 will wire the actual provisioning).
@@ -32,17 +32,17 @@ export function systemSetupConfigFromEnv(env: SystemSetupEnv): SystemSetupConfig
 
   if (!email && !password) {
     return {
-      adminEmail: 'disabled@invalid.local',
-      adminPassword: 'system-setup-disabled-placeholder',
+      adminEmail: "disabled@invalid.local",
+      adminPassword: "system-setup-disabled-placeholder",
       enabled: false,
     };
   }
 
   if (!password) {
-    throw new Error('SYSTEM_SETUP_ADMIN_EMAIL is set but SYSTEM_SETUP_ADMIN_PASSWORD is missing');
+    throw new Error("SYSTEM_SETUP_ADMIN_EMAIL is set but SYSTEM_SETUP_ADMIN_PASSWORD is missing");
   }
   if (!email) {
-    throw new Error('SYSTEM_SETUP_ADMIN_PASSWORD is set but SYSTEM_SETUP_ADMIN_EMAIL is missing');
+    throw new Error("SYSTEM_SETUP_ADMIN_PASSWORD is set but SYSTEM_SETUP_ADMIN_EMAIL is missing");
   }
 
   return SystemSetupConfigSchema.parse({

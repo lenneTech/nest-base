@@ -25,11 +25,22 @@ export type PrismaWhereValue =
   | { gte: unknown }
   | { lt: unknown }
   | { lte: unknown }
-  | { contains: string; mode?: 'insensitive' };
+  | { contains: string; mode?: "insensitive" };
 
 export type PrismaWhere = Record<string, PrismaWhereValue>;
 
-const SUPPORTED_OPERATORS = new Set(['eq', 'neq', 'lt', 'lte', 'gt', 'gte', 'in', 'is', 'like', 'ilike']);
+const SUPPORTED_OPERATORS = new Set([
+  "eq",
+  "neq",
+  "lt",
+  "lte",
+  "gt",
+  "gte",
+  "in",
+  "is",
+  "like",
+  "ilike",
+]);
 
 export function parsePostgrestQuery(query: Record<string, string>): PrismaWhere {
   const where: PrismaWhere = {};
@@ -40,7 +51,7 @@ export function parsePostgrestQuery(query: Record<string, string>): PrismaWhere 
 }
 
 function parseExpression(raw: string): PrismaWhereValue {
-  const dot = raw.indexOf('.');
+  const dot = raw.indexOf(".");
   if (dot < 0) throw new Error(`postgrest-query: missing operator in expression "${raw}"`);
   const op = raw.slice(0, dot);
   const value = raw.slice(dot + 1);
@@ -50,28 +61,28 @@ function parseExpression(raw: string): PrismaWhereValue {
   }
 
   switch (op) {
-    case 'eq':
+    case "eq":
       return coerce(value);
-    case 'neq':
+    case "neq":
       return { not: coerce(value) };
-    case 'lt':
+    case "lt":
       return { lt: coerce(value) };
-    case 'lte':
+    case "lte":
       return { lte: coerce(value) };
-    case 'gt':
+    case "gt":
       return { gt: coerce(value) };
-    case 'gte':
+    case "gte":
       return { gte: coerce(value) };
-    case 'in':
+    case "in":
       return { in: parseInList(value) };
-    case 'is':
-      if (value === 'null') return null;
-      if (value === 'not_null') return { not: null };
+    case "is":
+      if (value === "null") return null;
+      if (value === "not_null") return { not: null };
       throw new Error(`postgrest-query: unsupported is.<value> "${value}"`);
-    case 'like':
+    case "like":
       return { contains: value };
-    case 'ilike':
-      return { contains: value, mode: 'insensitive' };
+    case "ilike":
+      return { contains: value, mode: "insensitive" };
     default:
       // Unreachable thanks to SUPPORTED_OPERATORS guard above.
       throw new Error(`postgrest-query: missing handler for operator "${op}"`);
@@ -79,13 +90,13 @@ function parseExpression(raw: string): PrismaWhereValue {
 }
 
 function parseInList(value: string): unknown[] {
-  const trimmed = value.startsWith('(') && value.endsWith(')') ? value.slice(1, -1) : value;
-  return trimmed.split(',').map((item) => coerce(item.trim()));
+  const trimmed = value.startsWith("(") && value.endsWith(")") ? value.slice(1, -1) : value;
+  return trimmed.split(",").map((item) => coerce(item.trim()));
 }
 
 function coerce(value: string): string | number | boolean {
-  if (value === 'true') return true;
-  if (value === 'false') return false;
+  if (value === "true") return true;
+  if (value === "false") return false;
   if (/^-?\d+$/.test(value)) return Number(value);
   if (/^-?\d+\.\d+$/.test(value)) return Number(value);
   return value;

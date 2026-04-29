@@ -1,5 +1,5 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { z } from 'zod';
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { z } from "zod";
 
 /**
  * MCP-Server-Modul (PLAN.md §16 + §32 Phase 6).
@@ -53,14 +53,14 @@ export interface McpServerInfo {
 export class McpToolAlreadyRegisteredError extends Error {
   constructor(name: string) {
     super(`mcp: tool "${name}" already registered`);
-    this.name = 'McpToolAlreadyRegisteredError';
+    this.name = "McpToolAlreadyRegisteredError";
   }
 }
 
 export class McpResourceAlreadyRegisteredError extends Error {
   constructor(uri: string) {
     super(`mcp: resource "${uri}" already registered`);
-    this.name = 'McpResourceAlreadyRegisteredError';
+    this.name = "McpResourceAlreadyRegisteredError";
   }
 }
 
@@ -71,8 +71,8 @@ export class McpServerModule {
   private readonly resources = new Map<string, McpResourceDefinition>();
 
   constructor(info: McpServerInfo) {
-    if (!info.name) throw new Error('mcp: server name must be a non-empty string');
-    if (!info.version) throw new Error('mcp: server version must be a non-empty string');
+    if (!info.name) throw new Error("mcp: server name must be a non-empty string");
+    if (!info.version) throw new Error("mcp: server version must be a non-empty string");
     this._info = { name: info.name, version: info.version };
     this._server = new McpServer({ name: info.name, version: info.version });
   }
@@ -86,9 +86,9 @@ export class McpServerModule {
   }
 
   registerTool(definition: McpToolDefinition): void {
-    if (!definition.name) throw new Error('mcp: tool name must be a non-empty string');
-    if (typeof definition.handler !== 'function') {
-      throw new Error('mcp: tool handler must be a function');
+    if (!definition.name) throw new Error("mcp: tool name must be a non-empty string");
+    if (typeof definition.handler !== "function") {
+      throw new Error("mcp: tool handler must be a function");
     }
     if (this.tools.has(definition.name)) {
       throw new McpToolAlreadyRegisteredError(definition.name);
@@ -97,7 +97,7 @@ export class McpServerModule {
   }
 
   registerResource(definition: McpResourceDefinition): void {
-    if (!definition.uri) throw new Error('mcp: resource uri must be a non-empty string');
+    if (!definition.uri) throw new Error("mcp: resource uri must be a non-empty string");
     if (this.resources.has(definition.uri)) {
       throw new McpResourceAlreadyRegisteredError(definition.uri);
     }
