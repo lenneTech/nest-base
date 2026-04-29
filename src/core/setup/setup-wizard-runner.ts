@@ -42,6 +42,9 @@ const SECRET_VARS: Record<string, SecretSpec> = {
   POWERSYNC_DB_PASSWORD: { bytes: 24, encoding: 'base64url' },
   FIELD_ENCRYPTION_KEK: { bytes: 32, encoding: 'base64' },
   S3_SECRET_KEY: { bytes: 24, encoding: 'base64url' },
+  // SystemSetupConfigSchema requires ≥ 12 chars; 16 bytes base64url ≈ 22
+  // chars, comfortably above the floor and 128 bits of entropy.
+  SYSTEM_SETUP_ADMIN_PASSWORD: { bytes: 16, encoding: 'base64url' },
 };
 
 export function planEnvFromExample(
