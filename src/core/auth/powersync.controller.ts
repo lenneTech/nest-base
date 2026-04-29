@@ -21,6 +21,11 @@ interface StoreRow {
 export class PowerSyncController {
   private readonly store = new Map<string, StoreRow>();
 
+  // TODO(perm-gate): wire @Can("write", "PowerSync") once existing
+  // e2e tests are updated to authenticate. Currently the test suite
+  // posts to /powersync/crud without an auth context — adding the
+  // decorator now would 403 every test. Tracked as a follow-up slice
+  // with the test-ability helper. See OPEN_QUESTIONS.md.
   @Post("crud")
   @HttpCode(HttpStatus.NO_CONTENT)
   async crud(@Body() body: unknown): Promise<{ rejected?: unknown[] }> {

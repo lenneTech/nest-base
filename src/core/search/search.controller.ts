@@ -18,6 +18,8 @@ const MAX_LIMIT = 100;
 export class SearchController {
   constructor(private readonly service: SearchService) {}
 
+  // TODO(perm-gate): wire @Can("read", "Search") once the e2e suite
+  // gains a test-ability helper. See OPEN_QUESTIONS.md.
   @Get()
   async search(
     @Query("q") q: string | undefined,

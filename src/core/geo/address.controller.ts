@@ -9,6 +9,7 @@ import {
   Post,
 } from "@nestjs/common";
 
+import { Can } from "../permissions/can.guard.js";
 import { CreateAddressSchema } from "./geo-dtos.js";
 import {
   ADDRESS_ENCRYPTED_FIELDS,
@@ -37,11 +38,13 @@ const STORE = new Map<string, AddressRecord>();
  */
 @Controller("addresses")
 export class AddressController {
+  @Can("read", "Address")
   @Get()
   async list(): Promise<AddressRecord[]> {
     return [...STORE.values()].map((r) => decryptIfFlagged(r));
   }
 
+  @Can("create", "Address")
   @Post()
   async create(@Body() body: unknown): Promise<AddressRecord> {
     const parsed = CreateAddressSchema.safeParse(body);
@@ -57,6 +60,7 @@ export class AddressController {
     return record;
   }
 
+  @Can("read", "Address")
   @Get(":id")
   async get(@Param("id") id: string): Promise<AddressRecord> {
     const r = STORE.get(id);
@@ -64,6 +68,7 @@ export class AddressController {
     return decryptIfFlagged(r);
   }
 
+  @Can("delete", "Address")
   @Delete(":id")
   async remove(@Param("id") id: string): Promise<{ removed: boolean }> {
     return { removed: STORE.delete(id) };
