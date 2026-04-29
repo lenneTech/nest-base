@@ -9,6 +9,7 @@ import { ErrorCodesModule } from '../errors/error-codes.module.js';
 import { conditionalImport, loadFeatures } from '../features/features.js';
 import { HealthModule } from '../health/health.module.js';
 import { OutputPipelineInterceptor } from '../output-pipeline/output-pipeline.interceptor.js';
+import { PermissionsModule } from '../permissions/permissions.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { RequestContextMiddleware } from '../request-context/request-context.middleware.js';
 import { AppController } from './app.controller.js';
@@ -40,6 +41,7 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     DevHubModule,
     BetterAuthModule,
     ErrorCodesModule,
+    PermissionsModule,
     ...conditionalImport(features, 'fieldEncryption', EncryptionModule.forRoot()),
   ],
   controllers: [AppController],

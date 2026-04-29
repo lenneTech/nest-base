@@ -1,5 +1,8 @@
+import { Inject, Injectable, Optional } from '@nestjs/common';
+
 import { type Ability, buildAbility } from './casl-ability.js';
 import { type DbPermissionRow, resolveDbRules } from './db-rule-resolver.js';
+import { PERMISSION_STORAGE } from './permission-storage.token.js';
 
 /**
  * PermissionService.abilityFor() (PLAN.md §6).
@@ -32,14 +35,15 @@ interface CacheEntry {
 const DEFAULT_TTL_MS = 60_000;
 const DEFAULT_MAX_ENTRIES = 1000;
 
+@Injectable()
 export class PermissionService {
   private readonly cache = new Map<string, CacheEntry>();
   private readonly ttlMs: number;
   private readonly maxEntries: number;
 
   constructor(
-    private readonly storage: PermissionStorage,
-    options: PermissionServiceOptions = {},
+    @Inject(PERMISSION_STORAGE) private readonly storage: PermissionStorage,
+    @Optional() options: PermissionServiceOptions = {},
   ) {
     this.ttlMs = options.ttlMs ?? DEFAULT_TTL_MS;
     this.maxEntries = options.maxEntries ?? DEFAULT_MAX_ENTRIES;

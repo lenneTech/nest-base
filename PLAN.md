@@ -3680,7 +3680,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] CASL Integration (`@casl/ability`, `@casl/prisma`)
 - [x] DB-Rule → CASL-Rule Resolver (mit Variablen-Substitution)
 - [x] PermissionService.abilityFor() + Cache (LRU, 60s TTL)
-- [ ] `@Can()` Decorator + Guard, `@Ability()` Param-Decorator  — *Decorator + `CanGuard` existieren, Guard ist nicht als globaler `APP_GUARD` registriert.*
+- [x] `@Can()` Decorator + Guard, `@Ability()` Param-Decorator  *(`PermissionsModule` registriert `CanGuard` als `APP_GUARD` + `PermissionInterceptor` als `APP_INTERCEPTOR` der `request.ability` setzt. Anonyme Requests bekommen leere Ability — `@Can()`-Routen denien (403), Routen ohne `@Can()` lassen pass-through. PermissionStorage via DI-Token, aktuell Stub-Adapter (real Prisma-Adapter folgt mit Permission-Schema-Slice).)*
 - [ ] PostgREST-Query-Parser → Prisma-WHERE (kombiniert mit `accessibleBy`)  — *Parser existiert, aber kein Controller verwendet ihn.*
 - [x] Output-Pipeline-Interceptor (4-Stage)  *(`OutputPipelineInterceptor` ist als globaler `APP_INTERCEPTOR` registriert; Stages 3+4 (remove-secrets + safety-net) laufen auf jeder Response. Stages 1+2 (record-level Permission-Filter + Field-Allowlist) aktivieren sich, sobald per Request eine `Ability` resolvbar ist — passiert mit Auth-Slice.)*
 - [ ] Filter-Service Pattern: `@FilterFor()` + Registry + Auto-Discovery  — *`FilterService` (@Injectable) existiert, aber keine Auto-Discovery via `DiscoveryModule`/`MetadataScanner`.*
