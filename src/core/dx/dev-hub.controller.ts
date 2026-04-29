@@ -24,7 +24,6 @@ import { APP_NAME, APP_VERSION } from "../app/app.metadata.js";
 import { buildCoverageReport, type RawCoverageSummary } from "./coverage-report.js";
 import { renderCoveragePage } from "./coverage-ui.js";
 import { renderDashboardPage } from "./dashboard-ui.js";
-import { renderDevtoolsPage } from "./devtools-ui.js";
 import { renderDiagnosticsPage } from "./diagnostics-ui.js";
 import { resolveEffectiveBaseUrl } from "./effective-base-url.js";
 import { planEnvFileUpdate } from "./env-file-update.js";
@@ -71,7 +70,6 @@ export class DevHubController {
       env_vars: {
         ...(process.env.DATABASE_URL ? { DATABASE_URL: process.env.DATABASE_URL } : {}),
         ...(process.env.PRISMA_STUDIO ? { PRISMA_STUDIO: process.env.PRISMA_STUDIO } : {}),
-        ...(process.env.NESTJS_DEVTOOLS ? { NESTJS_DEVTOOLS: process.env.NESTJS_DEVTOOLS } : {}),
         ...(process.env.MAILPIT_WEB_URL ? { MAILPIT_WEB_URL: process.env.MAILPIT_WEB_URL } : {}),
         ...(process.env.POWERSYNC_URL ? { POWERSYNC_URL: process.env.POWERSYNC_URL } : {}),
       },
@@ -148,7 +146,6 @@ export class DevHubController {
       env_vars: {
         ...(process.env.DATABASE_URL ? { DATABASE_URL: process.env.DATABASE_URL } : {}),
         ...(process.env.PRISMA_STUDIO ? { PRISMA_STUDIO: process.env.PRISMA_STUDIO } : {}),
-        ...(process.env.NESTJS_DEVTOOLS ? { NESTJS_DEVTOOLS: process.env.NESTJS_DEVTOOLS } : {}),
         ...(process.env.MAILPIT_WEB_URL ? { MAILPIT_WEB_URL: process.env.MAILPIT_WEB_URL } : {}),
         ...(process.env.POWERSYNC_URL ? { POWERSYNC_URL: process.env.POWERSYNC_URL } : {}),
       },
@@ -318,24 +315,6 @@ export class DevHubController {
     return renderTestSummaryPage(report);
   }
 
-  @Get("devtools")
-  @Header("content-type", "text/html; charset=utf-8")
-  async devtools(): Promise<string> {
-    this.assertDev();
-    const enabled = process.env.NESTJS_DEVTOOLS !== "0";
-    const port = 8000;
-    let status: "up" | "down" | "unknown" = "unknown";
-    if (enabled) {
-      status = (await probeLocalhost(port)) ? "up" : "down";
-    }
-    return renderDevtoolsPage({
-      enabled,
-      port,
-      status,
-      cloudUrl: "https://devtools.nestjs.com",
-    });
-  }
-
   @Get("diagnostics")
   @Header("content-type", "text/html; charset=utf-8")
   diagnostics(): string {
@@ -396,23 +375,6 @@ export class DevHubController {
 function readBunVersion(): string | undefined {
   const bun = (globalThis as { Bun?: { version: string } }).Bun;
   return bun?.version;
-}
-
-async function probeLocalhost(port: number, timeoutMs: number = 400): Promise<boolean> {
-  const { connect } = await import("node:net");
-  return new Promise((resolveBool) => {
-    const socket = connect({ host: "127.0.0.1", port, timeout: timeoutMs });
-    let settled = false;
-    const finish = (ok: boolean): void => {
-      if (settled) return;
-      settled = true;
-      socket.destroy();
-      resolveBool(ok);
-    };
-    socket.on("connect", () => finish(true));
-    socket.on("error", () => finish(false));
-    socket.on("timeout", () => finish(false));
-  });
 }
 
 function devWantsJson(accept: string | undefined, format: string | undefined): boolean {

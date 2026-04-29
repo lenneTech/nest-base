@@ -33,7 +33,6 @@ export interface BannerInput {
     scalarEnabled: boolean;
     mailpitUrl?: string;
     powerSyncUrl?: string;
-    devtoolsUrl?: string;
     prismaStudioUrl?: string;
   };
 }
@@ -102,9 +101,6 @@ export function planStartupBanner(input: BannerInput): BannerPlan {
   }
   if (input.features.powerSyncUrl) {
     services.push({ label: "PowerSync", url: input.features.powerSyncUrl });
-  }
-  if (input.features.devtoolsUrl) {
-    services.push({ label: "Devtools", url: input.features.devtoolsUrl });
   }
   if (services.length > 0) {
     sections.push({ title: "Services", entries: services });

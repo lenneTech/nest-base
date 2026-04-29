@@ -18,7 +18,6 @@ describe("Story · Dev-Hub planner", () => {
       env: "development",
       features: FeaturesSchema.parse({}),
       scalar: { mountPath: "/api/docs", specUrl: "/api/openapi.json" },
-      devtools: { enabled: true, port: 8000 },
       ...overrides,
     };
   }
@@ -42,27 +41,6 @@ describe("Story · Dev-Hub planner", () => {
 
     it("includes the active-features endpoint", () => {
       expect(labels(planDevHub(input()))).toContain("Active Features");
-    });
-  });
-
-  describe("conditional on devtools", () => {
-    it("includes NestJS DevTools when devtools.enabled", () => {
-      expect(labels(planDevHub(input({ devtools: { enabled: true, port: 8000 } })))).toContain(
-        "NestJS DevTools",
-      );
-    });
-
-    it("omits NestJS DevTools when devtools.enabled=false", () => {
-      expect(labels(planDevHub(input({ devtools: { enabled: false, port: 8000 } })))).not.toContain(
-        "NestJS DevTools",
-      );
-    });
-
-    it("embeds the configured devtools port in the URL", () => {
-      const link = planDevHub(input({ devtools: { enabled: true, port: 4242 } })).find(
-        (l: DevHubLink) => l.label === "NestJS DevTools",
-      );
-      expect(link?.url).toContain("4242");
     });
   });
 
@@ -115,11 +93,8 @@ describe("Story · Dev-Hub planner", () => {
       expect(links.find((l: DevHubLink) => l.label === "Permission Tester")?.category).toBe("api");
     });
 
-    it('groups DevTools / Active-Features under "architecture"', () => {
+    it('groups Active-Features under "architecture"', () => {
       const links = planDevHub(input());
-      expect(links.find((l: DevHubLink) => l.label === "NestJS DevTools")?.category).toBe(
-        "architecture",
-      );
       expect(links.find((l: DevHubLink) => l.label === "Active Features")?.category).toBe(
         "architecture",
       );

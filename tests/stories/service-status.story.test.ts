@@ -35,14 +35,6 @@ describe("Story · Service-Status", () => {
       expect(opted_out.find((c) => c.id === "prisma-studio")).toBeUndefined();
     });
 
-    it("nimmt NestJS DevTools auf — opt-out via NESTJS_DEVTOOLS=0", () => {
-      const def = planServiceCandidates(baseInput);
-      expect(def.find((c) => c.id === "nest-devtools")?.probeUrl).toBe("http://localhost:8000");
-
-      const off = planServiceCandidates({ ...baseInput, env_vars: { NESTJS_DEVTOOLS: "0" } });
-      expect(off.find((c) => c.id === "nest-devtools")).toBeUndefined();
-    });
-
     it("nimmt Mailpit nur bei gesetzter URL auf", () => {
       const list = planServiceCandidates({
         ...baseInput,

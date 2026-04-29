@@ -7,7 +7,7 @@ import { isPathProtected } from "../../src/core/auth/jwt-middleware.js";
  *
  * The middleware is allowlist-driven: by default everything except the
  * explicit public paths needs a valid JWT. Known public paths: /, /health/*,
- * the Better-Auth handler base, and the Scalar/Devtools docs (when
+ * the Better-Auth handler base, and the Scalar docs (when
  * enabled). Everything else requires a session or scoped API key.
  */
 describe("Story · Better-Auth JWT middleware", () => {

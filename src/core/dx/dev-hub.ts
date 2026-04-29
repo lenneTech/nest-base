@@ -32,7 +32,6 @@ export interface DevHubInput {
   env: DevHubEnv;
   features: Features;
   scalar?: { mountPath: string; specUrl?: string };
-  devtools?: { enabled: boolean; port: number };
 }
 
 const CATEGORY_ORDER: DevHubCategory[] = ["api", "architecture", "data", "async"];
@@ -64,13 +63,6 @@ export function planDevHub(input: DevHubInput): DevHubLink[] {
   });
 
   // architecture ------------------------------------------------------
-  if (input.devtools?.enabled) {
-    links.push({
-      label: "NestJS DevTools",
-      url: `http://localhost:${input.devtools.port}`,
-      category: "architecture",
-    });
-  }
   links.push({
     label: "Active Features",
     url: "/dev/features",

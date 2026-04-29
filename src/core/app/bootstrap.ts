@@ -175,9 +175,6 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
           ...(studioUrl ? { prismaStudioUrl: studioUrl } : {}),
           ...(process.env.MAILPIT_WEB_URL ? { mailpitUrl: process.env.MAILPIT_WEB_URL } : {}),
           ...(process.env.POWERSYNC_URL ? { powerSyncUrl: process.env.POWERSYNC_URL } : {}),
-          ...(process.env.NESTJS_DEVTOOLS !== "0"
-            ? { devtoolsUrl: "https://devtools.nestjs.com" }
-            : {}),
         },
       });
       // pino-pretty runs in a worker thread (async); a short tick lets

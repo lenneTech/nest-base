@@ -1,6 +1,5 @@
 import { type MiddlewareConsumer, Module, type NestModule } from "@nestjs/common";
 import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
-import { DevtoolsModule } from "@nestjs/devtools-integration";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 
 import { AuditLogModule } from "../audit/audit-log.module.js";
@@ -8,7 +7,6 @@ import { ApiKeyModule } from "../auth/api-keys/api-key.module.js";
 import { BetterAuthModule } from "../auth/better-auth.module.js";
 import { PowerSyncModule } from "../auth/powersync.module.js";
 import { ConfigModule } from "../config/config.module.js";
-import { buildDevToolsConfig, type DevToolsEnv } from "../dx/devtools-config.js";
 import { DevHubModule } from "../dx/dev-hub.module.js";
 import { EmailModule } from "../email/email.module.js";
 import { EncryptionModule } from "../encryption/encryption.module.js";
@@ -37,25 +35,6 @@ import { SystemSetupModule } from "../setup/system-setup.module.js";
 import { AppController } from "./app.controller.js";
 
 const features = loadFeatures(process.env as Record<string, string | undefined>);
-const devtoolsEnv: DevToolsEnv =
-  process.env.NODE_ENV === "production"
-    ? "production"
-    : process.env.NODE_ENV === "test"
-      ? "test"
-      : "development";
-// In `bun run dev` we want the snapshot UI on by default so
-// http://localhost:8000 just works. Tests must NOT bind port 8000
-// (every spawned NestJS instance would collide), so the toggle is
-// `dev → on`, `test → off`, `production → opt-in via NESTJS_DEVTOOLS=1`.
-const devtoolsExplicitOff = process.env.NESTJS_DEVTOOLS === "0";
-const devtoolsForcedOn = process.env.NESTJS_DEVTOOLS === "1";
-const devtoolsDefault = devtoolsEnv === "development";
-const devtoolsEnabled = devtoolsForcedOn || (devtoolsDefault && !devtoolsExplicitOff);
-const devtools = buildDevToolsConfig({
-  env: devtoolsEnv,
-  enabled: devtoolsEnabled,
-  http: devtoolsEnabled,
-});
 
 /**
  * Root module of the NestJS application.
@@ -113,9 +92,6 @@ const devtools = buildDevToolsConfig({
     ]),
     FilesModule,
     ...conditionalImport(features, "fieldEncryption", EncryptionModule.forRoot()),
-    ...(devtools.enabled && devtools.http
-      ? [DevtoolsModule.register({ http: true, port: devtools.port })]
-      : []),
   ],
   controllers: [AppController],
   providers: [

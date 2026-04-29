@@ -50,7 +50,6 @@ export interface ServiceStatusInput {
   env_vars?: {
     DATABASE_URL?: string;
     PRISMA_STUDIO?: string;
-    NESTJS_DEVTOOLS?: string;
     MAILPIT_WEB_URL?: string;
     POWERSYNC_URL?: string;
   };
@@ -84,15 +83,6 @@ export function planServiceCandidates(input: ServiceStatusInput): ServiceCandida
       category: "tooling",
       probeUrl: "http://localhost:5555",
       href: "http://localhost:5555",
-    });
-  }
-  if (v.NESTJS_DEVTOOLS !== "0") {
-    candidates.push({
-      id: "nest-devtools",
-      label: "NestJS DevTools",
-      category: "tooling",
-      probeUrl: "http://localhost:8000",
-      href: "https://devtools.nestjs.com",
     });
   }
   if (v.MAILPIT_WEB_URL) {

@@ -66,12 +66,6 @@ export function defaultAdminNav(): AdminNavSection[] {
         { id: "openapi", label: "OpenAPI Spec", href: "/api/openapi", icon: ICON_FILE },
         { id: "errors", label: "Error Codes", href: "/errors", icon: ICON_BUG },
         {
-          id: "nest-devtools",
-          label: "NestJS DevTools",
-          href: "/dev/devtools",
-          icon: ICON_GRAPH,
-        },
-        {
           id: "prisma-studio",
           label: "Prisma Studio",
           href: "http://localhost:5555",
@@ -540,4 +534,3 @@ const ICON_DATABASE = `<svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" r
 const ICON_CHART = `<svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`;
 const ICON_TERMINAL = `<svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>`;
 const ICON_CHECK = `<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`;
-const ICON_GRAPH = `<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><line x1="12" y1="8" x2="5" y2="16"/><line x1="12" y1="8" x2="19" y2="16"/></svg>`;
