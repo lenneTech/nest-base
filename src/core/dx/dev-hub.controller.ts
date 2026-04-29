@@ -31,8 +31,18 @@ import { FEATURE_CATALOG } from "./feature-catalog.js";
 import { renderFeaturesPage } from "./features-ui.js";
 import { renderJsonViewerPage } from "./json-viewer-ui.js";
 import { buildDiagnosticsReport, type DiagnosticsReport } from "./diagnostics.js";
+import {
+  buildEmailPreviewCatalog,
+  renderEmailPreview,
+  type EmailPreviewResult,
+} from "./email-preview.js";
+import { renderEmailPreviewPage } from "./email-preview-ui.js";
 import { buildErdForProject } from "./erd-runner.js";
 import { renderErdPage } from "./erd-ui.js";
+import {
+  EjsEmailTemplateRenderer,
+  buildBuiltInEmailTemplateRegistry,
+} from "../email/email-templates.js";
 import { getLogBuffer } from "./log-buffer.js";
 import { renderLogViewerPage } from "./log-viewer-ui.js";
 import { RouteInventoryService } from "./route-inventory-runner.js";
@@ -359,6 +369,44 @@ export class DevHubController {
   erdJson(): { mermaid: string; modelCount: number; relationCount: number } {
     this.assertDev();
     return buildErdForProject();
+  }
+
+  @Get("email-preview")
+  @Header("content-type", "text/html; charset=utf-8")
+  async emailPreviewPage(): Promise<string> {
+    this.assertDev();
+    const renderer = new EjsEmailTemplateRenderer(buildBuiltInEmailTemplateRegistry());
+    const catalog = buildEmailPreviewCatalog();
+    const rendered: Record<string, EmailPreviewResult> = {};
+    for (const entry of catalog.entries) {
+      rendered[entry.template] = await renderEmailPreview({
+        renderer,
+        template: entry.template,
+        locale: "en",
+        payload: entry.samplePayload,
+      });
+    }
+    return renderEmailPreviewPage({ catalog, rendered });
+  }
+
+  @Get("email-preview.json")
+  async emailPreviewJson(): Promise<{
+    catalog: ReturnType<typeof buildEmailPreviewCatalog>;
+    rendered: Record<string, EmailPreviewResult>;
+  }> {
+    this.assertDev();
+    const renderer = new EjsEmailTemplateRenderer(buildBuiltInEmailTemplateRegistry());
+    const catalog = buildEmailPreviewCatalog();
+    const rendered: Record<string, EmailPreviewResult> = {};
+    for (const entry of catalog.entries) {
+      rendered[entry.template] = await renderEmailPreview({
+        renderer,
+        template: entry.template,
+        locale: "en",
+        payload: entry.samplePayload,
+      });
+    }
+    return { catalog, rendered };
   }
 
   private buildDiagnostics(): DiagnosticsReport {

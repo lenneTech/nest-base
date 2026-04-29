@@ -98,6 +98,26 @@ describe("Dev-Hub · GET /dev", () => {
       expect(res.text).toContain("/dev/diagnostics");
     });
 
+    it("GET /dev/email-preview renders all built-in templates with sample payloads", async () => {
+      const res = await request(app.getHttpServer()).get("/dev/email-preview");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/text\/html/);
+      expect(res.text).toContain("email-verification");
+      expect(res.text).toContain("password-reset");
+      expect(res.text).toContain("welcome");
+      expect(res.text).toContain("invitation");
+      // Sample-payload values must show up rendered.
+      expect(res.text).toContain("Alice Example");
+    });
+
+    it("GET /dev/email-preview.json returns structured catalog + rendered", async () => {
+      const res = await request(app.getHttpServer()).get("/dev/email-preview.json");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/application\/json/);
+      expect(res.body.catalog.entries.length).toBeGreaterThanOrEqual(4);
+      expect(res.body.rendered.welcome.subject).toBe("Welcome to nest-base");
+    });
+
     it("GET /dev/erd renders the HTML ERD viewer with Mermaid source", async () => {
       const res = await request(app.getHttpServer()).get("/dev/erd");
       expect(res.status).toBe(200);
