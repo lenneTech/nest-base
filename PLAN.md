@@ -3706,7 +3706,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Webhooks: `WebhookEndpoint` + `WebhookDelivery` Models
 - [ ] Webhook-Dispatcher (HMAC-SHA256, Retries, Auto-Disable)  — *Klasse existiert, kein Worker/Subscriber konsumiert die Outbox.*
 - [x] Search: `Searchable`-Decorator + Migration-Generator (tsvector + GIN)
-- [ ] Cross-Resource-Search-Endpoint  — *Service existiert, kein Controller.*
+- [x] Cross-Resource-Search-Endpoint  *(`SearchModule` exportiert `GET /search?q=…&limit=…&only=…`. Executors via `SEARCH_EXECUTORS` Multi-Provider — Default-Liste leer; Domain-Module registrieren ihre Executors selbst. e2e: `tests/search-controller.e2e-spec.ts`.)*
 - [ ] Realtime-Service (Postgres LISTEN-Connection)  — *Service-Klasse existiert, kein DI-Provider, keine Connect-Lifecycle-Hook.*
 - [ ] Socket.IO-Gateway + Auth-Handshake + Room-Subscriptions  — *Keinerlei `@WebSocketGateway` im Code.*
 - [ ] Permission-Aware Channel-Filter  — *Filter-Funktion existiert, ohne Verwendung im Gateway.*

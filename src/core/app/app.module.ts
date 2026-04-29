@@ -15,6 +15,7 @@ import { OutputPipelineInterceptor } from '../output-pipeline/output-pipeline.in
 import { FiltersModule } from '../permissions/filters.module.js';
 import { PermissionsModule } from '../permissions/permissions.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
+import { SearchModule } from '../search/search.module.js';
 import { RequestContextMiddleware } from '../request-context/request-context.middleware.js';
 import { SystemSetupModule } from '../setup/system-setup.module.js';
 import { AppController } from './app.controller.js';
@@ -64,6 +65,9 @@ const devtools = buildDevToolsConfig({
     PermissionsModule,
     FiltersModule,
     SystemSetupModule,
+    // SearchModule is loaded unconditionally — empty executor list
+    // by default, projects opt in via SEARCH_EXECUTORS multi-provider.
+    SearchModule,
     ...conditionalImport(features, 'fieldEncryption', EncryptionModule.forRoot()),
     ...(devtools.enabled && devtools.http
       ? [DevtoolsModule.register({ http: true, port: devtools.port })]
