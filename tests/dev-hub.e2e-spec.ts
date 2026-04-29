@@ -49,6 +49,25 @@ describe('Dev-Hub · GET /dev', () => {
       // The page must not contain any obvious unescaped tag injection vector.
       expect(res.text).not.toMatch(/<script>(?!.*\/[ds][cr]ript)/);
     });
+
+    it('GET /dev/features returns the active Features object as JSON', async () => {
+      const res = await request(app.getHttpServer()).get('/dev/features');
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toMatch(/application\/json/);
+      expect(res.body).toHaveProperty('multiTenancy');
+      expect(res.body).toHaveProperty('webhooks');
+      expect(res.body).toHaveProperty('powerSync');
+    });
+
+    it('GET /dev/diagnostics returns runtime + features report as JSON', async () => {
+      const res = await request(app.getHttpServer()).get('/dev/diagnostics');
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toMatch(/application\/json/);
+      expect(res.body).toHaveProperty('runtime');
+      expect(res.body).toHaveProperty('process');
+      expect(res.body).toHaveProperty('features');
+      expect(res.body.runtime.platform).toMatch(/darwin|linux|win32/);
+    });
   });
 
   describe('outside development mode', () => {
