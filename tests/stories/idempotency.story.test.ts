@@ -94,7 +94,9 @@ describe("Story · Idempotency service", () => {
         handler: async () => ({ status: 201, body: { id: "p-1" } }),
       });
       expect(result).toEqual({ status: 201, body: { id: "p-1" }, replayed: false });
-      expect(store.records.has("k-1")).toBe(true);
+      // Anonymous calls land under the "anon::" prefix so they cannot
+      // collide with later authenticated calls using the same key.
+      expect(store.records.has("anon::k-1")).toBe(true);
     });
 
     it("returns the cached response on a hit with matching fingerprint", async () => {
@@ -167,7 +169,7 @@ describe("Story · Idempotency service", () => {
           },
         }),
       ).rejects.toThrow(/boom/);
-      expect(store.records.has("k-1")).toBe(false);
+      expect(store.records.has("anon::k-1")).toBe(false);
     });
 
     it("records expiresAt = now + ttlMs", async () => {
@@ -178,7 +180,7 @@ describe("Story · Idempotency service", () => {
         request: makeRequest(),
         handler: async () => ({ status: 201, body: {} }),
       });
-      expect(store.records.get("k-1")?.expiresAt).toBe(61_000);
+      expect(store.records.get("anon::k-1")?.expiresAt).toBe(61_000);
     });
 
     it("forwards userId on the stored record when provided", async () => {
@@ -190,7 +192,87 @@ describe("Story · Idempotency service", () => {
         userId: "u-42",
         handler: async () => ({ status: 201, body: {} }),
       });
-      expect(store.records.get("k-1")?.userId).toBe("u-42");
+      // Storage key is user-scoped (`u-42::k-1`); the record carries
+      // the userId for audit / debugging.
+      const stored = [...store.records.values()].find((r) => r.userId === "u-42");
+      expect(stored).toBeDefined();
+      expect(stored?.key).toBe("u-42::k-1");
+    });
+
+    describe("user-scoped lookup (cross-user isolation)", () => {
+      it("does NOT return user A's cached response to user B (same key, same body)", async () => {
+        // Why: idempotency keys are client-supplied. If they're guessable
+        // (UUID v7 is monotonic) and the lookup is global, user B can
+        // retrieve user A's response by replaying the same request +
+        // key. Lookups MUST be scoped to the userId.
+        const store = inMemoryStore();
+        const svc = new IdempotencyService(store, { now: () => 0, ttlMs: 60_000 });
+        const request = makeRequest();
+
+        const aResult = await svc.runOrCache({
+          key: "shared-key",
+          request,
+          userId: "user-A",
+          handler: async () => ({ status: 201, body: { id: "A-resource" } }),
+        });
+        expect(aResult.body).toEqual({ id: "A-resource" });
+
+        let bHandlerCalled = false;
+        const bResult = await svc.runOrCache({
+          key: "shared-key",
+          request,
+          userId: "user-B",
+          handler: async () => {
+            bHandlerCalled = true;
+            return { status: 201, body: { id: "B-resource" } };
+          },
+        });
+        expect(bHandlerCalled).toBe(true);
+        expect(bResult.body).toEqual({ id: "B-resource" });
+        expect(bResult.replayed).toBe(false);
+      });
+
+      it("anonymous calls (no userId) are isolated from user-scoped calls with the same key", async () => {
+        const store = inMemoryStore();
+        const svc = new IdempotencyService(store, { now: () => 0, ttlMs: 60_000 });
+        const request = makeRequest();
+
+        await svc.runOrCache({
+          key: "anon-key",
+          request,
+          handler: async () => ({ status: 201, body: { who: "anon" } }),
+        });
+
+        const result = await svc.runOrCache({
+          key: "anon-key",
+          request,
+          userId: "u-1",
+          handler: async () => ({ status: 201, body: { who: "u-1" } }),
+        });
+        expect(result.body).toEqual({ who: "u-1" });
+        expect(result.replayed).toBe(false);
+      });
+
+      it("same user with same key replays correctly (regression: scoping must not break replay)", async () => {
+        const store = inMemoryStore();
+        const svc = new IdempotencyService(store, { now: () => 0, ttlMs: 60_000 });
+        const request = makeRequest();
+
+        await svc.runOrCache({
+          key: "k-1",
+          request,
+          userId: "u-1",
+          handler: async () => ({ status: 201, body: { id: "first" } }),
+        });
+        const second = await svc.runOrCache({
+          key: "k-1",
+          request,
+          userId: "u-1",
+          handler: async () => ({ status: 500, body: { id: "should-not-run" } }),
+        });
+        expect(second.body).toEqual({ id: "first" });
+        expect(second.replayed).toBe(true);
+      });
     });
   });
 });

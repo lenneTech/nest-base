@@ -40,7 +40,7 @@ class IdempotencyKeyInterceptor implements NestInterceptor {
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     if (context.getType() !== "http") return next.handle();
-    const req = context.switchToHttp().getRequest<Request>();
+    const req = context.switchToHttp().getRequest<Request & { user?: { id?: string } }>();
     const res = context.switchToHttp().getResponse<Response>();
 
     const method = (req.method ?? "").toUpperCase();
@@ -49,9 +49,15 @@ class IdempotencyKeyInterceptor implements NestInterceptor {
     const key = (req.headers[HEADER] as string | undefined) ?? "";
     if (!key) return next.handle();
 
+    // Scope by userId to prevent cross-user replay: see
+    // `scopeIdempotencyKey` in idempotency.service.ts. `req.user.id`
+    // is set by the Better-Auth middleware before any interceptor runs.
+    const userId = req.user?.id;
+
     return from(
       this.svc.runOrCache({
         key,
+        ...(userId ? { userId } : {}),
         request: { method, path: req.path ?? req.url ?? "", body: req.body },
         handler: async () => {
           const resolvedBody = await new Promise<unknown>((resolveResult, rejectResult) => {

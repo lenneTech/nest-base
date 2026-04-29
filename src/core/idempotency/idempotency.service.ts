@@ -71,6 +71,22 @@ export function computeRequestHash(input: RequestFingerprintInput): string {
   return createHash("sha256").update(fingerprint).digest("hex");
 }
 
+/**
+ * Build the storage key for a (userId, idempotency-key) pair.
+ *
+ * Why scope by userId:
+ *
+ * Idempotency keys are client-supplied. UUID v7 is monotonic and
+ * partly predictable, so a global lookup lets user B retrieve user A's
+ * cached response by replaying the same key + body. We prefix the
+ * key with the userId so two different users sharing the same
+ * Idempotency-Key never collide. Anonymous calls (no userId) get the
+ * "anon::" prefix and are isolated from authenticated calls.
+ */
+export function scopeIdempotencyKey(key: string, userId: string | undefined): string {
+  return `${userId ?? "anon"}::${key}`;
+}
+
 export class IdempotencyService {
   constructor(
     private readonly store: IdempotencyStore,
@@ -79,7 +95,8 @@ export class IdempotencyService {
 
   async runOrCache<TBody>(input: RunOrCacheInput<TBody>): Promise<IdempotencyResolved<TBody>> {
     const requestHash = computeRequestHash(input.request);
-    const existing = await this.store.get(input.key);
+    const scopedKey = scopeIdempotencyKey(input.key, input.userId);
+    const existing = await this.store.get(scopedKey);
     const now = this.options.now();
 
     if (existing && existing.expiresAt > now) {
@@ -95,7 +112,7 @@ export class IdempotencyService {
 
     const response = await input.handler();
     await this.store.put({
-      key: input.key,
+      key: scopedKey,
       userId: input.userId,
       requestHash,
       status: response.status,
