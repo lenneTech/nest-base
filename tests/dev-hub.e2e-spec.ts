@@ -98,6 +98,23 @@ describe("Dev-Hub · GET /dev", () => {
       expect(res.text).toContain("/dev/diagnostics");
     });
 
+    it("GET /dev/erd renders the HTML ERD viewer with Mermaid source", async () => {
+      const res = await request(app.getHttpServer()).get("/dev/erd");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/text\/html/);
+      expect(res.text).toContain("erDiagram");
+    });
+
+    it("GET /dev/erd.json returns the parsed ERD plan", async () => {
+      const res = await request(app.getHttpServer()).get("/dev/erd.json");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/application\/json/);
+      expect(typeof res.body.mermaid).toBe("string");
+      expect(res.body.mermaid).toContain("erDiagram");
+      expect(typeof res.body.modelCount).toBe("number");
+      expect(typeof res.body.relationCount).toBe("number");
+    });
+
     it("GET /dev/routes.json returns the structured inventory", async () => {
       const res = await request(app.getHttpServer()).get("/dev/routes.json");
       expect(res.status).toBe(200);

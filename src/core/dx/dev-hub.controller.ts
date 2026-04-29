@@ -31,6 +31,8 @@ import { FEATURE_CATALOG } from "./feature-catalog.js";
 import { renderFeaturesPage } from "./features-ui.js";
 import { renderJsonViewerPage } from "./json-viewer-ui.js";
 import { buildDiagnosticsReport, type DiagnosticsReport } from "./diagnostics.js";
+import { buildErdForProject } from "./erd-runner.js";
+import { renderErdPage } from "./erd-ui.js";
 import { getLogBuffer } from "./log-buffer.js";
 import { renderLogViewerPage } from "./log-viewer-ui.js";
 import { RouteInventoryService } from "./route-inventory-runner.js";
@@ -344,6 +346,19 @@ export class DevHubController {
   routesJson(): RouteInventory {
     this.assertDev();
     return this.routes.build();
+  }
+
+  @Get("erd")
+  @Header("content-type", "text/html; charset=utf-8")
+  erdPage(): string {
+    this.assertDev();
+    return renderErdPage(buildErdForProject());
+  }
+
+  @Get("erd.json")
+  erdJson(): { mermaid: string; modelCount: number; relationCount: number } {
+    this.assertDev();
+    return buildErdForProject();
   }
 
   private buildDiagnostics(): DiagnosticsReport {
