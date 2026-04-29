@@ -35,11 +35,13 @@ export function renderTraceViewerPage(input: {
 
   /* Same terminal-style pattern as /dev/logs: bound height to dvh,
      sticky header, scroll inside the container so the page doesn't
-     grow unbounded on a busy server. */
+     grow unbounded on a busy server. The 26rem offset covers
+     admin-main padding (top+bottom) + header h1+subtitle + the 3
+     stat tiles + toolbar + a buffer margin. */
   .tv-scroll {
     position: relative;
-    max-height: calc(100dvh - 22rem);
-    min-height: 16rem;
+    max-height: calc(100dvh - 26rem);
+    min-height: 14rem;
     overflow-y: auto;
     background: var(--surface-1);
     border: 1px solid var(--line);
@@ -247,7 +249,7 @@ function renderRow(t: TraceRecord): string {
     <td><span class="tv-method ${methodClass}">${escapeHtml(t.method)}</span></td>
     <td>${escapeHtml(t.path)}</td>
     <td class="${statusClass}">${t.status}</td>
-    <td class="${durClass}">${t.durationMs} ms</td>
+    <td class="${durClass}">${Math.round(t.durationMs)} ms</td>
     <td style="color:var(--fg-muted)">${escapeHtml(t.requestId.slice(0, 8))}…</td>
   </tr>`;
 }

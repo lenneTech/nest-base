@@ -35,6 +35,9 @@ session that costs 30 minutes and still leaves the agent guessing.
 | "Why is X structured this way?" | skill: `understanding-the-architecture` |
 | "I keep hitting Y error" | skill: `avoiding-common-pitfalls` |
 | "How do I write a story test?" | skill: `writing-story-tests` |
+| "User reports 403 / why does CASL deny this?" | skill: `debugging-permission-denials` |
+| "Add or change a Prisma model" | skill: `writing-migrations` |
+| "I just fixed a bug in `src/core/` — should I PR it back?" | skill: `contributing-upstream` + `/upstream-pr` |
 
 The full lookup table is in [`.claude/AGENTS.md`](../.claude/AGENTS.md).
 

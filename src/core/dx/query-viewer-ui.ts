@@ -28,7 +28,7 @@ export function renderQueryViewerPage(input: {
     <div class="qv-tile__title">Critical (&gt; ${BAD_THRESHOLD_MS} ms)</div>
     <div class="qv-tile__value">${input.summary.badCount}</div>
   </div>
-  <div class="qv-tile"><div class="qv-tile__title">Slowest</div><div class="qv-tile__value">${input.summary.slowestMs} ms</div></div>
+  <div class="qv-tile"><div class="qv-tile__title">Slowest</div><div class="qv-tile__value">${Math.round(input.summary.slowestMs)} ms</div></div>
 </div>`;
 
   const slowestRows = input.slowest.map((q) => renderQueryRow(q)).join("\n");
@@ -56,13 +56,12 @@ export function renderQueryViewerPage(input: {
   .qv-section h2 { font-size: .98rem; font-weight: 600; margin: 0 0 1rem; color: var(--fg); }
   .qv-section__hint { color: var(--fg-muted); font-size: .8rem; margin: 0 0 1rem; max-width: 70ch; }
 
-  .qv-table { width: 100%; border-collapse: collapse; font-size: .8rem; font-family: var(--font-mono); table-layout: fixed; }
+  .qv-table { width: 100%; border-collapse: collapse; font-size: .8rem; font-family: var(--font-mono); }
   .qv-table th, .qv-table td { text-align: left; padding: .45rem .75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
-  .qv-table th { color: var(--fg-dim); font-weight: 600; font-size: .68rem; text-transform: uppercase; letter-spacing: .1em; font-family: inherit; }
+  .qv-table th { color: var(--fg-dim); font-weight: 600; font-size: .68rem; text-transform: uppercase; letter-spacing: .1em; font-family: inherit; white-space: nowrap; }
   .qv-table td { color: var(--fg); }
-  .qv-table .qv-col-dur { width: 6rem; }
-  .qv-table .qv-col-count { width: 5rem; }
-  .qv-table .qv-col-time { width: 7rem; }
+  /* Numeric columns: tabular-nums + right-aligned so values line up. */
+  .qv-table td.qv-num, .qv-table th.qv-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
   .qv-sql { white-space: pre-wrap; word-break: break-all; }
   .qv-dur--slow { color: #fcd34d; }
@@ -79,7 +78,11 @@ ${tiles}
   <p class="qv-section__hint">Queries above ${WARN_THRESHOLD_MS} ms get a warning tint, above ${BAD_THRESHOLD_MS} ms an error tint. If a slice you just shipped lands here, that's your next thing to fix.</p>
   ${
     slowestRows
-      ? `<table class="qv-table"><thead><tr><th class="qv-col-dur">Duration</th><th>SQL</th></tr></thead><tbody>${slowestRows}</tbody></table>`
+      ? `<table class="qv-table">
+          <colgroup><col style="width:7rem"/><col/></colgroup>
+          <thead><tr><th class="qv-num">Duration</th><th>SQL</th></tr></thead>
+          <tbody>${slowestRows}</tbody>
+        </table>`
       : '<div class="qv-empty">No queries yet — make a request that hits the DB.</div>'
   }
 </section>
@@ -89,7 +92,11 @@ ${tiles}
   <p class="qv-section__hint">Templates that fire many times in a session usually mean a missing <code>include:</code> — the loop is round-tripping per row. The sample column shows the most recent occurrence so you can grep for it.</p>
   ${
     templateRows
-      ? `<table class="qv-table"><thead><tr><th class="qv-col-count">Count</th><th class="qv-col-dur">Total</th><th>Sample</th></tr></thead><tbody>${templateRows}</tbody></table>`
+      ? `<table class="qv-table">
+          <colgroup><col style="width:5rem"/><col style="width:7rem"/><col/></colgroup>
+          <thead><tr><th class="qv-num">Count</th><th class="qv-num">Total</th><th>Sample</th></tr></thead>
+          <tbody>${templateRows}</tbody>
+        </table>`
       : '<div class="qv-empty">Empty buffer.</div>'
   }
 </section>
@@ -98,7 +105,11 @@ ${tiles}
   <h2>Recent (newest first, last 50)</h2>
   ${
     recentRows
-      ? `<table class="qv-table"><thead><tr><th class="qv-col-dur">Duration</th><th>SQL</th></tr></thead><tbody>${recentRows}</tbody></table>`
+      ? `<table class="qv-table">
+          <colgroup><col style="width:7rem"/><col/></colgroup>
+          <thead><tr><th class="qv-num">Duration</th><th>SQL</th></tr></thead>
+          <tbody>${recentRows}</tbody>
+        </table>`
       : '<div class="qv-empty">Empty buffer.</div>'
   }
 </section>
@@ -121,7 +132,7 @@ function renderQueryRow(q: QueryRecord): string {
         ? "qv-dur--slow"
         : "";
   return `<tr>
-    <td class="${durClass}">${q.durationMs} ms</td>
+    <td class="qv-num ${durClass}">${formatMs(q.durationMs)}</td>
     <td class="qv-sql">${escapeHtml(q.sql)}</td>
   </tr>`;
 }
@@ -129,10 +140,20 @@ function renderQueryRow(q: QueryRecord): string {
 function renderTemplateRow(g: TemplateGroup): string {
   const countClass = g.count >= 10 ? "qv-count--high" : "";
   return `<tr>
-    <td class="${countClass}">${g.count}</td>
-    <td>${g.totalMs} ms</td>
+    <td class="qv-num ${countClass}">${g.count}</td>
+    <td class="qv-num">${formatMs(g.totalMs)}</td>
     <td class="qv-sql">${escapeHtml(g.sample)}</td>
   </tr>`;
+}
+
+/**
+ * Render a millisecond duration. Sub-1 ms gets one decimal; everything
+ * else is rounded to a whole number — Prisma's `event.duration` can
+ * carry microsecond precision that is just visual noise in a table.
+ */
+function formatMs(ms: number): string {
+  if (ms < 1) return `${ms.toFixed(1)} ms`;
+  return `${Math.round(ms)} ms`;
 }
 
 function escapeHtml(input: string): string {

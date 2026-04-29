@@ -46,20 +46,26 @@ bun run setup
 bun run prisma:generate
 bun run prisma:migrate
 
-# 5. (optional) Verify everything is wired correctly
-bun run onboard
+# 5. (optional) Insert demo data — 2 tenants, 6 users, sample records
+bun run seed
 
-# 6. Start the dev server — boots Postgres if needed, opens the Dev Hub
+# 6. (optional) Verify everything is wired correctly
+bun run onboard          # quick sanity check (Bun / .env / Postgres / Prisma)
+bun run doctor           # deep health check (containers, services, secrets, disk)
+
+# 7. Start the dev server — boots Postgres if needed, opens the Dev Hub
 bun run dev
 ```
 
 > **`bun run rename <name>`** patches `package.json`, `README.md`, `portless.yml`, and `docker-compose.yml` in one shot. Idempotent — safe to run repeatedly.
+>
+> **`bun run reset`** wipes the DB, replays every migration, and re-seeds — one command for "give me a clean slate". Refuses on production and non-local DATABASE_URL hosts as defense-in-depth.
 
 The Dev Hub opens automatically at **http://localhost:3000/dev** (or `https://api.<project>.localhost/dev` if you use [portless](https://github.com/portless/portless)).
 
 > **What `bun run dev` does for you**: starts Postgres via `docker compose up -d postgres` if the container isn't running, spawns Prisma Studio on `:5555`, watches `.env` for changes (so feature toggles take effect without a manual restart), and opens the Dev Hub in your browser. Set `NO_OPEN=1` to skip the auto-open, `SKIP_DB_BOOT=1` to skip the Postgres boot.
-
-> **`bun run onboard` is a sanity check**: prints a structured report of Bun version, `.env` presence, Postgres reachability, and Prisma client status. Run it whenever something feels off.
+>
+> **`bun run onboard`** is the lightweight first-run check (Bun version, `.env` presence, Postgres TCP reachability, Prisma client). **`bun run doctor`** goes deeper: container statuses, env-var entropy, disk space, configurable services. JSON output via `bun run doctor --json` for CI consumption.
 
 ---
 
@@ -99,9 +105,35 @@ In-memory ring buffer of the last 500 Pino records. Auto-polls every 2 seconds. 
 
 ### Diagnostics — `/dev/diagnostics`
 
-Heap usage bar (turns warn/bad above 70%/90%), versions (Node, Bun, platform), active features matrix, app metadata.
+Heap usage bar (turns warn/bad above 70%/90%, clamped to 100% — Bun's JSC heap accounting can briefly show used > committed and that's not a leak), versions (Node, Bun, platform), active features matrix, app metadata.
 
 ![Diagnostics](docs/screenshots/diagnostics.png)
+
+### Live Request Traces — `/dev/traces`
+
+In-memory ring buffer (200 entries) of recent HTTP request traces with method, status, duration, and request-id. Bound-height container with sticky header, polled every 2 s — newest entries flash in at the top. **Click a row** to inline-expand the DB queries that ran during that request (cross-references `/dev/queries` via `requestId`).
+
+### DB Query Performance — `/dev/queries`
+
+Every Prisma query event lands in a 500-entry ring buffer. The page surfaces:
+- the **slowest 10 queries** colour-coded against thresholds (warn > 50 ms, critical > 200 ms),
+- the **most frequent SQL templates** — a cheap N+1 detector (literals collapsed via `normaliseSql()`, count ≥ 10 highlighted),
+- a tail of the most recent 100 queries,
+- 4-tile summary (total · slow · critical · slowest).
+
+If a slice you just shipped lands in the slowest section, that's your next thing to fix.
+
+### Routes Inventory — `/dev/routes`
+
+Live audit of every endpoint registered in NestJS, with its decorator-derived guard kind: `@Can(action, subject)` (guarded), `public` (allowlist), `dev-only` (404s in prod), or `unguarded` (red). 5-tile summary with per-kind counts so an auditor can spot gaps. JSON endpoint at `/dev/routes.json` for SDK / agent tooling.
+
+### Prisma ERD — `/dev/erd`
+
+Live Mermaid `erDiagram` of the active Prisma schema (concat'd from `schema.prisma` + `prisma/features/*.prisma`). One-to-many vs many-to-many relations inferred from list-typed fields. Toggle source / copy Mermaid buttons.
+
+### Email Preview — `/dev/email-preview`
+
+Every registered email template rendered with a realistic sample payload. Subject + sandboxed HTML iframe + plain-text version side-by-side, plus the sample-payload JSON. Mailpit at `:8025` shows actually-sent emails; this page is for "did my edit to the welcome template break anything?".
 
 ### JSON Endpoints — `/errors`, `/api/openapi`, `/dev/postgrest-parse`
 
@@ -184,12 +216,12 @@ The full architectural rationale lives in [`PLAN.md`](./PLAN.md). The agent-read
 | `bun run test:unit` | Pure-function tests (`tests/unit/`) | — |
 | `bun run test:e2e` | Story tests + HTTP e2e (`tests/stories/`, `tests/*.e2e-spec.ts`) | — |
 | `bun run test:types` | TypeScript compile checks (`tests/types/`) | — |
-| `bun run test:coverage` | Vitest + V8 coverage report | core ≥ 90% · modules ≥ 80% |
+| `bun run test:coverage` | Vitest + V8 coverage report | core ≥ 80% lines · modules ≥ 75% lines |
 | `bun run test:summary` | Vitest JSON reporter → `/dev/tests` page | — |
 
 **Discipline:** strict red-green-refactor TDD. Every PLAN.md slice is one test file → one impl → one commit. The 6 quality gates (`lint`, `format`, `test:types`, `test:unit`, `test:e2e`, `test:coverage`, `build`) gate every commit.
 
-Currently **1396 tests** across 165 files. Coverage 95.28% lines.
+Currently **1712 tests** across 194 files. Coverage 95.48% lines (well above the 80% gate). Lines are the headline metric; statements / functions / branches are tuned looser since defensive runtime guards inflate them without representing real risk — see `src/core/testing/coverage-gate.ts`.
 
 ---
 
@@ -236,8 +268,13 @@ bun run prisma:migrate        # Apply migrations
 
 # Project lifecycle
 bun run setup                 # Generate .env with strong random secrets (idempotent)
-bun run onboard               # First-run sanity check (Bun / .env / Postgres / Prisma)
+bun run onboard               # First-run sanity check (Bun / .env / Postgres-TCP / Prisma)
+bun run doctor                # Comprehensive health check (containers, services, secrets,
+                              # disk space, env strength) — JSON output for CI via --json
 bun run rename <new-name>     # Rename project across the codebase
+bun run reset                 # Wipe DB → migrate → seed in one shot (refuses on prod /
+                              # non-local DATABASE_URL hosts as defense-in-depth)
+bun run seed                  # Insert deterministic demo data (2 tenants, 6 users, roles)
 bun run sync:from-template    # Pull latest src/core/ from upstream
 bun run sync:to-template      # Contribute changes back upstream
 bun run sdk:generate          # kubb → typed SDK from /api/openapi.json
@@ -286,9 +323,30 @@ This project is **optimised for AI-assisted development** with [Claude Code](htt
 /upstream-pr                    # PR a src/core/ fix back to nest-base (downstream projects)
 ```
 
+**Skills** — procedural how-tos that encode the project's conventions so every agent does the right thing the first time:
+
+| Skill | Use it when |
+|---|---|
+| `understanding-the-architecture` | First contact — mental model in 200 lines |
+| `avoiding-common-pitfalls` | Catalogue of every place this codebase will burn you |
+| `writing-story-tests` | TDD pattern for `tests/stories/*.story.test.ts` |
+| `running-tdd-slice` | Red-green-refactor cycle for one PLAN.md slice |
+| `working-with-prisma` | Prisma 7 + driver-adapter mode |
+| `writing-migrations` | Schema → prepare → migrate → RLS pattern |
+| `wiring-permissions` | Add CASL ability checks to a handler |
+| `debugging-permission-denials` | 5-step diagnostic path: 403 → log → tester → DB rules → regression test |
+| `adding-feature-flag` | New toggleable feature, end-to-end |
+| `adding-feature-module` | Scaffold a feature module under `src/modules/` |
+| `adding-error-code` | New `CORE_*` error code with i18n |
+| `extending-dev-hub` | New dev-hub or admin page in the shared shell |
+| `syncing-from-template` | Pull `src/core/` updates from upstream |
+| `contributing-upstream` | When and how to PR a fix back to `nest-base` |
+
 A fresh agent reads [`.claude/QUICKSTART.md`](./.claude/QUICKSTART.md) (60 sec) → [`.claude/AGENTS.md`](./.claude/AGENTS.md) (lookup table) → the matching skill, and is productive in under 3 minutes. Six quality gates per commit ensure the agent can't ship a regression.
 
 **Two-way sync flow** — when Claude in a downstream project fixes a bug in `src/core/` or builds a generic capability, it offers to open a PR back to **nest-base** automatically. Generic improvements flow upstream so every consumer benefits on their next `bun run sync:from-template`. See [`.claude/skills/contributing-upstream.md`](./.claude/skills/contributing-upstream.md).
+
+**Test-ability hatch** — e2e specs that hit a `@Can()`-gated route can pre-seed an admin Ability via the `X-Test-Ability: full` header instead of driving the full Better-Auth sign-in flow. Honoured only when `NODE_ENV=test` (strict no-op in production). See `src/core/permissions/test-ability.ts`.
 
 → Full guide: [`docs/working-with-ai-agents.md`](./docs/working-with-ai-agents.md).
 
