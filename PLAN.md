@@ -3667,7 +3667,7 @@ model Setting { id String @id; key String @unique; value Json }
 
 ### Phase 2 – Auth & Multi-Tenancy (Sprint 3-4)
 - [x] **Test-First (Stories):** Adaptierte `better-auth-*.story.test.ts` (api, integration, plugins, jwt-middleware, rate-limit, email-verification), `auth-parallel-operation.e2e-spec.ts`, `auth-scenarios.e2e-spec.ts`, `user-enumeration-prevention.e2e-spec.ts`, `multi-tenancy.e2e-spec.ts`, `tenant-guard.e2e-spec.ts` — vor jeder Implementation
-- [ ] Better-Auth Integration (Email/PW, Session, JWT)  — *Adapter+Factory existieren in `src/core/auth/`, aber keine Mount-Logic; `/api/auth/*` ist nicht erreichbar.*
+- [x] Better-Auth Integration (Email/PW, Session, JWT)  *(`BetterAuthModule` baut die Auth-Instanz lazy via `useFactory` und mountet `BetterAuthController` mit `@All('*splat')` → `toNodeHandler(auth)` auf `/api/auth/*`. Plugin-Auswahl (`twoFactor`/`passkey`/`socialProviders`) folgt `features.authMethods`. Storage: in-memory Adapter; Prisma-Adapter folgt mit Schema-Slice. Ohne `BETTER_AUTH_SECRET` ≥ 32 Zeichen → 503 statt Crash.)*
 - [ ] System-Setup (Initial-Admin)  — *Config-Parsing funktioniert, aber kein Boot-Hook ruft `provisionAdmin()`.*
 - [ ] Tenant-Interceptor + RLS-Setup  — *`TenantInterceptor` (@Injectable) ist da, aber nicht global registriert; RLS-`SET LOCAL`-Hook nicht im PrismaService verdrahtet.*
 - [ ] Tenant-Member-CRUD  — *Kein Controller.*

@@ -1,6 +1,7 @@
 import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 
+import { BetterAuthModule } from '../auth/better-auth.module.js';
 import { ConfigModule } from '../config/config.module.js';
 import { DevHubModule } from '../dx/dev-hub.module.js';
 import { EncryptionModule } from '../encryption/encryption.module.js';
@@ -36,6 +37,7 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     PrismaModule,
     HealthModule,
     DevHubModule,
+    BetterAuthModule,
     ...conditionalImport(features, 'fieldEncryption', EncryptionModule.forRoot()),
   ],
   controllers: [AppController],
