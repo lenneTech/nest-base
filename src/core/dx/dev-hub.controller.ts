@@ -48,6 +48,8 @@ import { renderLogViewerPage } from "./log-viewer-ui.js";
 import { RouteInventoryService } from "./route-inventory-runner.js";
 import { renderRouteInventoryPage } from "./route-inventory-ui.js";
 import type { RouteInventory } from "./route-inventory.js";
+import { getTraceBuffer, type TraceRecord, type TraceSummary } from "./trace-buffer.js";
+import { renderTraceViewerPage } from "./trace-viewer-ui.js";
 import { buildTestSummary, type RawTestSummary } from "./test-summary.js";
 import { renderTestSummaryPage } from "./test-summary-ui.js";
 import { planServiceCandidates, probeServices, type ServiceProbeResult } from "./service-status.js";
@@ -369,6 +371,36 @@ export class DevHubController {
   erdJson(): { mermaid: string; modelCount: number; relationCount: number } {
     this.assertDev();
     return buildErdForProject();
+  }
+
+  @Get("traces")
+  @Header("content-type", "text/html; charset=utf-8")
+  tracesPage(): string {
+    this.assertDev();
+    const buffer = getTraceBuffer();
+    return renderTraceViewerPage({
+      traces: buffer.recent({ limit: 100 }),
+      summary: buffer.summary(),
+    });
+  }
+
+  @Get("traces.json")
+  tracesJson(
+    @Query("limit") limit?: string,
+    @Query("requestId") requestId?: string,
+  ): {
+    traces: TraceRecord[];
+    summary: TraceSummary;
+  } {
+    this.assertDev();
+    const buffer = getTraceBuffer();
+    const filter: { limit?: number; requestId?: string } = {};
+    if (limit) {
+      const parsed = Number.parseInt(limit, 10);
+      if (Number.isFinite(parsed) && parsed > 0) filter.limit = parsed;
+    }
+    if (requestId) filter.requestId = requestId;
+    return { traces: buffer.recent(filter), summary: buffer.summary() };
   }
 
   @Get("email-preview")

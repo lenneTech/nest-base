@@ -1,6 +1,7 @@
 import { Injectable, type NestMiddleware } from "@nestjs/common";
 import type { Request, Response, NextFunction } from "express";
 
+import { getTraceBuffer } from "../dx/trace-buffer.js";
 import {
   type RequestContext,
   generateRequestId,
@@ -34,6 +35,29 @@ export class RequestContextMiddleware implements NestMiddleware {
       "traceparent",
       formatTraceparent({ traceId: ctx.traceId, parentId: ctx.parentId, sampled: ctx.sampled }),
     );
+
+    // Record one trace per HTTP request — surfaced via /dev/traces.
+    // Capturing on `finish` (success) and `close` (early disconnect)
+    // gives us the actual handler duration.
+    const startedAtMs = Date.now();
+    const startNs = process.hrtime.bigint();
+    const buffer = getTraceBuffer();
+    let recorded = false;
+    const recordTrace = (): void => {
+      if (recorded) return;
+      recorded = true;
+      const durationMs = Number((process.hrtime.bigint() - startNs) / 1_000_000n);
+      buffer.record({
+        requestId: ctx.requestId,
+        method: (req.method ?? "GET").toUpperCase(),
+        path: req.originalUrl ?? req.url ?? "/",
+        startedAtMs,
+        durationMs,
+        status: res.statusCode,
+      });
+    };
+    res.on("finish", recordTrace);
+    res.on("close", recordTrace);
 
     runWithRequestContext(ctx, async () => {
       next();

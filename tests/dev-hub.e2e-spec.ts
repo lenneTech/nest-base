@@ -98,6 +98,29 @@ describe("Dev-Hub · GET /dev", () => {
       expect(res.text).toContain("/dev/diagnostics");
     });
 
+    it("GET /dev/traces renders the HTML trace viewer", async () => {
+      // Make a request first so the buffer has something to show.
+      await request(app.getHttpServer()).get("/dev/diagnostics.json");
+      const res = await request(app.getHttpServer()).get("/dev/traces");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/text\/html/);
+      expect(res.text).toMatch(/Traces/);
+    });
+
+    it("GET /dev/traces.json returns the structured buffer + summary", async () => {
+      await request(app.getHttpServer()).get("/dev/diagnostics.json");
+      const res = await request(app.getHttpServer()).get("/dev/traces.json");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/application\/json/);
+      expect(Array.isArray(res.body.traces)).toBe(true);
+      expect(typeof res.body.summary.total).toBe("number");
+      expect(res.body.traces.length).toBeGreaterThan(0);
+      const trace = res.body.traces[res.body.traces.length - 1];
+      expect(typeof trace.requestId).toBe("string");
+      expect(typeof trace.durationMs).toBe("number");
+      expect(typeof trace.status).toBe("number");
+    });
+
     it("GET /dev/email-preview renders all built-in templates with sample payloads", async () => {
       const res = await request(app.getHttpServer()).get("/dev/email-preview");
       expect(res.status).toBe(200);
