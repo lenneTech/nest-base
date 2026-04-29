@@ -92,7 +92,7 @@ export function planDbReset(input: DbResetInput): DbResetPlan {
   steps.push({
     verb: "wipe",
     command: "bunx",
-    args: ["prisma", "migrate", "reset", "--force", "--skip-seed"],
+    args: ["prisma", "migrate", "reset", "--force"],
     env,
     description: "Drop the database, recreate it, replay every migration",
   });
