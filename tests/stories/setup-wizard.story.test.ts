@@ -133,6 +133,11 @@ describe('Story · Setup-Wizard planner', () => {
         expect(env).toMatch(/^APP_BASE_URL=/m);
       });
 
+      it('APP_BASE_URL is the portless form for the project name (matches portless.yml)', () => {
+        const env = planSetup(answers({ projectName: 'cool-thing' })).envExample;
+        expect(env).toMatch(/^APP_BASE_URL=https:\/\/api\.cool-thing\.localhost$/m);
+      });
+
       it('always emits POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB (docker-compose interpolates these)', () => {
         const env = planSetup(answers()).envExample;
         expect(env).toMatch(/^POSTGRES_USER=/m);
