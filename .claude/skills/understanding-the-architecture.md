@@ -210,11 +210,17 @@ See skill `working-with-prisma` for the full migration + concat workflow.
 3. **Watches `.env`** — when it changes (e.g. via /dev/features
    toggle), kills the child and respawns. Without this, env vars stay
    cached because `bun --watch` only reloads source, not env.
-4. Tracks `isFirstSpawn` — only the first child opens the browser
-   (`DEV_HUB_OPENED=1` is forwarded to subsequent children to skip
-   the auto-open).
+4. **Writes a dev-session lock** at
+   `node_modules/.cache/nest-base/dev-session.json`. `bootstrap.ts`
+   reads it on every init: first start ⇒ open browser + hero banner,
+   re-init (watch reload or .env respawn) ⇒ skip browser, compact
+   "♻ Server neu gestartet" banner. The lock survives `bun --watch`
+   re-execs (which reset `process.env`) and is cleared on
+   SIGINT/SIGTERM so the next cold-start re-opens the tab.
 
 This is why feature toggles work: the `.env` patch + respawn cycle.
+And this is why your tab doesn't pop on every keystroke when you
+edit a source file: the lock remembers it's already open.
 
 ---
 

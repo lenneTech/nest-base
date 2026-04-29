@@ -112,12 +112,20 @@ If you write a tool that edits `.env` outside this watcher, you need
 to either invalidate the cached env yourself or signal the dev runner
 to respawn.
 
-### `DEV_HUB_OPENED=1` skips the browser
+### Dev-Session lock controls browser auto-open
 
-The first dev start opens the browser. Subsequent respawns inherit
-`DEV_HUB_OPENED=1` so the user's existing tab survives. If you write
-a test that asserts on browser-open behaviour, set/unset this
-explicitly.
+`scripts/dev.ts` writes `node_modules/.cache/nest-base/dev-session.json`
+at startup. `bootstrap.ts` reads it on every NestJS init: first start
+of the session ⇒ open browser + hero banner; subsequent re-inits
+(bun --watch reload, .env respawn) ⇒ skip browser, render compact
+"♻ Server neu gestartet" banner. The lock survives `bun --watch`
+re-execs (which would otherwise reset `process.env`). The dev runner
+clears the lock on SIGINT/SIGTERM so a fresh `bun run dev` always
+cold-starts.
+
+If you write a test that asserts on browser-open behaviour, mock
+`transitionDevSession()` from `src/core/dx/dev-session-runner.ts` —
+do NOT set `DEV_HUB_OPENED` (legacy, no longer read).
 
 ### `DISABLE_PORTLESS=1` for predictable testing
 
