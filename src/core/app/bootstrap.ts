@@ -9,6 +9,7 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { apiReference } from "@scalar/nestjs-api-reference";
 
 import { buildScalarConfig } from "../dx/scalar-config.js";
+import { planStartupBanner } from "../dx/startup-banner.js";
 import { ProblemDetailsExceptionFilter } from "../errors/problem-details.filter.js";
 import { buildSecurityHeadersConfig } from "../http/security-headers.js";
 import { createLogger } from "../observability/logger.js";
@@ -101,6 +102,23 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
 
   if (listen) {
     await app.listen(cfg.port, cfg.host);
+    if (cfg.env !== "production") {
+      const banner = planStartupBanner({
+        env: cfg.env,
+        baseUrl: cfg.baseUrl,
+        port: cfg.port,
+        features: {
+          scalarEnabled: true,
+          ...(process.env.MAILPIT_WEB_URL ? { mailpitUrl: process.env.MAILPIT_WEB_URL } : {}),
+          ...(process.env.POWERSYNC_URL ? { powerSyncUrl: process.env.POWERSYNC_URL } : {}),
+        },
+      });
+      // pino-pretty runs in a worker thread (async); a short tick lets
+      // the buffered Nest lifecycle logs drain before our synchronous
+      // banner write so the banner appears at the bottom, not the top.
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      process.stdout.write(`${banner.text}\n`);
+    }
   }
 
   return app;

@@ -51,6 +51,22 @@ export function createLogger(options: CreateLoggerOptions): Logger {
     return pino(base, sinkStream(options.sink));
   }
 
+  if (options.env === "development") {
+    return pino({
+      ...base,
+      transport: {
+        target: "pino-pretty",
+        options: {
+          colorize: true,
+          translateTime: "SYS:HH:MM:ss.l",
+          ignore: "pid,hostname,context",
+          messageFormat: "[{context}] {msg}",
+          singleLine: true,
+        },
+      },
+    });
+  }
+
   return pino(base);
 }
 
