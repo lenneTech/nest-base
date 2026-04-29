@@ -3670,7 +3670,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Better-Auth Integration (Email/PW, Session, JWT)  *(`BetterAuthModule` baut die Auth-Instanz lazy via `useFactory` und mountet `BetterAuthController` mit `@All('*splat')` → `toNodeHandler(auth)` auf `/api/auth/*`. Plugin-Auswahl (`twoFactor`/`passkey`/`socialProviders`) folgt `features.authMethods`. Storage: in-memory Adapter; Prisma-Adapter folgt mit Schema-Slice. Ohne `BETTER_AUTH_SECRET` ≥ 32 Zeichen → 503 statt Crash.)*
 - [x] System-Setup (Initial-Admin)  *(`SystemSetupModule` registriert `SystemSetupBootstrap` als `OnModuleInit`, ruft `provisionInitialAdmin()` mit `systemSetupConfigFromEnv()`. Storage ist Process-lokaler Stub bis Better-Auth-Prisma-Adapter; Result auf `getLastResult()` cached. e2e: `tests/system-setup-bootstrap.e2e-spec.ts`.)*
 - [x] Tenant-Interceptor + RLS-Setup  *(`TenantInterceptor` als globaler `APP_INTERCEPTOR` registriert (conditional auf `features.multiTenancy.enabled`); reads `x-tenant-id` Header, populates AsyncLocalStorage. `PrismaService.runWithRlsTenant(fn, tenantId?)` wraps callback in transaction + `SET LOCAL "app.tenant_id" = …` → RLS policies sehen den Wert via `current_setting('app.tenant_id', true)`. Exempt-Liste erweitert um `/errors`. e2e in `tests/tenant-interceptor-mount.e2e-spec.ts`.)*
-- [ ] Tenant-Member-CRUD  — *Kein Controller.*
+- [x] Tenant-Member-CRUD  *(`TenantMemberModule` mit Controller `/tenant-members`: GET (list), POST (add), PUT/:id/status, DELETE. In-Memory-Storage; Prisma-Adapter folgt mit Schema-Migration.)*
 - [ ] Scoped API-Keys (CRUD, argon2id-Hash, Scopes, Rotation)  — *Kein Controller, Hashing-Helper existiert isoliert.*
 - [x] Repository-Pattern als Standard etablieren
 
