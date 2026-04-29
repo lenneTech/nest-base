@@ -83,5 +83,47 @@ describe("Story · @Can() + CanGuard", () => {
       );
       await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
     });
+
+    describe("error message does not leak action/subject (information disclosure)", () => {
+      // Why: anonymous probing previously got back `forbidden:
+      // delete:Project`, letting an attacker enumerate the API surface
+      // and learn which (action, subject) gates an endpoint. The user-
+      // facing message must be generic; details belong in server logs.
+      it("denies with a generic message that omits action and subject", async () => {
+        const ability = buildAbility([{ action: "read", subject: "Project" }]);
+        const guard = new CanGuard(new Reflector());
+        const ctx = makeContext(ability, () => {});
+        Reflect.defineMetadata(
+          CAN_METADATA_KEY,
+          { action: "delete", subject: "SuperSecretSubject" },
+          ctx.getHandler(),
+        );
+        try {
+          await guard.canActivate(ctx);
+          expect.fail("expected ForbiddenException");
+        } catch (err) {
+          expect(err).toBeInstanceOf(ForbiddenException);
+          const message = (err as Error).message;
+          expect(message).not.toContain("delete");
+          expect(message).not.toContain("SuperSecretSubject");
+        }
+      });
+
+      it("missing-ability path also denies generically", async () => {
+        const guard = new CanGuard(new Reflector());
+        const ctx = makeContext(undefined, () => {});
+        Reflect.defineMetadata(
+          CAN_METADATA_KEY,
+          { action: "read", subject: "DistinctiveProbe" },
+          ctx.getHandler(),
+        );
+        try {
+          await guard.canActivate(ctx);
+          expect.fail("expected ForbiddenException");
+        } catch (err) {
+          expect((err as Error).message).not.toContain("DistinctiveProbe");
+        }
+      });
+    });
   });
 });

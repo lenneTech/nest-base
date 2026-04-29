@@ -3,6 +3,7 @@ import {
   type ExecutionContext,
   ForbiddenException,
   Injectable,
+  Logger,
   SetMetadata,
   createParamDecorator,
 } from "@nestjs/common";
@@ -46,6 +47,8 @@ interface RequestWithAbility {
 
 @Injectable()
 export class CanGuard implements CanActivate {
+  private readonly logger = new Logger(CanGuard.name);
+
   constructor(private readonly reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -58,10 +61,16 @@ export class CanGuard implements CanActivate {
     const req = context.switchToHttp().getRequest<RequestWithAbility>();
     const ability = req.ability;
     if (!ability) {
-      throw new ForbiddenException("no ability attached to request");
+      // Generic user-facing message — do NOT echo (action, subject)
+      // back to the client. Anonymous probes would otherwise enumerate
+      // the API surface and learn which subjects exist. Reason lands
+      // server-side for ops debugging.
+      this.logger.warn(`forbidden: no ability for ${meta.action}:${String(meta.subject)}`);
+      throw new ForbiddenException("forbidden");
     }
     if (!ability.can(meta.action, meta.subject)) {
-      throw new ForbiddenException(`forbidden: ${meta.action}:${String(meta.subject)}`);
+      this.logger.warn(`forbidden: ${meta.action}:${String(meta.subject)} denied`);
+      throw new ForbiddenException("forbidden");
     }
     return true;
   }
