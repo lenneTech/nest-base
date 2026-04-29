@@ -64,6 +64,53 @@ export function renderFeaturesPage(features: Features): string {
   }
   .feat-card__env-state { color: var(--fg-faint); }
   .feat-card[data-on="true"] .feat-card__env-state { color: var(--accent); }
+
+  /* Toggle switch */
+  .feat-toggle {
+    position: relative; width: 36px; height: 20px;
+    display: inline-block; flex-shrink: 0;
+  }
+  .feat-toggle input {
+    position: absolute; opacity: 0; width: 100%; height: 100%;
+    margin: 0; cursor: pointer; z-index: 1;
+  }
+  .feat-toggle__track {
+    position: absolute; inset: 0;
+    background: var(--surface-3); border: 1px solid var(--line);
+    border-radius: 999px; transition: background .2s var(--ease), border-color .2s var(--ease);
+  }
+  .feat-toggle__thumb {
+    position: absolute; top: 2px; left: 2px;
+    width: 14px; height: 14px; border-radius: 999px;
+    background: var(--fg-faint);
+    transition: transform .25s var(--ease), background .2s var(--ease);
+  }
+  .feat-toggle input:checked ~ .feat-toggle__track { background: var(--accent-soft); border-color: var(--line-accent); }
+  .feat-toggle input:checked ~ .feat-toggle__thumb { background: var(--accent); transform: translateX(16px); box-shadow: 0 0 8px var(--accent-glow); }
+  .feat-toggle input:disabled ~ .feat-toggle__track { opacity: .5; cursor: not-allowed; }
+  .feat-toggle input:focus-visible ~ .feat-toggle__track { box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  /* Restart overlay */
+  .feat-restart {
+    position: fixed; inset: 0; background: rgba(0,0,0,.85);
+    backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center;
+    z-index: 1000; animation: fadeIn .2s ease-out;
+  }
+  .feat-restart.is-visible { display: flex; }
+  .feat-restart__box {
+    background: var(--surface-1); border: 1px solid var(--line-accent);
+    border-radius: var(--radius); padding: 2rem 2.5rem;
+    text-align: center; max-width: 380px;
+    box-shadow: 0 0 40px var(--accent-glow);
+  }
+  .feat-restart__title { font-size: 1.1rem; font-weight: 600; color: var(--fg); margin: 0 0 .5rem; letter-spacing: -0.01em; }
+  .feat-restart__msg { color: var(--fg-muted); font-size: .88rem; margin: 0 0 1rem; }
+  .feat-restart__spinner {
+    width: 32px; height: 32px; margin: 0 auto 1rem;
+    border: 2px solid var(--surface-3); border-top-color: var(--accent);
+    border-radius: 999px; animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 
 <div class="feat-summary">
@@ -94,12 +141,76 @@ ${Object.entries(grouped)
   .join("\n")}
 
 <div class="admin-card">
-  <h3 class="feat-section__title">How to toggle</h3>
+  <h3 class="feat-section__title">How toggling works</h3>
   <p class="admin-meta">
-    Set the <code>FEATURE_*</code> environment variable to <strong>true</strong>, <strong>1</strong>, or <strong>yes</strong> in <code>.env</code> and restart the server.
-    The feature flag drives module imports, controller registration, and conditional middleware — see <code>src/core/features/features.ts</code> for the full schema.
+    Flipping a switch above writes the matching <code>FEATURE_*_ENABLED</code> line into <code>.env</code> and touches <code>src/main.ts</code> so <code>bun --watch</code> restarts the API.
+    The page reloads automatically once the new process answers. Module imports and controller registration are driven entirely by these flags — see <code>src/core/features/features.ts</code> for the schema.
   </p>
-</div>`;
+</div>
+
+<div class="feat-restart" id="feat-restart">
+  <div class="feat-restart__box">
+    <div class="feat-restart__spinner"></div>
+    <h3 class="feat-restart__title">Restarting server…</h3>
+    <p class="feat-restart__msg" id="feat-restart-msg">Applying feature change. The page will reload when the API is back.</p>
+  </div>
+</div>
+
+<script>
+(function() {
+  const overlay = document.getElementById('feat-restart');
+  const msg = document.getElementById('feat-restart-msg');
+  document.querySelectorAll('input[data-toggle]').forEach((input) => {
+    input.addEventListener('change', async (e) => {
+      const el = e.target;
+      const key = el.getAttribute('data-key');
+      const enabled = el.checked;
+      // Lock all toggles while one is in flight.
+      document.querySelectorAll('input[data-toggle]').forEach((x) => { x.disabled = true; });
+      try {
+        const r = await fetch('/dev/features/' + encodeURIComponent(key) + '/toggle', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ enabled: enabled }),
+        });
+        if (!r.ok) {
+          const t = await r.text();
+          throw new Error('Toggle failed: ' + r.status + ' ' + t);
+        }
+      } catch (err) {
+        document.querySelectorAll('input[data-toggle]').forEach((x) => { x.disabled = false; });
+        el.checked = !enabled;
+        if (msg) msg.textContent = String(err && err.message ? err.message : err);
+        if (overlay) {
+          overlay.classList.add('is-visible');
+          setTimeout(() => overlay.classList.remove('is-visible'), 3000);
+        }
+        return;
+      }
+      // Show overlay + poll /health/live until the new process answers.
+      if (overlay) overlay.classList.add('is-visible');
+      const start = Date.now();
+      const deadline = start + 30_000;
+      const poll = async () => {
+        try {
+          // Tiny delay so the file-watcher can pick up the touch first.
+          await new Promise((res) => setTimeout(res, 600));
+          const h = await fetch('/health/live', { cache: 'no-store' });
+          if (h.ok) {
+            // Wait briefly so the new process has finished routing setup.
+            await new Promise((res) => setTimeout(res, 200));
+            window.location.reload();
+            return;
+          }
+        } catch (_e) { /* expected during restart */ }
+        if (Date.now() < deadline) setTimeout(poll, 500);
+        else if (msg) msg.textContent = 'Restart took longer than expected. Reload manually.';
+      };
+      poll();
+    });
+  });
+})();
+</script>`;
 
   return renderAdminLayout({
     title: "Features",
@@ -150,13 +261,17 @@ function renderCard({
   return `<div class="feat-card" data-on="${active}" data-feature-key="${escapeHtml(meta.key)}">
     <div class="feat-card__head">
       <span class="feat-card__name">${escapeHtml(meta.label)}</span>
-      <span class="feat-card__state">${active ? "ON" : "OFF"}</span>
+      <label class="feat-toggle" title="Toggle ${escapeHtml(meta.label)}">
+        <input type="checkbox" data-toggle data-key="${escapeHtml(meta.key)}" ${active ? "checked" : ""} />
+        <span class="feat-toggle__track"></span>
+        <span class="feat-toggle__thumb"></span>
+      </label>
     </div>
     <p class="feat-card__desc">${escapeHtml(meta.description)}</p>
     <div class="feat-card__exposes">${exposes}</div>
     <div class="feat-card__env">
       <code>${escapeHtml(meta.envKey)}=${active ? "true" : "false"}</code>
-      <span class="feat-card__env-state">${active ? "✓ enabled" : "set to true to enable"}</span>
+      <span class="feat-card__env-state">${active ? "✓ enabled" : "set to ON to enable"}</span>
     </div>
   </div>`;
 }

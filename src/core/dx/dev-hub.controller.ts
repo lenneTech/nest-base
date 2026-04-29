@@ -1,7 +1,18 @@
-import { readFile, stat } from "node:fs/promises";
+import { readFile, stat, utimes, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { Controller, Get, Header, NotFoundException, Query } from "@nestjs/common";
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Header,
+  HttpCode,
+  NotFoundException,
+  Param,
+  Post,
+  Query,
+} from "@nestjs/common";
 
 import { type Features, loadFeatures } from "../features/features.js";
 import { type PrismaWhere, parsePostgrestQuery } from "../permissions/postgrest-query.js";
@@ -12,6 +23,8 @@ import { renderCoveragePage } from "./coverage-ui.js";
 import { renderDashboardPage } from "./dashboard-ui.js";
 import { renderDiagnosticsPage } from "./diagnostics-ui.js";
 import { resolveEffectiveBaseUrl } from "./effective-base-url.js";
+import { planEnvFileUpdate } from "./env-file-update.js";
+import { FEATURE_CATALOG } from "./feature-catalog.js";
 import { renderFeaturesPage } from "./features-ui.js";
 import { buildDiagnosticsReport, type DiagnosticsReport } from "./diagnostics.js";
 import { getLogBuffer } from "./log-buffer.js";
@@ -149,6 +162,53 @@ export class DevHubController {
   featuresJson(): Features {
     this.assertDev();
     return this.featuresOnly();
+  }
+
+  @Post("features/:key/toggle")
+  @HttpCode(200)
+  async toggleFeature(
+    @Param("key") key: string,
+    @Body() body: { enabled?: unknown },
+  ): Promise<{ ok: true; key: string; enabled: boolean; envKey: string; restart: true }> {
+    this.assertDev();
+    const meta = FEATURE_CATALOG.find((f) => f.key === key);
+    if (!meta) {
+      throw new BadRequestException(`unknown feature key: ${key}`);
+    }
+    if (typeof body?.enabled !== "boolean") {
+      throw new BadRequestException("body.enabled must be boolean");
+    }
+    const repoRoot = process.cwd();
+    const envPath = resolve(repoRoot, ".env");
+    let current = "";
+    try {
+      current = await readFile(envPath, "utf8");
+    } catch {
+      // .env does not exist yet — start fresh.
+    }
+    const plan = planEnvFileUpdate({
+      current,
+      key: meta.envKey,
+      value: body.enabled ? "true" : "false",
+    });
+    await writeFile(envPath, plan.next, "utf8");
+    // Touch src/main.ts so `bun --watch` picks up the change and restarts
+    // the API; loadFeatures() then re-reads .env. Without this, the env
+    // file is dirty but features stay stale until manual restart.
+    try {
+      const mainPath = resolve(repoRoot, "src", "main.ts");
+      const now = new Date();
+      await utimes(mainPath, now, now);
+    } catch {
+      /* not fatal — file watching is opportunistic */
+    }
+    return {
+      ok: true,
+      key: meta.key,
+      enabled: body.enabled,
+      envKey: meta.envKey,
+      restart: true,
+    };
   }
 
   @Get("postgrest-parse")
