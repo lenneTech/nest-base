@@ -1,6 +1,7 @@
 import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { DevtoolsModule } from '@nestjs/devtools-integration';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { AuditLogModule } from '../audit/audit-log.module.js';
 import { ApiKeyModule } from '../auth/api-keys/api-key.module.js';
@@ -91,6 +92,15 @@ const devtools = buildDevToolsConfig({
     AdminCrudModule,
     JobsModule,
     OutboxModule,
+    // Throttler with multi-window defaults: short burst (10s/100req) +
+    // sustained (1m/300req) + per-day cap. Postgres-backed store
+    // adapter swaps in once the throttler-records table is migrated;
+    // until then NestJS' default in-memory storage is used.
+    ThrottlerModule.forRoot([
+      { name: 'short', ttl: 10_000, limit: 100 },
+      { name: 'sustained', ttl: 60_000, limit: 300 },
+      { name: 'daily', ttl: 24 * 60 * 60 * 1000, limit: 100_000 },
+    ]),
     FilesModule,
     ...conditionalImport(features, 'fieldEncryption', EncryptionModule.forRoot()),
     ...(devtools.enabled && devtools.http
@@ -100,6 +110,7 @@ const devtools = buildDevToolsConfig({
   controllers: [AppController],
   providers: [
     RequestContextMiddleware,
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_INTERCEPTOR, useClass: OutputPipelineInterceptor },
     ...(features.multiTenancy.enabled
       ? [{ provide: APP_INTERCEPTOR, useClass: TenantInterceptor }]
