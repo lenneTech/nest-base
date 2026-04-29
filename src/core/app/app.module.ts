@@ -20,6 +20,7 @@ import { IdempotencyModule } from '../idempotency/idempotency.module.js';
 import { TenantMemberModule } from '../multi-tenancy/tenant-member.module.js';
 import { TenantInterceptor } from '../multi-tenancy/tenant.interceptor.js';
 import { OutputPipelineInterceptor } from '../output-pipeline/output-pipeline.interceptor.js';
+import { AdminCrudModule } from '../permissions/admin-crud.module.js';
 import { FiltersModule } from '../permissions/filters.module.js';
 import { PermissionsModule } from '../permissions/permissions.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
@@ -84,6 +85,7 @@ const devtools = buildDevToolsConfig({
     AuditLogModule,
     TenantMemberModule,
     ApiKeyModule,
+    AdminCrudModule,
     ...conditionalImport(features, 'fieldEncryption', EncryptionModule.forRoot()),
     ...(devtools.enabled && devtools.http
       ? [DevtoolsModule.register({ http: true, port: devtools.port })]
