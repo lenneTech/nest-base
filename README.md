@@ -49,10 +49,16 @@ bun install
 #    cloning)
 bun run rename my-app
 
-# 4. Install the mkcert root CA for portless (one-time per machine,
-#    sudo required). This makes *.<project>.localhost URLs work with a
-#    valid HTTPS certificate. Skip if you set DISABLE_PORTLESS=1.
+# 4. portless one-time setup (skip if you set DISABLE_PORTLESS=1):
+#    a) Install the mkcert root CA (one-time per machine, sudo required).
+#       Without this *.<project>.localhost URLs have no valid HTTPS cert.
 node_modules/.bin/portless trust
+#    b) Start the proxy daemon (one-time per session, sudo required for
+#       port 443). Stays running across `bun run dev` invocations.
+node_modules/.bin/portless proxy start --https
+#       Optional: register Mailpit and RustFS routes:
+#         node_modules/.bin/portless alias mail.<project> 8025
+#         node_modules/.bin/portless alias s3.<project> 9001
 
 # 5. Start dev dependencies (Postgres, RustFS, Mailpit, OTel)
 docker compose up -d

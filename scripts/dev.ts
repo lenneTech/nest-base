@@ -1,16 +1,25 @@
 /**
- * Dev runner: starts the API in `bun --watch` mode, plus portless when
- * available so each service is reachable under
- * `<service>.<project>.localhost` with auto-HTTPS (PLAN.md §28.10/#30).
+ * Dev runner: starts the API in `bun --watch` mode, wrapping it with
+ * portless (when available) so the server is reachable under
+ * `https://api.<project>.localhost` with auto-HTTPS.
+ *
+ * portless 0.11+ replaced its YAML-config model with `portless run
+ * --name <name> -- <cmd>`. The portless proxy must already be running
+ * — start it once per session via `portless proxy start` (sudo).
  *
  * Fallback path: when portless is not on PATH (or `DISABLE_PORTLESS=1`
  * is set), the API binds to a dynamically assigned port so devs without
  * portless are not blocked.
  */
 import { spawn } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { resolveDevPort, shouldUsePortless } from '../src/core/dev/portless.js';
+import {
+  buildPortlessRunCommand,
+  resolveDevPort,
+  shouldUsePortless,
+} from '../src/core/dev/portless.js';
 
 function which(bin: string): string | undefined {
   const result = Bun.spawnSync(['which', bin]);
@@ -19,37 +28,46 @@ function which(bin: string): string | undefined {
   return out === '' ? undefined : out;
 }
 
+function readProjectName(): string {
+  const pkgPath = resolve(process.cwd(), 'package.json');
+  if (!existsSync(pkgPath)) return 'app';
+  const match = /"name"\s*:\s*"([^"]+)"/.exec(readFileSync(pkgPath, 'utf8'));
+  return match?.[1] ?? 'app';
+}
+
 const portlessPath = which('portless');
 const useDisable = process.env.DISABLE_PORTLESS === '1';
 const usePortless = shouldUsePortless({ portlessPath, disable: useDisable });
-const port = resolveDevPort({ env: process.env as { PORT?: string }, portlessAvailable: usePortless });
+const projectName = readProjectName();
 
-const children: ReturnType<typeof spawn>[] = [];
-
+let child: ReturnType<typeof spawn>;
 if (usePortless) {
-  console.log('[dev] portless detected — booting reverse-proxy daemon');
-  const portlessProc = spawn(portlessPath!, ['--config', resolve(process.cwd(), 'portless.yml')], {
-    stdio: 'inherit',
-    env: process.env,
+  const args = buildPortlessRunCommand({
+    projectName,
+    app: 'api',
+    target: ['bun', '--watch', 'src/main.ts'],
   });
-  children.push(portlessProc);
+  console.log(`[dev] portless detected — running through proxy as api.${projectName}.localhost`);
+  console.log('[dev] (proxy must already be running; start once via `portless proxy start`)');
+  child = spawn(portlessPath!, args, { stdio: 'inherit', env: process.env });
 } else {
-  console.log('[dev] portless not available — binding the API to a dynamic port');
+  const port = resolveDevPort({
+    env: process.env as { PORT?: string },
+    portlessAvailable: false,
+  });
+  console.log(`[dev] portless not available — binding the API to port ${port || 'a dynamically assigned'}`);
+  child = spawn('bun', ['--watch', 'src/main.ts'], {
+    stdio: 'inherit',
+    env: { ...process.env, PORT: String(port) },
+  });
 }
 
-const apiProc = spawn('bun', ['--watch', 'src/main.ts'], {
-  stdio: 'inherit',
-  env: { ...process.env, PORT: String(port) },
-});
-children.push(apiProc);
-
 const shutdown = (signal: NodeJS.Signals): void => {
-  for (const child of children) child.kill(signal);
+  child.kill(signal);
 };
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 
-apiProc.on('exit', (code) => {
-  shutdown('SIGTERM');
+child.on('exit', (code) => {
   process.exit(code ?? 0);
 });

@@ -1,9 +1,16 @@
-# portless local dev routing
+# portless local dev topology — DOCUMENTATION ONLY in portless 0.11+.
 # https://github.com/vercel-labs/portless
 #
-# Each service is exposed under <service>.<project>.localhost with auto-HTTPS via mkcert.
-# `bun run dev` starts portless implicitly; if portless is unavailable, the server
-# falls back to a dynamically assigned port so devs without portless are not blocked.
+# portless 0.11 dropped the YAML-config model in favour of a per-process
+# CLI: `portless run --name <name> -- <cmd>`. `scripts/dev.ts` calls
+# `portless run --name api.<project> -- bun --watch src/main.ts` to put
+# the API behind https://api.<project>.localhost.
+#
+# This file is preserved as the human-readable map of the intended URL
+# layout (api / mailpit / rustfs) and is rewritten by `bun run rename`
+# along with the other canonical files. Mailpit + RustFS routes can be
+# registered via `portless alias mail.<project> 8025` and
+# `portless alias s3.<project> 9001`.
 
 project: nest-server-template
 
