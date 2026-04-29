@@ -42,6 +42,26 @@ export interface WizardOutcome {
   featuresSource: string;
 }
 
+/**
+ * `buildDefaultEnvExample()` — emits the all-features-on `.env.example`
+ * the repo commits. Runners (and the regression test) call this so the
+ * committed file is regenerable from a single source of truth.
+ */
+export function buildDefaultEnvExample(): string {
+  return planSetup({
+    projectName: 'nest-server-template',
+    multiTenant: true,
+    mobile: true,
+    webhooks: true,
+    search: true,
+    mcp: true,
+    fieldEncryption: true,
+    realtime: true,
+    emailEnabled: true,
+    emailProvider: 'smtp',
+  }).envExample;
+}
+
 export function planSetup(answers: WizardAnswers): WizardOutcome {
   if (!answers.projectName) {
     throw new Error('setup-wizard: projectName must be a non-empty string');
