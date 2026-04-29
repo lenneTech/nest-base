@@ -119,6 +119,60 @@ describe('Story · Setup-Wizard planner', () => {
       expect(a.envExample).toBe(b.envExample);
       expect(a.featuresSource).toBe(b.featuresSource);
     });
+
+    // The committed .env.example serves as the single source of truth for new
+    // contributors; whichever vars the runtime actually reads MUST appear in it.
+    // The list below mirrors what `process.env.X` references exist across the
+    // codebase + what docker-compose interpolates.
+    describe('covers every env var the codebase actually reads', () => {
+      it('always emits server / boot vars (NODE_ENV, PORT, HOST, APP_BASE_URL)', () => {
+        const env = planSetup(answers()).envExample;
+        expect(env).toMatch(/^NODE_ENV=/m);
+        expect(env).toMatch(/^PORT=/m);
+        expect(env).toMatch(/^HOST=/m);
+        expect(env).toMatch(/^APP_BASE_URL=/m);
+      });
+
+      it('always emits POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB (docker-compose interpolates these)', () => {
+        const env = planSetup(answers()).envExample;
+        expect(env).toMatch(/^POSTGRES_USER=/m);
+        expect(env).toMatch(/^POSTGRES_PASSWORD=/m);
+        expect(env).toMatch(/^POSTGRES_DB=/m);
+      });
+
+      it('always emits SYSTEM_SETUP_ADMIN_EMAIL + SYSTEM_SETUP_ADMIN_PASSWORD (matched-pair bootstrap)', () => {
+        const env = planSetup(answers()).envExample;
+        expect(env).toMatch(/^SYSTEM_SETUP_ADMIN_EMAIL=/m);
+        expect(env).toMatch(/^SYSTEM_SETUP_ADMIN_PASSWORD=/m);
+      });
+
+      it('always emits S3_ACCESS_KEY / S3_SECRET_KEY (RustFS auth)', () => {
+        const env = planSetup(answers()).envExample;
+        expect(env).toMatch(/^S3_ACCESS_KEY=/m);
+        expect(env).toMatch(/^S3_SECRET_KEY=/m);
+      });
+
+      it('emits POWERSYNC_DB_PASSWORD + POWERSYNC_JWKS_URL when mobile=true', () => {
+        const env = planSetup(answers({ mobile: true })).envExample;
+        expect(env).toMatch(/^POWERSYNC_DB_PASSWORD=/m);
+        expect(env).toMatch(/^POWERSYNC_JWKS_URL=/m);
+      });
+
+      it('emits ERROR_DOC_BASE_URL (problem-details link)', () => {
+        const env = planSetup(answers()).envExample;
+        expect(env).toMatch(/^ERROR_DOC_BASE_URL=/m);
+      });
+
+      it('emits TENANT_HEADER when multi-tenancy is on', () => {
+        const env = planSetup(answers({ multiTenant: true })).envExample;
+        expect(env).toMatch(/^TENANT_HEADER=/m);
+      });
+
+      it('emits OTEL_RESOURCE_ATTRIBUTES (observability hint, optional)', () => {
+        const env = planSetup(answers()).envExample;
+        expect(env).toMatch(/^# OTEL_RESOURCE_ATTRIBUTES=|^OTEL_RESOURCE_ATTRIBUTES=/m);
+      });
+    });
   });
 
   describe('featuresSource', () => {
