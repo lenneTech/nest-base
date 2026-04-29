@@ -1,10 +1,16 @@
+import { randomBytes as nodeRandomBytes } from 'node:crypto';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+import { buildDefaultEnvExample } from './setup-wizard.js';
+
 /**
  * Setup-wizard runner planner (PLAN.md §19.5 + Phase 7 follow-up).
  *
  * Pure function: takes the `.env.example` text + an injectable RNG,
  * returns the rendered `.env` text with every recognised placeholder
- * replaced by a fresh secret. The thin runner in
- * `scripts/setup-wizard.ts` does the file I/O.
+ * replaced by a fresh secret. `runSetupWizard()` is the thin I/O
+ * wrapper invoked by `scripts/setup-wizard.ts`.
  *
  * Three properties locked in:
  *   - Recognised placeholders (BETTER_AUTH_SECRET, POSTGRES_PASSWORD,
@@ -80,4 +86,49 @@ function encodeBytes(buf: Buffer, encoding: SecretSpec['encoding']): string {
   if (encoding === 'hex') return buf.toString('hex');
   // base64url — Node's Buffer accepts the encoding directly.
   return buf.toString('base64url');
+}
+
+export interface SetupWizardLogger {
+  info(message: string): void;
+  warn(message: string): void;
+}
+
+export interface RunSetupWizardOptions {
+  projectRoot: string;
+  /** Override the RNG (tests). Defaults to `crypto.randomBytes`. */
+  randomBytes?: RandomBytesFn;
+  logger?: SetupWizardLogger;
+}
+
+export interface SetupWizardResult {
+  /** Absolute path of the `.env` file (whether created or pre-existing). */
+  envPath: string;
+  /** True when this run wrote `.env`; false when it was already present. */
+  created: boolean;
+}
+
+const SILENT_LOGGER: SetupWizardLogger = { info: () => {}, warn: () => {} };
+
+export function runSetupWizard(options: RunSetupWizardOptions): SetupWizardResult {
+  const logger = options.logger ?? SILENT_LOGGER;
+  const examplePath = join(options.projectRoot, '.env.example');
+  const envPath = join(options.projectRoot, '.env');
+
+  if (!existsSync(examplePath)) {
+    logger.info(`generating ${examplePath} from buildDefaultEnvExample()`);
+    writeFileSync(examplePath, buildDefaultEnvExample(), 'utf8');
+  }
+
+  if (existsSync(envPath)) {
+    logger.warn(`${envPath} already exists — refusing to overwrite (delete it first to regenerate)`);
+    return { envPath, created: false };
+  }
+
+  const exampleText = readFileSync(examplePath, 'utf8');
+  const rendered = planEnvFromExample(exampleText, {
+    randomBytes: options.randomBytes ?? ((size) => nodeRandomBytes(size)),
+  });
+  writeFileSync(envPath, rendered, 'utf8');
+  logger.info(`wrote ${envPath} with auto-generated secrets`);
+  return { envPath, created: true };
 }
