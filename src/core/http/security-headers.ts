@@ -49,13 +49,18 @@ const PROD_CSP: CspDirectives = {
   "form-action": ["'self'"],
 };
 
+// /api/docs (Scalar) and /dev sidebar use rsms.me (Inter) + jsdelivr (Scalar
+// JS bundle). In production those static assets should be self-hosted, but
+// in dev we trust the upstream CDNs so the docs page renders out of the box.
+const DEV_CDN_HOSTS = ["https://cdn.jsdelivr.net", "https://rsms.me"];
+
 const DEV_CSP: CspDirectives = {
   "default-src": ["'self'"],
-  "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-  "style-src": ["'self'", "'unsafe-inline'"],
+  "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'", ...DEV_CDN_HOSTS],
+  "style-src": ["'self'", "'unsafe-inline'", ...DEV_CDN_HOSTS],
   "img-src": ["'self'", "data:", "http:", "https:"],
   "connect-src": ["'self'", "ws:", "wss:", "http://localhost:*", "https://localhost:*"],
-  "font-src": ["'self'", "data:"],
+  "font-src": ["'self'", "data:", ...DEV_CDN_HOSTS],
   "object-src": ["'none'"],
   "frame-ancestors": ["'none'"],
   "base-uri": ["'self'"],

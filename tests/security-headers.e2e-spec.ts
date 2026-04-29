@@ -64,6 +64,22 @@ describe("buildSecurityHeadersConfig() — env-specific CSP", () => {
     expect(cfg.contentSecurityPolicy.directives["script-src"]).toContain("'unsafe-inline'");
   });
 
+  it("development CSP whitelists Scalar (jsdelivr) + Inter (rsms.me) CDNs", () => {
+    const cfg = buildSecurityHeadersConfig("development");
+    const scripts = cfg.contentSecurityPolicy.directives["script-src"];
+    const styles = cfg.contentSecurityPolicy.directives["style-src"];
+    expect(scripts).toContain("https://cdn.jsdelivr.net");
+    expect(styles).toContain("https://rsms.me");
+    expect(styles).toContain("https://cdn.jsdelivr.net");
+  });
+
+  it("production CSP keeps the CDNs out (assets must be self-hosted)", () => {
+    const cfg = buildSecurityHeadersConfig("production");
+    expect(cfg.contentSecurityPolicy.directives["script-src"]).not.toContain(
+      "https://cdn.jsdelivr.net",
+    );
+  });
+
   it("production enables HSTS with includeSubDomains and a long maxAge", () => {
     const cfg = buildSecurityHeadersConfig("production");
     expect(cfg.hsts).toEqual({
