@@ -65,8 +65,10 @@ describe('docker-compose.yml (dev dependencies only)', () => {
     expect(yaml).toMatch(/['"]?4318/);
   });
 
-  it('declares an explicit `name:` so parallel checkouts do not collide', () => {
-    expect(yaml).toMatch(/^name:\s*nst\b/m);
+  it('declares an explicit `name:` matching package.json["name"]', () => {
+    const pkgName = (JSON.parse(readFileSync(PACKAGE, 'utf8')) as { name: string }).name;
+    const escaped = pkgName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    expect(yaml).toMatch(new RegExp(`^name:\\s*${escaped}\\b`, 'm'));
   });
 
   it('puts dependency services on a shared private network', () => {

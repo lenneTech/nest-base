@@ -95,7 +95,10 @@ function renderEnvExample(answers: WizardAnswers): string {
   lines.push('NODE_ENV=development');
   lines.push('PORT=3000');
   lines.push('HOST=0.0.0.0');
-  lines.push('APP_BASE_URL=http://localhost:3000');
+  // Portless serves the API at <api>.<project>.localhost with auto-HTTPS.
+  // Devs running without portless (DISABLE_PORTLESS=1) edit this back to
+  // http://localhost:<port> after `bun run setup`.
+  lines.push(`APP_BASE_URL=https://api.${answers.projectName}.localhost`);
   lines.push('# Where your problem-details `type` URLs resolve to (RFC 7807).');
   lines.push('ERROR_DOC_BASE_URL=https://errors.example.com');
   lines.push('');

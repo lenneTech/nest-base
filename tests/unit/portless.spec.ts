@@ -19,19 +19,24 @@ const PACKAGE_JSON = resolve(ROOT, 'package.json');
  */
 describe('portless config', () => {
   const yaml = existsSync(PORTLESS_YML) ? readFileSync(PORTLESS_YML, 'utf8') : '';
+  // Read the project name from package.json so this stays correct
+  // through `bun run rename`. After Option B unification, `project:` in
+  // portless.yml MUST equal package.json["name"].
+  const pkgName = (JSON.parse(readFileSync(PACKAGE_JSON, 'utf8')) as { name: string }).name;
+  const escaped = pkgName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-  it('declares the project name as `nst`', () => {
-    expect(yaml).toMatch(/^project:\s*nst\b/m);
+  it('declares the project name matching package.json["name"]', () => {
+    expect(yaml).toMatch(new RegExp(`^project:\\s*${escaped}\\b`, 'm'));
   });
 
   it('routes the API service to the running server', () => {
     expect(yaml).toMatch(/^\s{2}api:/m);
-    expect(yaml).toMatch(/api\.nst\.localhost/);
+    expect(yaml).toMatch(new RegExp(`api\\.${escaped}\\.localhost`));
   });
 
   it('routes the dev panels for Mailpit and RustFS', () => {
-    expect(yaml).toMatch(/mail\.nst\.localhost/);
-    expect(yaml).toMatch(/s3\.nst\.localhost/);
+    expect(yaml).toMatch(new RegExp(`mail\\.${escaped}\\.localhost`));
+    expect(yaml).toMatch(new RegExp(`s3\\.${escaped}\\.localhost`));
   });
 });
 

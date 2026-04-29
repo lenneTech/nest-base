@@ -5,15 +5,15 @@
 # `bun run dev` starts portless implicitly; if portless is unavailable, the server
 # falls back to a dynamically assigned port so devs without portless are not blocked.
 
-project: nst
+project: nest-server-template
 
 services:
   api:
     target: 'http://localhost:3000'
-    public: 'api.nst.localhost'
+    public: 'api.nest-server-template.localhost'
   mailpit:
     target: 'http://localhost:8025'
-    public: 'mail.nst.localhost'
+    public: 'mail.nest-server-template.localhost'
   rustfs:
     target: 'http://localhost:9001'
-    public: 's3.nst.localhost'
+    public: 's3.nest-server-template.localhost'
