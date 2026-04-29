@@ -11,7 +11,7 @@ describe("Story · Admin-Layout", () => {
     });
 
     expect(html).toMatch(/^<!doctype html>/i);
-    expect(html).toContain("<title>Permission Tester — nest-server-template</title>");
+    expect(html).toContain("<title>Permission Tester — nest-server</title>");
     expect(html).toContain("BODY-CONTENT");
     expect(html).toMatch(/<h1[^>]*>Permission Tester<\/h1>/);
   });
@@ -72,7 +72,8 @@ describe("Story · Admin-Layout", () => {
 
   it("enthält Dark-Mode CSS-Variablen", () => {
     const html = renderAdminLayout({ title: "X", currentNav: "dev-hub", body: "" });
-    expect(html).toContain("--bg: #0a0e14");
-    expect(html).toContain("--text: #e6edf3");
+    expect(html).toContain("--bg: #020203");
+    expect(html).toContain("--accent: #c5fb45");
+    expect(html).toContain("--fg: #ffffff");
   });
 });

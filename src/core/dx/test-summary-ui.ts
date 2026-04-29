@@ -33,17 +33,23 @@ function renderAvailable(report: TestSummaryReport): string {
   return `
 <style>
   .test-totals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
-  .test-tile { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.25rem; }
-  .test-tile__label { color: var(--text-muted); font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; font-weight: 600; }
-  .test-tile__value { font-size: 1.85rem; font-weight: 600; margin-top: .25rem; font-variant-numeric: tabular-nums; }
-  .test-tile--ok .test-tile__value { color: var(--success); }
-  .test-tile--bad .test-tile__value { color: var(--danger); }
-  .test-tile--neutral .test-tile__value { color: var(--text); }
-  .test-pill { display: inline-flex; padding: .15rem .55rem; border-radius: 4px; font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
-  .test-pill--passed { background: rgba(63, 185, 80, .15); color: var(--success); }
-  .test-pill--failed { background: rgba(248, 81, 73, .15); color: var(--danger); }
-  .test-row--failed td { background: rgba(248, 81, 73, .08); }
-  pre.test-snippet { background: var(--code-bg); padding: .55rem .75rem; border-radius: 4px; margin: .35rem 0 0; font-size: .7rem; white-space: pre-wrap; word-break: break-word; max-height: 8rem; overflow: auto; }
+  .test-tile {
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: var(--radius-sm); padding: 1.25rem 1.4rem;
+    transition: border-color .25s var(--ease), transform .25s var(--ease);
+  }
+  .test-tile:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+  .test-tile__label { color: var(--fg-dim); font-size: .65rem; text-transform: uppercase; letter-spacing: .12em; font-weight: 600; }
+  .test-tile__value { font-size: 2rem; font-weight: 600; margin-top: .35rem; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .test-tile--ok .test-tile__value { color: var(--accent); }
+  .test-tile--ok { border-color: var(--line-accent); }
+  .test-tile--bad .test-tile__value { color: var(--err); }
+  .test-tile--neutral .test-tile__value { color: var(--fg); }
+  .test-pill { display: inline-flex; align-items: center; gap: .3rem; padding: .25rem .65rem; border-radius: 999px; font-size: .65rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+  .test-pill--passed { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--line-accent); }
+  .test-pill--failed { background: rgba(248, 113, 113, .12); color: var(--err); border: 1px solid rgba(248, 113, 113, .35); }
+  .test-row--failed td { background: rgba(248, 113, 113, .04); }
+  pre.test-snippet { background: var(--surface-3); padding: .7rem .9rem; border-radius: 6px; border: 1px solid var(--line); margin: .5rem 0 0; font-size: .72rem; white-space: pre-wrap; word-break: break-word; max-height: 8rem; overflow: auto; line-height: 1.5; color: var(--err); }
 </style>
 
 <div class="admin-card">

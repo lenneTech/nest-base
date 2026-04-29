@@ -21,34 +21,54 @@ export function renderLogViewerPage(input: LogViewerInput): string {
   const body = `
 <style>
   .log-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-  .log-toolbar__meta { color: var(--text-muted); font-size: .8rem; }
-  .log-table { width: 100%; border-collapse: collapse; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; font-family: ui-monospace, SF Mono, monospace; font-size: .8rem; }
-  .log-table th { background: var(--bg-elevated-2); color: var(--text-muted); padding: .55rem .85rem; text-align: left; font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
-  .log-table td { padding: .45rem .85rem; border-top: 1px solid var(--border); vertical-align: top; }
-  .log-table tr:hover td { background: var(--bg-elevated-2); }
-  .log-row--trace td { color: var(--text-dim); }
-  .log-row--debug td { color: var(--text-muted); }
-  .log-row--info {}
-  .log-row--warn { background: rgba(210, 153, 34, .08); }
-  .log-row--error { background: rgba(248, 81, 73, .08); }
-  .log-row--fatal { background: rgba(248, 81, 73, .15); color: var(--danger); }
-  .log-level { display: inline-block; padding: .1rem .45rem; border-radius: 4px; font-weight: 600; font-size: .65rem; text-transform: uppercase; letter-spacing: .05em; }
-  .log-level--trace, .log-level--debug { background: rgba(139, 148, 158, .15); color: var(--text-muted); }
-  .log-level--info { background: rgba(88, 166, 255, .15); color: var(--primary); }
-  .log-level--warn { background: rgba(210, 153, 34, .15); color: var(--warning); }
-  .log-level--error, .log-level--fatal { background: rgba(248, 81, 73, .15); color: var(--danger); }
-  .log-context { color: var(--text-dim); font-size: .75rem; }
-  .log-payload { color: var(--text-muted); font-size: .7rem; white-space: pre-wrap; word-break: break-word; }
-  .log-empty { padding: 2rem; text-align: center; color: var(--text-muted); }
+  .log-toolbar__meta { color: var(--fg-dim); font-size: .78rem; font-variant-numeric: tabular-nums; }
+  .log-toolbar strong { color: var(--fg); font-weight: 600; }
+  .log-table {
+    width: 100%; border-collapse: collapse;
+    background: var(--surface-1); border: 1px solid var(--line);
+    border-radius: var(--radius-sm); overflow: hidden;
+    font-family: var(--font-mono); font-size: .78rem;
+  }
+  .log-table th {
+    background: var(--surface-2); color: var(--fg-dim);
+    padding: .65rem .9rem; text-align: left;
+    font-size: .65rem; text-transform: uppercase; letter-spacing: .1em; font-weight: 600;
+    border-bottom: 1px solid var(--line);
+  }
+  .log-table td {
+    padding: .55rem .9rem; border-top: 1px solid var(--line);
+    vertical-align: top; line-height: 1.55;
+  }
+  .log-table tr:first-child td { border-top: 0; }
+  .log-table tr:hover td { background: var(--surface-2); }
+  .log-row--trace td { color: var(--fg-faint); }
+  .log-row--debug td { color: var(--fg-dim); }
+  .log-row--info td { color: var(--fg-muted); }
+  .log-row--warn td { background: rgba(251, 191, 36, .04); }
+  .log-row--error td { background: rgba(248, 113, 113, .05); color: var(--fg); }
+  .log-row--fatal td { background: rgba(248, 113, 113, .1); color: var(--err); font-weight: 500; }
+  .log-level {
+    display: inline-block; padding: .12rem .55rem;
+    border-radius: 4px; font-weight: 600; font-size: .62rem;
+    text-transform: uppercase; letter-spacing: .1em;
+    border: 1px solid transparent;
+  }
+  .log-level--trace, .log-level--debug { background: var(--surface-3); color: var(--fg-dim); }
+  .log-level--info { background: var(--surface-3); color: var(--fg-muted); border-color: var(--line); }
+  .log-level--warn { background: rgba(251, 191, 36, .12); color: var(--warn); border-color: rgba(251, 191, 36, .3); }
+  .log-level--error, .log-level--fatal { background: rgba(248, 113, 113, .12); color: var(--err); border-color: rgba(248, 113, 113, .3); }
+  .log-context { color: var(--accent); font-size: .73rem; opacity: .8; }
+  .log-empty { padding: 2.5rem; text-align: center; color: var(--fg-muted); }
+  .log-pulse { display: inline-block; width: 6px; height: 6px; border-radius: 999px; background: var(--accent); margin-right: .35rem; box-shadow: 0 0 6px var(--accent); animation: pulse 2s ease-in-out infinite; vertical-align: middle; }
 </style>
 
 <div class="admin-card">
   <div class="log-toolbar">
     <div>
-      <strong>Live tail</strong>
+      <span class="log-pulse"></span><strong>Live tail</strong>
       <span class="log-toolbar__meta">— polled every 2 s, ring-buffer ${input.bufferSize}/${input.bufferCapacity}</span>
     </div>
-    <div class="log-toolbar__meta" id="log-meta-status">●&nbsp;auto-refresh</div>
+    <div class="log-toolbar__meta" id="log-meta-status">auto-refresh</div>
   </div>
   ${renderTable(input.records)}
 </div>

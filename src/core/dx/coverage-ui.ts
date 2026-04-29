@@ -31,22 +31,27 @@ function renderAvailable(report: CoverageReport): string {
   return `
 <style>
   .cov-totals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
-  .cov-tile { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.25rem; }
-  .cov-tile__label { color: var(--text-muted); font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; font-weight: 600; }
-  .cov-tile__value { font-size: 1.85rem; font-weight: 600; margin-top: .25rem; font-variant-numeric: tabular-nums; }
-  .cov-tile__bar { height: 4px; background: var(--bg-elevated-2); border-radius: 999px; margin-top: .5rem; overflow: hidden; }
-  .cov-tile__fill { height: 100%; transition: width .25s; }
-  .cov-tile__fill--ok { background: var(--success); }
-  .cov-tile__fill--warn { background: var(--warning); }
-  .cov-tile__fill--bad { background: var(--danger); }
-  .cov-gate { display: inline-flex; padding: .25rem .65rem; border-radius: 999px; font-size: .75rem; font-weight: 500; margin-left: .5rem; }
-  .cov-gate--ok { background: rgba(63, 185, 80, .15); color: var(--success); }
-  .cov-gate--bad { background: rgba(248, 81, 73, .15); color: var(--danger); }
-  .cov-tier { font-size: .7rem; padding: .15rem .45rem; border-radius: 4px; background: var(--bg-elevated-2); color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+  .cov-tile {
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: var(--radius-sm); padding: 1.25rem 1.4rem;
+    transition: border-color .25s var(--ease), transform .25s var(--ease);
+  }
+  .cov-tile:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+  .cov-tile__label { color: var(--fg-dim); font-size: .65rem; text-transform: uppercase; letter-spacing: .12em; font-weight: 600; }
+  .cov-tile__value { font-size: 2rem; font-weight: 600; margin-top: .35rem; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: var(--fg); }
+  .cov-tile__bar { height: 4px; background: var(--surface-3); border-radius: 999px; margin-top: .85rem; overflow: hidden; }
+  .cov-tile__fill { height: 100%; transition: width .6s var(--ease); border-radius: inherit; }
+  .cov-tile__fill--ok { background: var(--accent); box-shadow: 0 0 12px var(--accent-glow); }
+  .cov-tile__fill--warn { background: var(--warn); }
+  .cov-tile__fill--bad { background: var(--err); }
+  .cov-gate { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .7rem; border-radius: 999px; font-size: .68rem; font-weight: 600; margin-left: .25rem; letter-spacing: .04em; text-transform: uppercase; }
+  .cov-gate--ok { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--line-accent); }
+  .cov-gate--bad { background: rgba(248, 113, 113, .12); color: var(--err); border: 1px solid rgba(248, 113, 113, .35); }
+  .cov-tier { font-size: .65rem; padding: .15rem .55rem; border-radius: 4px; background: var(--surface-3); color: var(--fg-dim); text-transform: uppercase; letter-spacing: .08em; font-weight: 600; }
   .cov-pct { font-variant-numeric: tabular-nums; font-weight: 500; }
-  .cov-pct--bad { color: var(--danger); }
-  .cov-pct--warn { color: var(--warning); }
-  .cov-pct--ok { color: var(--success); }
+  .cov-pct--bad { color: var(--err); }
+  .cov-pct--warn { color: var(--warn); }
+  .cov-pct--ok { color: var(--accent); }
 </style>
 
 <div class="admin-card">

@@ -252,19 +252,35 @@ ${items}
 
   const body = `
 <style>
-  .status-grid { display: grid; gap: .85rem; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
-  .status-card { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; padding: .85rem 1rem; display: flex; flex-direction: column; gap: .35rem; transition: border-color .12s; }
-  .status-card:hover { border-color: var(--border-strong); }
+  .status-grid { display: grid; gap: .85rem; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+  .status-card {
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: var(--radius-sm); padding: 1rem 1.15rem;
+    display: flex; flex-direction: column; gap: .5rem;
+    transition: all .25s var(--ease);
+    position: relative; overflow: hidden;
+  }
+  .status-card::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 2px; background: transparent; transition: background .2s var(--ease);
+  }
+  .status-card:hover {
+    background: var(--surface-3); border-color: var(--line-strong);
+    transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  }
+  .status-card[data-status="up"]:hover::before { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+  .status-card[data-status="down"]:hover::before { background: var(--err); }
   .status-card__head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
-  .status-card__label { font-weight: 600; color: var(--text); }
+  .status-card__label { font-weight: 600; color: var(--fg); font-size: .92rem; letter-spacing: -0.005em; }
   .status-dot { width: 8px; height: 8px; border-radius: 999px; flex-shrink: 0; }
-  .status-dot--up { background: var(--success); box-shadow: 0 0 8px var(--success); }
-  .status-dot--down { background: var(--danger); }
-  .status-dot--unknown { background: var(--text-dim); }
-  .status-card__url { color: var(--text-muted); font-size: .75rem; font-family: ui-monospace, monospace; word-break: break-all; }
-  .status-card__meta { color: var(--text-dim); font-size: .7rem; display: flex; justify-content: space-between; }
+  .status-dot--up { background: var(--ok); box-shadow: 0 0 10px var(--ok); animation: pulse 2s ease-in-out infinite; }
+  .status-dot--down { background: var(--err); box-shadow: 0 0 6px rgba(248, 113, 113, .4); }
+  .status-dot--unknown { background: var(--fg-faint); }
+  .status-card__url { color: var(--fg-dim); font-size: .72rem; font-family: var(--font-mono); word-break: break-all; line-height: 1.5; }
+  .status-card__meta { color: var(--fg-faint); font-size: .68rem; display: flex; justify-content: space-between; align-items: center; padding-top: .25rem; border-top: 1px solid var(--line); margin-top: .25rem; text-transform: uppercase; letter-spacing: .08em; font-weight: 500; }
+  .status-card__meta span:last-child { color: var(--fg-muted); font-variant-numeric: tabular-nums; }
 </style>
-<div class="admin-card">
+<div class="admin-card admin-card--accent">
   <h2 class="admin-card__title">Service-Status</h2>
   <div class="status-grid" data-service-status="true">
 ${renderStatusCards(probes)}
@@ -297,7 +313,7 @@ function renderStatusCards(probes: ReadonlyArray<ServiceProbeResult>): string {
       const latency = p.latencyMs !== undefined ? `${p.latencyMs} ms` : "";
       const href = p.href ?? p.probeUrl ?? "#";
       const url = p.probeUrl ?? p.href ?? "";
-      return `<a class="status-card" href="${escapeHtml(href)}" target="_blank" rel="noopener" data-service-id="${escapeHtml(p.id)}">
+      return `<a class="status-card" href="${escapeHtml(href)}" target="_blank" rel="noopener" data-service-id="${escapeHtml(p.id)}" data-status="${p.status}">
       <div class="status-card__head">
         <span class="status-card__label">${escapeHtml(p.label)}</span>
         <span class="status-dot ${cls}" title="${labelText}"></span>
