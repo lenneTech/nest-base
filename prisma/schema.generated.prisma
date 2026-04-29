@@ -2,7 +2,7 @@
 // Run `bun run prepare:schema` to regenerate.
 
 // ──────────── core ────────────
-// Prisma 7 schema for nest-server-template.
+// Prisma 7 schema for nest-base.
 //
 // Connection URL lives in `prisma.config.ts` (Prisma 7 moved it out of
 // the schema). All tables and columns are snake_case (`@@map` / `@map`)

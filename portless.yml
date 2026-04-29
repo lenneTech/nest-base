@@ -12,15 +12,15 @@
 # registered via `portless alias mail.<project> 8025` and
 # `portless alias s3.<project> 9001`.
 
-project: nest-server-template
+project: nest-base
 
 services:
   api:
     target: 'http://localhost:3000'
-    public: 'api.nest-server-template.localhost'
+    public: 'api.nest-base.localhost'
   mailpit:
     target: 'http://localhost:8025'
-    public: 'mail.nest-server-template.localhost'
+    public: 'mail.nest-base.localhost'
   rustfs:
     target: 'http://localhost:9001'
-    public: 's3.nest-server-template.localhost'
+    public: 's3.nest-base.localhost'

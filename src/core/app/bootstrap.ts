@@ -71,7 +71,7 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   // 3.1 JSON. Mounted at `/api/openapi.json` (Scalar UI consumes it,
   // kubb generates the SDK from it).
   const openApiConfig = new DocumentBuilder()
-    .setTitle("nest-server-template")
+    .setTitle("nest-base")
     .setDescription("Template-fähiger NestJS-Server")
     .setVersion("1.0.0")
     .addBearerAuth()

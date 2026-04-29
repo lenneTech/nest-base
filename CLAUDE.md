@@ -1,4 +1,4 @@
-# CLAUDE.md — agent guide for nest-server-template
+# CLAUDE.md — agent guide for nest-base
 
 This file orients an AI agent (or any new contributor) inside the repo. Read
 it first; it should answer "where do I find X" and "what's the convention

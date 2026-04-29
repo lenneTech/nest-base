@@ -2,12 +2,12 @@
 # The server itself runs natively via `bun --watch` (NOT in Docker).
 # See PLAN.md §28.10/#29.
 
-name: nest-server-template
+name: nest-base
 
 services:
   postgres:
     image: postgres:18-alpine
-    container_name: nest-server-template-postgres
+    container_name: nest-base-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-app}
@@ -38,7 +38,7 @@ services:
     # PowerSync sync engine (PLAN.md §15.5 + Phase 5b). Pulls the WAL from
     # Postgres, applies sync-rules.yaml, exposes WebSocket+HTTP for clients.
     image: journeyapps/powersync-service:latest
-    container_name: nest-server-template-powersync
+    container_name: nest-base-powersync
     restart: unless-stopped
     depends_on:
       postgres:
@@ -58,7 +58,7 @@ services:
 
   rustfs:
     image: rustfs/rustfs:latest
-    container_name: nest-server-template-rustfs
+    container_name: nest-base-rustfs
     restart: unless-stopped
     environment:
       RUSTFS_ROOT_USER: ${S3_ACCESS_KEY:-rustfs}
@@ -72,7 +72,7 @@ services:
 
   mailpit:
     image: axllent/mailpit:latest
-    container_name: nest-server-template-mailpit
+    container_name: nest-base-mailpit
     restart: unless-stopped
     ports:
       - '1025:1025' # SMTP
@@ -84,7 +84,7 @@ services:
 
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
-    container_name: nest-server-template-otel
+    container_name: nest-base-otel
     restart: unless-stopped
     command: ['--config=/etc/otel-config.yaml']
     volumes:
@@ -99,5 +99,5 @@ volumes:
 
 networks:
   default:
-    name: nest-server-template-dev
+    name: nest-base-dev
     driver: bridge

@@ -1,4 +1,4 @@
-# GitHub Actions CI for the open-source template (nest-server-template).
+# GitHub Actions CI for the open-source template (nest-base).
 #
 # This is the OSS-side mirror of `.gitlab-ci.yml`. Consumer projects forked
 # off this template typically deploy from GitLab and keep the GitLab pipeline;

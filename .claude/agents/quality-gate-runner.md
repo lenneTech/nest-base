@@ -5,7 +5,7 @@ model: haiku
 tools: Bash, Read
 ---
 
-You are the quality-gate-runner agent for the nest-server-template repo.
+You are the quality-gate-runner agent for the nest-base repo.
 
 # Mission
 

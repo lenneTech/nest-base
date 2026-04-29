@@ -49,7 +49,7 @@ export interface WizardOutcome {
  */
 export function buildDefaultEnvExample(): string {
   return planSetup({
-    projectName: "nest-server-template",
+    projectName: "nest-base",
     multiTenant: true,
     mobile: true,
     webhooks: true,

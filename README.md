@@ -1,6 +1,6 @@
 <div align="center">
 
-# nest-server-template
+# nest-base
 
 ### NestJS · Bun · Prisma · Postgres · Better-Auth
 
@@ -157,7 +157,8 @@ src/
 │   ├── realtime/        ← LISTEN/NOTIFY + Socket.IO gateway
 │   ├── search/          ← FTS query parser + cross-resource search
 │   └── webhooks/        ← HMAC + retry-policy + dispatcher
-└── modules/             ← Project-owned. Add your domain here.
+├── modules/             ← Project-owned. Add your domain here.
+└── shared/              ← Cross-tier types (channels, event payloads, SDK seeds).
 ```
 
 **Conventions:** ESM with `.js` import suffixes (TypeScript `nodenext`). Pure-planner / thin-runner split — every helper that touches I/O has a pure planner + a thin glue layer. Named error sentinels mapped to RFC 7807 by the global filter.
@@ -266,10 +267,11 @@ FEATURE_REALTIME_ENABLED=true
 
 - [`PLAN.md`](./PLAN.md) — full spec with architecture rationale per module
 - [`CLAUDE.md`](./CLAUDE.md) — agent-readable orientation
+- [`docs/consumer-guide.md`](./docs/consumer-guide.md) — bootstrapping a new project on this template
 - [`docs/api-stability-promise.md`](./docs/api-stability-promise.md) — semver + deprecation rules
-- [`docs/template-update.md`](./docs/template-update.md) — pulling upstream changes
-- [`docs/customization.md`](./docs/customization.md) — adding domain modules
-- [`docs/contributor-guide.md`](./docs/contributor-guide.md) — contributing back upstream
+- [`docs/template-update-workflow.md`](./docs/template-update-workflow.md) — pulling upstream changes
+- [`docs/customization-guide.md`](./docs/customization-guide.md) — adding domain modules in `src/modules/`
+- [`docs/core-contribution-guide.md`](./docs/core-contribution-guide.md) — contributing back to `src/core/`
 - [`docs/webhook-spec.md`](./docs/webhook-spec.md) — outbound webhook contract
 
 ---

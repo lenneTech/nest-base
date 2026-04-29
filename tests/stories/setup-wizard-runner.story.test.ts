@@ -136,10 +136,7 @@ describe("Story · setup-wizard runner planner", () => {
     });
 
     it("rewrites POSTGRES_USER and POSTGRES_DB from the template name to the project name", () => {
-      const example = [
-        "POSTGRES_USER=nest-server-template",
-        "POSTGRES_DB=nest-server-template",
-      ].join("\n");
+      const example = ["POSTGRES_USER=nest-base", "POSTGRES_DB=nest-base"].join("\n");
       const out = planEnvFromExample(example, {
         randomBytes: deterministicRng(),
         projectName: "my-app",
@@ -151,7 +148,7 @@ describe("Story · setup-wizard runner planner", () => {
     it("rewrites DATABASE_URL user + dbname segments to the project name (and still substitutes the password)", () => {
       const example = [
         "POSTGRES_PASSWORD=change-me-strong-pass",
-        "DATABASE_URL=postgresql://nest-server-template:change-me-strong-pass@localhost:5432/nest-server-template",
+        "DATABASE_URL=postgresql://nest-base:change-me-strong-pass@localhost:5432/nest-base",
       ].join("\n");
       const out = planEnvFromExample(example, {
         randomBytes: deterministicRng(),
@@ -161,23 +158,23 @@ describe("Story · setup-wizard runner planner", () => {
       const password = out.match(/^POSTGRES_PASSWORD=(.*)$/m)?.[1];
       expect(url).toContain("my-app");
       expect(url).toContain(password!);
-      expect(url).not.toContain("nest-server-template");
+      expect(url).not.toContain("nest-base");
       expect(url).not.toContain("change-me-strong-pass");
     });
 
     it("leaves the file untouched when projectName equals the template name (no churn)", () => {
-      const example = "APP_BASE_URL=http://localhost:3000\nPOSTGRES_USER=nest-server-template\n";
+      const example = "APP_BASE_URL=http://localhost:3000\nPOSTGRES_USER=nest-base\n";
       const out = planEnvFromExample(example, {
         randomBytes: deterministicRng(),
-        projectName: "nest-server-template",
+        projectName: "nest-base",
       });
       expect(out).toContain("APP_BASE_URL=http://localhost:3000");
-      expect(out).toContain("POSTGRES_USER=nest-server-template");
+      expect(out).toContain("POSTGRES_USER=nest-base");
     });
 
     it("does not affect secret values (substitution happens after secret generation)", () => {
       // BETTER_AUTH_SECRET could *theoretically* be a base64url string that
-      // happens to spell "nest-server-template" — vanishingly unlikely, but
+      // happens to spell "nest-base" — vanishingly unlikely, but
       // the substitution must run on the original placeholder text and not
       // on the freshly generated secret to be safe.
       const example = "BETTER_AUTH_SECRET=change-me-32-chars-minimum-XXXXXX\n";

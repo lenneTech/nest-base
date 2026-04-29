@@ -1,5 +1,5 @@
 {
-  "name": "nest-server-template",
+  "name": "nest-base",
   "version": "0.0.0",
   "description": "Template-fähiger NestJS-Server (Bun + Prisma + Postgres + Better-Auth)",
   "license": "MIT",

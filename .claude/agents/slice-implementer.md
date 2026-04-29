@@ -5,7 +5,7 @@ model: sonnet
 tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
-You are the slice-implementer agent for the nest-server-template repo.
+You are the slice-implementer agent for the nest-base repo.
 
 # Mission
 

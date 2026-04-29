@@ -90,10 +90,10 @@ describe("Story · bun run setup runner I/O", () => {
       join(workspace, ".env.example"),
       [
         "APP_BASE_URL=http://localhost:3000",
-        "POSTGRES_USER=nest-server-template",
-        "POSTGRES_DB=nest-server-template",
+        "POSTGRES_USER=nest-base",
+        "POSTGRES_DB=nest-base",
         "POSTGRES_PASSWORD=change-me-strong-pass",
-        "DATABASE_URL=postgresql://nest-server-template:change-me-strong-pass@localhost:5432/nest-server-template",
+        "DATABASE_URL=postgresql://nest-base:change-me-strong-pass@localhost:5432/nest-base",
       ].join("\n") + "\n",
     );
     runSetupWizard({ projectRoot: workspace, logger });

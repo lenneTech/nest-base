@@ -36,7 +36,7 @@ export interface PlanEnvFromExampleOptions {
   projectName?: string;
 }
 
-const TEMPLATE_NAME = "nest-server-template";
+const TEMPLATE_NAME = "nest-base";
 
 interface SecretSpec {
   /** Bytes of entropy to draw. */
