@@ -1,13 +1,14 @@
 # nest-server-template
 
-Template-fähiger NestJS-Server auf Bun + Prisma + Postgres + Better-Auth.
-Gedacht als Starter für `lt fullstack init` und als Sync-Quelle für `src/core/`.
+Template-style NestJS server on Bun + Prisma + Postgres + Better-Auth.
+Designed as a starter for `lt fullstack init` and as the sync source
+for `src/core/`.
 
 ## Stack
 
 | Layer | Tool |
 |---|---|
-| Runtime | Bun 1.x (Fallback: Node 22) |
+| Runtime | Bun 1.x (fallback: Node 22) |
 | Framework | NestJS 11 |
 | ORM | Prisma 7 (driver-adapter) |
 | DB | Postgres 18 |
@@ -15,106 +16,105 @@ Gedacht als Starter für `lt fullstack init` und als Sync-Quelle für `src/core/
 | Validation | Zod 4 + nestjs-zod |
 | Tests | Vitest + Supertest |
 | Lint/Format | oxlint / oxfmt |
-| SDK-Generation | kubb |
-| Object-Storage | RustFS (S3-API) |
+| SDK generation | kubb |
+| Object storage | RustFS (S3 API) |
 | Realtime | Socket.IO + Postgres NOTIFY |
-| Job-Queue | pg-boss |
-| Files (TUS) | @tus/server v3 |
-| Image-Transform | sharp |
-| CI | GitLab CI |
-| Local-Dev-Routing | portless |
+| Job queue | pg-boss |
+| File uploads (TUS) | @tus/server v3 |
+| Image transform | sharp |
+| CI | GitHub Actions + GitLab CI |
+| Local dev routing | portless |
 | License | MIT |
 
-Vollständige Spec: [`PLAN.md`](./PLAN.md). AI-Agent-Guide:
+Full spec: [`PLAN.md`](./PLAN.md). AI agent guide:
 [`CLAUDE.md`](./CLAUDE.md).
 
 ## Status
 
-Alle Pflicht- und Optional-Phasen aus PLAN.md §32 sind abgeschlossen
-(Phase 1–8 + 5b PowerSync + 5c Geo + 6 Email/2FA/Passkey/MCP) — siehe
-[`RALPH_LOG.md`](./RALPH_LOG.md). Test-Suite: 1205 Tests in 130 Files,
-Coverage ≥ 96 % auf `src/core/`.
+All mandatory and optional phases from PLAN.md §32 are complete
+(Phase 1–8 + 5b PowerSync + 5c Geo + 6 Email/2FA/Passkey/MCP) — see
+[`RALPH_LOG.md`](./RALPH_LOG.md). Test suite: 1238 tests across 133
+files, coverage ≥ 96 % on `src/core/`.
 
 ## Quickstart
 
 ```bash
-# 1. Bun installieren (falls noch nicht da)
+# 1. Install Bun (if you don't have it yet)
 curl -fsSL https://bun.sh/install | bash
 
-# 2. Repo bootstrappen — installiert auch portless als devDependency
+# 2. Bootstrap the repo — also installs portless as a devDependency
 bun install
 
-# 3. Projekt umbenennen (siehe „Projekt-Rename" unten — nur einmal nach
-#    dem Klonen)
+# 3. Rename the project (see "Project rename" below — only once after
+#    cloning)
 bun run rename my-app
 
-# 4. mkcert-Root-CA für portless installieren (einmalig pro Maschine,
-#    sudo nötig). Damit funktionieren die *.<projekt>.localhost-URLs
-#    mit gültigem HTTPS-Zertifikat. Skippen, wenn du DISABLE_PORTLESS=1
-#    nutzt.
+# 4. Install the mkcert root CA for portless (one-time per machine,
+#    sudo required). This makes *.<project>.localhost URLs work with a
+#    valid HTTPS certificate. Skip if you set DISABLE_PORTLESS=1.
 node_modules/.bin/portless trust
 
-# 5. Dependencies starten (Postgres, RustFS, Mailpit, OTel)
+# 5. Start dev dependencies (Postgres, RustFS, Mailpit, OTel)
 docker compose up -d
 
-# 6. .env generieren — kopiert .env.example → .env und füllt automatisch:
+# 6. Generate .env — copies .env.example → .env and auto-fills:
 #    • Secrets via crypto.randomBytes (BETTER_AUTH_SECRET,
 #      POSTGRES_PASSWORD, SYSTEM_SETUP_ADMIN_PASSWORD,
 #      FIELD_ENCRYPTION_KEK, S3_SECRET_KEY, POWERSYNC_DB_PASSWORD)
-#    • Projekt-Vars aus package.json["name"]:
+#    • Project-scoped vars from package.json["name"]:
 #      POSTGRES_USER/POSTGRES_DB/DATABASE_URL/APP_BASE_URL.
-#    Idempotent: refused to overwrite, wenn .env schon existiert.
+#    Idempotent: refuses to overwrite if .env already exists.
 bun run setup
 
-# 7. DB-Migrations
+# 7. Apply DB migrations
 bun run prisma:migrate
 
-# 8. Dev-Server starten — portless wird automatisch mit-gebootet und
-#    serviert https://api.<projekt>.localhost. Ohne portless oder mit
-#    DISABLE_PORTLESS=1 bindet die API auf einen dynamisch gewählten
-#    Port (siehe Bun-Startlog).
+# 8. Start the dev server — portless boots automatically as a sidecar
+#    and serves https://api.<project>.localhost. Without portless or
+#    with DISABLE_PORTLESS=1, the API binds to a dynamically chosen
+#    port (see Bun startup log).
 bun run dev
 ```
 
-### Projekt-Rename
+### Project rename
 
-Beim Forken des Templates läuft
+When forking the template, run
 
 ```bash
 bun run rename my-app
 ```
 
-und schreibt den Projektnamen surgisch in vier Dateien:
+which surgically rewrites the project name in four files:
 
-| Datei | Was wird ersetzt |
+| File | What gets replaced |
 |---|---|
 | `package.json` | `"name"` |
-| `README.md` | erste H1-Zeile (`# nest-server-template` → `# my-app`) |
-| `portless.yml` | `project:` + alle `*.<projekt>.localhost`-Hostnames |
-| `docker-compose.yml` | top-level `name`, `container_name`-Präfixe, Network `name` |
+| `README.md` | first H1 (`# nest-server-template` → `# my-app`) |
+| `portless.yml` | `project:` + every `*.<project>.localhost` hostname |
+| `docker-compose.yml` | top-level `name`, `container_name` prefixes, network `name` |
 
-Idempotent — zweiter Lauf mit demselben Namen passiert nichts; ein
-Folge-Rename auf einen anderen Namen funktioniert weiterhin. Andere
-inline-Erwähnungen des alten Namens (z. B. in Prosa) bleiben unverändert
-und können bei Bedarf manuell angepasst werden. `kebab-case` wird
-strikt validiert (`/^[a-z][a-z0-9-]*[a-z0-9]$/`); ungültige Eingaben
-brechen ohne Schreibvorgang ab.
+Idempotent — running it twice with the same name is a no-op; a
+follow-up rename to a different name still works. Inline mentions of
+the old name in prose are left untouched and can be edited manually if
+needed. `kebab-case` is strictly validated
+(`/^[a-z][a-z0-9-]*[a-z0-9]$/`); invalid input aborts before any file
+is written.
 
-## Features konfigurieren
+## Configuring features
 
-Feature-Flags steuern, welche Module beim Boot in den DI-Container
-geladen werden. Single source of truth: `src/core/features/features.ts`
-(`FeaturesSchema`, Zod). Aktivierungs-Reihenfolge:
+Feature flags drive which modules get wired into the DI container at
+boot. Single source of truth: `src/core/features/features.ts`
+(`FeaturesSchema`, Zod). Activation precedence:
 
-1. **Schema-Defaults** (siehe Tabelle unten)
-2. **`FEATURE_*`-ENV-Vars** (überschreiben Defaults beim Boot)
-3. **Projekt-Override** in `src/config/features.ts` (sobald angelegt)
+1. **Schema defaults** (see table below)
+2. **`FEATURE_*` env vars** (override defaults at boot)
+3. **Project override** in `src/config/features.ts` (when present)
 
-### Format der ENV-Vars
+### Env var format
 
 `FEATURE_<SECTION>_<FIELD>=<value>`
 
-| Sektion | ENV-Prefix | Felder |
+| Section | Env prefix | Fields |
 |---|---|---|
 | `authMethods` | `FEATURE_AUTH_METHODS_` | `EMAIL_PASSWORD`, `TWO_FACTOR`, `PASSKEY`, `API_KEYS`, `SOCIAL_PROVIDERS` (CSV) |
 | `multiTenancy` | `FEATURE_MULTI_TENANCY_` | `ENABLED`, `RLS`, `HEADER_NAME` |
@@ -123,186 +123,186 @@ geladen werden. Single source of truth: `src/core/features/features.ts`
 | `geo` | `FEATURE_GEO_` | `ENABLED`, `PROVIDER` (`mapbox`/`google`/`nominatim`/`local`) |
 | `webhooks` / `search` / `realtime` / `powerSync` / `mcp` / `fieldEncryption` / `rateLimit` / `idempotency` / `observability` / `jobs` | `FEATURE_<SECTION>_` | `ENABLED` |
 
-Boolean-Werte: `true`/`false`, `1`/`0`, `yes`/`no`, `on`/`off`
-(case-insensitive). Arrays: kommagetrennt.
+Boolean values: `true`/`false`, `1`/`0`, `yes`/`no`, `on`/`off`
+(case-insensitive). Arrays are comma-separated.
 
-### Default-Tabelle
+### Defaults
 
-| Feature | Default | Hinweis |
+| Feature | Default | Note |
 |---|---|---|
-| `authMethods.emailPassword` | `true` | Always-on Empfehlung |
+| `authMethods.emailPassword` | `true` | always-on recommendation |
 | `authMethods.twoFactor` / `passkey` / `apiKeys` | `true` | |
-| `authMethods.socialProviders` | `[]` | Opt-in via CSV |
-| `multiTenancy.enabled` | `true` | mit `rls: true` |
-| `files.enabled` | `true` | mit `tus`/`transformations` an |
-| `email.enabled` | `true` | Provider `smtp` (Mailpit lokal) |
-| `rateLimit` / `idempotency` / `observability` / `jobs` | `true` | Cross-cutting |
-| `webhooks` / `search` / `realtime` / `powerSync` / `mcp` / `fieldEncryption` / `geo` | `false` | Opt-in pro Projekt |
+| `authMethods.socialProviders` | `[]` | opt-in via CSV |
+| `multiTenancy.enabled` | `true` | with `rls: true` |
+| `files.enabled` | `true` | with `tus`/`transformations` on |
+| `email.enabled` | `true` | provider `smtp` (Mailpit locally) |
+| `rateLimit` / `idempotency` / `observability` / `jobs` | `true` | cross-cutting |
+| `webhooks` / `search` / `realtime` / `powerSync` / `mcp` / `fieldEncryption` / `geo` | `false` | opt-in per project |
 
-### Beispiele
+### Examples
 
 ```bash
-# .env: Webhooks + Search aktivieren
+# .env: enable Webhooks + Search
 FEATURE_WEBHOOKS_ENABLED=true
 FEATURE_SEARCH_ENABLED=true
 
-# Passkey-Auth deaktivieren, Google-OAuth ergänzen
+# Disable passkey auth, add Google + GitHub OAuth
 FEATURE_AUTH_METHODS_PASSKEY=false
 FEATURE_AUTH_METHODS_SOCIAL_PROVIDERS=google,github
 
-# Email auf Brevo umstellen
+# Switch email to Brevo
 FEATURE_EMAIL_PROVIDER=brevo
 
-# Geo + PowerSync aktivieren (PowerSync verlangt multiTenancy)
+# Enable Geo + PowerSync (PowerSync requires multiTenancy)
 FEATURE_GEO_ENABLED=true
 FEATURE_POWERSYNC_ENABLED=true
 ```
 
-### Feature-Abhängigkeiten
+### Feature dependencies
 
-Beim Boot fail-fast (`validateFeatureDependencies`):
+Boot fails fast (`validateFeatureDependencies`) on:
 
-- `webhooks` → braucht `jobs` (pg-boss)
-- `powerSync` → braucht `multiTenancy` (Tenant-Buckets)
-- `production`-Build → `rateLimit` muss an bleiben
+- `webhooks` → requires `jobs` (pg-boss)
+- `powerSync` → requires `multiTenancy` (tenant-scoped buckets)
+- `production` builds → `rateLimit` must stay enabled
 
-Verstöße brechen den Boot mit klarer Meldung ab.
+Violations abort the boot with a clear error message.
 
-Schritt-für-Schritt-Guide für ein NEUES Feature-Toggle:
+Step-by-step guide for adding a NEW feature toggle:
 [`.claude/skills/adding-feature-flag.md`](./.claude/skills/adding-feature-flag.md).
 
-## Repo-Layout
+## Repo layout
 
 ```
 src/
-├── core/      # Template-Owned (Sync via `bun run sync:from-template`)
-├── modules/   # Projekt-Owned (niemals Teil von Sync)
-└── shared/    # Gemeinsame Types (Channels, Events) — wird mit SDK publiziert
+├── core/      # Template-owned (synced via `bun run sync:from-template`)
+├── modules/   # Project-owned (never part of the sync)
+└── shared/    # Shared types (channels, events) — published with the SDK
 tests/
-├── stories/   # TDD-Story-Tests pro User-Journey
-├── unit/      # Pure-Function-Tests
-├── types/     # TypeScript-Compile-Tests
-├── migrate/   # Migration-Verification
-└── k6/        # Load-/Memory-Tests
-prisma/        # Schema + Migrations (Feature-spezifische Schemas konkateniert)
-docker/        # Lokale Dev-Service-Configs (otel, …)
-generated/     # SDK-Output (kubb) — published als eigenes npm-Paket
+├── stories/   # TDD story tests, one file per user journey
+├── unit/      # Pure-function tests
+├── types/     # TypeScript compile-time tests
+├── migrate/   # Migration verification
+└── k6/        # Load + memory tests
+prisma/        # Schema + migrations (feature-specific schemas concatenated)
+docker/        # Local dev service configs (otel, …)
+generated/     # SDK output (kubb) — published as its own npm package
 ```
 
-## Befehle
+## Commands
 
-Alle Scripts laufen via `bun run <name>`. Vollständige Übersicht in
-`package.json`; die folgenden sind die für tägliche Entwicklung wichtigen:
+All scripts run via `bun run <name>`. Full inventory in `package.json`;
+the entries below are the ones used in everyday development.
 
-### Setup & Naming
+### Setup & naming
 
-| Script | Zweck |
+| Script | Purpose |
 |---|---|
-| `setup` | `.env` aus `.env.example` generieren, Secrets + Projekt-Vars automatisch füllen |
-| `rename <name>` | Projekt-Name in package.json/README/portless/docker-compose surgisch ersetzen |
+| `setup` | Generate `.env` from `.env.example`, auto-fill secrets + project vars |
+| `rename <name>` | Surgically replace the project name in package.json/README/portless/docker-compose |
 
-### Dev & Build
+### Dev & build
 
-| Script | Zweck |
+| Script | Purpose |
 |---|---|
-| `dev` | API im Watch-Mode starten, portless als Sidecar |
-| `build` | Bun-Bundle nach `dist/` (CI-Smoke; Consumer bauen Container selbst) |
+| `dev` | Start the API in watch mode with portless as a sidecar |
+| `build` | Bun bundle into `dist/` (CI smoke; consumers build their own containers) |
 
-### Lint & Format
+### Lint & format
 
-| Script | Zweck |
+| Script | Purpose |
 |---|---|
-| `lint` | oxlint (Errors-Check) |
-| `lint:fix` | oxlint mit Auto-Fix |
-| `format` | oxfmt --check (CI-Mode) |
-| `format:fix` | oxfmt schreibt Änderungen |
+| `lint` | oxlint (errors-only check) |
+| `lint:fix` | oxlint with auto-fix |
+| `format` | oxfmt --check (CI mode) |
+| `format:fix` | oxfmt writes changes |
 
-### Tests (TDD-Pflicht)
+### Tests (TDD-required)
 
-| Script | Zweck |
+| Script | Purpose |
 |---|---|
-| `test` | gesamte Vitest-Suite |
-| `test:watch` | Watch-Mode |
-| `test:unit` | nur `tests/unit/` (pure-function) |
-| `test:e2e` | E2E-Specs + Story-Tests (Postgres via testcontainers) |
-| `test:types` | `tsc --noEmit` auf `tests/types/` |
-| `test:coverage` | mit Coverage-Report (`reports/coverage/`) |
-| `test:perf` | k6-Memory-Test (`tests/k6/`) |
+| `test` | full Vitest suite |
+| `test:watch` | watch mode |
+| `test:unit` | only `tests/unit/` (pure-function) |
+| `test:e2e` | E2E specs + story tests (Postgres via testcontainers) |
+| `test:types` | `tsc --noEmit` on `tests/types/` |
+| `test:coverage` | with coverage report (`reports/coverage/`) |
+| `test:perf` | k6 memory test (`tests/k6/`) |
 
-Coverage-Gates: `src/core/` ≥ 90 %, `src/modules/` ≥ 80 %.
+Coverage gates: `src/core/` ≥ 90 %, `src/modules/` ≥ 80 %.
 
-### Datenbank & Schema
+### Database & schema
 
-| Script | Zweck |
+| Script | Purpose |
 |---|---|
-| `prepare:schema` | Aktive Feature-Schemas zu `prisma/schema.prisma` konkatenieren |
-| `prisma:generate` | Prisma-Client regenerieren |
-| `prisma:migrate` | Pending Migrations anwenden (`prisma migrate deploy`) |
+| `prepare:schema` | Concatenate active feature schemas into `prisma/schema.prisma` |
+| `prisma:generate` | Regenerate the Prisma client |
+| `prisma:migrate` | Apply pending migrations (`prisma migrate deploy`) |
 
-### SDK & Template-Sync
+### SDK & template sync
 
-| Script | Zweck |
+| Script | Purpose |
 |---|---|
-| `sdk:generate` | OpenAPI-Spec → Frontend-SDK via kubb |
-| `sync:from-template` | Template-Updates ins eigene Projekt holen (`src/core/`) |
-| `sync:to-template` | Lokale `src/core/`-Diffs als PR ans Template vorbereiten |
+| `sdk:generate` | OpenAPI spec → frontend SDK via kubb |
+| `sync:from-template` | Pull template updates into your project (`src/core/`) |
+| `sync:to-template` | Prepare local `src/core/` diffs as a PR back to the template |
 
 ## CI
 
-Die gleichen sechs Quality-Gates laufen automatisch:
+The same six quality gates run automatically:
 
-- **GitHub Actions** (`.github/workflows/ci.yml`) — auf jedem Push nach
-  `main` und auf jeden PR gegen `main`. Wird im OSS-Template-Repo auf
-  GitHub genutzt.
-- **GitLab CI** (`.gitlab-ci.yml`) — gleiche Stages für Consumer-
-  Projekte, die das Template forken und nach GitLab deployen.
+- **GitHub Actions** (`.github/workflows/ci.yml`) — on every push to
+  `main` and every PR targeting `main`. Used by the open-source
+  template repo on GitHub.
+- **GitLab CI** (`.gitlab-ci.yml`) — same stages for consumer projects
+  that fork the template and deploy from GitLab.
 
-Beide Pipelines decken `lint → format → test:unit → test:e2e →
-test:types → test:coverage → build` plus einen advisory `audit`-Job
-(non-blocking) ab.
+Both pipelines cover `lint → format → test:unit → test:e2e →
+test:types → test:coverage → build` plus an advisory `audit` job
+(non-blocking).
 
-## AI-Assistenz
+## AI assistance
 
-Das Repo ist auf Arbeit mit Claude Code optimiert. Workflow-Disziplin
-(Red-Green-Refactor TDD, Quality-Gates, Slice-Granularität) ist in
-[`CLAUDE.md`](./CLAUDE.md) dokumentiert. Pre-built Bausteine:
+The repo is optimised for working with Claude Code. Workflow discipline
+(red-green-refactor TDD, quality gates, slice granularity) is
+documented in [`CLAUDE.md`](./CLAUDE.md). Pre-built building blocks:
 
 **Agents** ([`.claude/agents/`](./.claude/agents/)):
-- `slice-implementer` — fährt eine komplette TDD-Slice aus PLAN.md §32
-- `quality-gate-runner` — alle sechs Gates inkl. Auto-Fix wo möglich
-- `module-scaffolder` — neues `src/modules/<name>/`-Subtree anlegen
+- `slice-implementer` — runs a complete TDD slice from PLAN.md §32
+- `quality-gate-runner` — runs all six gates including auto-fix where possible
+- `module-scaffolder` — scaffolds a new `src/modules/<name>/` subtree
 
 **Skills** ([`.claude/skills/`](./.claude/skills/)):
-- `running-tdd-slice` — Red-Green-Refactor Schritt-für-Schritt
-- `adding-feature-module` — neue Resource im Projekt anlegen
-- `adding-feature-flag` — neuen Toggle im FeaturesSchema
-- `adding-error-code` — `CORE_*`-Errorcode + Registry-Eintrag
-- `wiring-permissions` — CASL-Ability + DB-Rule-Resolver
-- `syncing-from-template` — Template-Update-Workflow
+- `running-tdd-slice` — red-green-refactor step by step
+- `adding-feature-module` — add a new resource to the project
+- `adding-feature-flag` — add a new toggle to FeaturesSchema
+- `adding-error-code` — add a `CORE_*` error code + registry entry
+- `wiring-permissions` — CASL ability + DB rule resolver
+- `syncing-from-template` — template update workflow
 
-Spec liegt in [`PLAN.md`](./PLAN.md) (§32 = Slice-Liste).
-Iterations-Historie in [`RALPH_LOG.md`](./RALPH_LOG.md). Offene
-Design-Fragen in [`OPEN_QUESTIONS.md`](./OPEN_QUESTIONS.md).
+Spec: [`PLAN.md`](./PLAN.md) (§32 = slice list). Iteration history:
+[`RALPH_LOG.md`](./RALPH_LOG.md). Open design questions:
+[`OPEN_QUESTIONS.md`](./OPEN_QUESTIONS.md).
 
-## Template-Sync
+## Template sync
 
 ```bash
-# Update aus Template-Repo holen (lässt src/modules/ unangetastet)
+# Pull updates from the template repo (leaves src/modules/ alone)
 bun run sync:from-template
 
-# Lokale src/core/-Änderungen als PR-Patch ans Template vorbereiten
+# Prepare local src/core/ diffs as a PR back to the template
 bun run sync:to-template
 ```
 
-Detaillierte Guides:
+Detailed guides:
 
-- [Template-Update-Workflow](./docs/template-update-workflow.md) — `sync:from-template` Schritt für Schritt
-- [Customization-Guide](./docs/customization-guide.md) — `src/core/` vs `src/modules/`, Features aktivieren, neue Resources anlegen
-- [Core-Contribution-Guide](./docs/core-contribution-guide.md) — `sync:to-template` + PR-zurück-Workflow
-- [Consumer-Guide](./docs/consumer-guide.md) — Bootstrapping eines neuen Projekts auf der Template-Basis
-- [API-Stability-Promise](./docs/api-stability-promise.md) — Semver-Konventionen, Public-Surface, Deprecation-Window
-- [Webhook-Spec](./docs/webhook-spec.md) — Outgoing-Webhook-Vertrag (HMAC-SHA256, Retry, Auto-Disable)
+- [Template-Update-Workflow](./docs/template-update-workflow.md) — `sync:from-template` step by step
+- [Customization-Guide](./docs/customization-guide.md) — `src/core/` vs `src/modules/`, enabling features, adding new resources
+- [Core-Contribution-Guide](./docs/core-contribution-guide.md) — `sync:to-template` + PR-back workflow
+- [Consumer-Guide](./docs/consumer-guide.md) — bootstrapping a new project on the template
+- [API-Stability-Promise](./docs/api-stability-promise.md) — semver conventions, public surface, deprecation window
+- [Webhook-Spec](./docs/webhook-spec.md) — outgoing webhook contract (HMAC-SHA256, retry, auto-disable)
 
-## Lizenz
+## License
 
-MIT — siehe [`LICENSE`](./LICENSE).
+MIT — see [`LICENSE`](./LICENSE).
