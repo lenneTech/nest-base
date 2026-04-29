@@ -1,6 +1,8 @@
 import "reflect-metadata";
 
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 
 import type { INestApplication, LoggerService } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
@@ -21,6 +23,7 @@ import { buildSecurityHeadersConfig } from "../http/security-headers.js";
 import { createLogger } from "../observability/logger.js";
 import { PinoLoggerService } from "../observability/pino-logger.service.js";
 import { serverConfigFromEnv } from "../server/server-config.js";
+import { checkEnvPrerequisites, renderEnvBanner } from "../setup/env-prerequisites.js";
 import { AppModule } from "./app.module.js";
 
 export interface BootstrapOptions {
@@ -48,6 +51,22 @@ export interface BootstrapOptions {
  */
 export async function bootstrap(options: BootstrapOptions = {}): Promise<INestApplication> {
   const { listen = true } = options;
+
+  // Pre-flight env check — surface a friendly banner instead of a deep
+  // stack trace when secrets are missing. Skipped in test mode where
+  // bootstrap() is invoked with a sink logger and synthetic env.
+  if (listen && process.env.NODE_ENV !== "test") {
+    const repoRoot = process.cwd();
+    const plan = checkEnvPrerequisites({
+      env: process.env as Record<string, string | undefined>,
+      envFileExists: existsSync(resolve(repoRoot, ".env")),
+      envExampleExists: existsSync(resolve(repoRoot, ".env.example")),
+    });
+    if (!plan.ok) {
+      process.stdout.write(renderEnvBanner(plan));
+      process.exit(1);
+    }
+  }
 
   const cfg = serverConfigFromEnv(process.env);
   const logger =
