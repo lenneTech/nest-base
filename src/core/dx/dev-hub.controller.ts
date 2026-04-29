@@ -1,6 +1,10 @@
-import { Controller, Get, Header, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Header, NotFoundException, Query } from '@nestjs/common';
 
 import { type Features, loadFeatures } from '../features/features.js';
+import {
+  type PrismaWhere,
+  parsePostgrestQuery,
+} from '../permissions/postgrest-query.js';
 import { serverConfigFromEnv } from '../server/server-config.js';
 import { APP_NAME, APP_VERSION } from '../app/app.metadata.js';
 import { buildDiagnosticsReport, type DiagnosticsReport } from './diagnostics.js';
@@ -30,6 +34,14 @@ export class DevHubController {
   features(): Features {
     this.assertDev();
     return this.featuresOnly();
+  }
+
+  @Get('postgrest-parse')
+  postgrestParse(@Query() query: Record<string, string>): { where: PrismaWhere } {
+    this.assertDev();
+    // Strips off the controller's own NestJS-overhead query params if any
+    // (none today). Returns the parsed Prisma WHERE for inspection.
+    return { where: parsePostgrestQuery(query) };
   }
 
   @Get('diagnostics')
