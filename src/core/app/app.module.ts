@@ -9,6 +9,7 @@ import { DevHubModule } from '../dx/dev-hub.module.js';
 import { EncryptionModule } from '../encryption/encryption.module.js';
 import { ErrorCodesModule } from '../errors/error-codes.module.js';
 import { conditionalImport, loadFeatures } from '../features/features.js';
+import { GdprModule } from '../gdpr/gdpr.module.js';
 import { HealthModule } from '../health/health.module.js';
 import { TenantInterceptor } from '../multi-tenancy/tenant.interceptor.js';
 import { OutputPipelineInterceptor } from '../output-pipeline/output-pipeline.interceptor.js';
@@ -68,6 +69,7 @@ const devtools = buildDevToolsConfig({
     // SearchModule is loaded unconditionally — empty executor list
     // by default, projects opt in via SEARCH_EXECUTORS multi-provider.
     SearchModule,
+    GdprModule,
     ...conditionalImport(features, 'fieldEncryption', EncryptionModule.forRoot()),
     ...(devtools.enabled && devtools.http
       ? [DevtoolsModule.register({ http: true, port: devtools.port })]

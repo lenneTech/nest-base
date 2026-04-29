@@ -3774,7 +3774,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [ ] Cursor-Pagination zusätzlich zu page/limit  — *Pagination-Helper vorhanden, keine Controller verwenden ihn.*
 - [ ] `@nestjs/throttler` mit Postgres-Store, Multi-Window  — *Postgres-Store-Klasse existiert, ThrottlerModule ist nicht in AppModule.*
 - [ ] Per-API-Key Rate-Limit-Bucket  — *Bucket-Helper existiert, ohne Wiring (siehe Throttler).*
-- [ ] GDPR-Endpoints (`/me/export`, `/me/account`, Anonymisierung)  — *Builder/Erasure-Planner existieren, keine Controller.*
+- [x] GDPR-Endpoints (`/me/export`, `/me/account`, Anonymisierung)  *(`GdprModule` mountet `GET /me/export` (`buildGdprExport()`) + `DELETE /me/account` (Erasure-Stub). 403 ohne Auth. Daten-Plumbing folgt mit Project-Erasure-Registry.)*
 - [ ] Audit-Log-Extension (mit Encryption-Awareness)  — *Service existiert, weder Prisma-Extension verdrahtet noch DI-Provider.*
 - [x] Error-Code-Registry + i18n-Endpoint  *(`ErrorCodesModule` registriert die 7 `CORE_*` Codes mit `en`+`de`-Messages und mountet `GET /errors` (Liste) + `GET /errors/{code}?locale=…` (resolve). Project-Code-Registrierung via `OnModuleInit` möglich.)*
 - [ ] OpenAPI-Doku komplett (inkl. RFC 7807 Schemas)  — *Hängt komplett von vorhandenen Controllern ab; ohne die kein Spec.*
