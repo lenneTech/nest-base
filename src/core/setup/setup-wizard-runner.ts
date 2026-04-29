@@ -27,7 +27,16 @@ export type RandomBytesFn = (size: number) => Buffer;
 
 export interface PlanEnvFromExampleOptions {
   randomBytes: RandomBytesFn;
+  /**
+   * When provided, project-scoped vars get tailored to this name:
+   * `POSTGRES_USER`/`POSTGRES_DB`/`DATABASE_URL` switch from the
+   * template's name to this one, and `APP_BASE_URL` becomes the
+   * portless host (`https://api.<name>.localhost`).
+   */
+  projectName?: string;
 }
+
+const TEMPLATE_NAME = 'nest-server-template';
 
 interface SecretSpec {
   /** Bytes of entropy to draw. */
@@ -51,8 +60,17 @@ export function planEnvFromExample(
   exampleText: string,
   options: PlanEnvFromExampleOptions,
 ): string {
+  // Apply project-name substitution to the *placeholder* text first so it
+  // never touches generated secrets. Only kicks in when the project has
+  // been renamed away from the template default.
+  const projectName = options.projectName;
+  const tailorProject = projectName !== undefined && projectName !== TEMPLATE_NAME;
+  const sourceText = tailorProject
+    ? rewriteProjectScopedVars(exampleText, projectName!)
+    : exampleText;
+
   const generated: Record<string, string> = {};
-  const lines = exampleText.split('\n');
+  const lines = sourceText.split('\n');
   const out: string[] = [];
 
   for (const line of lines) {
@@ -84,6 +102,25 @@ export function planEnvFromExample(
   return joined.endsWith('\n') ? joined : joined + '\n';
 }
 
+/**
+ * Rewrite the placeholder template name + the localhost APP_BASE_URL to
+ * project-specific values. Operates on raw text so it stays transparent
+ * to the secret-substitution loop above.
+ */
+function rewriteProjectScopedVars(text: string, projectName: string): string {
+  // Replace every occurrence of the template name. POSTGRES_USER /
+  // POSTGRES_DB / DATABASE_URL all carry it; nothing else in
+  // .env.example does (comments don't, secrets don't).
+  let out = text.split(TEMPLATE_NAME).join(projectName);
+  // APP_BASE_URL: assume portless when a name is given. Local-only devs
+  // edit this back to http://localhost:<port> after generation.
+  out = out.replace(
+    /^APP_BASE_URL=http:\/\/localhost:\d+$/m,
+    `APP_BASE_URL=https://api.${projectName}.localhost`,
+  );
+  return out;
+}
+
 function encodeBytes(buf: Buffer, encoding: SecretSpec['encoding']): string {
   if (encoding === 'base64') return buf.toString('base64');
   if (encoding === 'hex') return buf.toString('hex');
@@ -112,6 +149,13 @@ export interface SetupWizardResult {
 
 const SILENT_LOGGER: SetupWizardLogger = { info: () => {}, warn: () => {} };
 
+function readPackageJsonName(root: string): string | undefined {
+  const pkgPath = join(root, 'package.json');
+  if (!existsSync(pkgPath)) return undefined;
+  const match = /"name"\s*:\s*"([^"]+)"/.exec(readFileSync(pkgPath, 'utf8'));
+  return match?.[1];
+}
+
 export function runSetupWizard(options: RunSetupWizardOptions): SetupWizardResult {
   const logger = options.logger ?? SILENT_LOGGER;
   const examplePath = join(options.projectRoot, '.env.example');
@@ -128,8 +172,10 @@ export function runSetupWizard(options: RunSetupWizardOptions): SetupWizardResul
   }
 
   const exampleText = readFileSync(examplePath, 'utf8');
+  const projectName = readPackageJsonName(options.projectRoot);
   const rendered = planEnvFromExample(exampleText, {
     randomBytes: options.randomBytes ?? ((size) => nodeRandomBytes(size)),
+    projectName,
   });
   writeFileSync(envPath, rendered, 'utf8');
   logger.info(`wrote ${envPath} with auto-generated secrets`);

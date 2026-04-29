@@ -51,10 +51,16 @@ bun run rename my-app
 # 4. Dependencies starten (Postgres, RustFS, Mailpit, OTel)
 docker compose up -d
 
-# 5. ENV-File anlegen (kopiert .env.example → .env, Secrets werden via
-#    crypto.randomBytes automatisch ersetzt — BETTER_AUTH_SECRET,
-#    POSTGRES_PASSWORD, FIELD_ENCRYPTION_KEK, S3_SECRET_KEY,
-#    POWERSYNC_DB_PASSWORD; DATABASE_URL wird passend umgeschrieben).
+# 5. ENV-File anlegen — kopiert .env.example → .env und ersetzt
+#    automatisch:
+#    • Secrets via crypto.randomBytes (BETTER_AUTH_SECRET,
+#      POSTGRES_PASSWORD, SYSTEM_SETUP_ADMIN_PASSWORD,
+#      FIELD_ENCRYPTION_KEK, S3_SECRET_KEY, POWERSYNC_DB_PASSWORD)
+#    • Projekt-skopierte Vars aus package.json["name"]:
+#      POSTGRES_USER/POSTGRES_DB/DATABASE_URL bekommen den Projekt-
+#      Namen, APP_BASE_URL wird zur portless-URL
+#      (https://api.<projekt>.localhost). Wer kein portless nutzt,
+#      passt APP_BASE_URL danach manuell an.
 #    Idempotent: refused to overwrite, wenn .env schon existiert.
 bun run setup
 
