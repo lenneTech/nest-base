@@ -22,17 +22,29 @@ describe("SearchController · GET /search", () => {
     else process.env.FEATURE_SEARCH_ENABLED = originalSearch;
   });
 
-  it("returns an empty result set when no executors are registered", async () => {
+  it("403s when no ability is attached (CanGuard rejects empty ability)", async () => {
     const res = await request(app.getHttpServer())
       .get("/search")
       .set("x-tenant-id", TENANT)
+      .query({ q: "hello" });
+    expect(res.status).toBe(403);
+  });
+
+  it("returns an empty result set when no executors are registered (with test-ability seeded)", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/search")
+      .set("x-tenant-id", TENANT)
+      .set("x-test-ability", "full")
       .query({ q: "hello" });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ hits: [], total: 0 });
   });
 
   it("400s when q is missing", async () => {
-    const res = await request(app.getHttpServer()).get("/search").set("x-tenant-id", TENANT);
+    const res = await request(app.getHttpServer())
+      .get("/search")
+      .set("x-tenant-id", TENANT)
+      .set("x-test-ability", "full");
     expect(res.status).toBe(400);
   });
 
@@ -40,6 +52,7 @@ describe("SearchController · GET /search", () => {
     const res = await request(app.getHttpServer())
       .get("/search")
       .set("x-tenant-id", TENANT)
+      .set("x-test-ability", "full")
       .query({ q: "foo", limit: "10", only: "users,projects" });
     expect(res.status).toBe(200);
     expect(res.body.hits).toEqual([]);

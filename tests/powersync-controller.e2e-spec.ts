@@ -18,10 +18,19 @@ describe("PowerSyncController · POST /powersync/crud", () => {
     await app.close();
   });
 
-  it("accepts a valid batch and returns 204", async () => {
+  it("403s when no ability is attached (CanGuard rejects empty ability)", async () => {
     const res = await request(app.getHttpServer())
       .post("/powersync/crud")
       .set("x-tenant-id", TENANT)
+      .send({ batch: [{ op: "PUT", type: "widgets", id: "w1", data: {} }] });
+    expect(res.status).toBe(403);
+  });
+
+  it("accepts a valid batch and returns 204 (with test-ability seeded)", async () => {
+    const res = await request(app.getHttpServer())
+      .post("/powersync/crud")
+      .set("x-tenant-id", TENANT)
+      .set("x-test-ability", "full")
       .send({
         batch: [{ op: "PUT", type: "widgets", id: "w1", data: { name: "foo" } }],
       });
@@ -32,6 +41,7 @@ describe("PowerSyncController · POST /powersync/crud", () => {
     const res = await request(app.getHttpServer())
       .post("/powersync/crud")
       .set("x-tenant-id", TENANT)
+      .set("x-test-ability", "full")
       .send({ batch: [{ op: "NUKE", type: "x", id: "y", data: {} }] });
     expect(res.status).toBe(400);
   });
@@ -40,6 +50,7 @@ describe("PowerSyncController · POST /powersync/crud", () => {
     const res = await request(app.getHttpServer())
       .post("/powersync/crud")
       .set("x-tenant-id", TENANT)
+      .set("x-test-ability", "full")
       .send({});
     expect(res.status).toBe(400);
   });

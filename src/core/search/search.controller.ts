@@ -1,5 +1,6 @@
 import { BadRequestException, Controller, Get, Query } from "@nestjs/common";
 
+import { Can } from "../permissions/can.guard.js";
 import { type SearchHit } from "./cross-resource-search.js";
 import { SearchService } from "./search.service.js";
 
@@ -18,8 +19,7 @@ const MAX_LIMIT = 100;
 export class SearchController {
   constructor(private readonly service: SearchService) {}
 
-  // TODO(perm-gate): wire @Can("read", "Search") once the e2e suite
-  // gains a test-ability helper. See OPEN_QUESTIONS.md.
+  @Can("read", "Search")
   @Get()
   async search(
     @Query("q") q: string | undefined,

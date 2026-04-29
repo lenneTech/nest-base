@@ -1,5 +1,6 @@
 import { BadRequestException, Body, Controller, Get, Post, Query } from "@nestjs/common";
 
+import { Can } from "../permissions/can.guard.js";
 import { GeocodeQuerySchema, PlacesNearbySchema, ReverseGeocodeQuerySchema } from "./geo-dtos.js";
 import { GeoService, buildFindNearbyQuery } from "./geo-service.js";
 import type { GeocodingResult } from "./geocoding-providers.js";
@@ -18,6 +19,7 @@ import type { GeocodingResult } from "./geocoding-providers.js";
 export class GeoController {
   constructor(private readonly geo: GeoService) {}
 
+  @Can("read", "Geo")
   @Get("geo/geocode")
   async geocode(@Query() query: Record<string, string>): Promise<GeocodingResult | null> {
     const parsed = GeocodeQuerySchema.safeParse(query);
@@ -25,6 +27,7 @@ export class GeoController {
     return this.geo.geocode(parsed.data.q);
   }
 
+  @Can("read", "Geo")
   @Get("geo/reverse-geocode")
   async reverseGeocode(@Query() query: Record<string, string>): Promise<GeocodingResult | null> {
     const parsed = ReverseGeocodeQuerySchema.safeParse({
@@ -35,6 +38,7 @@ export class GeoController {
     return this.geo.reverseGeocode(parsed.data.lat, parsed.data.lng);
   }
 
+  @Can("read", "Geo")
   @Post("places/nearby")
   async placesNearby(@Body() body: unknown): Promise<{ sql: string }> {
     const parsed = PlacesNearbySchema.safeParse(body);

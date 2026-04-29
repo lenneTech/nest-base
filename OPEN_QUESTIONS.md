@@ -36,24 +36,3 @@ Per entry:
   expressed by simply not granting the action (or via an inverted
   rule).
 - **Status:** answered.
-
-
----
-
-### Open question — TODO(perm-gate): @Can() on search/powersync/asset/geo controllers
-
-- **Found in:** intensive review of `/dev/routes` audit (32%
-  unguarded). The user-data-touching controllers had no `@Can()`
-  decorator, only a `req.user` nullcheck.
-- **Done so far:** `gdpr.controller` and `address.controller` are
-  fully wired with `@Can()` decorators (story-tested).
-- **Blocked on:** the existing e2e suite for `search-controller`,
-  `powersync-controller`, `asset.controller`, and `geo.controller`
-  posts unauthenticated requests directly. Adding `@Can()` there
-  causes those tests to 403 instead of testing the controller logic.
-- **Next slice:** add a test-ability helper (e.g. an interceptor that
-  honours an `X-Test-Ability: <ability-blob>` header only when
-  `NODE_ENV === "test"`) so tests can pre-seed an Ability without
-  going through the full Better-Auth flow. Once that lands, finish
-  wiring the remaining 4 controllers.
-- **Status:** open.

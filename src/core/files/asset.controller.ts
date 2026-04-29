@@ -2,6 +2,7 @@ import { BadRequestException, Controller, Get, Param, Query, Res } from "@nestjs
 import type { Response } from "express";
 import sharp from "sharp";
 
+import { Can } from "../permissions/can.guard.js";
 import { type TransformOptions, computeCacheKey } from "./asset.service.js";
 
 /**
@@ -17,6 +18,7 @@ import { type TransformOptions, computeCacheKey } from "./asset.service.js";
  */
 @Controller("assets")
 export class AssetController {
+  @Can("read", "Asset")
   @Get(":key")
   async get(
     @Param("key") key: string,

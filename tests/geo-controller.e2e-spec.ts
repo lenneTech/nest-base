@@ -18,10 +18,19 @@ describe("GeoController · /geo/* + /places/nearby", () => {
     await app.close();
   });
 
-  it("GET /geo/geocode returns 200 with empty/null body when no fixture matches", async () => {
+  it("GET /geo/geocode 403s when no ability is attached", async () => {
     const res = await request(app.getHttpServer())
       .get("/geo/geocode")
       .set("x-tenant-id", TENANT)
+      .query({ q: "Berlin" });
+    expect(res.status).toBe(403);
+  });
+
+  it("GET /geo/geocode returns 200 with empty/null body when no fixture matches (with test-ability)", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/geo/geocode")
+      .set("x-tenant-id", TENANT)
+      .set("x-test-ability", "full")
       .query({ q: "nonsense-place-12345" });
     expect(res.status).toBe(200);
     // LocalStub with empty seed returns null; supertest serialises it.
@@ -35,7 +44,10 @@ describe("GeoController · /geo/* + /places/nearby", () => {
   });
 
   it("GET /geo/geocode 400s when q is missing", async () => {
-    const res = await request(app.getHttpServer()).get("/geo/geocode").set("x-tenant-id", TENANT);
+    const res = await request(app.getHttpServer())
+      .get("/geo/geocode")
+      .set("x-tenant-id", TENANT)
+      .set("x-test-ability", "full");
     expect(res.status).toBe(400);
   });
 
@@ -43,6 +55,7 @@ describe("GeoController · /geo/* + /places/nearby", () => {
     const res = await request(app.getHttpServer())
       .get("/geo/reverse-geocode")
       .set("x-tenant-id", TENANT)
+      .set("x-test-ability", "full")
       .query({ lat: "abc", lng: "xyz" });
     expect(res.status).toBe(400);
   });
@@ -51,6 +64,7 @@ describe("GeoController · /geo/* + /places/nearby", () => {
     const res = await request(app.getHttpServer())
       .post("/places/nearby")
       .set("x-tenant-id", TENANT)
+      .set("x-test-ability", "full")
       .send({ lat: 52.5, lng: 13.4, radiusMeters: 1000 });
     expect(res.status).toBe(201);
     expect(res.body.sql).toMatch(/ST_DWithin/);
@@ -61,6 +75,7 @@ describe("GeoController · /geo/* + /places/nearby", () => {
     const res = await request(app.getHttpServer())
       .post("/places/nearby")
       .set("x-tenant-id", TENANT)
+      .set("x-test-ability", "full")
       .send({ lat: 52.5, lng: 13.4, radiusMeters: 0 });
     expect(res.status).toBe(400);
   });

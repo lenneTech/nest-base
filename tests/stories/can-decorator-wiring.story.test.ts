@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
+import { AssetController } from "../../src/core/files/asset.controller.js";
 import { AddressController } from "../../src/core/geo/address.controller.js";
+import { GeoController } from "../../src/core/geo/geo.controller.js";
+import { PowerSyncController } from "../../src/core/auth/powersync.controller.js";
+import { SearchController } from "../../src/core/search/search.controller.js";
 import { CAN_METADATA_KEY } from "../../src/core/permissions/can.guard.js";
 
 /**
@@ -12,11 +16,10 @@ import { CAN_METADATA_KEY } from "../../src/core/permissions/can.guard.js";
  * they bypass the unified CASL ability layer + output-pipeline +
  * permission tester.
  *
- * This story locks the wiring in for the controllers that have been
- * migrated. The remaining ones (search, powersync, asset, geo) are
- * tracked as TODO(perm-gate) because their existing e2e suite posts
- * unauthenticated — adding the decorator there would break tests
- * until a test-ability helper is built. See OPEN_QUESTIONS.md.
+ * Each handler now declares its (action, subject). Existing e2e
+ * tests that previously posted unauthenticated now use the test-
+ * ability helper (X-Test-Ability header) to seed an admin ability —
+ * see `permissions/test-ability.ts`.
  */
 describe("Story · @Can() decorator wiring (audit gate)", () => {
   function getCan(target: object, methodName: string): unknown {
@@ -51,6 +54,56 @@ describe("Story · @Can() decorator wiring (audit gate)", () => {
       expect(getCan(AddressController.prototype, "remove")).toEqual({
         action: "delete",
         subject: "Address",
+      });
+    });
+  });
+
+  describe("SearchController", () => {
+    it("GET /search carries @Can('read', 'Search')", () => {
+      expect(getCan(SearchController.prototype, "search")).toEqual({
+        action: "read",
+        subject: "Search",
+      });
+    });
+  });
+
+  describe("PowerSyncController", () => {
+    it("POST /powersync/crud carries @Can('write', 'PowerSync')", () => {
+      expect(getCan(PowerSyncController.prototype, "crud")).toEqual({
+        action: "write",
+        subject: "PowerSync",
+      });
+    });
+  });
+
+  describe("AssetController", () => {
+    it("GET /assets/:key carries @Can('read', 'Asset')", () => {
+      expect(getCan(AssetController.prototype, "get")).toEqual({
+        action: "read",
+        subject: "Asset",
+      });
+    });
+  });
+
+  describe("GeoController", () => {
+    it("GET /geo/geocode carries @Can('read', 'Geo')", () => {
+      expect(getCan(GeoController.prototype, "geocode")).toEqual({
+        action: "read",
+        subject: "Geo",
+      });
+    });
+
+    it("GET /geo/reverse-geocode carries @Can('read', 'Geo')", () => {
+      expect(getCan(GeoController.prototype, "reverseGeocode")).toEqual({
+        action: "read",
+        subject: "Geo",
+      });
+    });
+
+    it("POST /places/nearby carries @Can('read', 'Geo')", () => {
+      expect(getCan(GeoController.prototype, "placesNearby")).toEqual({
+        action: "read",
+        subject: "Geo",
       });
     });
   });
