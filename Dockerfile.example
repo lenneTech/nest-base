@@ -4,13 +4,13 @@
 # See PLAN.md §28.10/#29.
 
 # ---------- Stage 1: install dependencies ----------
-FROM oven/bun:1.1 AS deps
+FROM oven/bun:1.3 AS deps
 WORKDIR /app
 COPY package.json bun.lockb* ./
 RUN bun install --frozen-lockfile --production
 
 # ---------- Stage 2: build ----------
-FROM oven/bun:1.1 AS build
+FROM oven/bun:1.3 AS build
 WORKDIR /app
 COPY package.json bun.lockb* ./
 RUN bun install --frozen-lockfile
@@ -18,7 +18,7 @@ COPY . .
 RUN bun run build
 
 # ---------- Stage 3: runtime ----------
-FROM oven/bun:1.1-alpine AS runtime
+FROM oven/bun:1.3-alpine AS runtime
 WORKDIR /app
 
 # OCI image labels (consumers override or extend in their own Dockerfile).
