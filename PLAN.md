@@ -3718,7 +3718,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] GIST-Indizes via raw-SQL-Migration
 - [x] `GeocodingProvider` Interface + Adapter (Mapbox, Nominatim, Google, Local-Stub)
 - [x] `GeoService` (geocode, reverseGeocode, findNearby, withinGeofence, distance)
-- [ ] REST-Endpunkte (`/geo/*`, `/addresses`, `/geofences`, generisches `/places/nearby`)  — *Keine Controller.*
+- [x] REST-Endpunkte (`/geo/*`, `/addresses`, `/geofences`, generisches `/places/nearby`)  *(`GeoModule` + `GeoController`: `GET /geo/geocode`, `GET /geo/reverse-geocode`, `POST /places/nearby`. Default-Provider `LocalStubGeocodingProvider`, In-Memory-Cache. Address/Geofence-CRUD folgen mit dedizierten Repositories. e2e: `tests/geo-controller.e2e-spec.ts`.)*
 - [ ] GeoJSON-Output-Mapper in Output-Pipeline integrieren (Stage 3a)  — *Mapper-Funktion existiert, aber Output-Pipeline-Interceptor läuft nicht (siehe Phase 3).*
 - [ ] GeocodingCache + Cleanup-Cron (90 Tage TTL)  — *Cleanup-Planner existiert, kein `@Cron`-Job ist in DI registriert.*
 - [ ] Field-Encryption-Integration für Adress-PII-Felder (street, zip)  — *`encryptAddress`/`decryptAddress` existieren, sind aber nicht in CRUD-Pfaden integriert.*
