@@ -178,6 +178,71 @@ describe('Story · Setup-Wizard planner', () => {
         expect(env).toMatch(/^# OTEL_RESOURCE_ATTRIBUTES=|^OTEL_RESOURCE_ATTRIBUTES=/m);
       });
     });
+
+    describe('feature-flag override block', () => {
+      // Every FeaturesSchema toggle should appear (commented out, with the
+      // schema default as the value) so devs can uncomment-and-edit
+      // instead of looking up env-var names.
+      it('lists every always-on toggle (rateLimit, idempotency, observability, jobs)', () => {
+        const env = planSetup(answers()).envExample;
+        expect(env).toMatch(/^#\s*FEATURE_RATE_LIMIT_ENABLED=true$/m);
+        expect(env).toMatch(/^#\s*FEATURE_IDEMPOTENCY_ENABLED=true$/m);
+        expect(env).toMatch(/^#\s*FEATURE_OBSERVABILITY_ENABLED=true$/m);
+        expect(env).toMatch(/^#\s*FEATURE_JOBS_ENABLED=true$/m);
+      });
+
+      it('lists every opt-in toggle (webhooks, search, realtime, powerSync, mcp, fieldEncryption, geo)', () => {
+        const env = planSetup(answers()).envExample;
+        expect(env).toMatch(/^#\s*FEATURE_WEBHOOKS_ENABLED=false$/m);
+        expect(env).toMatch(/^#\s*FEATURE_SEARCH_ENABLED=false$/m);
+        expect(env).toMatch(/^#\s*FEATURE_REALTIME_ENABLED=false$/m);
+        expect(env).toMatch(/^#\s*FEATURE_POWERSYNC_ENABLED=false$/m);
+        expect(env).toMatch(/^#\s*FEATURE_MCP_ENABLED=false$/m);
+        expect(env).toMatch(/^#\s*FEATURE_FIELD_ENCRYPTION_ENABLED=false$/m);
+        expect(env).toMatch(/^#\s*FEATURE_GEO_ENABLED=false$/m);
+      });
+
+      it('lists multiTenancy fields (enabled, RLS, header)', () => {
+        const env = planSetup(answers()).envExample;
+        expect(env).toMatch(/^#\s*FEATURE_MULTI_TENANCY_ENABLED=true$/m);
+        expect(env).toMatch(/^#\s*FEATURE_MULTI_TENANCY_RLS=true$/m);
+        expect(env).toMatch(/^#\s*FEATURE_MULTI_TENANCY_HEADER_NAME=x-tenant-id$/m);
+      });
+
+      it('lists files fields (enabled, storage default, tus, transformations)', () => {
+        const env = planSetup(answers()).envExample;
+        expect(env).toMatch(/^#\s*FEATURE_FILES_ENABLED=true$/m);
+        expect(env).toMatch(/^#\s*FEATURE_FILES_STORAGE_DEFAULT=s3$/m);
+        expect(env).toMatch(/^#\s*FEATURE_FILES_TUS=true$/m);
+        expect(env).toMatch(/^#\s*FEATURE_FILES_TRANSFORMATIONS=true$/m);
+      });
+
+      it('lists email fields (enabled, provider)', () => {
+        const env = planSetup(answers()).envExample;
+        expect(env).toMatch(/^#\s*FEATURE_EMAIL_ENABLED=true$/m);
+        expect(env).toMatch(/^#\s*FEATURE_EMAIL_PROVIDER=smtp$/m);
+      });
+
+      it('lists geo fields (enabled, provider)', () => {
+        const env = planSetup(answers()).envExample;
+        expect(env).toMatch(/^#\s*FEATURE_GEO_ENABLED=false$/m);
+        expect(env).toMatch(/^#\s*FEATURE_GEO_PROVIDER=nominatim$/m);
+      });
+
+      it('lists every authMethods sub-toggle', () => {
+        const env = planSetup(answers()).envExample;
+        expect(env).toMatch(/^#\s*FEATURE_AUTH_METHODS_EMAIL_PASSWORD=true$/m);
+        expect(env).toMatch(/^#\s*FEATURE_AUTH_METHODS_TWO_FACTOR=true$/m);
+        expect(env).toMatch(/^#\s*FEATURE_AUTH_METHODS_PASSKEY=true$/m);
+        expect(env).toMatch(/^#\s*FEATURE_AUTH_METHODS_API_KEYS=true$/m);
+        expect(env).toMatch(/^#\s*FEATURE_AUTH_METHODS_SOCIAL_PROVIDERS=$/m);
+      });
+
+      it('introduces the block with a banner so devs can find it', () => {
+        const env = planSetup(answers()).envExample;
+        expect(env).toMatch(/Feature flags/i);
+      });
+    });
   });
 
   describe('featuresSource', () => {
