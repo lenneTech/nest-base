@@ -1,5 +1,6 @@
 import { Injectable, Logger, Module, type OnModuleInit } from '@nestjs/common';
 
+import { AddressController } from './address.controller.js';
 import { GeoController } from './geo.controller.js';
 import {
   DEFAULT_GEOCODING_CACHE_RETENTION_DAYS,
@@ -65,7 +66,7 @@ class GeocodingCacheCleanupCron implements OnModuleInit {
  * Postgres-backed adapter follows.
  */
 @Module({
-  controllers: [GeoController],
+  controllers: [GeoController, AddressController],
   providers: [
     {
       provide: GEO_SERVICE,

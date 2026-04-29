@@ -3721,7 +3721,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] REST-Endpunkte (`/geo/*`, `/addresses`, `/geofences`, generisches `/places/nearby`)  *(`GeoModule` + `GeoController`: `GET /geo/geocode`, `GET /geo/reverse-geocode`, `POST /places/nearby`. Default-Provider `LocalStubGeocodingProvider`, In-Memory-Cache. Address/Geofence-CRUD folgen mit dedizierten Repositories. e2e: `tests/geo-controller.e2e-spec.ts`.)*
 - [x] GeoJSON-Output-Mapper in Output-Pipeline integrieren (Stage 3a)  *(`OutputPipelineInterceptor` ruft `mapRecordToGeoJson()` auf jedem Response-Object für die konventionellen Geometry-Spalten `location` + `area`, rekursiv über verschachtelte Objekte und Arrays. Malformed-Geometry wird stillschweigend durchgelassen — der Safety-Net-Stage fängt offensichtliche Leaks separat ab.)*
 - [x] GeocodingCache + Cleanup-Cron (90 Tage TTL)  *(`GeocodingCacheCleanupCron` als `OnModuleInit` läuft `buildGeocodingCleanupPlan()` einmal beim Boot + alle 24h via setInterval. Logged Plan; echte DELETE-Ausführung kommt mit Prisma-`GeocodingCache`-Model.)*
-- [ ] Field-Encryption-Integration für Adress-PII-Felder (street, zip)  — *`encryptAddress`/`decryptAddress` existieren, sind aber nicht in CRUD-Pfaden integriert.*
+- [x] Field-Encryption-Integration für Adress-PII-Felder (street, zip)  *(`AddressController` (`/addresses` CRUD) wraps writes mit `encryptAddress()` und reads mit `decryptAddress()`; `ADDRESS_ENCRYPTED_FIELDS` (street, zip) bleiben AES-GCM-Ciphertext at-rest. Aktiviert via `FEATURE_FIELD_ENCRYPTION_ENABLED=true`.)*
 - [x] Frontend-SDK-Types für Point/Polygon/FeatureCollection (via OpenAPI)
 
 ### Phase 5b – Mobile-Offline-Sync (PowerSync, optional)
