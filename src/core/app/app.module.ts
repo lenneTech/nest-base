@@ -1,7 +1,9 @@
 import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 
 import { ConfigModule } from '../config/config.module.js';
 import { HealthModule } from '../health/health.module.js';
+import { OutputPipelineInterceptor } from '../output-pipeline/output-pipeline.interceptor.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { RequestContextMiddleware } from '../request-context/request-context.middleware.js';
 import { AppController } from './app.controller.js';
@@ -16,11 +18,20 @@ import { AppController } from './app.controller.js';
  * `RequestContextMiddleware` runs first on every route so the
  * AsyncLocalStorage context (request id, trace id, tenant) is populated
  * before any controller, guard, or interceptor executes.
+ *
+ * `OutputPipelineInterceptor` runs on every controller response and
+ * strips known-secret-shaped fields (Stages 3+4 of the four-stage
+ * Output-Pipeline). The remaining stages (record-level permission
+ * filter + field allowlist) activate once an `Ability` is resolvable
+ * per request.
  */
 @Module({
   imports: [ConfigModule.forRoot(), PrismaModule, HealthModule],
   controllers: [AppController],
-  providers: [RequestContextMiddleware],
+  providers: [
+    RequestContextMiddleware,
+    { provide: APP_INTERCEPTOR, useClass: OutputPipelineInterceptor },
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

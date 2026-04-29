@@ -3682,7 +3682,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] PermissionService.abilityFor() + Cache (LRU, 60s TTL)
 - [ ] `@Can()` Decorator + Guard, `@Ability()` Param-Decorator  — *Decorator + `CanGuard` existieren, Guard ist nicht als globaler `APP_GUARD` registriert.*
 - [ ] PostgREST-Query-Parser → Prisma-WHERE (kombiniert mit `accessibleBy`)  — *Parser existiert, aber kein Controller verwendet ihn.*
-- [ ] Output-Pipeline-Interceptor (4-Stage)  — *4 Stages als pure Funktionen vorhanden, Interceptor-Klasse nicht als globaler `APP_INTERCEPTOR` registriert.*
+- [x] Output-Pipeline-Interceptor (4-Stage)  *(`OutputPipelineInterceptor` ist als globaler `APP_INTERCEPTOR` registriert; Stages 3+4 (remove-secrets + safety-net) laufen auf jeder Response. Stages 1+2 (record-level Permission-Filter + Field-Allowlist) aktivieren sich, sobald per Request eine `Ability` resolvbar ist — passiert mit Auth-Slice.)*
 - [ ] Filter-Service Pattern: `@FilterFor()` + Registry + Auto-Discovery  — *`FilterService` (@Injectable) existiert, aber keine Auto-Discovery via `DiscoveryModule`/`MetadataScanner`.*
 - [x] Secret-Safety-Net mit globaler Liste + Regex-Patterns
 - [ ] Admin-CRUD-Endpoints für Roles/Policies/Permissions + Test-Endpunkt  — *Keine Controller.*

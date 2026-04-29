@@ -40,8 +40,6 @@ class TestController {
  * request — that lands when auth is wired.)
  */
 describe('OutputPipelineInterceptor · global registration', () => {
-  let app: Awaited<ReturnType<Awaited<ReturnType<typeof Test.createTestingModule>>['compile']>>['createNestApplication'] extends () => infer A ? A : never;
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let nestApp: any;
 
