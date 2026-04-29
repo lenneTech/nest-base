@@ -92,6 +92,20 @@ bun run test:coverage  # Coverage-Report
 
 Coverage-Gates: `src/core/` ≥ 90 %, `src/modules/` ≥ 80 %.
 
+## CI
+
+Die gleichen sechs Quality-Gates laufen automatisch:
+
+- **GitHub Actions** (`.github/workflows/ci.yml`) — auf jedem Push nach
+  `main` und auf jeden PR gegen `main`. Wird im OSS-Template-Repo auf
+  GitHub genutzt.
+- **GitLab CI** (`.gitlab-ci.yml`) — gleiche Stages für Consumer-
+  Projekte, die das Template forken und nach GitLab deployen.
+
+Beide Pipelines decken `lint → format → test:unit → test:e2e →
+test:types → test:coverage → build` plus einen advisory `audit`-Job
+(non-blocking) ab.
+
 Workflow-Disziplin (Red-Green-Refactor) ist in
 [`CLAUDE.md`](./CLAUDE.md) und der `running-tdd-slice` Skill
 beschrieben. Pre-built Agents für häufige Tasks liegen in
