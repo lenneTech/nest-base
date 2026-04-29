@@ -46,8 +46,13 @@ describe("Dev-Hub · GET /dev", () => {
 
     it("escapes HTML in the rendered page (no raw user-controlled fragments)", async () => {
       const res = await request(app.getHttpServer()).get("/dev");
-      // The page must not contain any obvious unescaped tag injection vector.
-      expect(res.text).not.toMatch(/<script>(?!.*\/[ds][cr]ript)/);
+      // Anti-injection heuristic: every <script> opening must have a
+      // matching </script> close somewhere in the document. The page
+      // legitimately contains a few <script> tags (live polling, dev-hub
+      // overlays); they all close themselves.
+      const opens = (res.text.match(/<script\b/g) ?? []).length;
+      const closes = (res.text.match(/<\/script>/g) ?? []).length;
+      expect(opens).toBe(closes);
     });
 
     it("GET /dev/features renders the HTML feature page", async () => {

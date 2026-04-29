@@ -36,6 +36,8 @@ export interface ServiceProbeResult extends ServiceCandidate {
   status: ServiceStatus;
   latencyMs?: number;
   detail?: string;
+  /** HTTP status code returned by the probe target, when reachable. */
+  statusCode?: number;
 }
 
 export interface ServiceStatusInput {
@@ -121,8 +123,24 @@ export async function probeServices(
       if (!c.probeUrl) return { ...c, status: "unknown" as const };
       const start = now();
       try {
-        const ok = await probeOnce(c.probeUrl, timeoutMs);
-        return { ...c, status: ok ? "up" : "down", latencyMs: now() - start };
+        const result = await probeOnce(c.probeUrl, timeoutMs);
+        const latencyMs = now() - start;
+        if (result.kind === "no-response") {
+          return { ...c, status: "down" as const, latencyMs };
+        }
+        // 5xx → service responded but is broken (e.g. /health/ready
+        // returning 500 because Postgres isn't connectable). 2xx-4xx
+        // means the port + service are both alive — 4xx is "your
+        // request was wrong" not "the service is dead".
+        if (result.statusCode >= 500) {
+          return {
+            ...c,
+            status: "down" as const,
+            latencyMs,
+            detail: `HTTP ${result.statusCode}`,
+          };
+        }
+        return { ...c, status: "up" as const, latencyMs, statusCode: result.statusCode };
       } catch (err) {
         const detail = err instanceof Error ? err.message : String(err);
         return { ...c, status: "down" as const, latencyMs: now() - start, detail };
@@ -131,7 +149,9 @@ export async function probeServices(
   );
 }
 
-function probeOnce(url: string, timeoutMs: number): Promise<boolean> {
+type ProbeResult = { kind: "responded"; statusCode: number } | { kind: "no-response" };
+
+function probeOnce(url: string, timeoutMs: number): Promise<ProbeResult> {
   return new Promise((resolve) => {
     const isHttps = url.startsWith("https:");
     const fn = isHttps ? httpsRequest : httpRequest;
@@ -141,19 +161,18 @@ function probeOnce(url: string, timeoutMs: number): Promise<boolean> {
         method: "GET",
         timeout: timeoutMs,
         // Self-signed certs at api.<project>.localhost should still
-        // count as "up" — the probe only verifies port connectivity.
+        // count as a real response — we only care about the status code.
         rejectUnauthorized: false,
       },
       (res) => {
-        // Any HTTP response — even 404/405 — proves the port answers.
         res.resume();
-        resolve(true);
+        resolve({ kind: "responded", statusCode: res.statusCode ?? 0 });
       },
     );
-    req.on("error", () => resolve(false));
+    req.on("error", () => resolve({ kind: "no-response" }));
     req.on("timeout", () => {
       req.destroy();
-      resolve(false);
+      resolve({ kind: "no-response" });
     });
     req.end();
   });

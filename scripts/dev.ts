@@ -47,6 +47,31 @@ const usePortless = shouldUsePortless({ portlessPath, disable: useDisable });
 const projectName = readProjectName();
 const proxyAlive = usePortless ? await isPortlessProxyRunning() : false;
 
+// Boot Postgres via docker compose if it's not already up. Skip when
+// SKIP_DB_BOOT=1 (CI passes its own DATABASE_URL via testcontainers,
+// or you've already started the stack manually). Also skip when
+// docker isn't on PATH — print a hint instead so the user knows the
+// API will likely fail at the next /health/ready probe.
+if (process.env.SKIP_DB_BOOT !== '1') {
+  const dockerPath = which('docker');
+  if (dockerPath) {
+    const inspect = Bun.spawnSync([dockerPath, 'inspect', '-f', '{{.State.Running}}', `${projectName}-postgres`]);
+    const running = new TextDecoder().decode(inspect.stdout).trim() === 'true';
+    if (!running) {
+      console.log('[dev] starting Postgres via docker compose…');
+      const up = Bun.spawnSync([dockerPath, 'compose', 'up', '-d', 'postgres'], {
+        stdio: ['inherit', 'inherit', 'inherit'],
+      });
+      if (up.exitCode !== 0) {
+        console.log('[dev] (Postgres start failed — check `docker compose ps` and your .env)');
+      }
+    }
+  } else {
+    console.log('[dev] docker not on PATH — start Postgres manually before /health/ready will succeed.');
+    console.log('[dev] (set SKIP_DB_BOOT=1 to silence this hint)');
+  }
+}
+
 interface SpawnPlan {
   command: string;
   args: string[];

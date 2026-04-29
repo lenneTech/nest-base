@@ -103,7 +103,7 @@ export class DevHubController {
   }
 
   private async readCoverageSummary(repoRoot: string) {
-    const path = resolve(repoRoot, "coverage", "coverage-summary.json");
+    const path = resolve(repoRoot, "reports", "coverage", "coverage-summary.json");
     try {
       const buf = await readFile(path, "utf8");
       const summary = JSON.parse(buf) as RawCoverageSummary;
@@ -252,7 +252,7 @@ export class DevHubController {
   async coverage(): Promise<string> {
     this.assertDev();
     const repoRoot = process.cwd();
-    const path = resolve(repoRoot, "coverage", "coverage-summary.json");
+    const path = resolve(repoRoot, "reports", "coverage", "coverage-summary.json");
     let summary: RawCoverageSummary | undefined;
     let generatedAt: string | undefined;
     try {

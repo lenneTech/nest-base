@@ -80,5 +80,60 @@ describe("Story · Service-Status", () => {
       expect(r?.status).toBe("down");
       expect(typeof r?.latencyMs).toBe("number");
     });
+
+    it("markiert 5xx-Antworten als `down` (Service erreichbar aber kaputt)", async () => {
+      // Spin a tiny http server that always returns 500.
+      const { createServer } = await import("node:http");
+      const server = createServer((_req, res) => {
+        res.statusCode = 500;
+        res.end("internal");
+      });
+      await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+      const port = (server.address() as { port: number }).port;
+      try {
+        const [r] = await probeServices(
+          [
+            {
+              id: "x",
+              label: "X",
+              category: "core",
+              probeUrl: `http://127.0.0.1:${port}/health`,
+            },
+          ],
+          { timeoutMs: 500 },
+        );
+        expect(r?.status).toBe("down");
+        expect(r?.detail).toContain("HTTP 500");
+      } finally {
+        await new Promise<void>((resolve) => server.close(() => resolve()));
+      }
+    });
+
+    it("markiert 2xx als `up` mit statusCode", async () => {
+      const { createServer } = await import("node:http");
+      const server = createServer((_req, res) => {
+        res.statusCode = 200;
+        res.end("ok");
+      });
+      await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+      const port = (server.address() as { port: number }).port;
+      try {
+        const [r] = await probeServices(
+          [
+            {
+              id: "x",
+              label: "X",
+              category: "core",
+              probeUrl: `http://127.0.0.1:${port}/health`,
+            },
+          ],
+          { timeoutMs: 500 },
+        );
+        expect(r?.status).toBe("up");
+        expect(r?.statusCode).toBe(200);
+      } finally {
+        await new Promise<void>((resolve) => server.close(() => resolve()));
+      }
+    });
   });
 });

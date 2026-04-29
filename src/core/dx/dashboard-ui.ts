@@ -310,14 +310,51 @@ function renderServiceGrid(probes: readonly ServiceProbeResult[]): string {
       </div>
       ${url ? `<span class="svc__url">${escapeHtml(url)}</span>` : ""}
       <div class="svc__meta">
-        <span>${labelText}</span>
-        <span>${latency}</span>
+        <span data-svc-state>${labelText}</span>
+        <span data-svc-latency>${latency}</span>
       </div>
     </a>`;
       })
       .join("\n")}
   </div>
-</div>`;
+</div>
+<script>
+(function() {
+  // Poll /dev/status.json every 4s and update each card in place.
+  // This is what makes Prisma Studio "go green" a few seconds after
+  // bun run dev (the snapshot server takes ~5s to bind), without a
+  // page refresh.
+  const grid = document.querySelector('[data-service-status="true"]');
+  if (!grid) return;
+  const STATE_LABEL = { up: 'online', down: 'offline', unknown: 'unknown' };
+  async function tick() {
+    try {
+      const r = await fetch('/dev/status.json', { cache: 'no-store' });
+      if (!r.ok) return;
+      const probes = await r.json();
+      for (const p of probes) {
+        const card = grid.querySelector('[data-service-id="' + p.id + '"]');
+        if (!card) continue;
+        card.setAttribute('data-status', p.status);
+        const dot = card.querySelector('.svc__dot');
+        if (dot) {
+          dot.classList.remove('svc__dot--up', 'svc__dot--down', 'svc__dot--unknown');
+          dot.classList.add('svc__dot--' + p.status);
+          dot.title = STATE_LABEL[p.status] || p.status;
+        }
+        const state = card.querySelector('[data-svc-state]');
+        if (state) state.textContent = STATE_LABEL[p.status] || p.status;
+        const latency = card.querySelector('[data-svc-latency]');
+        if (latency) latency.textContent = p.latencyMs !== undefined ? p.latencyMs + ' ms' : '';
+      }
+    } catch (_e) { /* ignore — next tick will retry */ }
+  }
+  setInterval(tick, 4000);
+  // Plus a quick second poll 1.5s after the page paints — catches
+  // "Prisma Studio just came up" without waiting the full 4s.
+  setTimeout(tick, 1500);
+})();
+</script>`;
 }
 
 function renderLogPreview(

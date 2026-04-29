@@ -14,7 +14,9 @@ export default defineConfig({
     pool: 'forks',
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'cobertura', 'html'],
+      // `json-summary` writes coverage-summary.json which the /dev/coverage
+      // page reads to render the totals + per-file table.
+      reporter: ['text', 'cobertura', 'html', 'json-summary'],
       reportsDirectory: 'reports/coverage',
       include: ['src/core/**', 'src/modules/**', 'src/shared/**'],
       exclude: [
