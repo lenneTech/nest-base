@@ -43,6 +43,11 @@ const MIN_SECRET_LEN = 32;
           ...(features.authMethods.socialProviders.length > 0
             ? { socialProviders: pickSocialProviders(features) }
             : {}),
+          // PowerSync needs JWT-with-audience + JWKS — Better-Auth's `jwt`
+          // plugin auto-exposes `/api/auth/.well-known/jwks` once enabled.
+          ...(features.powerSync.enabled
+            ? { jwtPlugin: { audience: 'powersync' } }
+            : {}),
         });
       },
     },

@@ -3730,7 +3730,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Replication-Role + Publication für PowerSync
 - [x] PowerSync Service in Docker-Compose
 - [x] `sync-rules.yaml` mit User/Tenant-Buckets
-- [ ] Better-Auth JWT-Plugin: `audience: powersync` + JWKS-Endpoint  — *Config-Planner + Endpoint-Metadata existieren, aber Better-Auth-Instanz wird nirgends erzeugt; kein `/.well-known/jwks` Controller.*
+- [x] Better-Auth JWT-Plugin: `audience: powersync` + JWKS-Endpoint  *(Better-Auth `jwt` plugin in `BetterAuthModule.useFactory` aktiviert wenn `features.powerSync.enabled=true`; setzt audience auf `powersync` + issuer auf APP_BASE_URL. JWKS automatisch via Better-Auth unter `/api/auth/.well-known/jwks` erreichbar.)*
 - [x] PowerSync-Upload-Controller (`POST /powersync/crud`)  *(`PowerSyncModule` mit `PowerSyncController.crud()`: `parsePowerSyncCrudBatch()` → `applyPowerSyncCrudBatch()` (in-memory Store), 204 bei Success / 400 bei Validation-Error. e2e: `tests/powersync-controller.e2e-spec.ts`. Prisma-Repository-Upgrade folgt mit Konflikt-Hook-Slice.)*
 - [x] Konflikt-Resolution-Hook in BaseRepository  *(`BaseRepository.updateWithConflict(id, patch, { clientUpdatedAt, protectedFields })` ruft den Pure-Planner auf und führt je nach Outcome einen Write durch oder gibt das Server-Row zurück. Liefert `outcome` + `rejectedFields` für 409-Mapping im Upload-Controller.)*
 - [x] Encrypted-Fields explizit aus Sync-Rules ausschließen

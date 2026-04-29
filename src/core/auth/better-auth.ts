@@ -1,5 +1,6 @@
 import { passkey } from '@better-auth/passkey';
 import { type BetterAuthOptions, type BetterAuthPlugin, betterAuth } from 'better-auth';
+import { jwt } from 'better-auth/plugins/jwt';
 import { twoFactor } from 'better-auth/plugins/two-factor';
 
 import { resolveBetterAuthMountPath } from './better-auth-config.js';
@@ -48,6 +49,13 @@ export interface BuildBetterAuthInput {
   basePath?: string;
   /** Switch on the TOTP plugin (PLAN.md §32 Phase 6 / 2FA-Endpunkte). */
   twoFactor?: TwoFactorOptions;
+  /**
+   * Wire the Better-Auth `jwt` plugin (PLAN.md §32 Phase 5b).
+   * `audience: 'powersync'` lets PowerSync verify the issued tokens
+   * via the JWKS endpoint Better-Auth exposes at
+   * `/api/auth/.well-known/jwks`.
+   */
+  jwtPlugin?: { audience: string };
   /** Switch on the Passkey/WebAuthn plugin (PLAN.md §32 Phase 6 / Passkey-Endpunkte). */
   passkey?: PasskeyOptions;
   /** Wire OAuth providers (PLAN.md §32 Phase 6 / Social-Login-Provider). */
@@ -87,6 +95,9 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
   const basePath = resolveBetterAuthMountPath(input.basePath);
   const plugins: BetterAuthPlugin[] = [];
   if (input.twoFactor) plugins.push(twoFactor({ issuer: input.twoFactor.issuer }));
+  if (input.jwtPlugin) {
+    plugins.push(jwt({ jwt: { audience: input.jwtPlugin.audience, issuer: input.baseUrl } }));
+  }
   if (input.passkey) {
     const rpID = input.passkey.rpID ?? new URL(input.baseUrl).hostname;
     plugins.push(passkey({ rpName: input.passkey.rpName, rpID, origin: input.baseUrl }));
