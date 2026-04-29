@@ -57,6 +57,7 @@ export function defaultAdminNav(): AdminNavSection[] {
         { id: "coverage", label: "Coverage", href: "/dev/coverage", icon: ICON_CHART },
         { id: "tests", label: "Tests", href: "/dev/tests", icon: ICON_CHECK },
         { id: "logs", label: "Logs", href: "/dev/logs", icon: ICON_TERMINAL },
+        { id: "traces", label: "Traces", href: "/dev/traces", icon: ICON_PULSE },
       ],
     },
     {
@@ -64,7 +65,15 @@ export function defaultAdminNav(): AdminNavSection[] {
       items: [
         { id: "scalar", label: "API Reference", href: "/api/docs", icon: ICON_BOOK },
         { id: "openapi", label: "OpenAPI Spec", href: "/api/openapi", icon: ICON_FILE },
+        { id: "routes", label: "Routes", href: "/dev/routes", icon: ICON_ROUTE },
         { id: "errors", label: "Error Codes", href: "/errors", icon: ICON_BUG },
+        { id: "erd", label: "ERD", href: "/dev/erd", icon: ICON_NETWORK },
+        {
+          id: "email-preview",
+          label: "Email Preview",
+          href: "/dev/email-preview",
+          icon: ICON_MAIL,
+        },
         {
           id: "prisma-studio",
           label: "Prisma Studio",
@@ -534,3 +543,7 @@ const ICON_DATABASE = `<svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" r
 const ICON_CHART = `<svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`;
 const ICON_TERMINAL = `<svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>`;
 const ICON_CHECK = `<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`;
+const ICON_PULSE = `<svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`;
+const ICON_ROUTE = `<svg viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 000-7h-11a3.5 3.5 0 010-7H15"/><circle cx="18" cy="5" r="3"/></svg>`;
+const ICON_NETWORK = `<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="M12 7v4M12 11l-7 6M12 11l7 6"/></svg>`;
+const ICON_MAIL = `<svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22 6 12 13 2 6"/></svg>`;

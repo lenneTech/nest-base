@@ -38,6 +38,28 @@ export default defineConfig({
         // Smoke-tested via story tests + visited live during dev.
         'src/core/dx/*-ui.ts',
         'src/core/dx/dashboard-ui.ts',
+        // Non-source artefacts that may live inside src/ but never
+        // execute: directory placeholders, ignore lists, docs. v8 can
+        // pick these up if they end up in the include glob — exclude
+        // explicitly so the coverage report stays focused on real code.
+        'src/**/.gitkeep',
+        'src/**/.gitignore',
+        'src/**/.prettierrc',
+        'src/**/.prettierignore',
+        'src/**/.eslintrc*',
+        'src/**/.eslintignore',
+        'src/**/.npmignore',
+        'src/**/.npmrc',
+        'src/**/.env',
+        'src/**/.env.*',
+        'src/**/CLAUDE.md',
+        'src/**/README.md',
+        'src/**/*.md',
+        'src/**/*.json',
+        'src/**/*.yml',
+        'src/**/*.yaml',
+        'src/**/*.toml',
+        'src/**/*.lock',
       ],
       thresholds: coverageThresholds,
     },

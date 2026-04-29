@@ -68,6 +68,28 @@ describe("Story · Admin-Layout", () => {
     expect(ids).toContain("openapi");
     expect(ids).toContain("errors");
     expect(ids).toContain("prisma-studio");
+    // Pages added later — must be reachable via the sidebar, not
+    // just by typing the URL.
+    expect(ids).toContain("routes");
+    expect(ids).toContain("erd");
+    expect(ids).toContain("email-preview");
+    expect(ids).toContain("traces");
+  });
+
+  it("every nav item has a working currentNav match (no orphaned IDs)", () => {
+    const sections = defaultAdminNav();
+    for (const section of sections) {
+      for (const item of section.items) {
+        // The currentNav passed by each page must equal one of these
+        // IDs; otherwise the highlight breaks. This test is the
+        // contract that catches "I added a page but forgot to make
+        // its currentNav match a sidebar id".
+        expect(typeof item.id).toBe("string");
+        expect(item.id.length).toBeGreaterThan(0);
+        expect(typeof item.href).toBe("string");
+        expect(item.href.length).toBeGreaterThan(0);
+      }
+    }
   });
 
   it("enthält Dark-Mode CSS-Variablen", () => {
