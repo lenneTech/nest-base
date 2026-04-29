@@ -83,3 +83,26 @@ export function buildPortlessRunCommand(input: BuildPortlessRunCommandInput): st
   const fullName = input.app ? `${input.app}.${input.projectName}` : input.projectName;
   return ["run", "--name", fullName, "--", ...input.target];
 }
+
+/**
+ * TCP-pings 127.0.0.1:443 with a short timeout. Returns true when the
+ * portless proxy daemon is listening, false otherwise. Used by `dev.ts`
+ * to decide whether the banner can claim "portless is active" — without
+ * the daemon up, the route 404s and the URL is misleading.
+ */
+export async function isPortlessProxyRunning(timeoutMs: number = 300): Promise<boolean> {
+  const { connect } = await import("node:net");
+  return new Promise((resolve) => {
+    const socket = connect({ host: "127.0.0.1", port: 443, timeout: timeoutMs });
+    let settled = false;
+    const finish = (ok: boolean): void => {
+      if (settled) return;
+      settled = true;
+      socket.destroy();
+      resolve(ok);
+    };
+    socket.on("connect", () => finish(true));
+    socket.on("error", () => finish(false));
+    socket.on("timeout", () => finish(false));
+  });
+}

@@ -17,6 +17,7 @@ import { resolve } from 'node:path';
 
 import {
   buildPortlessRunCommand,
+  isPortlessProxyRunning,
   resolveDevPort,
   shouldUsePortless,
 } from '../src/core/dev/portless.js';
@@ -40,25 +41,36 @@ const useDisable = process.env.DISABLE_PORTLESS === '1';
 const usePortless = shouldUsePortless({ portlessPath, disable: useDisable });
 const projectName = readProjectName();
 
+// Even when portless is on PATH, the proxy daemon may not be running.
+// Probing 127.0.0.1:443 once before launch tells us whether the banner
+// can advertise the portless URL (proxy answers) or has to fall back
+// to localhost:<port> (proxy down).
+const proxyAlive = usePortless ? await isPortlessProxyRunning() : false;
+
 let child: ReturnType<typeof spawn>;
-if (usePortless) {
+if (usePortless && proxyAlive) {
   const args = buildPortlessRunCommand({
     projectName,
     app: 'api',
     target: ['bun', '--watch', 'src/main.ts'],
   });
   console.log(`[dev] portless detected — running through proxy as api.${projectName}.localhost`);
-  console.log('[dev] (proxy must already be running; start once via `portless proxy start`)');
   child = spawn(portlessPath!, args, {
     stdio: 'inherit',
     env: { ...process.env, PORTLESS_ACTIVE: '1' },
   });
 } else {
+  if (usePortless && !proxyAlive) {
+    console.log(
+      '[dev] portless found on PATH but proxy is not running — falling back to direct localhost binding.',
+    );
+    console.log('[dev] (run `portless proxy start` once to enable the https://api.<project>.localhost route)');
+  }
   const port = resolveDevPort({
     env: process.env as { PORT?: string },
     portlessAvailable: false,
   });
-  console.log(`[dev] portless not available — binding the API to port ${port || 'a dynamically assigned'}`);
+  console.log(`[dev] binding the API directly to port ${port || 'a dynamically assigned'}`);
   child = spawn('bun', ['--watch', 'src/main.ts'], {
     stdio: 'inherit',
     env: { ...process.env, PORT: String(port) },
