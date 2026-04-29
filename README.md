@@ -44,22 +44,50 @@ curl -fsSL https://bun.sh/install | bash
 # 2. Repo bootstrappen
 bun install
 
-# 3. Dependencies starten (Postgres, RustFS, Mailpit, OTel)
+# 3. Projekt umbenennen (siehe „Projekt-Rename" unten — nur einmal nach
+#    dem Klonen)
+bun run rename my-app
+
+# 4. Dependencies starten (Postgres, RustFS, Mailpit, OTel)
 docker compose up -d
 
-# 4. ENV-File anlegen (kopiert .env.example → .env, Secrets werden via
+# 5. ENV-File anlegen (kopiert .env.example → .env, Secrets werden via
 #    crypto.randomBytes automatisch ersetzt — BETTER_AUTH_SECRET,
 #    POSTGRES_PASSWORD, FIELD_ENCRYPTION_KEK, S3_SECRET_KEY,
 #    POWERSYNC_DB_PASSWORD; DATABASE_URL wird passend umgeschrieben).
 #    Idempotent: refused to overwrite, wenn .env schon existiert.
 bun run setup
 
-# 5. DB-Migrations + Seed
+# 6. DB-Migrations + Seed
 bun run prisma:migrate
 
-# 6. Dev-Server starten (portless wenn vorhanden, sonst dynamischer Port)
+# 7. Dev-Server starten (portless wenn vorhanden, sonst dynamischer Port)
 bun run dev
 ```
+
+### Projekt-Rename
+
+Beim Forken des Templates läuft
+
+```bash
+bun run rename my-app
+```
+
+und schreibt den Projektnamen surgisch in vier Dateien:
+
+| Datei | Was wird ersetzt |
+|---|---|
+| `package.json` | `"name"` |
+| `README.md` | erste H1-Zeile (`# nest-server-template` → `# my-app`) |
+| `portless.yml` | `project:` + alle `*.nst.localhost`-Hostnames |
+| `docker-compose.yml` | top-level `name`, `container_name`-Präfixe, Network `name` |
+
+Idempotent — beim zweiten Lauf mit demselben Namen passiert nichts;
+ein Folge-Rename auf einen anderen Namen funktioniert weiterhin. Andere
+inline-Erwähnungen des alten Namens (z. B. in Prosa) bleiben unverändert
+und können bei Bedarf manuell angepasst werden. `kebab-case` wird
+strikt validiert (`/^[a-z][a-z0-9-]*[a-z0-9]$/`); ungültige Eingaben
+brechen ohne Schreibvorgang ab.
 
 ## Repo-Layout
 
