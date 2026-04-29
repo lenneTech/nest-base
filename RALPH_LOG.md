@@ -889,3 +889,83 @@ Jede Slice: red e2e-Test → DI-Wiring → green → alle 6 Gates → PLAN.md fl
 
 Blocker: keine. Pro Slice ~10-30 min reine Implementation-Zeit; cross-feature
 Slices (Better-Auth) bis 2h wegen Schema-Migration.
+
+## Iteration 102 · 2026-04-29 (Wiring continued — 4 weitere Slices)
+
+**Slices in dieser Iteration (alle red→green→commit, alle Quality-Gates grün):**
+
+| # | Slice | Tests | Box |
+|---|---|---|---|
+| 7 | Better-Auth Integration via `BetterAuthModule` | e2e: `/api/auth/get-session`, `sign-up/email`, unknown route handled by Better-Auth | Phase 2: Better-Auth Integration (Email/PW, Session, JWT) |
+| 8 | 2FA + Passkey + Social-Login plugin mount verification | e2e: alle 3 plugin routes nicht-404 | Phase 6: 2FA/Passkey/Social-Login (3 boxes) |
+| 9 | Error-Code Registry mit `/errors` + `/errors/{code}` Controller | e2e: list, resolve EN/DE, 404 bei unknown code | Phase 8: Error-Code-Registry + i18n-Endpoint |
+
+- Tests: 1270 → 1278 grün, Coverage 95.92% / 97.26%
+- Commits: `947881d..910416f..bd71af2..(2 weitere)` (8 atomare Commits — 4× red, 4× green)
+- Stand: **69/118 [x]** in PLAN.md §32 — 49 Wiring-Slices stehen aus
+
+**Live-funktionierend:**
+- `GET /` (name+version)
+- `GET /health/{live,ready}`
+- `GET /dev` (HTML), `/dev/features`, `/dev/diagnostics` (JSON, dev-only)
+- `ALL /api/auth/*` (Better-Auth: sign-up/sign-in/session, 2FA, Passkey, Social-OAuth)
+- `GET /errors`, `GET /errors/{code}?locale=…`
+- Headers: `x-request-id`, `traceparent` auf jeder Response
+- `OutputPipelineInterceptor` global (strippt Secrets aus jeder Response)
+- `FieldEncryptionService` via DI (mit `features.fieldEncryption`)
+- Pino-Logger für NestJS-Lifecycle
+
+**Smoke-getestet im echten `bun run dev`:** alle obigen Endpunkte
+liefern erwartete Antworten. JSON i18n funktioniert (en + de).
+
+**Noch nicht verdrahtet (49 boxes, kategorisiert):**
+
+*Foundation für Phase 3+:*
+- CanGuard als globaler `APP_GUARD` + PermissionService DI
+- Tenant-Interceptor + RLS-`SET LOCAL`-Hook in PrismaService
+- System-Setup-Boot-Hook (provisioniert Initial-Admin)
+- @FilterFor() Auto-Discovery via `MetadataScanner`
+
+*Async (Phase 5):*
+- pg-boss-Module + JobQueue-Provider
+- Outbox-Recorder + Worker als `OnModuleInit`
+- Webhook-Dispatcher als Outbox-Subscriber
+- Realtime-Service (Postgres-LISTEN-Connection) + Socket.IO-Gateway
+
+*HTTP-Surfaces:*
+- File CRUD + TUS + Asset (Phase 4 — 3 boxes)
+- Geo Controller `/geo/*`, `/addresses`, `/geofences`, `/places/nearby` (Phase 5c — 1 box)
+- PowerSync `/powersync/crud` + `/.well-known/jwks` (Phase 5b — 2 boxes)
+- Tenant-Member CRUD + API-Key CRUD (Phase 2 — 2 boxes)
+- Cross-Resource-Search-Endpoint (Phase 5 — 1 box)
+- Admin CRUD Roles/Policies/Permissions + Test (Phase 3 — 1 box)
+- GDPR `/me/export`, `/me/account` (Phase 8 — 1 box)
+- 5× Admin-UI-Controller: Permission-Tester, Webhook-Inspector,
+  Realtime-Inspector, Audit-Browser, Search-Tester (Phase 8)
+
+*Cross-cutting Interceptors/Pipes:*
+- Idempotency-Key Interceptor + Postgres-Tabelle (Phase 8)
+- ETag/If-Match Optimistic-Concurrency-Pipe (Phase 8)
+- Cursor-Pagination-Verwendung (depends on real list endpoints)
+- @nestjs/throttler mit Postgres-Store + Per-API-Key Bucket (Phase 8)
+
+*Side-effect-Integrationen:*
+- GeoJSON-Output-Mapper Stage 3a in Output-Pipeline integrieren (Phase 5c)
+- GeocodingCache-Cleanup-Cron als `@Cron` (Phase 5c)
+- Field-Encryption in Address-CRUD-Pfade (Phase 5c)
+- Konflikt-Hook in BaseRepository für PowerSync-Uploads (Phase 5b)
+- Audit-Log-Prisma-Extension verdrahten (Phase 8)
+
+*Tooling:*
+- Email-Service in DI + Better-Auth-Verify-Hook (Phase 6)
+- MCP-Module + Tool/Resource-Discovery + Auth (Phase 6 — 3 boxes)
+- Scalar UI mount (Phase 8)
+- NestJS DevTools Snapshot (Phase 8)
+- prepare-schema/sync-from/to-template Runner (Phase 7 — 3 boxes)
+- bun run onboard Script (Phase 8)
+- SDK-Generation Working (Phase 8 — depends auf Scalar + Controllers)
+- OpenAPI-Doku komplett (Phase 8 — depends auf alle Controllers)
+
+**Schätzung Restaufwand:** ~80-100h fokussierte Implementation. Jede
+Slice 30-90min mit voller TDD-Disziplin (red e2e → DI-Wiring → green
+→ 6 Gates → PLAN-Flip → Commit).
