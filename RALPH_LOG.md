@@ -824,3 +824,68 @@ Append-only Iteration-Log. Ein Eintrag pro Loop-Durchgang.
 - **OPEN_QUESTIONS.md:** keine offenen Punkte (nur „Beantwortet"-Sektion)
 
 → `<promise>RALPH-PROJECT-COMPLETE</promise>`
+
+## Iteration 101 · 2026-04-29 (Re-Audit + erste Wiring-Slices)
+
+**Re-Audit-Befund:** Die ersten 100 Iterationen haben Planner/HTML-Renderer/Service-Klassen
+gebaut und Story-Tests für sie geschrieben. Der NestJS-DI-Layer (Module, Controller,
+globale Interceptors/Guards) wurde nirgends verdrahtet. Resultat: 1257 Story-Tests
+grün, aber `bun run dev` exposed nur `/` und `/health/*`. Die anderen ~95% der
+PLAN.md-Features sind im Code vorhanden, aber nie über HTTP erreichbar.
+
+**Maßnahmen dieser Iteration:**
+- 60 PLAN.md-Boxes zurückgesetzt, jede mit *kursiv*-Notiz was fehlt.
+- RALPH_DIRECTIVES.md: neue Definition-of-Done — Story-Test allein reicht nicht
+  mehr, Box-Flippung verlangt DI-Wiring + e2e-Test der HTTP-Surface (sofern relevant)
+  + Lifecycle-Hook (sofern relevant).
+
+**Erste 6 Wiring-Slices (alle red→green→commit, alle Quality-Gates grün):**
+
+| # | Slice | Gates | Box |
+|---|---|---|---|
+| 1 | PinoLoggerService in `bootstrap()` verdrahten | ✓ | Phase 1: Logger (Pino) + OpenTelemetry-Integration |
+| 2 | RequestContextMiddleware via `MiddlewareConsumer.apply()` | ✓ | Phase 1: Request-Context-Middleware (W3C Trace Context) |
+| 3 | OutputPipelineInterceptor als globaler `APP_INTERCEPTOR` | ✓ | Phase 3: Output-Pipeline-Interceptor (4-Stage) |
+| 4 | EncryptionModule.forRoot() + `@Injectable` FieldEncryptionService | ✓ | Phase 1: Field-Encryption-Service |
+| 5 | DevHubModule + `GET /dev` HTML-Landingpage | ✓ | Phase 8: Dev-Hub Landing-Page |
+| 6 | DevHubController erweitert: `/dev/features`, `/dev/diagnostics` JSON | ✓ | Phase 8: Diagnostik-Endpoint |
+
+- Tests: 1264 → 1266 grün (134 e2e-files + 16 unit-files), Coverage 96.24% Statements / 97.64% Lines
+- Commits: `7257fb3..f9d8c65` (12 atomare Commits — 6× red, 6× green/refactor)
+- Stand: **64/118 [x]** in PLAN.md §32 — 54 weitere Wiring-Slices stehen aus
+
+**Nächste sinnvolle Slices (von größtem zu kleinstem Unblock):**
+
+1. **Better-Auth Integration** (Phase 2) — Auth-Instanz bauen, Plugin-Auswahl aus
+   Features, `/api/auth/*` mounten. Voraussetzung für 2FA/Passkey/Social/MCP-Auth.
+   Verlangt Better-Auth-Schema-Erweiterung (User.name/emailVerified/image, Session,
+   Account, Verification Tabellen) — eigene Sub-Slice für die Migration.
+2. **CanGuard als globaler `APP_GUARD`** + Permission-Service in DI (Phase 3)
+3. **Tenant-Interceptor + RLS-Hook im PrismaService** (Phase 2)
+4. **System-Setup boot-hook** — provisioniert Initial-Admin (Phase 2)
+5. **pg-boss-Module** + JobQueue-Provider (Phase 5)
+6. **Outbox-Worker als `OnModuleInit`** + Webhook-Dispatcher-Subscriber (Phase 5)
+7. **Realtime-Service als `OnModuleInit`** + Socket.IO-Gateway (Phase 5)
+8. **File-CRUD-Module** + TUS-Mount + Asset-Endpoint (Phase 4)
+9. **Geo-Module** + Controller für /geo/*, /addresses, /geofences, /places/nearby (Phase 5c)
+10. **PowerSync-Upload-Controller** + JWKS-Endpoint + Konflikt-Hook in BaseRepository (Phase 5b)
+11. **Email-Service in DI** + Better-Auth-Verify-Plugin (Phase 6)
+12. **MCP-Module** + Tool/Resource-Discovery + OAuth-Plumbing (Phase 6)
+13. **Idempotency-Interceptor + ETag-Pipe** als globale APP_*-Provider (Phase 8)
+14. **Throttler mit Postgres-Store** in ThrottlerModule.forRoot (Phase 8)
+15. **GDPR-Controller** /me/export, /me/account (Phase 8)
+16. **Audit-Log Prisma-Extension** in PrismaService (Phase 8)
+17. **Error-Code i18n-Endpoint** /errors/{code} (Phase 8)
+18. **Scalar-UI-Mount** + OpenAPI-Spec-Builder (Phase 8)
+19. **NestJS DevTools** Snapshot-Integration (Phase 8)
+20. **Admin/Dev-UI-Controller** für PermissionTester, WebhookInspector,
+    RealtimeInspector, AuditBrowser, SearchTester (Phase 8)
+21. **Tenant-Member-CRUD + API-Key-CRUD** (Phase 2)
+22. **prepare-schema.ts + sync-from-template.ts + sync-to-template.ts** Runner (Phase 7)
+23. **bun run onboard** Script (Phase 8)
+24. **Phase-Audit Re-Run + Final-Slice**
+
+Jede Slice: red e2e-Test → DI-Wiring → green → alle 6 Gates → PLAN.md flip → commit.
+
+Blocker: keine. Pro Slice ~10-30 min reine Implementation-Zeit; cross-feature
+Slices (Better-Auth) bis 2h wegen Schema-Migration.
