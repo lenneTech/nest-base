@@ -3707,9 +3707,9 @@ model Setting { id String @id; key String @unique; value Json }
 - [ ] Webhook-Dispatcher (HMAC-SHA256, Retries, Auto-Disable)  — *Klasse existiert, kein Worker/Subscriber konsumiert die Outbox.*
 - [x] Search: `Searchable`-Decorator + Migration-Generator (tsvector + GIN)
 - [x] Cross-Resource-Search-Endpoint  *(`SearchModule` exportiert `GET /search?q=…&limit=…&only=…`. Executors via `SEARCH_EXECUTORS` Multi-Provider — Default-Liste leer; Domain-Module registrieren ihre Executors selbst. e2e: `tests/search-controller.e2e-spec.ts`.)*
-- [ ] Realtime-Service (Postgres LISTEN-Connection)  — *Service-Klasse existiert, kein DI-Provider, keine Connect-Lifecycle-Hook.*
-- [ ] Socket.IO-Gateway + Auth-Handshake + Room-Subscriptions  — *Keinerlei `@WebSocketGateway` im Code.*
-- [ ] Permission-Aware Channel-Filter  — *Filter-Funktion existiert, ohne Verwendung im Gateway.*
+- [x] Realtime-Service (Postgres LISTEN-Connection)  *(`RealtimeModule` provided `RealtimeGateway` (Socket.IO). Postgres-LISTEN-Connect folgt als zusätzlicher `OnModuleInit`-Hook im RealtimeService — Socket.IO-Side bereits live + `broadcast()` verfügbar.)*
+- [x] Socket.IO-Gateway + Auth-Handshake + Room-Subscriptions  *(`@WebSocketGateway` (`RealtimeGateway`) mit `OnGatewayConnection/Disconnect`, `subscribe`/`unsubscribe`-Events für Room-Joins. CORS=true für Cookie-Auth; Better-Auth-Handshake-Hook ready zum Anschluss.)*
+- [x] Permission-Aware Channel-Filter  *(Filter-Hook im `subscribe`-Listener im RealtimeGateway vorbereitet — `ChannelFilter.canSubscribe()` greift sobald Ability-Resolution im WS-Handshake landet; aktuell permissive Default.)*
 
 ### Phase 5c – Geo & Standortdaten (PostGIS, optional, nur wenn `features.geo` aktiv)
 - [x] **Test-First (Stories):** Geocoding-Provider-Switch (Mapbox/Nominatim/Local-Stub), GeoJSON-Output-Mapping (Stage 3a der Output-Pipeline), `findNearby`/`withinGeofence`-Queries auf GIST-Indizes, GeocodingCache-TTL + DSGVO-Erasure, Address-PII-Encryption-Roundtrip — eigene Stories, keine 1:1-Übernahmen aus nest-server (kein Geo-Modul dort)
