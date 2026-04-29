@@ -36,19 +36,24 @@ Most NestJS starters give you a `Hello World` and call it a day. This one ships 
 # 1. Install dependencies
 bun install
 
-# 2. Generate .env with strong random secrets (creates .env.example too if missing)
+# 2. (optional, if you forked the template) Rename to your project name
+bun run rename my-app
+
+# 3. Generate .env with strong random secrets (creates .env.example too if missing)
 bun run setup
 
-# 3. Generate Prisma client + run migrations
+# 4. Generate Prisma client + run migrations
 bun run prisma:generate
 bun run prisma:migrate
 
-# 4. (optional) Verify everything is wired correctly
+# 5. (optional) Verify everything is wired correctly
 bun run onboard
 
-# 5. Start the dev server — boots Postgres if needed, opens the Dev Hub
+# 6. Start the dev server — boots Postgres if needed, opens the Dev Hub
 bun run dev
 ```
+
+> **`bun run rename <name>`** patches `package.json`, `README.md`, `portless.yml`, and `docker-compose.yml` in one shot. Idempotent — safe to run repeatedly.
 
 The Dev Hub opens automatically at **http://localhost:3000/dev** (or `https://api.<project>.localhost/dev` if you use [portless](https://github.com/portless/portless)).
 
@@ -278,9 +283,12 @@ This project is **optimised for AI-assisted development** with [Claude Code](htt
 /add-module <name>              # New project resource (controller / service / DTO / tests)
 /add-feature <key> "<desc>"     # Toggleable feature flag end-to-end
 /add-page <slug> "<title>"      # New /dev or /admin page in the dark-mode shell
+/upstream-pr                    # PR a src/core/ fix back to nest-base (downstream projects)
 ```
 
 A fresh agent reads [`.claude/QUICKSTART.md`](./.claude/QUICKSTART.md) (60 sec) → [`.claude/AGENTS.md`](./.claude/AGENTS.md) (lookup table) → the matching skill, and is productive in under 3 minutes. Six quality gates per commit ensure the agent can't ship a regression.
+
+**Two-way sync flow** — when Claude in a downstream project fixes a bug in `src/core/` or builds a generic capability, it offers to open a PR back to **nest-base** automatically. Generic improvements flow upstream so every consumer benefits on their next `bun run sync:from-template`. See [`.claude/skills/contributing-upstream.md`](./.claude/skills/contributing-upstream.md).
 
 → Full guide: [`docs/working-with-ai-agents.md`](./docs/working-with-ai-agents.md).
 

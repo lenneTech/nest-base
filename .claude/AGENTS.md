@@ -44,6 +44,8 @@ spelunking through the directory tree.
 | "How do I wire a permission check on a handler?" | skill: `wiring-permissions.md` |
 | "How do I add a feature module under `src/modules/`?" | skill: `adding-feature-module.md` |
 | "Pull upstream template changes" | skill: `syncing-from-template.md` |
+| "I just fixed a bug in `src/core/` — should I PR it back?" | skill: `contributing-upstream.md` + `/upstream-pr` |
+| "Open a PR back to the upstream nest-base template" | `/upstream-pr` command |
 
 ---
 
@@ -79,6 +81,7 @@ and gotchas so each contributor doesn't re-discover them.
 | `extending-dev-hub` | Add a new dev-hub / admin page (JSON viewer wrap or custom layout). | `skills/extending-dev-hub.md` |
 | `running-tdd-slice` | The red-green-refactor cycle for a single PLAN.md slice. | `skills/running-tdd-slice.md` |
 | `syncing-from-template` | Pull latest `src/core/` upstream into a consumer project. | `skills/syncing-from-template.md` |
+| `contributing-upstream` | Decide *when* a downstream change should travel back to `nest-base`, then sequence the PR safely. | `skills/contributing-upstream.md` |
 | `wiring-permissions` | Add CASL ability checks to a handler / route / record. | `skills/wiring-permissions.md` |
 
 ---
@@ -93,6 +96,7 @@ appear as `/<name>` in the chat.
 | `/add-module <name> [--feature-flag <key>]` | Scaffold a project-owned resource under `src/modules/` (controller + service + DTO + module + tenant-aware tests). Bread-and-butter command for business logic. Reference module lives at `src/modules/example/`. |
 | `/add-feature <key> "<description>"` | Add a new toggleable feature flag end-to-end. Sequences the workflow under TDD discipline. |
 | `/add-page <slug> "<title>" [json-viewer\|custom]` | Add a new dev-hub or admin page using the shared dark-mode shell. |
+| `/upstream-pr [<commit-range>]` | Cherry-pick recent `src/core/` changes onto a fresh upstream-template branch, run upstream's six gates, push to your fork, and open a PR. Reads `.claude/upstream.json`. |
 
 ---
 

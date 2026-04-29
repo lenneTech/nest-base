@@ -138,6 +138,7 @@ common workflows under TDD:
 | `/add-module <name> [--feature-flag <key>]` | Project resource (controller / service / DTO / module / tests) under `src/modules/` |
 | `/add-feature <key> "<description>"` | Toggleable feature flag (schema + catalog + AppModule + tests) |
 | `/add-page <slug> "<title>" [json-viewer\|custom]` | Dev-hub or admin page in the shared dark-mode shell |
+| `/upstream-pr [<commit-range>]` | Cherry-picks recent `src/core/` changes onto an upstream-template branch and opens a PR back to `nest-base` |
 
 Each command starts by echoing the plan back to you. Confirm before
 the agent edits anything — that's the safety valve.
@@ -154,6 +155,66 @@ following the project layout. **Test scaffolding is disabled** in
 For a fully wired module (story tests, permission gates, RLS-aware
 service), prefer `/add-module` over the bare CLI — the slash command
 sequences red-green-six-gates-commit.
+
+## Contributing fixes back upstream (downstream projects)
+
+When you fork **nest-base** to start a new project, every change you
+make in `src/core/` lives in template-owned territory. The
+[`contributing-upstream`](../.claude/skills/contributing-upstream.md)
+skill teaches Claude to **detect** when a fix or feature is generic
+enough to PR back, and the [`/upstream-pr`](../.claude/commands/upstream-pr.md)
+command **executes** the PR safely.
+
+### How Claude decides to offer a PR
+
+After any change that touches `src/core/`, `src/shared/`, or adds a
+generic capability under `src/modules/`, Claude proposes:
+
+> The change in `src/core/concurrency/etag.ts` looks generic — no
+> project-specific symbols, no domain assumptions. Want me to open
+> an upstream PR against `lenneTech/nest-base`? Reply `/upstream-pr`
+> to proceed, or "no, keep local" to record the divergence.
+
+Three answers:
+
+- **"yes" / `/upstream-pr`** — Claude clones the upstream, cherry-picks
+  the commit(s), runs the upstream's six gates locally, pushes to
+  your fork, and opens the PR.
+- **"no, keep local"** — Claude records `### project-local-divergence`
+  in `OPEN_QUESTIONS.md` and won't pester again.
+- **"not sure"** — Claude asks one clarifying question (does this
+  fix depend on a specific schema / vendor / auth provider?) and
+  routes the answer.
+
+### Configuring the upstream
+
+Each project ships `.claude/upstream.json`:
+
+```json
+{
+  "isTemplate": false,
+  "upstream": { "repo": "lenneTech/nest-base", "branch": "main" },
+  "syncedPaths": ["src/core/"]
+}
+```
+
+The template repo itself sets `"isTemplate": true` so the slash
+command refuses (you can't PR a repo against itself). Downstream
+projects flip `isTemplate` to `false` after `bun run rename`.
+
+### Why bother
+
+Two reasons. First, the alternative — carrying private divergences
+forever — costs you on every `sync:from-template` (merge conflicts
+you'll have to re-resolve repeatedly). Second, security and
+correctness fixes in core code paths benefit *every* project that
+consumed the template. The five-minute cost of one PR pays itself
+back the first time the template absorbs a fix you reported.
+
+The bar for "should this PR upstream" is not high. The skill defaults
+to **offer**, the user defaults to **decide**.
+
+---
 
 ## Tips for productive sessions
 

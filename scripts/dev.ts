@@ -26,6 +26,11 @@ import {
   resolveDevPort,
   shouldUsePortless,
 } from '../src/core/dev/portless.js';
+import {
+  clearDevSessionState,
+  markDevSessionRefresh,
+  startDevSession,
+} from '../src/core/dx/dev-session-runner.js';
 
 function which(bin: string): string | undefined {
   const result = Bun.spawnSync(['which', bin]);
@@ -78,13 +83,11 @@ interface SpawnPlan {
   env: NodeJS.ProcessEnv;
 }
 
-// First spawn opens the Dev Hub in the browser; respawns (env-file
-// changes, watch-restarts) keep the user's existing tab and let the
-// page reload itself.
-let isFirstSpawn = true;
+// Persist a session lock that survives `bun --watch` re-execs so the
+// Dev Hub opens once per `bun run dev`, not once per file save.
+startDevSession(process.cwd());
 
 function buildSpawnPlan(): SpawnPlan {
-  const browserEnv: NodeJS.ProcessEnv = isFirstSpawn ? {} : { DEV_HUB_OPENED: '1' };
   if (usePortless && proxyAlive) {
     const args = buildPortlessRunCommand({
       projectName,
@@ -94,7 +97,7 @@ function buildSpawnPlan(): SpawnPlan {
     return {
       command: portlessPath!,
       args,
-      env: { ...process.env, ...browserEnv, PORTLESS_ACTIVE: '1' },
+      env: { ...process.env, PORTLESS_ACTIVE: '1' },
     };
   }
   const port = resolveDevPort({
@@ -104,7 +107,7 @@ function buildSpawnPlan(): SpawnPlan {
   return {
     command: 'bun',
     args: ['--watch', 'src/main.ts'],
-    env: { ...process.env, ...browserEnv, PORT: String(port) },
+    env: { ...process.env, PORT: String(port) },
   };
 }
 
@@ -124,7 +127,6 @@ let shuttingDown = false;
 function spawnChild(): ChildProcess {
   const plan = buildSpawnPlan();
   const proc = spawn(plan.command, plan.args, { stdio: 'inherit', env: plan.env });
-  isFirstSpawn = false;
   proc.on('exit', (code) => {
     // Don't propagate exit during a planned respawn — a new child is coming.
     if (respawning) return;
@@ -150,6 +152,9 @@ try {
     respawnTimer = setTimeout(() => {
       if (!child || shuttingDown) return;
       console.log('[dev] .env changed — restarting API to pick up new env-vars');
+      // Mark the next bootstrap as ".env change" so the banner says
+      // so explicitly (vs. the plain "code change" watch-reload banner).
+      markDevSessionRefresh(process.cwd(), 'env-change');
       respawning = true;
       const old = child;
       old.once('exit', () => {
@@ -165,6 +170,9 @@ try {
 
 const shutdown = (signal: NodeJS.Signals): void => {
   shuttingDown = true;
+  // Stale lock from this session must not bleed into the next `bun
+  // run dev` — that would skip the browser open on cold-start.
+  clearDevSessionState(process.cwd());
   if (child) child.kill(signal);
 };
 process.on('SIGINT', () => shutdown('SIGINT'));

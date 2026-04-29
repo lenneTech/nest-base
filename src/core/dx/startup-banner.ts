@@ -24,10 +24,23 @@ export interface BannerSection {
   entries: BannerEntry[];
 }
 
+export type BannerVariant = "hero" | "restart-watch" | "restart-env";
+
 export interface BannerInput {
   env: AppEnv | "test";
   baseUrl: string;
   port: number;
+  /**
+   * Which banner to render. Defaults to `'hero'` for the first start
+   * of a dev session; subsequent re-inits (bun --watch reload, .env
+   * respawn) pick a compact restart variant.
+   */
+  variant?: BannerVariant;
+  /**
+   * Wall-clock timestamp shown in the compact restart banner. Defaults
+   * to the current locale time. Tests pass an explicit value.
+   */
+  timestamp?: string;
   /** Toggles for sections that depend on feature flags. */
   features: {
     scalarEnabled: boolean;
@@ -42,6 +55,8 @@ export interface BannerPlan {
   text: string;
   /** Structured sections (used by tests). */
   sections: BannerSection[];
+  /** The variant the banner was rendered with. */
+  variant: BannerVariant;
 }
 
 const RESET = "\x1b[0m";
@@ -54,6 +69,11 @@ const MAGENTA = "\x1b[35m";
 
 export function planStartupBanner(input: BannerInput): BannerPlan {
   const base = stripTrailingSlash(input.baseUrl);
+  const variant: BannerVariant = input.variant ?? "hero";
+
+  if (variant !== "hero") {
+    return planRestartBanner(input, variant, base);
+  }
 
   const sections: BannerSection[] = [
     {
@@ -131,7 +151,19 @@ export function planStartupBanner(input: BannerInput): BannerPlan {
   lines.push(`${DIM}Drücke ${RESET}${BOLD}CTRL+C${RESET}${DIM} zum Beenden${RESET}`);
   lines.push("");
 
-  return { text: lines.join("\n"), sections };
+  return { text: lines.join("\n"), sections, variant };
+}
+
+function planRestartBanner(input: BannerInput, variant: BannerVariant, base: string): BannerPlan {
+  const reason = variant === "restart-env" ? ".env change" : "code change";
+  const ts = input.timestamp ?? new Date().toLocaleTimeString();
+  const lines = [
+    "",
+    `${DIM}─────${RESET} ${BOLD}${CYAN}♻ Server neu gestartet${RESET} ${DIM}(${reason}, ${ts})${RESET} ${DIM}${"─".repeat(20)}${RESET}`,
+    `${DIM}Base URL:${RESET} ${CYAN}${base}${RESET}   ${DIM}Dev Hub:${RESET} ${CYAN}${base}/dev${RESET}`,
+    "",
+  ];
+  return { text: lines.join("\n"), sections: [], variant };
 }
 
 function stripTrailingSlash(url: string): string {

@@ -103,6 +103,7 @@ These are the recurring workflows; each has a step-by-step skill in
 | Add a new error code | [`adding-error-code`](./.claude/skills/adding-error-code.md) |
 | Add a new admin/dev page | [`extending-dev-hub`](./.claude/skills/extending-dev-hub.md) |
 | Update from upstream template | [`syncing-from-template`](./.claude/skills/syncing-from-template.md) |
+| PR a `src/core/` fix back upstream | [`contributing-upstream`](./.claude/skills/contributing-upstream.md) + `/upstream-pr` |
 
 For larger workflows, use the agents in `.claude/agents/`:
 

@@ -13,6 +13,7 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { apiReference } from "@scalar/nestjs-api-reference";
 
 import { type BrowserOpenPlatform, planBrowserOpen } from "../dx/browser-open.js";
+import { transitionDevSession } from "../dx/dev-session-runner.js";
 import { resolveEffectiveBaseUrl } from "../dx/effective-base-url.js";
 import { renderJsonViewerPage } from "../dx/json-viewer-ui.js";
 import { planPrismaStudio } from "../dx/prisma-studio.js";
@@ -185,10 +186,17 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
           ...(process.env.PORTLESS_ACTIVE ? { PORTLESS_ACTIVE: process.env.PORTLESS_ACTIVE } : {}),
         },
       });
+
+      // Dev-session lock survives `bun --watch` re-execs, so we know
+      // whether this NestJS init is the first start of the dev session
+      // (open browser + hero banner) or a respawn (compact "♻
+      // restarted" banner, no browser open).
+      const session = transitionDevSession(process.cwd());
       const banner = planStartupBanner({
         env: cfg.env,
         baseUrl: effective.publicUrl,
         port: cfg.port,
+        variant: session.bannerVariant,
         features: {
           scalarEnabled: true,
           ...(studioUrl ? { prismaStudioUrl: studioUrl } : {}),
@@ -203,9 +211,10 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
       process.stdout.write(`${banner.text}\n`);
 
       // Auto-open the Dev Hub the first time `bun run dev` runs in this
-      // process. Skipped on watch-restarts via DEV_HUB_OPENED=1.
-      if (process.env.DEV_HUB_OPENED !== "1") {
-        process.env.DEV_HUB_OPENED = "1";
+      // session. Skipped on watch-restarts (the lock file remembers
+      // `devHubOpened=true` across `bun --watch` re-execs, which reset
+      // process.env).
+      if (session.shouldOpenBrowser) {
         const openPlan = planBrowserOpen({
           url: `${effective.publicUrl}/dev`,
           platform: detectBrowserOpenPlatform(),

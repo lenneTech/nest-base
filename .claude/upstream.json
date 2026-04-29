@@ -1,0 +1,13 @@
+{
+  "$schema": "./upstream.schema.json",
+  "isTemplate": true,
+  "upstream": null,
+  "syncedPaths": ["src/core/"],
+  "notes": [
+    "This file is read by the /upstream-pr slash command and the contributing-upstream skill.",
+    "When this repo IS the upstream template (`isTemplate: true`), Claude refuses to open upstream PRs from here — you would be PR'ing the repo against itself.",
+    "After forking the template into a downstream project, replace this file with:",
+    "  { \"isTemplate\": false, \"upstream\": { \"repo\": \"lenneTech/nest-base\", \"branch\": \"main\" }, \"syncedPaths\": [\"src/core/\"] }",
+    "The slash command then knows where to fork + open the PR."
+  ]
+}
