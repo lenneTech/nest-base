@@ -3771,7 +3771,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [ ] **SDK-Generation** (`bun run sdk:generate` via kubb)  — *Kubb-Config existiert; ohne Controller liefert der Server kein OpenAPI-Spec → Generator ohne Input.*
 - [x] Idempotency-Key Interceptor + Tabelle  *(`IdempotencyModule` registriert `IdempotencyKeyInterceptor` als `APP_INTERCEPTOR`; fängt POST/PATCH/PUT/DELETE mit `Idempotency-Key`-Header. In-Memory-Store; Postgres-Adapter folgt mit Schema-Slice. Replay setzt `Idempotency-Replay: 1`.)*
 - [x] ETag / If-Match Optimistic-Concurrency-Pipe  *(Helper-Funktionen `computeETag`, `verifyIfMatch`, plus `ProblemDetailsExceptionFilter` mappt `ETagMissingError` → 428 Precondition Required und `ETagPreconditionFailedError` → 412 Precondition Failed mit `currentETag` im Body. Controllers nutzen die Helpers direkt — Pipe-Wrapper ist ein opt-in pro Resource.)*
-- [ ] Cursor-Pagination zusätzlich zu page/limit  — *Pagination-Helper vorhanden, keine Controller verwenden ihn.*
+- [x] Cursor-Pagination zusätzlich zu page/limit  *(`ErrorCodeController.list()` bietet sowohl Vollergebnis (default) als auch `?cursor=…&limit=…` Cursor-Pagination via `buildCursorPage()` + `decodeCursor()`. Demonstriert das Pattern; weitere List-Endpoints folgen mit ihren CRUD-Slices.)*
 - [ ] `@nestjs/throttler` mit Postgres-Store, Multi-Window  — *Postgres-Store-Klasse existiert, ThrottlerModule ist nicht in AppModule.*
 - [ ] Per-API-Key Rate-Limit-Bucket  — *Bucket-Helper existiert, ohne Wiring (siehe Throttler).*
 - [x] GDPR-Endpoints (`/me/export`, `/me/account`, Anonymisierung)  *(`GdprModule` mountet `GET /me/export` (`buildGdprExport()`) + `DELETE /me/account` (Erasure-Stub). 403 ohne Auth. Daten-Plumbing folgt mit Project-Erasure-Registry.)*
