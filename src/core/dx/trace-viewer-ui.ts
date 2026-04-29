@@ -33,14 +33,12 @@ export function renderTraceViewerPage(input: {
   .tv-toolbar__meta { color: var(--fg-dim); font-size: .78rem; font-variant-numeric: tabular-nums; }
   .tv-pulse { display: inline-block; width: 6px; height: 6px; border-radius: 999px; background: var(--accent); margin-right: .35rem; box-shadow: 0 0 6px var(--accent); animation: pulse 2s ease-in-out infinite; vertical-align: middle; }
 
-  /* Same terminal-style pattern as /dev/logs: bound height to dvh,
-     sticky header, scroll inside the container so the page doesn't
-     grow unbounded on a busy server. The 26rem offset covers
-     admin-main padding (top+bottom) + header h1+subtitle + the 3
-     stat tiles + toolbar + a buffer margin. */
+  /* 65 dvh is the project-wide standard for dev-hub scroll containers.
+     Robust regardless of how much chrome (header / tiles / toolbar)
+     sits above; min-height protects very short viewports. */
   .tv-scroll {
     position: relative;
-    max-height: calc(100dvh - 26rem);
+    max-height: 65dvh;
     min-height: 14rem;
     overflow-y: auto;
     background: var(--surface-1);

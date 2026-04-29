@@ -93,17 +93,26 @@ function renderTable(files: TestFileRow[]): string {
     return `<div class="admin-empty">No file-level data in summary.</div>`;
   }
   const rows = files.map(renderRow).join("\n");
-  return `<table class="admin-table" data-test-files="true">
-<thead><tr>
-  <th>Status</th>
-  <th>File</th>
-  <th>Pass</th>
-  <th>Fail</th>
-  <th>Skip</th>
-  <th>Duration</th>
-</tr></thead>
-<tbody>${rows}</tbody>
-</table>`;
+  // 65 dvh is the project-wide standard for dev-hub scroll containers
+  // — see `memory/feedback_devhub_scrollable_height.md`.
+  return `<style>
+  .test-scroll { max-height: 65dvh; min-height: 14rem; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+  .test-scroll .admin-table { border: 0; }
+  .test-scroll .admin-table thead { position: sticky; top: 0; z-index: 1; background: var(--surface-2); }
+</style>
+<div class="test-scroll">
+  <table class="admin-table" data-test-files="true">
+    <thead><tr>
+      <th>Status</th>
+      <th>File</th>
+      <th>Pass</th>
+      <th>Fail</th>
+      <th>Skip</th>
+      <th>Duration</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+</div>`;
 }
 
 function renderRow(file: TestFileRow): string {

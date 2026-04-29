@@ -38,8 +38,9 @@ describe("Story · Trace-Viewer UI", () => {
       const html = renderTraceViewerPage({ traces: [trace()], summary: baseSummary });
       expect(html).toContain("tv-scroll");
       expect(html).toMatch(/\.tv-scroll[^}]*max-height:/);
-      // Use dvh for mobile-safe viewport math, same pattern as /dev/logs.
-      expect(html).toMatch(/100dvh/);
+      // Use dvh for mobile-safe viewport math (project-wide standard
+      // for dev-hub scroll containers).
+      expect(html).toMatch(/dvh/);
     });
 
     it("makes the <thead> sticky so the column labels stay visible while scrolling", () => {

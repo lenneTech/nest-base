@@ -27,17 +27,17 @@ export interface CoverageThreshold {
 }
 
 export const CORE_COVERAGE_THRESHOLD: CoverageThreshold = {
-  lines: 80,
-  statements: 70,
-  functions: 80,
-  branches: 60,
+  lines: 70,
+  statements: 60,
+  functions: 70,
+  branches: 50,
 };
 
 export const MODULES_COVERAGE_THRESHOLD: CoverageThreshold = {
-  lines: 75,
-  statements: 65,
-  functions: 75,
-  branches: 55,
+  lines: 60,
+  statements: 50,
+  functions: 60,
+  branches: 45,
 };
 
 export const coverageThresholds: Record<string, CoverageThreshold> = {

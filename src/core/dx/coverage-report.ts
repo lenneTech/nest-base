@@ -4,12 +4,17 @@
  * Pure parser for the `coverage/coverage-summary.json` artifact that
  * Vitest emits via `bun run test:coverage`. Maps the v8 reporter shape
  * to a UI-friendly structure: per-file rows, per-tier metric, and a
- * gate verdict for the configured 90 % core / 80 % modules thresholds.
+ * gate verdict.
  *
  * Pure means: input is a parsed JSON object (or undefined when the
  * file hasn't been generated yet), output is the same struct every
  * time. The runner reads `coverage/coverage-summary.json` from disk.
+ *
+ * The thresholds come from `coverage-gate.ts` so the dashboard
+ * tracks the same numbers the Vitest gate enforces.
  */
+
+import { CORE_COVERAGE_THRESHOLD, MODULES_COVERAGE_THRESHOLD } from "../testing/coverage-gate.js";
 
 export type CoverageMetric = "lines" | "statements" | "branches" | "functions";
 
@@ -58,7 +63,11 @@ export interface CoverageReportInput {
   generatedAt?: string;
 }
 
-const DEFAULT_THRESHOLDS = { core: 90, modules: 80, shared: 80 } as const;
+const DEFAULT_THRESHOLDS = {
+  core: CORE_COVERAGE_THRESHOLD.lines,
+  modules: MODULES_COVERAGE_THRESHOLD.lines,
+  shared: MODULES_COVERAGE_THRESHOLD.lines,
+} as const;
 
 export function buildCoverageReport(input: CoverageReportInput): CoverageReport {
   if (!input.summary) {

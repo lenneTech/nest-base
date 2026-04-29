@@ -22,7 +22,10 @@ export function renderEmailPreviewPage(input: {
   @media (max-width: 900px) { .ep-grid { grid-template-columns: 1fr; } }
   .ep-pane { background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 1rem; }
   .ep-pane__title { font-size: .65rem; color: var(--fg-dim); text-transform: uppercase; letter-spacing: .14em; font-weight: 600; margin: 0 0 .5rem; }
-  .ep-html { background: white; color: black; padding: 1rem; border-radius: 4px; font-size: .85rem; }
+  /* The email body owns its own background colour now (dark theme),
+     so the iframe should not paint a white plate behind it. Transparent
+     here; the rendered HTML's own <body> defines the visible canvas. */
+  .ep-html { background: transparent; color: var(--fg); padding: 0; border-radius: 6px; font-size: .85rem; overflow: hidden; }
   .ep-text, .ep-payload { font-family: var(--font-mono); font-size: .8rem; color: var(--fg); white-space: pre-wrap; word-break: break-word; }
   .ep-subject { font-family: var(--font-mono); font-size: .9rem; color: var(--fg); margin-bottom: 1rem; padding: .5rem .75rem; background: var(--surface-2); border-radius: 4px; }
   .ep-error { color: var(--err); font-family: var(--font-mono); font-size: .85rem; padding: .75rem; background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.3); border-radius: 4px; }
@@ -59,7 +62,7 @@ function renderCard(
   <div class="ep-grid">
     <div class="ep-pane">
       <div class="ep-pane__title">HTML</div>
-      <iframe class="ep-html" sandbox="" srcdoc="${escapeHtml(result.html ?? "")}" style="width:100%;min-height:18rem;border:0;background:white;"></iframe>
+      <iframe class="ep-html" sandbox="" srcdoc="${escapeHtml(result.html ?? "")}" style="width:100%;min-height:22rem;border:0;background:transparent;color-scheme:dark;"></iframe>
     </div>
     <div class="ep-pane">
       <div class="ep-pane__title">Text</div>

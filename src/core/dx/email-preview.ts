@@ -34,6 +34,7 @@ export function buildEmailPreviewCatalog(extras: EmailPreviewEntry[] = []): Emai
       description: "Sent after sign-up, asks the user to confirm their address.",
       samplePayload: {
         recipientName: "Alice Example",
+        appName: "nest-base",
         verificationUrl: "https://app.example.test/verify?token=preview",
       },
     },
@@ -42,6 +43,7 @@ export function buildEmailPreviewCatalog(extras: EmailPreviewEntry[] = []): Emai
       description: "Sent when a user requests a password reset link.",
       samplePayload: {
         recipientName: "Alice Example",
+        appName: "nest-base",
         resetUrl: "https://app.example.test/reset?token=preview",
       },
     },

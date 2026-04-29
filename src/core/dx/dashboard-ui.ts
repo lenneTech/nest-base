@@ -70,10 +70,11 @@ function computeOverallHealth(input: DashboardInput, probesDown: number): Overal
     };
   }
   if (input.coverage.available && !input.coverage.gate.overallOk) {
+    const t = input.coverage.thresholds;
     return {
       state: "warn",
       label: "Coverage below threshold",
-      detail: "core ≥ 90% / modules ≥ 80%",
+      detail: `core ≥ ${t.core}% / modules ≥ ${t.modules}%`,
     };
   }
   if (input.tests.available && !input.tests.totals.success) {

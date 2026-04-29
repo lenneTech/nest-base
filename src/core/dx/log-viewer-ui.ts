@@ -26,15 +26,13 @@ export function renderLogViewerPage(input: LogViewerInput): string {
 
   /* Terminal-style scroll container: bound the height to the viewport
      so the latest record is always visible without page-level scroll.
-     Uses dvh (dynamic viewport height) so mobile browser chrome
-     doesn't push the bottom rows out of view. The 18rem offset
-     covers: admin-main padding (top+bottom), header + subtitle,
-     admin-card padding, log-toolbar, plus a buffer margin so the
-     last visible row is comfortably inside the viewport. */
+     65 dvh is the project-wide standard for dev-hub scroll containers.
+     Robust regardless of how much chrome sits above; min-height
+     protects very short viewports. */
   .log-scroll {
     position: relative;
-    max-height: calc(100dvh - 18rem);
-    min-height: 16rem;
+    max-height: 65dvh;
+    min-height: 14rem;
     overflow-y: auto;
     background: var(--surface-1);
     border: 1px solid var(--line);

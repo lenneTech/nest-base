@@ -109,44 +109,140 @@ function escapeHtml(input: string): string {
 }
 
 /**
- * Built-in templates — minimal copy that proves the rendering surface.
- * Apps replace or extend these via `registry.register()`.
+ * Built-in templates — share the dark + electric-lime theme of the
+ * Dev Hub so transactional mails feel part of the same product
+ * surface. Inline styles only (no <style> blocks, no <link> tags) —
+ * that's the lowest common denominator across email clients
+ * (Gmail/Outlook/Apple Mail strip <style> tags or scope-rewrite
+ * them, but inline styles render reliably).
+ *
+ * The wrapper builds: container card + brand row + main copy +
+ * primary button (when an action URL is supplied) + footer hint.
+ * The `<%= … %>` substitutions are EJS-subset placeholders processed
+ * by `EjsEmailTemplateRenderer`.
+ *
+ * Apps replace or extend these via `registry.register()`. Keep the
+ * subject + at least one paragraph — the renderer fails loudly if a
+ * required variable is missing, which is much better than silently
+ * sending half-rendered emails to real users.
  */
+
+interface MailBodyOptions {
+  greeting: string;
+  paragraphs: string[];
+  cta?: { label: string; href: string };
+  footer?: string;
+}
+
+function renderMailHtml(body: MailBodyOptions): string {
+  const cta = body.cta
+    ? `<tr><td style="padding:12px 0 4px;">
+         <a href="${body.cta.href}" style="display:inline-block;padding:12px 24px;border-radius:8px;background:#c5fb45;color:#0a0a0a;text-decoration:none;font-weight:600;font-size:14px;letter-spacing:.01em;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">${body.cta.label}</a>
+       </td></tr>
+       <tr><td style="padding:8px 0 4px;font-size:12px;color:#71717a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">If the button doesn't work, paste this URL into your browser:</td></tr>
+       <tr><td style="padding:0 0 12px;font-size:12px;color:#a1a1aa;word-break:break-all;font-family:'SFMono-Regular',Menlo,Consolas,monospace;"><a href="${body.cta.href}" style="color:#c5fb45;text-decoration:none;">${body.cta.href}</a></td></tr>`
+    : "";
+  const footer = body.footer
+    ? `<tr><td style="padding:24px 0 0;border-top:1px solid rgba(255,255,255,0.06);font-size:12px;color:#71717a;line-height:1.6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">${body.footer}</td></tr>`
+    : "";
+  const paragraphs = body.paragraphs
+    .map(
+      (p) =>
+        `<tr><td style="padding:0 0 14px;font-size:15px;line-height:1.65;color:#e4e4e7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">${p}</td></tr>`,
+    )
+    .join("");
+  return `<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:24px 16px;background:#020203;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#ffffff;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" width="100%" style="max-width:560px;margin:0 auto;background:#06070a;border:1px solid rgba(255,255,255,0.06);border-radius:14px;overflow:hidden;">
+    <tr><td style="padding:24px 28px;border-bottom:1px solid rgba(255,255,255,0.06);">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
+        <td style="vertical-align:middle;font-size:16px;font-weight:600;color:#ffffff;letter-spacing:-0.01em;">
+          <span style="display:inline-block;width:8px;height:8px;background:#c5fb45;border-radius:999px;box-shadow:0 0 12px rgba(197,251,69,0.5);margin-right:8px;vertical-align:middle;"></span>
+          <%= appName %>
+        </td>
+      </tr></table>
+    </td></tr>
+    <tr><td style="padding:28px 28px 8px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+        <tr><td style="padding:0 0 14px;font-size:18px;font-weight:600;color:#ffffff;letter-spacing:-0.015em;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">${body.greeting}</td></tr>
+        ${paragraphs}
+        ${cta}
+        ${footer}
+      </table>
+    </td></tr>
+    <tr><td style="padding:18px 28px;background:#0c0d11;font-size:11px;color:#52525b;text-align:center;letter-spacing:.04em;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+      Sent by <%= appName %> · This is an automated message.
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
 export function buildBuiltInEmailTemplateRegistry(): EmailTemplateRegistry {
   const reg = new InMemoryEmailTemplateRegistry();
 
   reg.register("email-verification", null, {
     subject: "Please verify your email",
-    html:
-      "<p>Hello <%= recipientName %>,</p>" +
-      '<p>Please verify your email by visiting <a href="<%= verificationUrl %>"><%= verificationUrl %></a>.</p>',
-    text: "Hello <%= recipientName %>,\n\nPlease verify your email: <%= verificationUrl %>",
+    html: renderMailHtml({
+      greeting: "Hello <%= recipientName %>,",
+      paragraphs: [
+        "Welcome to <%= appName %>! Please confirm this is your address so we know where to send important account updates.",
+        "The verification link is valid for 24 hours. If you didn't sign up, you can safely ignore this email.",
+      ],
+      cta: { label: "Verify email", href: "<%= verificationUrl %>" },
+    }),
+    text:
+      "Hello <%= recipientName %>,\n\n" +
+      "Welcome to <%= appName %>! Please verify your email:\n<%= verificationUrl %>\n\n" +
+      "The link is valid for 24 hours.",
   });
 
   reg.register("password-reset", null, {
     subject: "Reset your password",
-    html:
-      "<p>Hello <%= recipientName %>,</p>" +
-      '<p>Reset your password by visiting <a href="<%= resetUrl %>"><%= resetUrl %></a>.</p>' +
-      "<p>If you did not request this, ignore this email.</p>",
-    text: "Hello <%= recipientName %>,\n\nReset your password: <%= resetUrl %>",
+    html: renderMailHtml({
+      greeting: "Hello <%= recipientName %>,",
+      paragraphs: [
+        "We received a request to reset your password. Click the button below to choose a new one.",
+      ],
+      cta: { label: "Reset password", href: "<%= resetUrl %>" },
+      footer:
+        "If you did not request a password reset, you can safely ignore this email — your password stays unchanged.",
+    }),
+    text:
+      "Hello <%= recipientName %>,\n\n" +
+      "Reset your password: <%= resetUrl %>\n\n" +
+      "If you did not request this, ignore this email.",
   });
 
   reg.register("welcome", null, {
     subject: "Welcome to <%= appName %>",
-    html: "<p>Hello <%= recipientName %>,</p><p>Welcome to <%= appName %>!</p>",
-    text: "Hello <%= recipientName %>,\n\nWelcome to <%= appName %>!",
+    html: renderMailHtml({
+      greeting: "Hello <%= recipientName %>,",
+      paragraphs: [
+        "Welcome to <%= appName %>! Your account is ready to go.",
+        "Reach out any time — we're glad to have you.",
+      ],
+    }),
+    text: "Hello <%= recipientName %>,\n\nWelcome to <%= appName %>!\n\nYour account is ready to go.",
   });
 
   reg.register("invitation", null, {
     subject: "You have been invited to <%= appName %>",
-    html:
-      "<p>Hello <%= recipientName %>,</p>" +
-      "<p><%= senderName %> has invited you to join <%= appName %>.</p>" +
-      '<p>Accept the invitation: <a href="<%= acceptUrl %>"><%= acceptUrl %></a></p>',
+    html: renderMailHtml({
+      greeting: "Hello <%= recipientName %>,",
+      paragraphs: [
+        '<strong style="color:#c5fb45;"><%= senderName %></strong> has invited you to join <%= appName %>.',
+        "Accept the invitation to set up your account and start collaborating.",
+      ],
+      cta: { label: "Accept invitation", href: "<%= acceptUrl %>" },
+      footer:
+        "Invitations expire after 7 days. If you weren't expecting this, you can ignore the email.",
+    }),
     text:
-      "Hello <%= recipientName %>,\n\n<%= senderName %> has invited you to join <%= appName %>.\n" +
-      "Accept the invitation: <%= acceptUrl %>",
+      "Hello <%= recipientName %>,\n\n" +
+      "<%= senderName %> has invited you to join <%= appName %>.\n" +
+      "Accept the invitation: <%= acceptUrl %>\n\n" +
+      "Invitations expire after 7 days.",
   });
 
   return reg;

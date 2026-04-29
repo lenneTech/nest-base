@@ -45,9 +45,11 @@ describe("Story · Coverage UI", () => {
   });
 
   it("flaggt Dateien unter Threshold via data-below-threshold", () => {
+    // Use values clearly below / above the configured core threshold,
+    // independent of its exact tuning over time.
     const summary: RawCoverageSummary = {
-      "/r/src/core/bad.ts": metrics(70),
-      "/r/src/core/ok.ts": metrics(95),
+      "/r/src/core/bad.ts": metrics(30),
+      "/r/src/core/ok.ts": metrics(99),
     };
     const html = renderCoveragePage(buildCoverageReport({ summary, repoRoot: "/r" }));
     expect(html).toMatch(/data-below-threshold="true"[^>]*>[\s\S]*src\/core\/bad\.ts/);
@@ -58,9 +60,13 @@ describe("Story · Coverage UI", () => {
       "/r/src/core/a.ts": metrics(91),
       "/r/src/modules/b.ts": metrics(85),
     };
-    const html = renderCoveragePage(buildCoverageReport({ summary, repoRoot: "/r" }));
-    expect(html).toMatch(/Core ≥ 90%/);
-    expect(html).toMatch(/Modules ≥ 80%/);
+    const report = buildCoverageReport({ summary, repoRoot: "/r" });
+    const html = renderCoveragePage(report);
+    // Badge text is built from `report.thresholds.{core,modules}`
+    // so the assertion stays valid as the numbers in
+    // `coverage-gate.ts` get tuned over time.
+    expect(html).toContain(`Core ≥ ${report.thresholds.core}%`);
+    expect(html).toContain(`Modules ≥ ${report.thresholds.modules}%`);
   });
 
   it("eskapiert User-Pfade gegen XSS", () => {

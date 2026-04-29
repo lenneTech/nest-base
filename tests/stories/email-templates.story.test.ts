@@ -123,6 +123,7 @@ describe("Story · Email-Templates", () => {
       const r = new EjsEmailTemplateRenderer(buildBuiltInEmailTemplateRegistry());
       const out = await r.render("email-verification", "en", {
         recipientName: "Pascal",
+        appName: "Acme",
         verificationUrl: "https://app.example.com/verify?token=abc",
       });
       expect(out.subject).toMatch(/verify/i);
@@ -134,6 +135,7 @@ describe("Story · Email-Templates", () => {
       const r = new EjsEmailTemplateRenderer(buildBuiltInEmailTemplateRegistry());
       const out = await r.render("password-reset", "en", {
         recipientName: "Pascal",
+        appName: "Acme",
         resetUrl: "https://app.example.com/reset?token=abc",
       });
       expect(out.subject).toMatch(/reset/i);

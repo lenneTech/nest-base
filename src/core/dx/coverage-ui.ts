@@ -102,17 +102,28 @@ function renderFilesTable(files: CoverageFileRow[]): string {
     return `<div class="admin-empty">No file-level coverage data.</div>`;
   }
   const rows = files.map(renderFileRow).join("\n");
-  return `<table class="admin-table" data-coverage-files="true">
-<thead><tr>
-  <th>File</th>
-  <th>Tier</th>
-  <th>Lines</th>
-  <th>Stmts</th>
-  <th>Branches</th>
-  <th>Funcs</th>
-</tr></thead>
-<tbody>${rows}</tbody>
-</table>`;
+  // 65 dvh is the project-wide standard for dev-hub scroll containers
+  // — see `memory/feedback_devhub_scrollable_height.md`. Robust
+  // regardless of how much chrome (header / tiles / toolbar) sits
+  // above; min-height protects very short viewports.
+  return `<style>
+  .cov-scroll { max-height: 65dvh; min-height: 14rem; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+  .cov-scroll .admin-table { border: 0; }
+  .cov-scroll .admin-table thead { position: sticky; top: 0; z-index: 1; background: var(--surface-2); }
+</style>
+<div class="cov-scroll">
+  <table class="admin-table" data-coverage-files="true">
+    <thead><tr>
+      <th>File</th>
+      <th>Tier</th>
+      <th>Lines</th>
+      <th>Stmts</th>
+      <th>Branches</th>
+      <th>Funcs</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+</div>`;
 }
 
 function renderFileRow(file: CoverageFileRow): string {

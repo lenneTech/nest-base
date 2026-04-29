@@ -12,6 +12,7 @@
  * before clearing data).
  */
 
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 
 import { buildSeedPlan } from "../src/core/setup/seed-plan.js";
@@ -43,7 +44,11 @@ console.log(
   `[seed] plan: ${plan.tenants.length} tenants, ${plan.users.length} users, ${plan.tenantMembers.length} memberships`,
 );
 
-const prisma = new PrismaClient();
+// Prisma 7 needs an explicit driver adapter — same wiring as
+// PrismaService (src/core/prisma/prisma.service.ts).
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+});
 
 try {
   for (const tenant of plan.tenants) {
@@ -87,6 +92,19 @@ try {
   console.log(`[seed]   members:  ${plan.tenantMembers.length}`);
 
   console.log("[seed] done.");
+} catch (err) {
+  // Prisma P2021 = "The table … does not exist". Most common cause is
+  // running `bun run seed` before applying migrations on a fresh DB.
+  // Print a friendly hint instead of dumping the full Prisma stack.
+  const code = (err as { code?: string }).code;
+  if (code === "P2021") {
+    console.error("[seed] DB schema is missing — run migrations first:");
+    console.error("[seed]   bun run prepare:schema && bun run prisma:migrate");
+    console.error("[seed]   bun run seed");
+    console.error("[seed] (or `bun run reset` to wipe + migrate + seed in one shot)");
+    process.exit(1);
+  }
+  throw err;
 } finally {
   await prisma.$disconnect();
 }
