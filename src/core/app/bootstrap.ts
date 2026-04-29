@@ -5,6 +5,7 @@ import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
 
 import { buildScalarConfig } from '../dx/scalar-config.js';
@@ -58,6 +59,26 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   );
 
   app.useGlobalFilters(new ProblemDetailsExceptionFilter());
+
+  // OpenAPI spec generator (PLAN.md §32 Phase 8). The document builder
+  // walks every controller registered in DI and produces an OpenAPI
+  // 3.1 JSON. Mounted at `/api/openapi.json` (Scalar UI consumes it,
+  // kubb generates the SDK from it).
+  const openApiConfig = new DocumentBuilder()
+    .setTitle('nest-server-template')
+    .setDescription('Template-fähiger NestJS-Server')
+    .setVersion('1.0.0')
+    .addBearerAuth()
+    .addCookieAuth('better-auth.session_token')
+    .build();
+  const openApiDocument = SwaggerModule.createDocument(app, openApiConfig);
+  // SwaggerModule.setup also mounts the Swagger UI; we only want the
+  // raw JSON since Scalar UI is the chosen renderer. Manually expose
+  // the document at /api/openapi.json.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  app.use('/api/openapi.json', (_req: any, res: any) => {
+    res.json(openApiDocument);
+  });
 
   // Scalar API-UI mount (PLAN.md §32 Phase 8). Default `/api/docs` with
   // the stock theme; consumers override via env or by tweaking

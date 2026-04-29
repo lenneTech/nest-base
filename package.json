@@ -30,9 +30,13 @@
     "setup": "bun run scripts/setup-wizard.ts",
     "sync:from-template": "bun run scripts/sync-from-template.ts",
     "sync:to-template": "bun run scripts/sync-to-template.ts",
-    "sdk:generate": "kubb generate"
+    "sdk:generate": "kubb generate -c kubb.config.ts"
   },
   "devDependencies": {
+    "@kubb/cli": "^4.37.4",
+    "@kubb/core": "^4.37.4",
+    "@kubb/plugin-oas": "^4.37.4",
+    "@kubb/plugin-ts": "^4.37.4",
     "@nestjs/testing": "^11.1.19",
     "@testcontainers/postgresql": "^11.14.0",
     "@types/express": "^5.0.6",
