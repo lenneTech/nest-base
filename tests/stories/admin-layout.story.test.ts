@@ -74,6 +74,7 @@ describe("Story · Admin-Layout", () => {
     expect(ids).toContain("erd");
     expect(ids).toContain("email-preview");
     expect(ids).toContain("traces");
+    expect(ids).toContain("queries");
   });
 
   it("every nav item has a working currentNav match (no orphaned IDs)", () => {

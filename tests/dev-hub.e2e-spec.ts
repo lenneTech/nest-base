@@ -121,6 +121,28 @@ describe("Dev-Hub · GET /dev", () => {
       expect(typeof trace.status).toBe("number");
     });
 
+    it("GET /dev/queries renders the HTML query-performance page", async () => {
+      const res = await request(app.getHttpServer()).get("/dev/queries");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/text\/html/);
+      expect(res.text).toMatch(/Queries/);
+      expect(res.text).toMatch(/Slowest queries/);
+      expect(res.text).toMatch(/Most frequent templates/);
+    });
+
+    it("GET /dev/queries.json returns the structured buffer + summary + slowest + topTemplates", async () => {
+      const res = await request(app.getHttpServer()).get("/dev/queries.json");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/application\/json/);
+      expect(Array.isArray(res.body.recent)).toBe(true);
+      expect(Array.isArray(res.body.slowest)).toBe(true);
+      expect(Array.isArray(res.body.topTemplates)).toBe(true);
+      expect(typeof res.body.summary.total).toBe("number");
+      expect(typeof res.body.summary.slowestMs).toBe("number");
+      expect(typeof res.body.summary.warnCount).toBe("number");
+      expect(typeof res.body.summary.badCount).toBe("number");
+    });
+
     it("GET /dev/email-preview renders all built-in templates with sample payloads", async () => {
       const res = await request(app.getHttpServer()).get("/dev/email-preview");
       expect(res.status).toBe(200);

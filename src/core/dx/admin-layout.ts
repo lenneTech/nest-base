@@ -58,6 +58,7 @@ export function defaultAdminNav(): AdminNavSection[] {
         { id: "tests", label: "Tests", href: "/dev/tests", icon: ICON_CHECK },
         { id: "logs", label: "Logs", href: "/dev/logs", icon: ICON_TERMINAL },
         { id: "traces", label: "Traces", href: "/dev/traces", icon: ICON_PULSE },
+        { id: "queries", label: "Queries", href: "/dev/queries", icon: ICON_DATABASE },
       ],
     },
     {

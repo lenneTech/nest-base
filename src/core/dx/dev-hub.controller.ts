@@ -48,6 +48,13 @@ import { renderLogViewerPage } from "./log-viewer-ui.js";
 import { RouteInventoryService } from "./route-inventory-runner.js";
 import { renderRouteInventoryPage } from "./route-inventory-ui.js";
 import type { RouteInventory } from "./route-inventory.js";
+import {
+  getQueryBuffer,
+  type QueryRecord,
+  type QuerySummary,
+  type TemplateGroup,
+} from "./query-buffer.js";
+import { renderQueryViewerPage } from "./query-viewer-ui.js";
 import { getTraceBuffer, type TraceRecord, type TraceSummary } from "./trace-buffer.js";
 import { renderTraceViewerPage } from "./trace-viewer-ui.js";
 import { buildTestSummary, type RawTestSummary } from "./test-summary.js";
@@ -401,6 +408,45 @@ export class DevHubController {
     }
     if (requestId) filter.requestId = requestId;
     return { traces: buffer.recent(filter), summary: buffer.summary() };
+  }
+
+  @Get("queries")
+  @Header("content-type", "text/html; charset=utf-8")
+  queriesPage(): string {
+    this.assertDev();
+    const buffer = getQueryBuffer();
+    return renderQueryViewerPage({
+      recent: buffer.recent({ limit: 100 }),
+      slowest: buffer.slowest(10),
+      topTemplates: buffer.topTemplates(10),
+      summary: buffer.summary(),
+    });
+  }
+
+  @Get("queries.json")
+  queriesJson(
+    @Query("limit") limit?: string,
+    @Query("requestId") requestId?: string,
+  ): {
+    recent: QueryRecord[];
+    slowest: QueryRecord[];
+    topTemplates: TemplateGroup[];
+    summary: QuerySummary;
+  } {
+    this.assertDev();
+    const buffer = getQueryBuffer();
+    const filter: { limit?: number; requestId?: string } = {};
+    if (limit) {
+      const parsed = Number.parseInt(limit, 10);
+      if (Number.isFinite(parsed) && parsed > 0) filter.limit = parsed;
+    }
+    if (requestId) filter.requestId = requestId;
+    return {
+      recent: buffer.recent(filter),
+      slowest: buffer.slowest(10),
+      topTemplates: buffer.topTemplates(10),
+      summary: buffer.summary(),
+    };
   }
 
   @Get("email-preview")

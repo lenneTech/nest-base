@@ -2,7 +2,9 @@ import { Injectable, type OnModuleDestroy, type OnModuleInit } from "@nestjs/com
 import { PrismaPg } from "@prisma/adapter-pg";
 import { type Prisma, PrismaClient } from "@prisma/client";
 
+import { getQueryBuffer } from "../dx/query-buffer.js";
 import { getCurrentTenantId } from "../multi-tenancy/tenant.interceptor.js";
+import { getRequestContext } from "../request-context/request-context.js";
 
 /**
  * Prisma 7 client wrapped as a NestJS provider.
@@ -33,11 +35,38 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     if (!url) {
       throw new Error("DATABASE_URL is required to construct PrismaService");
     }
-    super({ adapter: new PrismaPg({ connectionString: url }) });
+    super({
+      adapter: new PrismaPg({ connectionString: url }),
+      // Emit `query` events so we can record durations into the
+      // dev-hub's QueryBuffer. Tests opt out via `PRISMA_DISABLE_QUERY_BUFFER=1`
+      // (the in-memory test setup doesn't need the noise).
+      ...(process.env.PRISMA_DISABLE_QUERY_BUFFER === "1"
+        ? {}
+        : { log: [{ emit: "event", level: "query" }] }),
+    });
   }
 
   async onModuleInit(): Promise<void> {
     await this.$connect();
+    if (process.env.PRISMA_DISABLE_QUERY_BUFFER !== "1") {
+      // `$on('query', …)` payload: { query, params, duration, target }.
+      // We capture (sql, durationMs, requestId) — params are dropped to
+      // avoid logging credentials / PII into the in-memory ring.
+      const buffer = getQueryBuffer();
+      // The Prisma type for $on('query') varies between minor versions.
+      // Cast to a permissive event shape so we read the fields we need.
+      type QueryEvent = { query: string; duration: number; timestamp?: Date };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (this as any).$on("query", (event: QueryEvent) => {
+        const requestId = getRequestContext()?.requestId;
+        buffer.record({
+          sql: event.query,
+          durationMs: event.duration,
+          startedAtMs: event.timestamp ? event.timestamp.getTime() : Date.now(),
+          ...(requestId ? { requestId } : {}),
+        });
+      });
+    }
   }
 
   async onModuleDestroy(): Promise<void> {
