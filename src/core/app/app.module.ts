@@ -2,6 +2,7 @@ import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { DevtoolsModule } from '@nestjs/devtools-integration';
 
+import { AuditLogModule } from '../audit/audit-log.module.js';
 import { BetterAuthModule } from '../auth/better-auth.module.js';
 import { PowerSyncModule } from '../auth/powersync.module.js';
 import { ConfigModule } from '../config/config.module.js';
@@ -78,6 +79,7 @@ const devtools = buildDevToolsConfig({
     PowerSyncModule,
     IdempotencyModule,
     EmailModule,
+    AuditLogModule,
     ...conditionalImport(features, 'fieldEncryption', EncryptionModule.forRoot()),
     ...(devtools.enabled && devtools.http
       ? [DevtoolsModule.register({ http: true, port: devtools.port })]
