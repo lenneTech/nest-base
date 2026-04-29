@@ -3652,9 +3652,9 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Projekt-Skeleton (Bun + NestJS + Prisma + Postgres)
 - [x] ENV-Validation (Zod) + Config-Modul
 - [x] Feature-Flag-System (`features.ts` + Conditional-Imports + Validierung von Abhängigkeiten)
-- [x] Logger (Pino) + OpenTelemetry-Integration
+- [ ] Logger (Pino) + OpenTelemetry-Integration  — *PinoLoggerService existiert, aber `bootstrap()` hat `logger: false`; OTel-SDK wird nicht initialisiert.*
 - [x] Helmet + CSP-Middleware
-- [x] Request-Context-Middleware (W3C Trace Context)
+- [ ] Request-Context-Middleware (W3C Trace Context)  — *Middleware-Klasse existiert, aber `app.use()` registriert sie nicht.*
 - [x] Health-Check (Liveness + Readiness)
 - [x] RFC 7807 Problem-Details Exception-Filter
 - [x] `Dockerfile.example` als Template-Referenz für Konsumenten (Multi-Stage Bun, non-root) — wird **nicht** in CI gebaut
@@ -3663,15 +3663,15 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Repo-Layout: `src/core/` (Template-Owned, Sync-Target) + `src/modules/` (Projekt-Owned) + `src/shared/` (gemeinsame Types)
 - [x] Prisma-Schema v1 (User, Tenant, Role) mit `@@map`/`@map` snake_case
 - [x] UUID v7 Setup (Postgres-Extension `pg_uuidv7`)
-- [x] Field-Encryption-Service (AES-256-GCM, KEK aus ENV)
+- [ ] Field-Encryption-Service (AES-256-GCM, KEK aus ENV)  — *Klasse existiert, ist aber kein DI-Provider (kein `@Injectable`-Module).*
 
 ### Phase 2 – Auth & Multi-Tenancy (Sprint 3-4)
 - [x] **Test-First (Stories):** Adaptierte `better-auth-*.story.test.ts` (api, integration, plugins, jwt-middleware, rate-limit, email-verification), `auth-parallel-operation.e2e-spec.ts`, `auth-scenarios.e2e-spec.ts`, `user-enumeration-prevention.e2e-spec.ts`, `multi-tenancy.e2e-spec.ts`, `tenant-guard.e2e-spec.ts` — vor jeder Implementation
-- [x] Better-Auth Integration (Email/PW, Session, JWT)
-- [x] System-Setup (Initial-Admin)
-- [x] Tenant-Interceptor + RLS-Setup
-- [x] Tenant-Member-CRUD
-- [x] Scoped API-Keys (CRUD, argon2id-Hash, Scopes, Rotation)
+- [ ] Better-Auth Integration (Email/PW, Session, JWT)  — *Adapter+Factory existieren in `src/core/auth/`, aber keine Mount-Logic; `/api/auth/*` ist nicht erreichbar.*
+- [ ] System-Setup (Initial-Admin)  — *Config-Parsing funktioniert, aber kein Boot-Hook ruft `provisionAdmin()`.*
+- [ ] Tenant-Interceptor + RLS-Setup  — *`TenantInterceptor` (@Injectable) ist da, aber nicht global registriert; RLS-`SET LOCAL`-Hook nicht im PrismaService verdrahtet.*
+- [ ] Tenant-Member-CRUD  — *Kein Controller.*
+- [ ] Scoped API-Keys (CRUD, argon2id-Hash, Scopes, Rotation)  — *Kein Controller, Hashing-Helper existiert isoliert.*
 - [x] Repository-Pattern als Standard etablieren
 
 ### Phase 3 – Permissions & Output-Pipeline (Sprint 5-6)
@@ -3680,12 +3680,12 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] CASL Integration (`@casl/ability`, `@casl/prisma`)
 - [x] DB-Rule → CASL-Rule Resolver (mit Variablen-Substitution)
 - [x] PermissionService.abilityFor() + Cache (LRU, 60s TTL)
-- [x] `@Can()` Decorator + Guard, `@Ability()` Param-Decorator
-- [x] PostgREST-Query-Parser → Prisma-WHERE (kombiniert mit `accessibleBy`)
-- [x] Output-Pipeline-Interceptor (4-Stage)
-- [x] Filter-Service Pattern: `@FilterFor()` + Registry + Auto-Discovery
+- [ ] `@Can()` Decorator + Guard, `@Ability()` Param-Decorator  — *Decorator + `CanGuard` existieren, Guard ist nicht als globaler `APP_GUARD` registriert.*
+- [ ] PostgREST-Query-Parser → Prisma-WHERE (kombiniert mit `accessibleBy`)  — *Parser existiert, aber kein Controller verwendet ihn.*
+- [ ] Output-Pipeline-Interceptor (4-Stage)  — *4 Stages als pure Funktionen vorhanden, Interceptor-Klasse nicht als globaler `APP_INTERCEPTOR` registriert.*
+- [ ] Filter-Service Pattern: `@FilterFor()` + Registry + Auto-Discovery  — *`FilterService` (@Injectable) existiert, aber keine Auto-Discovery via `DiscoveryModule`/`MetadataScanner`.*
 - [x] Secret-Safety-Net mit globaler Liste + Regex-Patterns
-- [x] Admin-CRUD-Endpoints für Roles/Policies/Permissions + Test-Endpunkt
+- [ ] Admin-CRUD-Endpoints für Roles/Policies/Permissions + Test-Endpunkt  — *Keine Controller.*
 - [x] Soft-Delete Prisma-Extension (inkl. `RESTORE`/`HARD_DELETE` Actions)
 
 ### Phase 4 – Files (Sprint 7-8)
@@ -3694,22 +3694,22 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] S3-Adapter (RustFS-getestet)
 - [x] Local-Adapter
 - [x] Postgres-Adapter (Large Objects + `FileBlob`-Modell + RLS)
-- [x] File/Folder Models + CRUD-Endpoints
-- [x] Multipart-Upload + TUS
-- [x] Asset-Endpoint mit Transformations + Cache (`sharp`)
+- [ ] File/Folder Models + CRUD-Endpoints  — *Models in Prisma vorhanden, kein Controller.*
+- [ ] Multipart-Upload + TUS  — *@tus/server-Wiring fehlt; kein Mount im Express-Layer.*
+- [ ] Asset-Endpoint mit Transformations + Cache (`sharp`)  — *Helper existieren, kein Controller.*
 - [x] Asset-Presets
 
 ### Phase 5 – Realtime, Search, Webhooks (Sprint 9-10)
 - [x] **Test-First (Stories):** Webhook-Delivery (HMAC-Sig, Retry, Auto-Disable), Webhook-Master/Sub-Job-Fanout, FTS-Search-Edge-Cases, Realtime-Permission-aware-Channels, Outbox-Pattern — eigene Stories pro Feature, keine direkten 1:1-Übernahmen aus nest-server (dort fehlen vergleichbare Tests)
-- [x] pg-boss Job-Queue + Worker-Setup
-- [x] Outbox-Pattern (Events)
+- [ ] pg-boss Job-Queue + Worker-Setup  — *Kein Boot-Hook, der pg-boss startet; `pg-boss` ist nicht mal in dependencies.*
+- [ ] Outbox-Pattern (Events)  — *`OutboxRecorder`/`OutboxWorker` existieren als pure Klassen, ohne DI-Provider/Boot.*
 - [x] Webhooks: `WebhookEndpoint` + `WebhookDelivery` Models
-- [x] Webhook-Dispatcher (HMAC-SHA256, Retries, Auto-Disable)
+- [ ] Webhook-Dispatcher (HMAC-SHA256, Retries, Auto-Disable)  — *Klasse existiert, kein Worker/Subscriber konsumiert die Outbox.*
 - [x] Search: `Searchable`-Decorator + Migration-Generator (tsvector + GIN)
-- [x] Cross-Resource-Search-Endpoint
-- [x] Realtime-Service (Postgres LISTEN-Connection)
-- [x] Socket.IO-Gateway + Auth-Handshake + Room-Subscriptions
-- [x] Permission-Aware Channel-Filter
+- [ ] Cross-Resource-Search-Endpoint  — *Service existiert, kein Controller.*
+- [ ] Realtime-Service (Postgres LISTEN-Connection)  — *Service-Klasse existiert, kein DI-Provider, keine Connect-Lifecycle-Hook.*
+- [ ] Socket.IO-Gateway + Auth-Handshake + Room-Subscriptions  — *Keinerlei `@WebSocketGateway` im Code.*
+- [ ] Permission-Aware Channel-Filter  — *Filter-Funktion existiert, ohne Verwendung im Gateway.*
 
 ### Phase 5c – Geo & Standortdaten (PostGIS, optional, nur wenn `features.geo` aktiv)
 - [x] **Test-First (Stories):** Geocoding-Provider-Switch (Mapbox/Nominatim/Local-Stub), GeoJSON-Output-Mapping (Stage 3a der Output-Pipeline), `findNearby`/`withinGeofence`-Queries auf GIST-Indizes, GeocodingCache-TTL + DSGVO-Erasure, Address-PII-Encryption-Roundtrip — eigene Stories, keine 1:1-Übernahmen aus nest-server (kein Geo-Modul dort)
@@ -3718,10 +3718,10 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] GIST-Indizes via raw-SQL-Migration
 - [x] `GeocodingProvider` Interface + Adapter (Mapbox, Nominatim, Google, Local-Stub)
 - [x] `GeoService` (geocode, reverseGeocode, findNearby, withinGeofence, distance)
-- [x] REST-Endpunkte (`/geo/*`, `/addresses`, `/geofences`, generisches `/places/nearby`)
-- [x] GeoJSON-Output-Mapper in Output-Pipeline integrieren (Stage 3a)
-- [x] GeocodingCache + Cleanup-Cron (90 Tage TTL)
-- [x] Field-Encryption-Integration für Adress-PII-Felder (street, zip)
+- [ ] REST-Endpunkte (`/geo/*`, `/addresses`, `/geofences`, generisches `/places/nearby`)  — *Keine Controller.*
+- [ ] GeoJSON-Output-Mapper in Output-Pipeline integrieren (Stage 3a)  — *Mapper-Funktion existiert, aber Output-Pipeline-Interceptor läuft nicht (siehe Phase 3).*
+- [ ] GeocodingCache + Cleanup-Cron (90 Tage TTL)  — *Cleanup-Planner existiert, kein `@Cron`-Job ist in DI registriert.*
+- [ ] Field-Encryption-Integration für Adress-PII-Felder (street, zip)  — *`encryptAddress`/`decryptAddress` existieren, sind aber nicht in CRUD-Pfaden integriert.*
 - [x] Frontend-SDK-Types für Point/Polygon/FeatureCollection (via OpenAPI)
 
 ### Phase 5b – Mobile-Offline-Sync (PowerSync, optional)
@@ -3730,54 +3730,54 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Replication-Role + Publication für PowerSync
 - [x] PowerSync Service in Docker-Compose
 - [x] `sync-rules.yaml` mit User/Tenant-Buckets
-- [x] Better-Auth JWT-Plugin: `audience: powersync` + JWKS-Endpoint
-- [x] PowerSync-Upload-Controller (`POST /powersync/crud`)
-- [x] Konflikt-Resolution-Hook in BaseRepository
+- [ ] Better-Auth JWT-Plugin: `audience: powersync` + JWKS-Endpoint  — *Config-Planner + Endpoint-Metadata existieren, aber Better-Auth-Instanz wird nirgends erzeugt; kein `/.well-known/jwks` Controller.*
+- [ ] PowerSync-Upload-Controller (`POST /powersync/crud`)  — *Zod-Validator existiert, kein NestJS-Controller.*
+- [ ] Konflikt-Resolution-Hook in BaseRepository  — *Pure `resolvePowerSyncConflict()`-Planner existiert, BaseRepository ruft ihn nicht auf.*
 - [x] Encrypted-Fields explizit aus Sync-Rules ausschließen
-- [x] React-Native Demo-Client + Upload-Backend-Test
+- [x] React-Native Demo-Client + Upload-Backend-Test  *(in-memory simulator, der den Upload-Flow durchspielt — RN-Repo separat)*
 
 ### Phase 6 – Email, 2FA, Passkey, MCP (Sprint 11)
 - [x] **Test-First (Stories):** `email-service.e2e-spec.ts` adaptiert (Mailpit-Trap), 2FA-Story (TOTP-Setup + Verify), Passkey-Story (WebAuthn-Register/Login), MCP-OAuth-Story (Authorization-Code + PKCE, Tool-Call mit Permission-Filter)
-- [x] Email-Service (Nodemailer + Brevo)
+- [ ] Email-Service (Nodemailer + Brevo)  — *Klasse existiert, kein DI-Provider; Nodemailer/Brevo-Deps nicht installiert.*
 - [x] Email-Templates (verify, reset, welcome, invitation)
-- [x] 2FA-Endpunkte aktivieren
-- [x] Passkey-Endpunkte aktivieren
-- [x] Social-Login-Provider
-- [x] MCP-Server-Modul (`@modelcontextprotocol/sdk`)
-- [x] `@McpTool`/`@McpResource`-Decorators + Auto-Discovery
-- [x] MCP-Auth via Better-Auth-OAuth-Provider (Authorization-Code-Flow + PKCE)
+- [ ] 2FA-Endpunkte aktivieren  — *Plugin-Liste existiert (`listAuthPluginNames`), Better-Auth-Instanz wird nicht erzeugt → `/api/auth/two-factor/*` nicht erreichbar.*
+- [ ] Passkey-Endpunkte aktivieren  — *Plugin-Liste enthält `passkey`, kein Mount.*
+- [ ] Social-Login-Provider  — *Config-Plumbing vorhanden, kein Mount.*
+- [ ] MCP-Server-Modul (`@modelcontextprotocol/sdk`)  — *Kein NestJS-Modul, MCP-SDK ist installiert aber nicht angeschlossen.*
+- [ ] `@McpTool`/`@McpResource`-Decorators + Auto-Discovery  — *Decorators existieren, keine Discovery-Logic in DI.*
+- [ ] MCP-Auth via Better-Auth-OAuth-Provider (Authorization-Code-Flow + PKCE)  — *Better-Auth nicht montiert.*
 
 ### Phase 7 – Reliability, Template-Tooling & Polish (Sprint 12)
 - [x] **Test-First (Stories):** Setup-Wizard (Idempotenz, abbrechbar, korrektes `.env`-Output), Schema-Konkatenation (nur aktive Features kombiniert), `sync:from-template` (lässt `src/modules/` unangetastet), `sync:to-template` (Patch aus `src/core/`-Diff korrekt) — eigene Stories
 - [x] Setup-Wizard (`bun run setup`) für interaktive Projekt-Initialisierung
-- [x] Schema-Konkatenations-Skript (`bun run prepare:schema` → kombiniert nur aktivierte Feature-Schemas)
-- [x] Template-Sync-Skript `bun run sync:from-template` (zieht `src/core/` aus dem Template-Repo, lässt `src/modules/` unangetastet)
-- [x] Core-PR-Workflow `bun run sync:to-template` (bereitet Patch aus lokalen `src/core/`-Änderungen für Pull Request ins Template-Repo vor)
+- [ ] Schema-Konkatenations-Skript (`bun run prepare:schema` → kombiniert nur aktivierte Feature-Schemas)  — *`scripts/prepare-schema.ts` existiert nicht; package.json-Eintrag wäre kaputt.*
+- [ ] Template-Sync-Skript `bun run sync:from-template`  — *`scripts/sync-from-template.ts` existiert nicht (Planner ja, Runner nein).*
+- [ ] Core-PR-Workflow `bun run sync:to-template`  — *`scripts/sync-to-template.ts` existiert nicht (Planner ja, Runner nein).*
 - [x] Dokumentation: Template-Update-Workflow, Pro-Projekt-Customization-Guide, Core-Contribution-Guide (PR-zurück-Workflow)
 
 ### Phase 8 – Developer Experience (parallel ab Phase 3, finalisieren in Sprint 13)
 - [x] **Test-First (Stories):** Idempotency-Key (Cache-Hit/Miss), ETag/If-Match (Optimistic-Concurrency), Cursor-Pagination, Throttler (Multi-Window, Postgres-Store), GDPR-Endpoints (Export, Delete, Anonymize), Audit-Log (Create/Update/Delete-Tracking)
-- [x] **Scalar** als API-UI (statt Swagger UI) — `@scalar/nestjs-api-reference`
-- [x] **NestJS DevTools** Integration (`@nestjs/devtools-integration` + Snapshot-Mode)
-- [x] **Dev-Hub** Landing-Page `/dev` mit Auto-Discovery aktiver Tools
-- [x] **Permission-Tester** UI (`/admin/permissions/test`)
-- [x] **Webhook-Inspector** (Delivery-Log + Re-Deliver)
-- [x] **Realtime-Inspector** (Active Sockets + Live-Stream)
-- [x] **Audit-Browser** (Filter + Diff-Anzeige)
-- [x] **Search-Tester** (FTS-Probier-UI)
-- [x] **Diagnostik-Endpoint** `/dev/diagnostics`
+- [ ] **Scalar** als API-UI (statt Swagger UI) — `@scalar/nestjs-api-reference`  — *Config-Helper existiert, kein Mount.*
+- [ ] **NestJS DevTools** Integration (`@nestjs/devtools-integration` + Snapshot-Mode)  — *Snapshot-Module nicht in AppModule importiert.*
+- [ ] **Dev-Hub** Landing-Page `/dev` mit Auto-Discovery aktiver Tools  — *`planDevHub()` ist da, kein Controller / kein HTML-Renderer für die Landingpage selbst.*
+- [ ] **Permission-Tester** UI (`/admin/permissions/test`)  — *HTML-Renderer existiert, kein Controller.*
+- [ ] **Webhook-Inspector** (Delivery-Log + Re-Deliver)  — *HTML-Renderer existiert, kein Controller.*
+- [ ] **Realtime-Inspector** (Active Sockets + Live-Stream)  — *HTML-Renderer existiert, kein Gateway / kein Controller.*
+- [ ] **Audit-Browser** (Filter + Diff-Anzeige)  — *HTML-Renderer existiert, kein Controller.*
+- [ ] **Search-Tester** (FTS-Probier-UI)  — *HTML-Renderer existiert, kein Controller.*
+- [ ] **Diagnostik-Endpoint** `/dev/diagnostics`  — *Builder-Funktion existiert, kein Controller.*
 - [x] **`.vscode/` Defaults** (Extensions, Launch-Configs, Tasks)
-- [x] **`bun run onboard`** Skript für neue Entwickler
-- [x] **SDK-Generation** (`bun run sdk:generate` via kubb)
-- [x] Idempotency-Key Interceptor + Tabelle
-- [x] ETag / If-Match Optimistic-Concurrency-Pipe
-- [x] Cursor-Pagination zusätzlich zu page/limit
-- [x] `@nestjs/throttler` mit Postgres-Store, Multi-Window
-- [x] Per-API-Key Rate-Limit-Bucket
-- [x] GDPR-Endpoints (`/me/export`, `/me/account`, Anonymisierung)
-- [x] Audit-Log-Extension (mit Encryption-Awareness)
-- [x] Error-Code-Registry + i18n-Endpoint
-- [x] OpenAPI-Doku komplett (inkl. RFC 7807 Schemas)
+- [ ] **`bun run onboard`** Skript für neue Entwickler  — *Skript existiert nicht.*
+- [ ] **SDK-Generation** (`bun run sdk:generate` via kubb)  — *Kubb-Config existiert; ohne Controller liefert der Server kein OpenAPI-Spec → Generator ohne Input.*
+- [ ] Idempotency-Key Interceptor + Tabelle  — *Service+Tabellen-Typen vorhanden, Interceptor nicht als globaler `APP_INTERCEPTOR` registriert.*
+- [ ] ETag / If-Match Optimistic-Concurrency-Pipe  — *Helper-Funktionen existieren, kein Pipe/Interceptor in DI.*
+- [ ] Cursor-Pagination zusätzlich zu page/limit  — *Pagination-Helper vorhanden, keine Controller verwenden ihn.*
+- [ ] `@nestjs/throttler` mit Postgres-Store, Multi-Window  — *Postgres-Store-Klasse existiert, ThrottlerModule ist nicht in AppModule.*
+- [ ] Per-API-Key Rate-Limit-Bucket  — *Bucket-Helper existiert, ohne Wiring (siehe Throttler).*
+- [ ] GDPR-Endpoints (`/me/export`, `/me/account`, Anonymisierung)  — *Builder/Erasure-Planner existieren, keine Controller.*
+- [ ] Audit-Log-Extension (mit Encryption-Awareness)  — *Service existiert, weder Prisma-Extension verdrahtet noch DI-Provider.*
+- [ ] Error-Code-Registry + i18n-Endpoint  — *Registry vorhanden, kein `GET /errors`-Controller.*
+- [ ] OpenAPI-Doku komplett (inkl. RFC 7807 Schemas)  — *Hängt komplett von vorhandenen Controllern ab; ohne die kein Spec.*
 - [x] CI-Pipeline (`.gitlab-ci.yml`: lint, test, audit, build) — **kein** Container-Build, -Signing oder Deploy auf Template-Ebene
 - [x] Test-Containers-Setup für Integration-Tests (Postgres + RustFS)
 - [x] Dokumentation für Konsumenten + API-Stability-Promise + Webhook-Spec
