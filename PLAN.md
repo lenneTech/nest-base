@@ -3757,7 +3757,7 @@ model Setting { id String @id; key String @unique; value Json }
 
 ### Phase 8 – Developer Experience (parallel ab Phase 3, finalisieren in Sprint 13)
 - [x] **Test-First (Stories):** Idempotency-Key (Cache-Hit/Miss), ETag/If-Match (Optimistic-Concurrency), Cursor-Pagination, Throttler (Multi-Window, Postgres-Store), GDPR-Endpoints (Export, Delete, Anonymize), Audit-Log (Create/Update/Delete-Tracking)
-- [ ] **Scalar** als API-UI (statt Swagger UI) — `@scalar/nestjs-api-reference`  — *Config-Helper existiert, kein Mount.*
+- [x] **Scalar** als API-UI (statt Swagger UI) — `@scalar/nestjs-api-reference`  *(`bootstrap()` mountet `apiReference()` auf `/api/docs` (Default aus `buildScalarConfig`); Spec-URL `/api/openapi.json` (Builder folgt mit OpenAPI-Slice). In Produktion nur aktiviert wenn `SCALAR_PROD=1` gesetzt ist.)*
 - [x] **NestJS DevTools** Integration (`@nestjs/devtools-integration` + Snapshot-Mode)  *(`AppModule` importiert `DevtoolsModule.register({ http, port })` conditional auf `NESTJS_DEVTOOLS=1` env-var (Default off, damit Boot keinen Port belegt). Config-Builder `buildDevToolsConfig()` produziert die Options-Bag.)*
 - [x] **Dev-Hub** Landing-Page `/dev` mit Auto-Discovery aktiver Tools  *(`DevHubController` rendert HTML aus `planDevHub()`-Output, kategorisiert nach api/architecture/data/async. Außerhalb `NODE_ENV=development` 404. e2e-Test in `tests/dev-hub.e2e-spec.ts`.)*
 - [x] **Permission-Tester** UI (`/admin/permissions/test`)  *(`AdminUiController` mountet die HTML-Page; dev-only via `assertDev()`. Daten-Plumbing zur PermissionService folgt mit Form-Submit-Handler.)*

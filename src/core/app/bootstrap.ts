@@ -5,6 +5,9 @@ import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 
+import { apiReference } from '@scalar/nestjs-api-reference';
+
+import { buildScalarConfig } from '../dx/scalar-config.js';
 import { ProblemDetailsExceptionFilter } from '../errors/problem-details.filter.js';
 import { buildSecurityHeadersConfig } from '../http/security-headers.js';
 import { createLogger } from '../observability/logger.js';
@@ -55,6 +58,24 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   );
 
   app.useGlobalFilters(new ProblemDetailsExceptionFilter());
+
+  // Scalar API-UI mount (PLAN.md §32 Phase 8). Default `/api/docs` with
+  // the stock theme; consumers override via env or by tweaking
+  // `buildScalarConfig` inputs in their own bootstrap shim. The spec
+  // URL points at the (future) OpenAPI builder mount.
+  if (cfg.env !== 'production' || process.env.SCALAR_PROD === '1') {
+    const scalar = buildScalarConfig({ specUrl: '/api/openapi.json' });
+    app.use(
+      scalar.mountPath,
+      apiReference({
+        ...(scalar.url ? { url: scalar.url } : {}),
+        ...(scalar.content ? { content: scalar.content } : {}),
+        theme: scalar.theme,
+        pageTitle: scalar.pageTitle,
+        hideDarkModeToggle: scalar.hideDarkModeToggle,
+      }),
+    );
+  }
 
   await app.init();
 
