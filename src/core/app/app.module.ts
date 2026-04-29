@@ -2,11 +2,15 @@ import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common
 import { APP_INTERCEPTOR } from '@nestjs/core';
 
 import { ConfigModule } from '../config/config.module.js';
+import { EncryptionModule } from '../encryption/encryption.module.js';
+import { conditionalImport, loadFeatures } from '../features/features.js';
 import { HealthModule } from '../health/health.module.js';
 import { OutputPipelineInterceptor } from '../output-pipeline/output-pipeline.interceptor.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { RequestContextMiddleware } from '../request-context/request-context.middleware.js';
 import { AppController } from './app.controller.js';
+
+const features = loadFeatures(process.env as Record<string, string | undefined>);
 
 /**
  * Root module of the NestJS application.
@@ -26,7 +30,12 @@ import { AppController } from './app.controller.js';
  * per request.
  */
 @Module({
-  imports: [ConfigModule.forRoot(), PrismaModule, HealthModule],
+  imports: [
+    ConfigModule.forRoot(),
+    PrismaModule,
+    HealthModule,
+    ...conditionalImport(features, 'fieldEncryption', EncryptionModule.forRoot()),
+  ],
   controllers: [AppController],
   providers: [
     RequestContextMiddleware,

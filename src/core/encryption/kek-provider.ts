@@ -10,6 +10,9 @@ export interface KekProvider {
   getKek(): Buffer;
 }
 
+/** DI token for the KekProvider. NestJS providers register against it. */
+export const KEK_PROVIDER = Symbol.for('lt:KekProvider');
+
 const KEK_BYTES = 32; // AES-256
 
 /** Reads the base64-encoded KEK from `FIELD_ENCRYPTION_KEK`. */

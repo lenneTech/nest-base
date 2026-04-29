@@ -3663,7 +3663,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Repo-Layout: `src/core/` (Template-Owned, Sync-Target) + `src/modules/` (Projekt-Owned) + `src/shared/` (gemeinsame Types)
 - [x] Prisma-Schema v1 (User, Tenant, Role) mit `@@map`/`@map` snake_case
 - [x] UUID v7 Setup (Postgres-Extension `pg_uuidv7`)
-- [ ] Field-Encryption-Service (AES-256-GCM, KEK aus ENV)  — *Klasse existiert, ist aber kein DI-Provider (kein `@Injectable`-Module).*
+- [x] Field-Encryption-Service (AES-256-GCM, KEK aus ENV)  *(`FieldEncryptionService` ist `@Injectable`; `EncryptionModule.forRoot()` provided ihn + den `KEK_PROVIDER`-Token. In `AppModule` conditional-imported wenn `features.fieldEncryption.enabled`. KEK kommt aus `FIELD_ENCRYPTION_KEK`-env, lazy-validiert.)*
 
 ### Phase 2 – Auth & Multi-Tenancy (Sprint 3-4)
 - [x] **Test-First (Stories):** Adaptierte `better-auth-*.story.test.ts` (api, integration, plugins, jwt-middleware, rate-limit, email-verification), `auth-parallel-operation.e2e-spec.ts`, `auth-scenarios.e2e-spec.ts`, `user-enumeration-prevention.e2e-spec.ts`, `multi-tenancy.e2e-spec.ts`, `tenant-guard.e2e-spec.ts` — vor jeder Implementation

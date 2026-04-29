@@ -1,6 +1,8 @@
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 
-import type { KekProvider } from './kek-provider.js';
+import { Inject, Injectable } from '@nestjs/common';
+
+import { KEK_PROVIDER, type KekProvider } from './kek-provider.js';
 
 /**
  * Field-level encryption (PLAN.md §14).
@@ -19,8 +21,9 @@ const TAG_BYTES = 16;
 const KEK_BYTES = 32;
 const VERSION = 'v1';
 
+@Injectable()
 export class FieldEncryptionService {
-  constructor(private readonly kek: KekProvider) {}
+  constructor(@Inject(KEK_PROVIDER) private readonly kek: KekProvider) {}
 
   encrypt(plaintext: string): string {
     const key = this.assertKey();
