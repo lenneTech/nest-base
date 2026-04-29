@@ -1,324 +1,285 @@
+<div align="center">
+
 # nest-server-template
 
-Template-style NestJS server on Bun + Prisma + Postgres + Better-Auth.
-Designed as a starter for `lt fullstack init` and as the sync source
-for `src/core/`.
+### NestJS · Bun · Prisma · Postgres · Better-Auth
 
-## Stack
+**A production-grade NestJS starter that ships with a developer cockpit you'll actually want to use.**
 
-| Layer | Tool |
-|---|---|
-| Runtime | Bun 1.x (fallback: Node 22) |
-| Framework | NestJS 11 |
-| ORM | Prisma 7 (driver-adapter) |
-| DB | Postgres 18 |
-| Auth | Better-Auth |
-| Validation | Zod 4 + nestjs-zod |
-| Tests | Vitest + Supertest |
-| Lint/Format | oxlint / oxfmt |
-| SDK generation | kubb |
-| Object storage | RustFS (S3 API) |
-| Realtime | Socket.IO + Postgres NOTIFY |
-| Job queue | pg-boss |
-| File uploads (TUS) | @tus/server v3 |
-| Image transform | sharp |
-| CI | GitHub Actions + GitLab CI |
-| Local dev routing | portless |
-| License | MIT |
+Pure-black dark theme. Electric-lime accent. Live status, coverage, tests, logs, feature toggles — all in one screen. No cloud dependencies. No bloat.
 
-Full spec: [`PLAN.md`](./PLAN.md). AI agent guide:
-[`CLAUDE.md`](./CLAUDE.md).
+[Quick Start](#-quick-start) · [Dev Hub](#-the-dev-hub) · [Features](#-features) · [Architecture](#-architecture) · [Testing](#-testing)
 
-## Status
+---
 
-All mandatory and optional phases from PLAN.md §32 are complete
-(Phase 1–8 + 5b PowerSync + 5c Geo + 6 Email/2FA/Passkey/MCP) — see
-[`RALPH_LOG.md`](./RALPH_LOG.md). Test suite: 1238 tests across 133
-files, coverage ≥ 96 % on `src/core/`.
+![Dev Hub Cockpit](docs/screenshots/dev-hub.png)
 
-## Quickstart
+</div>
+
+## ✦ Why this template
+
+Most NestJS starters give you a `Hello World` and call it a day. This one ships you a server you can actually run on day one **plus** a full-blown developer cockpit at `/dev` that knows what's running, what's failing, and what's available to switch on.
+
+- **Real cockpit, not a JSON dump** — the `/dev` dashboard pulls live health, coverage, test summary, log tail, feature matrix, and service status into one view.
+- **Toggle features from the UI** — no `.env` editing dance: flip a feature on, the server restarts, the page reloads. 14 toggleable features ship with sensible defaults.
+- **Template-owned core** — `src/core/` is the synced template surface, `src/modules/` is yours. Pull upstream improvements without losing your domain code.
+- **Battle-tested defaults** — Postgres RLS multi-tenancy, ETag concurrency, idempotency keys, RFC 7807 errors, AES-256-GCM field encryption, OpenAPI 3.1, OWASP-aligned headers.
+- **No proprietary tooling** — pino-pretty for terminal logs, JSON-Viewer for any JSON endpoint, Scalar for the API reference, Prisma Studio for the DB. Everything self-hosted.
+
+---
+
+## ⚡ Quick Start
+
+**Prerequisites:** [Bun](https://bun.sh) 1.x · Docker Desktop · macOS / Linux
 
 ```bash
-# 1. Install Bun (if you don't have it yet)
-curl -fsSL https://bun.sh/install | bash
-
-# 2. Bootstrap the repo — also installs portless as a devDependency
+# 1. Install dependencies
 bun install
 
-# 3. Rename the project (see "Project rename" below — only once after
-#    cloning)
-bun run rename my-app
+# 2. Boot Postgres (Mailpit + RustFS optional)
+docker compose up -d postgres
 
-# 4. portless one-time setup (skip if you set DISABLE_PORTLESS=1):
-#    a) Install the mkcert root CA (one-time per machine, sudo required).
-#       Without this *.<project>.localhost URLs have no valid HTTPS cert.
-node_modules/.bin/portless trust
-#    b) Start the proxy daemon (one-time per session, sudo required for
-#       port 443). Stays running across `bun run dev` invocations.
-node_modules/.bin/portless proxy start --https
-#       Optional: register Mailpit and RustFS routes:
-#         node_modules/.bin/portless alias mail.<project> 8025
-#         node_modules/.bin/portless alias s3.<project> 9001
-
-# 5. Start dev dependencies (Postgres, RustFS, Mailpit, OTel)
-docker compose up -d
-
-# 6. Generate .env — copies .env.example → .env and auto-fills:
-#    • Secrets via crypto.randomBytes (BETTER_AUTH_SECRET,
-#      POSTGRES_PASSWORD, SYSTEM_SETUP_ADMIN_PASSWORD,
-#      FIELD_ENCRYPTION_KEK, S3_SECRET_KEY, POWERSYNC_DB_PASSWORD)
-#    • Project-scoped vars from package.json["name"]:
-#      POSTGRES_USER/POSTGRES_DB/DATABASE_URL/APP_BASE_URL.
-#    Idempotent: refuses to overwrite if .env already exists.
-bun run setup
-
-# 7. Apply DB migrations
+# 3. Generate Prisma client + run migrations
+bun run prisma:generate
 bun run prisma:migrate
 
-# 8. Start the dev server — portless boots automatically as a sidecar
-#    and serves https://api.<project>.localhost. Without portless or
-#    with DISABLE_PORTLESS=1, the API binds to a dynamically chosen
-#    port (see Bun startup log).
+# 4. Start the dev server (auto-opens the Dev Hub)
 bun run dev
 ```
 
-### Project rename
+The Dev Hub opens automatically at **http://localhost:3000/dev** (or `https://api.<project>.localhost/dev` if you use [portless](https://github.com/portless/portless)).
 
-When forking the template, run
+> **Heads up:** The first start auto-spawns Prisma Studio on `:5555` and reads `.env` for the database URL. Set `NO_OPEN=1` if you don't want the browser tab.
 
-```bash
-bun run rename my-app
-```
+---
 
-which surgically rewrites the project name in four files:
+## 🎯 The Dev Hub
 
-| File | What gets replaced |
-|---|---|
-| `package.json` | `"name"` |
-| `README.md` | first H1 (`# nest-server-template` → `# my-app`) |
-| `portless.yml` | `project:` + every `*.<project>.localhost` hostname |
-| `docker-compose.yml` | top-level `name`, `container_name` prefixes, network `name` |
+A black + lime developer console rendered server-side, no SPA, no build step. Every page is reachable from the sidebar.
 
-Idempotent — running it twice with the same name is a no-op; a
-follow-up rename to a different name still works. Inline mentions of
-the old name in prose are left untouched and can be edited manually if
-needed. `kebab-case` is strictly validated
-(`/^[a-z][a-z0-9-]*[a-z0-9]$/`); invalid input aborts before any file
-is written.
+### Cockpit Dashboard — `/dev`
 
-## Configuring features
+Live overview of the running server: health verdict, uptime, heap, 4 stat tiles (Coverage / Tests / Features / Logs), service probes, log preview, feature matrix, quick navigation.
 
-Feature flags drive which modules get wired into the DI container at
-boot. Single source of truth: `src/core/features/features.ts`
-(`FeaturesSchema`, Zod). Activation precedence:
+![Dev Hub Cockpit](docs/screenshots/dev-hub.png)
 
-1. **Schema defaults** (see table below)
-2. **`FEATURE_*` env vars** (override defaults at boot)
-3. **Project override** in `src/config/features.ts` (when present)
+### Feature Toggles — `/dev/features`
 
-### Available features
+14 feature flags grouped by category. Each card shows description, exposed surfaces, and the matching `FEATURE_*` env-var. **Flip the switch → `.env` is patched → server respawns → page reloads.** No manual restarts.
 
-Every section in `FeaturesSchema`, what it provides, its default, and
-the env-var prefix to override it. `FEATURE_<SECTION>_<FIELD>=<value>`,
-booleans accept `true`/`false`/`1`/`0`/`yes`/`no`/`on`/`off`
-(case-insensitive); arrays are comma-separated.
+![Feature Toggles](docs/screenshots/features.png)
 
-| Feature | What it does | Default | Env prefix |
+### Test Summary — `/dev/tests`
+
+Reads `coverage/test-summary.json` (populated by `bun run test:summary`). Failed suites floated to the top with embedded failure snippets.
+
+![Tests](docs/screenshots/tests.png)
+
+### Coverage Report — `/dev/coverage`
+
+Reads `coverage/coverage-summary.json` (populated by `bun run test:coverage`). Per-tier gate badges (core ≥ 90% / modules ≥ 80%), per-file table sorted worst-first.
+
+![Coverage](docs/screenshots/coverage.png)
+
+### Live Log Tail — `/dev/logs`
+
+In-memory ring buffer of the last 500 Pino records. Auto-polls every 2 seconds. Level chips (info / warn / error / fatal) with subtle color tints.
+
+![Logs](docs/screenshots/logs.png)
+
+### Diagnostics — `/dev/diagnostics`
+
+Heap usage bar (turns warn/bad above 70%/90%), versions (Node, Bun, platform), active features matrix, app metadata.
+
+![Diagnostics](docs/screenshots/diagnostics.png)
+
+### JSON Endpoints — `/errors`, `/api/openapi`, `/dev/postgrest-parse`
+
+Every JSON endpoint has a sister HTML page with a real **JSON viewer** — syntax-highlighted, collapsible tree, copy button, key-filter search. Browser default → viewer; `Accept: application/json` or `?format=json` → raw JSON for SDKs.
+
+![Error Catalog](docs/screenshots/errors.png)
+![OpenAPI Viewer](docs/screenshots/openapi.png)
+
+### API Reference — `/api/docs`
+
+[Scalar](https://scalar.com) renders the OpenAPI 3.1 spec with try-it-out. The raw JSON sits at `/api/openapi.json` for [kubb](https://kubb.dev) SDK generation.
+
+### Admin Tools — `/admin/*`
+
+Permission tester, audit browser, search tester, webhook inspector, realtime inspector. All in the same dark-mode shell with consistent navigation.
+
+![Permission Tester](docs/screenshots/permission-tester.png)
+
+---
+
+## 🧱 Features
+
+| Category | Feature | Default | ENV Toggle |
 |---|---|---|---|
-| `authMethods` | Better-Auth method selection: email/password, 2FA (TOTP), passkey (WebAuthn), API keys, social OAuth | mostly on (see fields) | `FEATURE_AUTH_METHODS_` |
-| `multiTenancy` | Tenant header + Postgres Row-Level Security per `tenantId` | `ENABLED=true`, `RLS=true`, `HEADER_NAME=x-tenant-id` | `FEATURE_MULTI_TENANCY_` |
-| `files` | TUS resumable uploads + S3/local/postgres storage adapter + sharp image transforms | `ENABLED=true`, `STORAGE_DEFAULT=s3`, `TUS=true`, `TRANSFORMATIONS=true` | `FEATURE_FILES_` |
-| `email` | Email service (Nodemailer) with SMTP or Brevo provider; verify/reset/welcome/invitation templates | `ENABLED=true`, `PROVIDER=smtp` | `FEATURE_EMAIL_` |
-| `rateLimit` | Multi-window throttler with Postgres-backed counter store | `ENABLED=true` | `FEATURE_RATE_LIMIT_` |
-| `idempotency` | Stripe-style `Idempotency-Key` header support (sha256 fingerprint) | `ENABLED=true` | `FEATURE_IDEMPOTENCY_` |
-| `observability` | OpenTelemetry traces + Pino logging + traceparent middleware | `ENABLED=true` | `FEATURE_OBSERVABILITY_` |
-| `jobs` | pg-boss job queue + scheduled-job decorator surface (required by webhooks/realtime) | `ENABLED=true` | `FEATURE_JOBS_` |
-| `webhooks` | Outgoing webhooks (HMAC-SHA256, retry policy, auto-disable, fanout) | `ENABLED=false` | `FEATURE_WEBHOOKS_` |
-| `search` | Full-text search query parser + cross-resource search + `@Searchable` decorator | `ENABLED=false` | `FEATURE_SEARCH_` |
-| `realtime` | LISTEN/NOTIFY-driven Socket.IO gateway with channel-permission filter | `ENABLED=false` | `FEATURE_REALTIME_` |
-| `powerSync` | Mobile offline-sync via PowerSync (logical replication, sync-rules, JWT audience, conflict-resolution) | `ENABLED=false` | `FEATURE_POWERSYNC_` |
-| `mcp` | Model Context Protocol server for AI tool/resource discovery, OAuth via Better-Auth | `ENABLED=false` | `FEATURE_MCP_` |
-| `fieldEncryption` | AES-256-GCM column-level encryption with versioned KEK + audit-log masking | `ENABLED=false` | `FEATURE_FIELD_ENCRYPTION_` |
-| `geo` | PostGIS-backed geocoding (Mapbox/Google/Nominatim/local), GIST indexes, GeoJSON output mapper, address PII encryption | `ENABLED=false`, `PROVIDER=nominatim` | `FEATURE_GEO_` |
+| **Infrastructure** | Multi-Tenancy (`x-tenant-id` + RLS) | ✓ | `FEATURE_MULTI_TENANCY_ENABLED` |
+| | Rate Limiting (multi-window, Postgres) | ✓ | `FEATURE_RATE_LIMIT_ENABLED` |
+| | Idempotency (Stripe-style `Idempotency-Key`) | ✓ | `FEATURE_IDEMPOTENCY_ENABLED` |
+| | Background Jobs (in-memory, pg-boss-ready) | ✓ | `FEATURE_JOBS_ENABLED` |
+| **Data** | Files & TUS Uploads (S3 / local / postgres) | ✓ | `FEATURE_FILES_ENABLED` |
+| | Full-Text Search (Postgres FTS) | ✗ | `FEATURE_SEARCH_ENABLED` |
+| | PowerSync (offline-first) | ✗ | `FEATURE_POWERSYNC_ENABLED` |
+| | Field Encryption (AES-256-GCM) | ✗ | `FEATURE_FIELD_ENCRYPTION_ENABLED` |
+| | Geo / Places (geocoding cache) | ✗ | `FEATURE_GEO_ENABLED` |
+| **Communication** | Email (Nodemailer + Brevo) | ✓ | `FEATURE_EMAIL_ENABLED` |
+| | Realtime (LISTEN/NOTIFY + Socket.IO) | ✗ | `FEATURE_REALTIME_ENABLED` |
+| **Integration** | Webhooks (HMAC-signed + retry) | ✗ | `FEATURE_WEBHOOKS_ENABLED` |
+| | Model Context Protocol (MCP) | ✗ | `FEATURE_MCP_ENABLED` |
+| **Observability** | OpenTelemetry + Pino logs | ✓ | `FEATURE_OBSERVABILITY_ENABLED` |
 
-Always-on cores (no toggle): `auth`, `permissions` (CASL + DB rules),
-`audit`, `errorCodes`, `health`, `request-context`, `output-pipeline`,
-`outbox`, `concurrency` (ETag), `pagination`.
+Each toggleable feature drives module imports, controller registration, and middleware wiring conditionally. Disabled features have **zero runtime cost** — no providers, no routes, no startup time.
 
-`authMethods` sub-fields:
+---
 
-| Field | Default |
-|---|---|
-| `EMAIL_PASSWORD` | `true` |
-| `TWO_FACTOR` | `true` |
-| `PASSKEY` | `true` |
-| `API_KEYS` | `true` |
-| `SOCIAL_PROVIDERS` | `[]` (CSV: `google`, `github`, `apple`, `discord`) |
-
-### Examples
-
-```bash
-# .env: enable Webhooks + Search
-FEATURE_WEBHOOKS_ENABLED=true
-FEATURE_SEARCH_ENABLED=true
-
-# Disable passkey auth, add Google + GitHub OAuth
-FEATURE_AUTH_METHODS_PASSKEY=false
-FEATURE_AUTH_METHODS_SOCIAL_PROVIDERS=google,github
-
-# Switch email to Brevo
-FEATURE_EMAIL_PROVIDER=brevo
-
-# Enable Geo + PowerSync (PowerSync requires multiTenancy)
-FEATURE_GEO_ENABLED=true
-FEATURE_POWERSYNC_ENABLED=true
-```
-
-### Feature dependencies
-
-Boot fails fast (`validateFeatureDependencies`) on:
-
-- `webhooks` → requires `jobs` (pg-boss)
-- `powerSync` → requires `multiTenancy` (tenant-scoped buckets)
-- `production` builds → `rateLimit` must stay enabled
-
-Violations abort the boot with a clear error message.
-
-Step-by-step guide for adding a NEW feature toggle:
-[`.claude/skills/adding-feature-flag.md`](./.claude/skills/adding-feature-flag.md).
-
-## Repo layout
+## 🏛 Architecture
 
 ```
 src/
-├── core/      # Template-owned (synced via `bun run sync:from-template`)
-├── modules/   # Project-owned (never part of the sync)
-└── shared/    # Shared types (channels, events) — published with the SDK
-tests/
-├── stories/   # TDD story tests, one file per user journey
-├── unit/      # Pure-function tests
-├── types/     # TypeScript compile-time tests
-├── migrate/   # Migration verification
-└── k6/        # Load + memory tests
-prisma/        # Schema + migrations (feature-specific schemas concatenated)
-docker/        # Local dev service configs (otel, …)
-generated/     # SDK output (kubb) — published as its own npm package
+├── core/                ← Template-owned. Synced via `bun run sync:from-template`.
+│   ├── app/             ← Bootstrap + AppModule + dev-tab auto-open
+│   ├── auth/            ← Better-Auth wiring + API keys + PowerSync JWT
+│   ├── concurrency/     ← ETag + If-Match optimistic concurrency
+│   ├── dx/              ← /dev landing + cockpit + JSON viewer + admin UIs
+│   ├── email/           ← EmailService + EJS templates
+│   ├── encryption/      ← AES-256-GCM field encryption
+│   ├── errors/          ← CORE_* error codes + RFC 7807 filter
+│   ├── features/        ← FeaturesSchema (Zod) — single source of truth
+│   ├── files/           ← TUS uploads + storage adapters
+│   ├── multi-tenancy/   ← Tenant guard + RLS helpers
+│   ├── observability/   ← OTel + Pino + traceparent middleware
+│   ├── output-pipeline/ ← 4-stage permission/secret-filter
+│   ├── permissions/     ← CASL ability + DB-rule resolver + admin CRUD
+│   ├── prisma/          ← PrismaService + driver-adapter
+│   ├── realtime/        ← LISTEN/NOTIFY + Socket.IO gateway
+│   ├── search/          ← FTS query parser + cross-resource search
+│   └── webhooks/        ← HMAC + retry-policy + dispatcher
+└── modules/             ← Project-owned. Add your domain here.
 ```
 
-## Commands
+**Conventions:** ESM with `.js` import suffixes (TypeScript `nodenext`). Pure-planner / thin-runner split — every helper that touches I/O has a pure planner + a thin glue layer. Named error sentinels mapped to RFC 7807 by the global filter.
 
-All scripts run via `bun run <name>`. Full inventory in `package.json`;
-the entries below are the ones used in everyday development.
+The full architectural rationale lives in [`PLAN.md`](./PLAN.md). The agent-readable orientation in [`CLAUDE.md`](./CLAUDE.md).
 
-### Setup & naming
+---
 
-| Script | Purpose |
+## 🧪 Testing
+
+| Command | What it does | Threshold |
+|---|---|---|
+| `bun run test:unit` | Pure-function tests (`tests/unit/`) | — |
+| `bun run test:e2e` | Story tests + HTTP e2e (`tests/stories/`, `tests/*.e2e-spec.ts`) | — |
+| `bun run test:types` | TypeScript compile checks (`tests/types/`) | — |
+| `bun run test:coverage` | Vitest + V8 coverage report | core ≥ 90% · modules ≥ 80% |
+| `bun run test:summary` | Vitest JSON reporter → `/dev/tests` page | — |
+
+**Discipline:** strict red-green-refactor TDD. Every PLAN.md slice is one test file → one impl → one commit. The 6 quality gates (`lint`, `format`, `test:types`, `test:unit`, `test:e2e`, `test:coverage`, `build`) gate every commit.
+
+Currently **1396 tests** across 165 files. Coverage 95.28% lines.
+
+---
+
+## 🔌 Tech Stack
+
+| | |
 |---|---|
-| `setup` | Generate `.env` from `.env.example`, auto-fill secrets + project vars |
-| `rename <name>` | Surgically replace the project name in package.json/README/portless/docker-compose |
+| Runtime | [Bun](https://bun.sh) 1.x (Node 22 fallback) |
+| Framework | [NestJS 11](https://nestjs.com) |
+| ORM | [Prisma 7](https://prisma.io) (driver-adapter mode) |
+| Database | Postgres 18 (`pg_uuidv7` for UUID v7 IDs) |
+| Auth | [Better-Auth 1.6](https://better-auth.com) — email/password, social providers, passkeys, 2FA, API keys |
+| Validation | [Zod 4](https://zod.dev) |
+| Tests | [Vitest 4](https://vitest.dev) + [Testcontainers](https://testcontainers.com) |
+| Lint / Format | [oxlint](https://oxc.rs) / [oxfmt](https://oxc.rs) — Rust-fast tooling |
+| API Docs | [Scalar](https://scalar.com) (UI) + [@nestjs/swagger](https://docs.nestjs.com/openapi/introduction) (spec) |
+| SDK Generation | [kubb](https://kubb.dev) |
+| Observability | [Pino](https://getpino.io) + [OpenTelemetry](https://opentelemetry.io) |
+| Container | Docker Compose (Postgres, Mailpit, RustFS, OTel collector) |
 
-### Dev & build
+---
 
-| Script | Purpose |
-|---|---|
-| `dev` | Start the API in watch mode with portless as a sidecar |
-| `build` | Bun bundle into `dist/` (CI smoke; consumers build their own containers) |
-
-### Lint & format
-
-| Script | Purpose |
-|---|---|
-| `lint` | oxlint (errors-only check) |
-| `lint:fix` | oxlint with auto-fix |
-| `format` | oxfmt --check (CI mode) |
-| `format:fix` | oxfmt writes changes |
-
-### Tests (TDD-required)
-
-| Script | Purpose |
-|---|---|
-| `test` | full Vitest suite |
-| `test:watch` | watch mode |
-| `test:unit` | only `tests/unit/` (pure-function) |
-| `test:e2e` | E2E specs + story tests (Postgres via testcontainers) |
-| `test:types` | `tsc --noEmit` on `tests/types/` |
-| `test:coverage` | with coverage report (`reports/coverage/`) |
-| `test:perf` | k6 memory test (`tests/k6/`) |
-
-Coverage gates: `src/core/` ≥ 90 %, `src/modules/` ≥ 80 %.
-
-### Database & schema
-
-| Script | Purpose |
-|---|---|
-| `prepare:schema` | Concatenate active feature schemas into `prisma/schema.prisma` |
-| `prisma:generate` | Regenerate the Prisma client |
-| `prisma:migrate` | Apply pending migrations (`prisma migrate deploy`) |
-
-### SDK & template sync
-
-| Script | Purpose |
-|---|---|
-| `sdk:generate` | OpenAPI spec → frontend SDK via kubb |
-| `sync:from-template` | Pull template updates into your project (`src/core/`) |
-| `sync:to-template` | Prepare local `src/core/` diffs as a PR back to the template |
-
-## CI
-
-The same six quality gates run automatically:
-
-- **GitHub Actions** (`.github/workflows/ci.yml`) — on every push to
-  `main` and every PR targeting `main`. Used by the open-source
-  template repo on GitHub.
-- **GitLab CI** (`.gitlab-ci.yml`) — same stages for consumer projects
-  that fork the template and deploy from GitLab.
-
-Both pipelines cover `lint → format → test:unit → test:e2e →
-test:types → test:coverage → build` plus an advisory `audit` job
-(non-blocking).
-
-## AI assistance
-
-The repo is optimised for working with Claude Code. Workflow discipline
-(red-green-refactor TDD, quality gates, slice granularity) is
-documented in [`CLAUDE.md`](./CLAUDE.md). Pre-built building blocks:
-
-**Agents** ([`.claude/agents/`](./.claude/agents/)):
-- `slice-implementer` — runs a complete TDD slice from PLAN.md §32
-- `quality-gate-runner` — runs all six gates including auto-fix where possible
-- `module-scaffolder` — scaffolds a new `src/modules/<name>/` subtree
-
-**Skills** ([`.claude/skills/`](./.claude/skills/)):
-- `running-tdd-slice` — red-green-refactor step by step
-- `adding-feature-module` — add a new resource to the project
-- `adding-feature-flag` — add a new toggle to FeaturesSchema
-- `adding-error-code` — add a `CORE_*` error code + registry entry
-- `wiring-permissions` — CASL ability + DB rule resolver
-- `syncing-from-template` — template update workflow
-
-Spec: [`PLAN.md`](./PLAN.md) (§32 = slice list). Iteration history:
-[`RALPH_LOG.md`](./RALPH_LOG.md). Open design questions:
-[`OPEN_QUESTIONS.md`](./OPEN_QUESTIONS.md).
-
-## Template sync
+## 🛠 Useful Scripts
 
 ```bash
-# Pull updates from the template repo (leaves src/modules/ alone)
-bun run sync:from-template
+# Development
+bun run dev                   # Dev server + Prisma Studio + auto-open Dev Hub
+bun run lint                  # oxlint (95 rules, 30ms)
+bun run format                # oxfmt --check
+bun run format:fix            # oxfmt
+bun run build                 # Bundle to dist/
 
-# Prepare local src/core/ diffs as a PR back to the template
-bun run sync:to-template
+# Testing
+bun run test:unit             # Unit tests
+bun run test:e2e              # E2E + story tests
+bun run test:types            # tsc --noEmit
+bun run test:coverage         # V8 coverage with gate
+bun run test:summary          # JSON reporter for /dev/tests
+
+# Schema
+bun run prepare:schema        # Concat feature schemas → schema.generated.prisma
+bun run prisma:generate       # Generate Prisma client
+bun run prisma:migrate        # Apply migrations
+
+# Project lifecycle
+bun run setup                 # Interactive setup wizard (.env + secrets)
+bun run rename                # Rename project across the codebase
+bun run sync:from-template    # Pull latest src/core/ from upstream
+bun run sync:to-template      # Contribute changes back upstream
+bun run sdk:generate          # kubb → typed SDK from /api/openapi.json
 ```
 
-Detailed guides:
+---
 
-- [Template-Update-Workflow](./docs/template-update-workflow.md) — `sync:from-template` step by step
-- [Customization-Guide](./docs/customization-guide.md) — `src/core/` vs `src/modules/`, enabling features, adding new resources
-- [Core-Contribution-Guide](./docs/core-contribution-guide.md) — `sync:to-template` + PR-back workflow
-- [Consumer-Guide](./docs/consumer-guide.md) — bootstrapping a new project on the template
-- [API-Stability-Promise](./docs/api-stability-promise.md) — semver conventions, public surface, deprecation window
-- [Webhook-Spec](./docs/webhook-spec.md) — outgoing webhook contract (HMAC-SHA256, retry, auto-disable)
+## 🔧 Environment Variables
 
-## License
+The setup wizard (`bun run setup`) generates a `.env` from `.env.example` with strong secrets. Key vars:
+
+```dotenv
+NODE_ENV=development
+PORT=3000
+APP_BASE_URL=https://api.your-project.localhost   # or http://localhost:3000
+
+DATABASE_URL=postgresql://user:pass@localhost:5432/db
+BETTER_AUTH_SECRET=<32 bytes>
+
+# Optional but useful in dev
+MAILPIT_WEB_URL=http://localhost:8025
+POWERSYNC_URL=http://localhost:8080
+
+# Dev Hub controls
+NO_OPEN=1                     # Skip browser auto-open
+PRISMA_STUDIO=0               # Skip Prisma Studio sibling spawn
+DISABLE_PORTLESS=1            # Force http://localhost:<port>
+
+# Feature toggles (all 14 listed via /dev/features)
+FEATURE_WEBHOOKS_ENABLED=true
+FEATURE_REALTIME_ENABLED=true
+# ...
+```
+
+---
+
+## 📚 Documentation
+
+- [`PLAN.md`](./PLAN.md) — full spec with architecture rationale per module
+- [`CLAUDE.md`](./CLAUDE.md) — agent-readable orientation
+- [`docs/api-stability-promise.md`](./docs/api-stability-promise.md) — semver + deprecation rules
+- [`docs/template-update.md`](./docs/template-update.md) — pulling upstream changes
+- [`docs/customization.md`](./docs/customization.md) — adding domain modules
+- [`docs/contributor-guide.md`](./docs/contributor-guide.md) — contributing back upstream
+- [`docs/webhook-spec.md`](./docs/webhook-spec.md) — outbound webhook contract
+
+---
+
+## 📜 License
 
 MIT — see [`LICENSE`](./LICENSE).
+
+---
+
+<div align="center">
+<sub>Built with the discipline of strict TDD, the rigor of six quality gates per commit, and the joy of a dev hub that actually <strong>knallt</strong>.</sub>
+</div>
