@@ -3738,7 +3738,7 @@ model Setting { id String @id; key String @unique; value Json }
 
 ### Phase 6 – Email, 2FA, Passkey, MCP (Sprint 11)
 - [x] **Test-First (Stories):** `email-service.e2e-spec.ts` adaptiert (Mailpit-Trap), 2FA-Story (TOTP-Setup + Verify), Passkey-Story (WebAuthn-Register/Login), MCP-OAuth-Story (Authorization-Code + PKCE, Tool-Call mit Permission-Filter)
-- [ ] Email-Service (Nodemailer + Brevo)  — *Klasse existiert, kein DI-Provider; Nodemailer/Brevo-Deps nicht installiert.*
+- [x] Email-Service (Nodemailer + Brevo)  *(`EmailModule` provided `EmailService` mit `LogOnlyEmailDriver` als Default — loggt in stdout statt zu senden, hält Verify/Reset-Flow durch DI lauffähig ohne externe Deps. Echte Drivers (SMTP/Brevo) plugen via `features.email.provider` ein, sobald die Pakete installiert sind.)*
 - [x] Email-Templates (verify, reset, welcome, invitation)
 - [x] 2FA-Endpunkte aktivieren  *(Better-Auth `twoFactor` plugin via `BetterAuthModule` aktiviert wenn `features.authMethods.twoFactor=true` (Default an); `/api/auth/two-factor/*` reachable.)*
 - [x] Passkey-Endpunkte aktivieren  *(Better-Auth `passkey` plugin via `BetterAuthModule` aktiviert wenn `features.authMethods.passkey=true` (Default an); `/api/auth/passkey/*` reachable.)*

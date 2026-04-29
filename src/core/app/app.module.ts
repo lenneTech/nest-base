@@ -7,6 +7,7 @@ import { PowerSyncModule } from '../auth/powersync.module.js';
 import { ConfigModule } from '../config/config.module.js';
 import { buildDevToolsConfig, type DevToolsEnv } from '../dx/devtools-config.js';
 import { DevHubModule } from '../dx/dev-hub.module.js';
+import { EmailModule } from '../email/email.module.js';
 import { EncryptionModule } from '../encryption/encryption.module.js';
 import { ErrorCodesModule } from '../errors/error-codes.module.js';
 import { conditionalImport, loadFeatures } from '../features/features.js';
@@ -76,6 +77,7 @@ const devtools = buildDevToolsConfig({
     GeoModule,
     PowerSyncModule,
     IdempotencyModule,
+    EmailModule,
     ...conditionalImport(features, 'fieldEncryption', EncryptionModule.forRoot()),
     ...(devtools.enabled && devtools.http
       ? [DevtoolsModule.register({ http: true, port: devtools.port })]
