@@ -3767,7 +3767,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [ ] **Search-Tester** (FTS-Probier-UI)  — *HTML-Renderer existiert, kein Controller.*
 - [x] **Diagnostik-Endpoint** `/dev/diagnostics`  *(JSON-Endpoint im `DevHubController`; nutzt `buildDiagnosticsReport()` mit aktuellen process/memory/features-Werten. Plus `/dev/features` für rohe Features-JSON. Beide 404 außerhalb development.)*
 - [x] **`.vscode/` Defaults** (Extensions, Launch-Configs, Tasks)
-- [ ] **`bun run onboard`** Skript für neue Entwickler  — *Skript existiert nicht.*
+- [x] **`bun run onboard`** Skript für neue Entwickler  *(`scripts/onboard.ts` ruft `buildOnboardReport()` mit aktuellen System-Inputs (Bun-Version, .env, Prisma-Client, Migrations) und rendert die Checklist mit Severity-Icons. Exit 1 bei BLOCKED.)*
 - [ ] **SDK-Generation** (`bun run sdk:generate` via kubb)  — *Kubb-Config existiert; ohne Controller liefert der Server kein OpenAPI-Spec → Generator ohne Input.*
 - [ ] Idempotency-Key Interceptor + Tabelle  — *Service+Tabellen-Typen vorhanden, Interceptor nicht als globaler `APP_INTERCEPTOR` registriert.*
 - [ ] ETag / If-Match Optimistic-Concurrency-Pipe  — *Helper-Funktionen existieren, kein Pipe/Interceptor in DI.*

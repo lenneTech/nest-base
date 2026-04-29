@@ -25,6 +25,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "prepare:schema": "bun run scripts/prepare-schema.ts",
+    "onboard": "bun run scripts/onboard.ts",
     "rename": "bun run scripts/rename-project.ts",
     "setup": "bun run scripts/setup-wizard.ts",
     "sync:from-template": "bun run scripts/sync-from-template.ts",
