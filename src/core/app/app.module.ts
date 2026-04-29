@@ -13,6 +13,7 @@ import { conditionalImport, loadFeatures } from '../features/features.js';
 import { GdprModule } from '../gdpr/gdpr.module.js';
 import { GeoModule } from '../geo/geo.module.js';
 import { HealthModule } from '../health/health.module.js';
+import { IdempotencyModule } from '../idempotency/idempotency.module.js';
 import { TenantInterceptor } from '../multi-tenancy/tenant.interceptor.js';
 import { OutputPipelineInterceptor } from '../output-pipeline/output-pipeline.interceptor.js';
 import { FiltersModule } from '../permissions/filters.module.js';
@@ -74,6 +75,7 @@ const devtools = buildDevToolsConfig({
     GdprModule,
     GeoModule,
     PowerSyncModule,
+    IdempotencyModule,
     ...conditionalImport(features, 'fieldEncryption', EncryptionModule.forRoot()),
     ...(devtools.enabled && devtools.http
       ? [DevtoolsModule.register({ http: true, port: devtools.port })]
