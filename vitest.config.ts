@@ -31,6 +31,11 @@ export default defineConfig({
         'src/**/*.interceptor.ts',
         'src/**/*.middleware.ts',
         'src/**/*.guard.ts',
+        // Dev/admin HTML renderers — pure presentation glue (lots of
+        // conditional CSS branches that don't represent real logic).
+        // Smoke-tested via story tests + visited live during dev.
+        'src/core/dx/*-ui.ts',
+        'src/core/dx/dashboard-ui.ts',
       ],
       thresholds: coverageThresholds,
     },

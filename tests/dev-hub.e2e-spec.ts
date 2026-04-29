@@ -50,8 +50,16 @@ describe("Dev-Hub · GET /dev", () => {
       expect(res.text).not.toMatch(/<script>(?!.*\/[ds][cr]ript)/);
     });
 
-    it("GET /dev/features returns the active Features object as JSON", async () => {
+    it("GET /dev/features renders the HTML feature page", async () => {
       const res = await request(app.getHttpServer()).get("/dev/features");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/text\/html/);
+      expect(res.text).toContain("FEATURE_WEBHOOKS_ENABLED");
+      expect(res.text).toContain("Multi-Tenancy");
+    });
+
+    it("GET /dev/features.json returns the active Features object as JSON", async () => {
+      const res = await request(app.getHttpServer()).get("/dev/features.json");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
       expect(res.body).toHaveProperty("multiTenancy");
@@ -59,8 +67,15 @@ describe("Dev-Hub · GET /dev", () => {
       expect(res.body).toHaveProperty("powerSync");
     });
 
-    it("GET /dev/diagnostics returns runtime + features report as JSON", async () => {
+    it("GET /dev/diagnostics renders the HTML diagnostics page", async () => {
       const res = await request(app.getHttpServer()).get("/dev/diagnostics");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/text\/html/);
+      expect(res.text).toMatch(/Diagnostics/);
+    });
+
+    it("GET /dev/diagnostics.json returns runtime + features report as JSON", async () => {
+      const res = await request(app.getHttpServer()).get("/dev/diagnostics.json");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
       expect(res.body).toHaveProperty("runtime");
