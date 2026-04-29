@@ -8,28 +8,47 @@
  * structured report; we render it to the terminal.
  */
 import { existsSync } from 'node:fs';
+import { connect } from 'node:net';
 import { resolve } from 'node:path';
 
 import { buildOnboardReport, type OnboardChecklistInput } from '../src/core/dx/onboard.js';
+import { parseDatabaseUrlForProbe } from '../src/core/dx/parse-database-url.js';
 
 const REQUIRED_BUN = '1.1.0';
+const POSTGRES_PROBE_TIMEOUT_MS = 800;
 
 function readBunVersion(): string | undefined {
   const bun = (globalThis as { Bun?: { version: string } }).Bun;
   return bun?.version;
 }
 
+/**
+ * Honest Postgres reachability check: parse DATABASE_URL into
+ * (host, port) and TCP-probe with a short timeout. Same pattern as
+ * `isPortlessProxyRunning()`. Returns false on parse error, port
+ * unreachable, or unsupported scheme — the planner reports BLOCKED
+ * with a remediation hint.
+ */
 async function postgresReachable(): Promise<boolean> {
-  const url = process.env.DATABASE_URL;
-  if (!url) return false;
-  // Just parse — no DB ping (would require pg in deps; the contributor
-  // can run `docker compose ps` for an authoritative check).
-  try {
-    new URL(url);
-    return true;
-  } catch {
-    return false;
-  }
+  const target = parseDatabaseUrlForProbe(process.env.DATABASE_URL);
+  if (!target) return false;
+  return new Promise((resolveProbe) => {
+    const socket = connect({
+      host: target.host,
+      port: target.port,
+      timeout: POSTGRES_PROBE_TIMEOUT_MS,
+    });
+    let settled = false;
+    const finish = (ok: boolean): void => {
+      if (settled) return;
+      settled = true;
+      socket.destroy();
+      resolveProbe(ok);
+    };
+    socket.on('connect', () => finish(true));
+    socket.on('error', () => finish(false));
+    socket.on('timeout', () => finish(false));
+  });
 }
 
 function prismaClientGenerated(): boolean {
