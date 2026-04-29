@@ -80,12 +80,38 @@ describe('Story · project-rename planner', () => {
     expect(after).not.toContain('nst-dev');
   });
 
-  it('throws ProjectAlreadyRenamedError when the package.json name already matches', () => {
-    const renamed = fixture();
-    renamed['package.json'] = '{\n  "name": "my-app",\n  "version": "0.0.0"\n}\n';
-    expect(() => planProjectRename({ files: renamed, newName: 'my-app' })).toThrow(
+  it('throws ProjectAlreadyRenamedError only when ALL canonical files already match', () => {
+    // Both the long name (package.json/README) AND the slug
+    // (portless/docker-compose) are already at newName — nothing to do.
+    const fully: ProjectRenameInput['files'] = {
+      'package.json': '{\n  "name": "my-app",\n  "version": "0.0.0"\n}\n',
+      'README.md': '# my-app\n\nTemplate.\n',
+      'portless.yml':
+        'project: my-app\n\nservices:\n  api:\n    public: api.my-app.localhost\n',
+      'docker-compose.yml':
+        'name: my-app\n\nservices:\n  postgres:\n    container_name: my-app-postgres\n\n' +
+        'networks:\n  default:\n    name: my-app-dev\n',
+    };
+    expect(() => planProjectRename({ files: fully, newName: 'my-app' })).toThrow(
       ProjectAlreadyRenamedError,
     );
+  });
+
+  it('does NOT throw when only package.json matches but the slug is still the old one', () => {
+    // The original template ships in this state: `package.json` says
+    // `nest-server-template` (long) but `portless.yml` says `nst`. A
+    // user running `bun run rename nest-server-template` here must be
+    // able to align portless+docker-compose without the idempotency
+    // check short-circuiting.
+    const partial = fixture();
+    // Long name already matches, slug doesn't.
+    expect(() => planProjectRename({ files: partial, newName: 'nest-server-template' })).not.toThrow();
+    const plan = planProjectRename({ files: partial, newName: 'nest-server-template' });
+    const compose = plan.files.find((f) => f.path === 'docker-compose.yml')!.after;
+    expect(compose).toContain('container_name: nest-server-template-postgres');
+    expect(compose).toContain('name: nest-server-template-dev');
+    const portless = plan.files.find((f) => f.path === 'portless.yml')!.after;
+    expect(portless).toMatch(/^project: nest-server-template$/m);
   });
 
   it('rejects an invalid kebab-name (would corrupt YAML / package.json)', () => {
