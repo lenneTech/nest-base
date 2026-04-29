@@ -6,6 +6,12 @@ import type { Features } from "../features/features.js";
  * Header name comes from `features.multiTenancy.headerName`. Header
  * value MUST be a UUID — anything else is a `TenantIsolationError` so
  * RLS never sees garbage strings flowing through `SET app.tenant_id`.
+ *
+ * The returned value is normalised to lowercase. Postgres' `uuid` type
+ * folds case internally, but any code that string-compares the raw
+ * header (session caches, audit emitters, request-context echoes)
+ * would mismatch on mixed-case input. Lowercasing at the parse
+ * boundary gives every consumer a single canonical form.
  */
 
 export class TenantIsolationError extends Error {
@@ -27,7 +33,10 @@ export function parseTenantHeader(value: string | string[] | undefined): string 
     throw new TenantIsolationError("tenant header is required");
   }
   if (!UUID_RE.test(raw)) {
-    throw new TenantIsolationError(`tenant header must be a UUID (received: ${raw})`);
+    // Don't echo `raw` — an attacker can stuff CRLF + a forged log
+    // entry into the header. Generic message; the real value lands
+    // server-side via the request-context logger.
+    throw new TenantIsolationError("tenant header must be a UUID");
   }
-  return raw;
+  return raw.toLowerCase();
 }
