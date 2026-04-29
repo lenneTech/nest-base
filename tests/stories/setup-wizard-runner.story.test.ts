@@ -64,6 +64,16 @@ describe('Story · setup-wizard runner planner', () => {
     expect(url).not.toContain('change-me-strong-pass');
   });
 
+  it('substitutes SYSTEM_SETUP_ADMIN_PASSWORD placeholder (≥ 12 chars per schema)', () => {
+    const example = 'SYSTEM_SETUP_ADMIN_PASSWORD=change-me-12-chars-min\n';
+    const out = planEnvFromExample(example, { randomBytes: deterministicRng() });
+    const value = out.match(/^SYSTEM_SETUP_ADMIN_PASSWORD=(.*)$/m)?.[1];
+    expect(value).toBeDefined();
+    expect(value).not.toBe('change-me-12-chars-min');
+    // SystemSetupConfigSchema enforces min 12; we want strong-margin above that.
+    expect(value!.length).toBeGreaterThanOrEqual(16);
+  });
+
   it('substitutes POWERSYNC_DB_PASSWORD placeholder', () => {
     const example = 'POWERSYNC_DB_PASSWORD=change-me-powersync-replication-pass\n';
     const out = planEnvFromExample(example, { randomBytes: deterministicRng() });
