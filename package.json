@@ -29,6 +29,7 @@
     "onboard": "bun run scripts/onboard.ts",
     "rename": "bun run scripts/rename-project.ts",
     "reset": "bun run scripts/reset.ts",
+    "seed": "bun run scripts/seed.ts",
     "setup": "bun run scripts/setup-wizard.ts",
     "sync:from-template": "bun run scripts/sync-from-template.ts",
     "sync:to-template": "bun run scripts/sync-to-template.ts",
