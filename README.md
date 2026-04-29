@@ -67,7 +67,11 @@ bun run setup
 # 6. DB-Migrations + Seed
 bun run prisma:migrate
 
-# 7. Dev-Server starten (portless wenn vorhanden, sonst dynamischer Port)
+# 7. Dev-Server starten — portless wird automatisch als devDependency
+#    installiert; einmalig vorher `node_modules/.bin/portless trust`
+#    ausführen, damit das mkcert-Root-Cert installiert wird (sudo nötig).
+#    Ohne portless oder mit DISABLE_PORTLESS=1 fällt der Server auf einen
+#    dynamisch gewählten Port zurück (siehe Bun-Startlog).
 bun run dev
 ```
 
