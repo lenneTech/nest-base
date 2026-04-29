@@ -67,6 +67,7 @@ describe("Story · Admin-Layout", () => {
     expect(ids).toContain("scalar");
     expect(ids).toContain("openapi");
     expect(ids).toContain("errors");
+    expect(ids).toContain("prisma-studio");
   });
 
   it("enthält Dark-Mode CSS-Variablen", () => {

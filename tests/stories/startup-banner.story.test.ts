@@ -44,13 +44,14 @@ describe("Story · Startup-Banner", () => {
     expect(plan.text).toContain("http://localhost:3000/health/live");
   });
 
-  it("zeigt Services-Sektion, wenn Mailpit/PowerSync/Devtools aktiv sind", () => {
+  it("zeigt Services-Sektion, wenn Mailpit/PowerSync/Prisma Studio aktiv sind", () => {
     const plan = planStartupBanner({
       env: "development",
       baseUrl: "http://localhost:3000",
       port: 3000,
       features: {
         scalarEnabled: true,
+        prismaStudioUrl: "http://localhost:5555",
         mailpitUrl: "http://localhost:8025",
         powerSyncUrl: "http://localhost:8080",
       },
@@ -58,7 +59,11 @@ describe("Story · Startup-Banner", () => {
 
     const services = plan.sections.find((s) => s.title === "Services");
     expect(services).toBeDefined();
-    expect(services?.entries.map((e) => e.label)).toEqual(["Mailpit", "PowerSync"]);
+    expect(services?.entries.map((e) => e.label)).toEqual([
+      "Prisma Studio",
+      "Mailpit",
+      "PowerSync",
+    ]);
   });
 
   it("enthält ANSI-Farben im Text-Output", () => {

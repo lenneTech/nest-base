@@ -34,6 +34,7 @@ export interface BannerInput {
     mailpitUrl?: string;
     powerSyncUrl?: string;
     devtoolsUrl?: string;
+    prismaStudioUrl?: string;
   };
 }
 
@@ -93,6 +94,9 @@ export function planStartupBanner(input: BannerInput): BannerPlan {
   ];
 
   const services: BannerEntry[] = [];
+  if (input.features.prismaStudioUrl) {
+    services.push({ label: "Prisma Studio", url: input.features.prismaStudioUrl });
+  }
   if (input.features.mailpitUrl) {
     services.push({ label: "Mailpit", url: input.features.mailpitUrl });
   }

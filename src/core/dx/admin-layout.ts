@@ -62,6 +62,12 @@ export function defaultAdminNav(): AdminNavSection[] {
         { id: "scalar", label: "API Reference", href: "/api/docs", icon: ICON_BOOK },
         { id: "openapi", label: "OpenAPI Spec", href: "/api/openapi.json", icon: ICON_FILE },
         { id: "errors", label: "Error Codes", href: "/errors", icon: ICON_BUG },
+        {
+          id: "prisma-studio",
+          label: "Prisma Studio",
+          href: "http://localhost:5555",
+          icon: ICON_DATABASE,
+        },
       ],
     },
     {
@@ -250,3 +256,4 @@ const ICON_WEBHOOK = `<svg viewBox="0 0 24 24"><path d="M18 16.98h-5.99c-1.1 0-1
 const ICON_RADIO = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 010 8.49M7.76 16.24a6 6 0 010-8.49M20.49 3.51a12 12 0 010 16.97M3.51 20.49a12 12 0 010-16.97"/></svg>`;
 const ICON_LIST = `<svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>`;
 const ICON_SEARCH = `<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`;
+const ICON_DATABASE = `<svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 11v6c0 1.66 4.03 3 9 3s9-1.34 9-3v-6"/></svg>`;

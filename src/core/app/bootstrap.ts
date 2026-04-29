@@ -11,6 +11,7 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { apiReference } from "@scalar/nestjs-api-reference";
 
 import { type BrowserOpenPlatform, planBrowserOpen } from "../dx/browser-open.js";
+import { planPrismaStudio } from "../dx/prisma-studio.js";
 import { buildScalarConfig } from "../dx/scalar-config.js";
 import { planStartupBanner } from "../dx/startup-banner.js";
 import { ProblemDetailsExceptionFilter } from "../errors/problem-details.filter.js";
@@ -106,12 +107,42 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   if (listen) {
     await app.listen(cfg.port, cfg.host);
     if (cfg.env !== "production") {
+      // Spawn Prisma Studio as a sibling process. The first dev start
+      // boots it; subsequent watch-restarts of the API don't (the
+      // existing studio keeps running), guarded by PRISMA_STUDIO_LAUNCHED.
+      const studioPlan = planPrismaStudio({
+        env: cfg.env,
+        ...(process.env.DATABASE_URL ? { databaseUrl: process.env.DATABASE_URL } : {}),
+        env_vars: {
+          ...(process.env.CI ? { CI: process.env.CI } : {}),
+          ...(process.env.PRISMA_STUDIO ? { PRISMA_STUDIO: process.env.PRISMA_STUDIO } : {}),
+        },
+      });
+      const studioUrl = studioPlan.action === "spawn" ? studioPlan.url : undefined;
+      if (studioPlan.action === "spawn" && process.env.PRISMA_STUDIO_LAUNCHED !== "1") {
+        process.env.PRISMA_STUDIO_LAUNCHED = "1";
+        try {
+          const child = spawn(studioPlan.command, studioPlan.args, {
+            detached: true,
+            stdio: "ignore",
+            env: process.env,
+          });
+          child.on("error", () => {
+            /* ignore — bunx / prisma not installed should not crash boot */
+          });
+          child.unref();
+        } catch {
+          /* see comment above */
+        }
+      }
+
       const banner = planStartupBanner({
         env: cfg.env,
         baseUrl: cfg.baseUrl,
         port: cfg.port,
         features: {
           scalarEnabled: true,
+          ...(studioUrl ? { prismaStudioUrl: studioUrl } : {}),
           ...(process.env.MAILPIT_WEB_URL ? { mailpitUrl: process.env.MAILPIT_WEB_URL } : {}),
           ...(process.env.POWERSYNC_URL ? { powerSyncUrl: process.env.POWERSYNC_URL } : {}),
           ...(process.env.NESTJS_DEVTOOLS !== "0"
