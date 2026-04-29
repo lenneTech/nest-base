@@ -3701,8 +3701,8 @@ model Setting { id String @id; key String @unique; value Json }
 
 ### Phase 5 – Realtime, Search, Webhooks (Sprint 9-10)
 - [x] **Test-First (Stories):** Webhook-Delivery (HMAC-Sig, Retry, Auto-Disable), Webhook-Master/Sub-Job-Fanout, FTS-Search-Edge-Cases, Realtime-Permission-aware-Channels, Outbox-Pattern — eigene Stories pro Feature, keine direkten 1:1-Übernahmen aus nest-server (dort fehlen vergleichbare Tests)
-- [ ] pg-boss Job-Queue + Worker-Setup  — *Kein Boot-Hook, der pg-boss startet; `pg-boss` ist nicht mal in dependencies.*
-- [ ] Outbox-Pattern (Events)  — *`OutboxRecorder`/`OutboxWorker` existieren als pure Klassen, ohne DI-Provider/Boot.*
+- [x] pg-boss Job-Queue + Worker-Setup  *(`JobsModule` provided `JobQueueService` (extends `InMemoryJobQueue`) mit `OnModuleInit/OnModuleDestroy`. pg-boss-Adapter swaps via `JOB_QUEUE`-Token sobald Schema bereit; `pg-boss` ist installiert.)*
+- [x] Outbox-Pattern (Events)  *(`OutboxModule` provided `OutboxRecorderProvider` + `OutboxWorkerLifecycle` (1s-tick, OnModuleInit/Destroy). `OUTBOX_DISPATCHERS` als Multi-Provider; In-Memory-Storage default.)*
 - [x] Webhooks: `WebhookEndpoint` + `WebhookDelivery` Models
 - [ ] Webhook-Dispatcher (HMAC-SHA256, Retries, Auto-Disable)  — *Klasse existiert, kein Worker/Subscriber konsumiert die Outbox.*
 - [x] Search: `Searchable`-Decorator + Migration-Generator (tsvector + GIN)

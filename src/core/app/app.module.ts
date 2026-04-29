@@ -18,6 +18,8 @@ import { GdprModule } from '../gdpr/gdpr.module.js';
 import { GeoModule } from '../geo/geo.module.js';
 import { HealthModule } from '../health/health.module.js';
 import { IdempotencyModule } from '../idempotency/idempotency.module.js';
+import { JobsModule } from '../jobs/jobs.module.js';
+import { OutboxModule } from '../outbox/outbox.module.js';
 import { TenantMemberModule } from '../multi-tenancy/tenant-member.module.js';
 import { TenantInterceptor } from '../multi-tenancy/tenant.interceptor.js';
 import { OutputPipelineInterceptor } from '../output-pipeline/output-pipeline.interceptor.js';
@@ -87,6 +89,8 @@ const devtools = buildDevToolsConfig({
     TenantMemberModule,
     ApiKeyModule,
     AdminCrudModule,
+    JobsModule,
+    OutboxModule,
     FilesModule,
     ...conditionalImport(features, 'fieldEncryption', EncryptionModule.forRoot()),
     ...(devtools.enabled && devtools.http
