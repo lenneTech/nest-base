@@ -3695,7 +3695,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] Local-Adapter
 - [x] Postgres-Adapter (Large Objects + `FileBlob`-Modell + RLS)
 - [x] File/Folder Models + CRUD-Endpoints  *(`FilesModule` mit `/files` und `/folders` CRUD-Controllern: GET (list by tenant/folder/parent), POST (create), DELETE (remove). In-Memory-Storage; Prisma-Adapter folgt.)*
-- [ ] Multipart-Upload + TUS  — *@tus/server-Wiring fehlt; kein Mount im Express-Layer.*
+- [x] Multipart-Upload + TUS  *(`TusModule.forRoot()` provided `@tus/server` Server (FileStore-Default unter `$TMPDIR/lt-tus`). `mountTus()`-Helper exposed; bootstrap-Mount auf `/files/upload`.)*
 - [ ] Asset-Endpoint mit Transformations + Cache (`sharp`)  — *Helper existieren, kein Controller.*
 - [x] Asset-Presets
 
