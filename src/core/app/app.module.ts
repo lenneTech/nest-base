@@ -12,6 +12,7 @@ import { DevHubModule } from '../dx/dev-hub.module.js';
 import { EmailModule } from '../email/email.module.js';
 import { EncryptionModule } from '../encryption/encryption.module.js';
 import { ErrorCodesModule } from '../errors/error-codes.module.js';
+import { FilesModule } from '../files/files.module.js';
 import { conditionalImport, loadFeatures } from '../features/features.js';
 import { GdprModule } from '../gdpr/gdpr.module.js';
 import { GeoModule } from '../geo/geo.module.js';
@@ -86,6 +87,7 @@ const devtools = buildDevToolsConfig({
     TenantMemberModule,
     ApiKeyModule,
     AdminCrudModule,
+    FilesModule,
     ...conditionalImport(features, 'fieldEncryption', EncryptionModule.forRoot()),
     ...(devtools.enabled && devtools.http
       ? [DevtoolsModule.register({ http: true, port: devtools.port })]
