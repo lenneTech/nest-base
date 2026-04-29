@@ -5,6 +5,7 @@ import { BetterAuthModule } from '../auth/better-auth.module.js';
 import { ConfigModule } from '../config/config.module.js';
 import { DevHubModule } from '../dx/dev-hub.module.js';
 import { EncryptionModule } from '../encryption/encryption.module.js';
+import { ErrorCodesModule } from '../errors/error-codes.module.js';
 import { conditionalImport, loadFeatures } from '../features/features.js';
 import { HealthModule } from '../health/health.module.js';
 import { OutputPipelineInterceptor } from '../output-pipeline/output-pipeline.interceptor.js';
@@ -38,6 +39,7 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     HealthModule,
     DevHubModule,
     BetterAuthModule,
+    ErrorCodesModule,
     ...conditionalImport(features, 'fieldEncryption', EncryptionModule.forRoot()),
   ],
   controllers: [AppController],

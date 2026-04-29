@@ -3776,7 +3776,7 @@ model Setting { id String @id; key String @unique; value Json }
 - [ ] Per-API-Key Rate-Limit-Bucket  — *Bucket-Helper existiert, ohne Wiring (siehe Throttler).*
 - [ ] GDPR-Endpoints (`/me/export`, `/me/account`, Anonymisierung)  — *Builder/Erasure-Planner existieren, keine Controller.*
 - [ ] Audit-Log-Extension (mit Encryption-Awareness)  — *Service existiert, weder Prisma-Extension verdrahtet noch DI-Provider.*
-- [ ] Error-Code-Registry + i18n-Endpoint  — *Registry vorhanden, kein `GET /errors`-Controller.*
+- [x] Error-Code-Registry + i18n-Endpoint  *(`ErrorCodesModule` registriert die 7 `CORE_*` Codes mit `en`+`de`-Messages und mountet `GET /errors` (Liste) + `GET /errors/{code}?locale=…` (resolve). Project-Code-Registrierung via `OnModuleInit` möglich.)*
 - [ ] OpenAPI-Doku komplett (inkl. RFC 7807 Schemas)  — *Hängt komplett von vorhandenen Controllern ab; ohne die kein Spec.*
 - [x] CI-Pipeline (`.gitlab-ci.yml`: lint, test, audit, build) — **kein** Container-Build, -Signing oder Deploy auf Template-Ebene
 - [x] Test-Containers-Setup für Integration-Tests (Postgres + RustFS)
