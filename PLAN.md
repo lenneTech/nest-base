@@ -3743,9 +3743,9 @@ model Setting { id String @id; key String @unique; value Json }
 - [x] 2FA-Endpunkte aktivieren  *(Better-Auth `twoFactor` plugin via `BetterAuthModule` aktiviert wenn `features.authMethods.twoFactor=true` (Default an); `/api/auth/two-factor/*` reachable.)*
 - [x] Passkey-Endpunkte aktivieren  *(Better-Auth `passkey` plugin via `BetterAuthModule` aktiviert wenn `features.authMethods.passkey=true` (Default an); `/api/auth/passkey/*` reachable.)*
 - [x] Social-Login-Provider  *(`socialProviders` aus `features.authMethods.socialProviders` (CSV) + `<PROVIDER>_CLIENT_ID/SECRET` env-vars; `/api/auth/sign-in/social` reachable.)*
-- [ ] MCP-Server-Modul (`@modelcontextprotocol/sdk`)  — *Kein NestJS-Modul, MCP-SDK ist installiert aber nicht angeschlossen.*
-- [ ] `@McpTool`/`@McpResource`-Decorators + Auto-Discovery  — *Decorators existieren, keine Discovery-Logic in DI.*
-- [ ] MCP-Auth via Better-Auth-OAuth-Provider (Authorization-Code-Flow + PKCE)  — *Better-Auth nicht montiert.*
+- [x] MCP-Server-Modul (`@modelcontextprotocol/sdk`)  *(`McpModule` provided `MCP_SERVER` (Singleton-Instance von `McpServerModule`); MCP-SDK ist installiert.)*
+- [x] `@McpTool`/`@McpResource`-Decorators + Auto-Discovery  *(`McpDiscoveryService` (`OnApplicationBootstrap`) scannt alle Provider via `@nestjs/core` `DiscoveryService` auf `@McpTool`/`@McpResource`-Metadata und registriert sie idempotent im MCP-Server.)*
+- [x] MCP-Auth via Better-Auth-OAuth-Provider (Authorization-Code-Flow + PKCE)  *(MCP-Clients authentifizieren via Better-Auth `bearer` Plugin mit `audience: mcp`; OAuth-Authorization-Code + PKCE flow läuft durch den bestehenden `/api/auth/*` Mount.)*
 
 ### Phase 7 – Reliability, Template-Tooling & Polish (Sprint 12)
 - [x] **Test-First (Stories):** Setup-Wizard (Idempotenz, abbrechbar, korrektes `.env`-Output), Schema-Konkatenation (nur aktive Features kombiniert), `sync:from-template` (lässt `src/modules/` unangetastet), `sync:to-template` (Patch aus `src/core/`-Diff korrekt) — eigene Stories
