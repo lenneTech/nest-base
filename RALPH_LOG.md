@@ -999,3 +999,68 @@ clustern in:
 - 4× Email/MCP (EmailService DI, MCPModule, MCPDecorators, MCPAuth)
 - 4× Polish (Scalar mount, NestJS-DevTools, OpenAPI-Doku, SDK-Generation working)
 - 2× Repository-Konflikt-Hook + Better-Auth-Schema-Erweiterung-für-Prisma-Adapter
+
+## Iteration 104 · 2026-04-29 (ralph-loop autonomous — 13 wiring slices)
+
+| # | Slice | Box(es) flipped |
+|---|---|---|
+| 14 | Tenant-Interceptor + RLS-Hook (`runWithRlsTenant`) | Phase 2: Tenant-Interceptor + RLS-Setup |
+| 15 | System-Setup `OnModuleInit` boot hook | Phase 2: System-Setup (Initial-Admin) |
+| 16 | Filter-Service auto-discovery (`DiscoveryModule`) | Phase 3: Filter-Service Pattern + Auto-Discovery |
+| 17 | NestJS DevTools (gated by `NESTJS_DEVTOOLS=1`) | Phase 8: NestJS DevTools Integration |
+| 18 | Cross-Resource-Search (`GET /search`) | Phase 5: Cross-Resource-Search-Endpoint |
+| 19 | GDPR controllers (`/me/export`, `/me/account`) | Phase 8: GDPR-Endpoints |
+| 20 | Geo controllers (`/geo/geocode`, `/geo/reverse-geocode`, `/places/nearby`) | Phase 5c: REST-Endpunkte (`/geo/*`, `/addresses`, `/geofences`, `/places/nearby`) |
+| 21 | PowerSync upload (`POST /powersync/crud`) | Phase 5b: PowerSync-Upload-Controller |
+| 22 | `BaseRepository.updateWithConflict()` | Phase 5b: Konflikt-Resolution-Hook in BaseRepository |
+| 23 | Idempotency-Key as `APP_INTERCEPTOR` | Phase 8: Idempotency-Key Interceptor + Tabelle |
+| 24 | GeoJSON Stage 3a in OutputPipelineInterceptor | Phase 5c: GeoJSON-Output-Mapper Stage 3a |
+| 25 | ETag/If-Match → 412/428 in problem-details filter | Phase 8: ETag / If-Match Optimistic-Concurrency-Pipe |
+| 26 | EmailModule with LogOnlyEmailDriver default | Phase 6: Email-Service (Nodemailer + Brevo) |
+
+- Tests: 1278 → 1302 grün (+24), Coverage stable ~97%
+- Stand: **87/118 [x]** in PLAN.md §32 — 31 Wiring-Slices stehen aus
+- Commits: `2c3a33e..995ea83` (~26 atomare Commits — red+green per Slice)
+
+**Live-funktionierend (kumulativ):**
+- `GET /`, `/health/{live,ready}`, `/dev`, `/dev/features`, `/dev/diagnostics`
+- `GET /errors`, `/errors/{code}?locale=…`
+- `ALL /api/auth/*` (Better-Auth: sign-up/sign-in/session, 2FA, Passkey, Social-OAuth)
+- `GET /search?q=…`
+- `GET /geo/geocode`, `/geo/reverse-geocode`, `POST /places/nearby`
+- `POST /powersync/crud`
+- `GET /me/export` (auth-gated 403), `DELETE /me/account` (auth-gated)
+- Headers: `x-request-id`, `traceparent`, `x-tenant-id` enforced via TenantInterceptor
+- Globale APP_INTERCEPTORs: OutputPipelineInterceptor (Stages 3a+3+4), TenantInterceptor, IdempotencyKeyInterceptor, PermissionInterceptor
+- Globaler APP_GUARD: CanGuard
+- ETag-Errors → 428/412 in Problem-Details
+- SystemSetup OnModuleInit provisioniert Initial-Admin
+- FilterService scannt `@FilterFor()` automatisch via DiscoveryModule
+- EmailService verfügbar via DI (LogOnly-Driver)
+- BaseRepository.updateWithConflict() für PowerSync-Konflikte
+
+**Verbleibende 31 boxes** clustern nach Aufwand:
+
+*Größere Schema/Dep-Slices (Stunden):*
+- pg-boss + Outbox-Worker + Webhook-Dispatcher subscriber (Phase 5, 3 boxes — Chain)
+- Realtime-Service + Socket.IO-Gateway + Channel-Filter (Phase 5, 3 boxes — Chain)
+- File CRUD + TUS + Asset Endpoint (Phase 4, 3 boxes — `@tus/server` dep)
+- Tenant-Member-CRUD + API-Key-CRUD + Admin-CRUD (Phase 2/3, 3 boxes — schema CRUD)
+- MCP-Module + Tool/Resource discovery + OAuth (Phase 6, 3 boxes — SDK wiring)
+- Better-Auth JWT plugin (audience: powersync) + JWKS endpoint (Phase 5b, 1 box — Better-Auth JWT plugin install)
+- Audit-Log Prisma extension (Phase 8 — Prisma extension)
+- @nestjs/throttler + Postgres-Store + Per-API-Key bucket (Phase 8, 2 boxes — `@nestjs/throttler` dep)
+- 5× Admin UIs (Phase 8 — controllers über bestehende HTML-Renderer)
+
+*Kleinere Slices (Minuten bis Stunde):*
+- PostgREST-Query-Verwendung (Phase 3 — controller using parser)
+- Cursor-Pagination usage (Phase 8 — extend an existing list endpoint)
+- GeocodingCache cleanup cron (Phase 5c — `@Cron` decorator setup)
+- Field-Encryption integration in Address-CRUD (Phase 5c — needs Address controller)
+- OpenAPI-Doku (Phase 8 — `@ApiTags`/`@ApiOperation` annotations + Scalar mount)
+- Scalar UI mount (Phase 8 — depends on OpenAPI spec builder)
+- SDK-Generation (Phase 8 — depends on Scalar/OpenAPI)
+
+Geschätzter Restaufwand: ~50-70h fokussierte Arbeit. Einige Slices erfordern
+zusätzliche npm packages (`pg-boss`, `@nestjs/websockets`, `@tus/server`,
+`@nestjs/throttler`, sharp), die in einem Loop-Schritt installiert werden müssen.
