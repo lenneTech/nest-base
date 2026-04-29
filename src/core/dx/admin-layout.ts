@@ -54,6 +54,9 @@ export function defaultAdminNav(): AdminNavSection[] {
         { id: "dev-hub", label: "Dev Hub", href: "/dev", icon: ICON_HOME },
         { id: "diagnostics", label: "Diagnostics", href: "/dev/diagnostics", icon: ICON_HEART },
         { id: "features", label: "Features", href: "/dev/features", icon: ICON_TOGGLE },
+        { id: "coverage", label: "Coverage", href: "/dev/coverage", icon: ICON_CHART },
+        { id: "tests", label: "Tests", href: "/dev/tests", icon: ICON_CHECK },
+        { id: "logs", label: "Logs", href: "/dev/logs", icon: ICON_TERMINAL },
       ],
     },
     {
@@ -257,3 +260,6 @@ const ICON_RADIO = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><pat
 const ICON_LIST = `<svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>`;
 const ICON_SEARCH = `<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`;
 const ICON_DATABASE = `<svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 11v6c0 1.66 4.03 3 9 3s9-1.34 9-3v-6"/></svg>`;
+const ICON_CHART = `<svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`;
+const ICON_TERMINAL = `<svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>`;
+const ICON_CHECK = `<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`;

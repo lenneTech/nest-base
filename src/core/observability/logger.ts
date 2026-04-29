@@ -1,5 +1,6 @@
-import pino, { type Logger as PinoBase, type LoggerOptions } from "pino";
+import pino, { type Logger as PinoBase, type LoggerOptions, multistream } from "pino";
 
+import { getLogBuffer } from "../dx/log-buffer.js";
 import type { AppEnv } from "../http/cookie-cors-config.js";
 
 export type LogLevel = "fatal" | "error" | "warn" | "info" | "debug" | "trace";
@@ -52,19 +53,31 @@ export function createLogger(options: CreateLoggerOptions): Logger {
   }
 
   if (options.env === "development") {
-    return pino({
-      ...base,
-      transport: {
-        target: "pino-pretty",
-        options: {
-          colorize: true,
-          translateTime: "SYS:HH:MM:ss.l",
-          ignore: "pid,hostname,context",
-          messageFormat: "[{context}] {msg}",
-          singleLine: true,
-        },
+    // Dev: pino-pretty for the terminal + an in-memory ring buffer that
+    // backs `/dev/logs`. multistream lets every record fan out to both
+    // destinations without re-running formatters.
+    const buffer = getLogBuffer();
+    const prettyTransport = pino.transport({
+      target: "pino-pretty",
+      options: {
+        colorize: true,
+        translateTime: "SYS:HH:MM:ss.l",
+        ignore: "pid,hostname,context",
+        messageFormat: "[{context}] {msg}",
+        singleLine: true,
       },
     });
+    return pino(
+      base,
+      multistream([
+        { stream: prettyTransport },
+        {
+          stream: sinkStream((record) => {
+            buffer.push(record);
+          }),
+        },
+      ]),
+    );
   }
 
   return pino(base);
