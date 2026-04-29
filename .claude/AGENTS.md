@@ -28,12 +28,17 @@ spelunking through the directory tree.
 
 | User intent | Primitive |
 |---|---|
+| "I just opened the repo, where do I start?" | [`QUICKSTART.md`](QUICKSTART.md) |
+| "Why is X structured this way?" | skill: `understanding-the-architecture.md` |
+| "I keep hitting a weird error" | skill: `avoiding-common-pitfalls.md` |
+| "How do I write a story test?" | skill: `writing-story-tests.md` |
+| "How does Prisma 7 work here?" | skill: `working-with-prisma.md` |
 | "Add a feature flag for Y" / "make Y toggleable" | `/add-feature` command + `feature-toggle-implementer` agent |
+| "Add a new dev-hub or admin page" | `/add-page` command + skill: `extending-dev-hub.md` |
 | "Implement next slice from PLAN.md" | `slice-implementer` agent |
 | "Run the six gates and tell me what's broken" | `quality-gate-runner` agent |
 | "Scaffold a new module under `src/modules/`" | `module-scaffolder` agent |
 | "How do I add a new error code?" | skill: `adding-error-code.md` |
-| "How do I add a new admin/dev page?" | skill: `extending-dev-hub.md` |
 | "How does the TDD slice flow work?" | skill: `running-tdd-slice.md` |
 | "How do I wire a permission check on a handler?" | skill: `wiring-permissions.md` |
 | "How do I add a feature module under `src/modules/`?" | skill: `adding-feature-module.md` |
@@ -63,6 +68,10 @@ and gotchas so each contributor doesn't re-discover them.
 
 | Name | Purpose | File |
 |---|---|---|
+| `understanding-the-architecture` | Mental model in 200 lines — pure-planner / output-pipeline / features SoT / six gates. **Read first.** | `skills/understanding-the-architecture.md` |
+| `avoiding-common-pitfalls` | Catalogue of every place this codebase will burn you (ESM imports, env-watch, CSP, Prisma generate, ...). | `skills/avoiding-common-pitfalls.md` |
+| `writing-story-tests` | Concrete TDD pattern reference for `tests/stories/*.story.test.ts`. | `skills/writing-story-tests.md` |
+| `working-with-prisma` | Prisma 7 driver-adapter mode, schema concat, migrations, RLS. | `skills/working-with-prisma.md` |
 | `adding-feature-flag` | Add a toggleable feature flag — every place it must be wired. | `skills/adding-feature-flag.md` |
 | `adding-feature-module` | Scaffold a feature module under `src/modules/`. | `skills/adding-feature-module.md` |
 | `adding-error-code` | Add a new `CORE_*` error code with i18n messages. | `skills/adding-error-code.md` |
@@ -81,6 +90,7 @@ appear as `/<name>` in the chat.
 | Command | Purpose |
 |---|---|
 | `/add-feature <key> "<description>"` | Add a new toggleable feature flag end-to-end. Sequences the workflow under TDD discipline. |
+| `/add-page <slug> "<title>" [json-viewer\|custom]` | Add a new dev-hub or admin page using the shared dark-mode shell. |
 
 ---
 
@@ -165,7 +175,13 @@ exercised via story / e2e tests.
 
 Read in this order:
 
-1. `CLAUDE.md` (repo root) — orientation, tech stack, conventions
-2. `.claude/AGENTS.md` (this file) — what tools are available
-3. `PLAN.md` — what the spec says, what's done, what's next
-4. The skill or agent file matching your task
+1. [`.claude/QUICKSTART.md`](QUICKSTART.md) — 60-second onboarding card
+2. `CLAUDE.md` (repo root) — orientation, tech stack, conventions
+3. `.claude/AGENTS.md` (this file) — what tools are available
+4. `.claude/skills/understanding-the-architecture.md` — mental model
+5. `.claude/skills/avoiding-common-pitfalls.md` — what *not* to do
+6. The skill / agent / command file matching your task
+
+`PLAN.md` (3000+ lines) is the source of truth for the spec, but is
+not required reading for most tasks. Use it as a reference, not a
+sequential read.

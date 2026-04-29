@@ -4,6 +4,10 @@ This file orients an AI agent (or any new contributor) inside the repo. Read
 it first; it should answer "where do I find X" and "what's the convention
 for Y" without spelunking through 80+ files.
 
+> **Just opened the repo?** Start with [`.claude/QUICKSTART.md`](./.claude/QUICKSTART.md)
+> for a 60-second onboarding card, then come back here for the deeper tour.
+> The full agent / skill / command catalogue is in [`.claude/AGENTS.md`](./.claude/AGENTS.md).
+
 ## What this repo is
 
 A **template-shaped NestJS server** built on Bun + Prisma + Postgres + Better-Auth.
