@@ -26,6 +26,8 @@ export interface DashboardInput {
   tests: TestSummaryReport;
   logs: readonly LogRecord[];
   logBufferCapacity: number;
+  /** Aggregate query stats since dev-server boot — surfaced as a tile. */
+  queries: { total: number; slowestMs: number; warnCount: number; badCount: number };
 }
 
 export function renderDashboardPage(input: DashboardInput): string {
@@ -174,9 +176,10 @@ function renderStatsGrid(
     : "—";
   const testsOk = input.tests.available ? input.tests.totals.success : null;
 
+  const querySlow = input.queries.warnCount + input.queries.badCount;
   return `
 <style>
-  .stat-grid { display: grid; gap: 1rem; grid-template-columns: repeat(4, 1fr); margin-bottom: 1.25rem; }
+  .stat-grid { display: grid; gap: 1rem; grid-template-columns: repeat(5, 1fr); margin-bottom: 1.25rem; }
   .stat-card {
     background: var(--surface-1); border: 1px solid var(--line);
     border-radius: var(--radius); padding: 1.25rem 1.4rem;
@@ -244,6 +247,19 @@ function renderStatsGrid(
         : warnLogs > 0
           ? `<span class="stat-card__pill stat-card__pill--warn">${warnLogs} warn${warnLogs === 1 ? "" : "s"}</span>`
           : '<span class="stat-card__pill stat-card__pill--ok">clean</span>'
+    }
+  </a>
+  <a class="stat-card" href="/dev/queries">
+    <span class="stat-card__label">DB Queries</span>
+    <span class="stat-card__value">${input.queries.total}</span>
+    ${
+      input.queries.badCount > 0
+        ? `<span class="stat-card__pill stat-card__pill--bad">${input.queries.badCount} critical (&gt; 200 ms)</span>`
+        : querySlow > 0
+          ? `<span class="stat-card__pill stat-card__pill--warn">${querySlow} slow (&gt; 50 ms)</span>`
+          : input.queries.total > 0
+            ? '<span class="stat-card__pill stat-card__pill--ok">all fast</span>'
+            : '<span class="stat-card__pill stat-card__pill--neutral">no queries yet</span>'
     }
   </a>
 </div>`;

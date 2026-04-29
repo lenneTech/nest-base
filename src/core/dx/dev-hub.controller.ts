@@ -125,6 +125,7 @@ export class DevHubController {
       tests,
       logs: buffer.recent(50),
       logBufferCapacity: buffer.capacity(),
+      queries: getQueryBuffer().summary(),
     });
   }
 

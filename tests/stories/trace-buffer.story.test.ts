@@ -140,4 +140,69 @@ describe("Story · TraceBuffer", () => {
     buf.clear();
     expect(buf.recent()).toEqual([]);
   });
+
+  describe("seq + since() for incremental polling", () => {
+    // Why: the /dev/traces page polls /dev/traces.json every 2 s for
+    // new traces. To avoid re-sending the entire buffer on every
+    // tick, each record carries a monotonic `seq` so the client can
+    // ask "give me everything after the last one I saw".
+    it("assigns a monotonic seq to each recorded trace", () => {
+      const buf = new TraceBuffer({ capacity: 100 });
+      const seqs: number[] = [];
+      for (let i = 0; i < 5; i++) {
+        buf.record({
+          requestId: `r-${i}`,
+          method: "GET",
+          path: "/x",
+          startedAtMs: i,
+          durationMs: 1,
+          status: 200,
+        });
+      }
+      for (const r of buf.recent()) seqs.push(r.seq as number);
+      expect(seqs).toEqual([1, 2, 3, 4, 5]);
+    });
+
+    it("since(seq) returns only records strictly after the cursor", () => {
+      const buf = new TraceBuffer({ capacity: 100 });
+      for (let i = 0; i < 5; i++) {
+        buf.record({
+          requestId: `r-${i}`,
+          method: "GET",
+          path: "/x",
+          startedAtMs: i,
+          durationMs: 1,
+          status: 200,
+        });
+      }
+      const newer = buf.since(2);
+      expect(newer.map((r) => r.requestId)).toEqual(["r-2", "r-3", "r-4"]);
+    });
+
+    it("since(0) returns everything (initial-load shortcut)", () => {
+      const buf = new TraceBuffer({ capacity: 100 });
+      buf.record({
+        requestId: "r-1",
+        method: "GET",
+        path: "/x",
+        startedAtMs: 0,
+        durationMs: 1,
+        status: 200,
+      });
+      expect(buf.since(0)).toHaveLength(1);
+    });
+
+    it("since() is empty when no traces are newer than the cursor", () => {
+      const buf = new TraceBuffer({ capacity: 100 });
+      buf.record({
+        requestId: "r-1",
+        method: "GET",
+        path: "/x",
+        startedAtMs: 0,
+        durationMs: 1,
+        status: 200,
+      });
+      expect(buf.since(99)).toEqual([]);
+    });
+  });
 });

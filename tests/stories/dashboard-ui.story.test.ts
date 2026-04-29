@@ -25,6 +25,7 @@ const baseInput = () => ({
   tests: buildTestSummary({ repoRoot: "/r" }),
   logs: [],
   logBufferCapacity: 500,
+  queries: { total: 0, slowestMs: 0, warnCount: 0, badCount: 0 },
 });
 
 describe("Story · Dashboard UI", () => {
