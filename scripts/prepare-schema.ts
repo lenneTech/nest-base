@@ -50,6 +50,15 @@ try {
   } else {
     console.log('[prepare:schema] no feature schemas active (core only)');
   }
+  // Features that are enabled but have no .prisma file — runtime-only
+  // toggles like mcp, realtime, fieldEncryption, or webhooks (whose
+  // tables ship in the core schema). Surface them so a user notices
+  // a misnamed file.
+  if (output.skippedFeatures.length > 0) {
+    console.log(
+      `[prepare:schema] runtime-only features (no schema file expected): ${output.skippedFeatures.join(', ')}`,
+    );
+  }
 } catch (err) {
   console.error(`[prepare:schema] ${(err as Error).message}`);
   process.exit(1);

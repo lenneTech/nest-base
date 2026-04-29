@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { FeaturesSchema } from "../../src/core/features/features.js";
-import {
-  MissingFeatureSchemaError,
-  concatenateSchema,
-  type SchemaConcatInput,
-} from "../../src/core/setup/schema-concat.js";
+import { concatenateSchema, type SchemaConcatInput } from "../../src/core/setup/schema-concat.js";
 
 /**
  * Story · Schema-Concat (PLAN.md §19.4 Approach B + §32 Phase 7).
@@ -93,15 +89,20 @@ describe("Story · Schema-Concat planner", () => {
     expect(result.includedFeatures).toEqual([]);
   });
 
-  it("throws MissingFeatureSchemaError when a feature is enabled but its schema is missing", () => {
-    expect(() =>
-      concatenateSchema(
-        input({
-          featureSchemas: {},
-          features: FeaturesSchema.parse({ webhooks: { enabled: true } }),
-        }),
-      ),
-    ).toThrow(MissingFeatureSchemaError);
+  it("treats enabled-but-no-schema features as runtime-only (skipped, not thrown)", () => {
+    // Some toggleable features (mcp, realtime, fieldEncryption,
+    // webhooks-in-core) have no `prisma/features/<name>.prisma` file
+    // because they're runtime-only or share the core schema. We
+    // silently skip them and surface them via `skippedFeatures` so
+    // tooling can show the user what got skipped.
+    const result = concatenateSchema(
+      input({
+        featureSchemas: {},
+        features: FeaturesSchema.parse({ fieldEncryption: { enabled: true } }),
+      }),
+    );
+    expect(result.includedFeatures).toEqual([]);
+    expect(result.skippedFeatures).toContain("fieldEncryption");
   });
 
   it("emits a generated-by header so manual edits get noticed", () => {
