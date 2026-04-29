@@ -34,6 +34,17 @@ describe("Story · Feature-Catalog", () => {
     expect(isFeatureActive(allOn, "webhooks")).toBe(true);
   });
 
+  it("jeder envKey wird vom features.ts Parser tatsächlich erkannt", () => {
+    // Setting envKey=true on a fresh load must flip isFeatureActive to true.
+    for (const meta of FEATURE_CATALOG) {
+      const features = loadFeatures({ [meta.envKey]: "true" });
+      expect(
+        isFeatureActive(features, meta.key),
+        `envKey ${meta.envKey} should toggle ${meta.key} on`,
+      ).toBe(true);
+    }
+  });
+
   it("summarizeFeatures zählt aktiv/total korrekt", () => {
     const def = loadFeatures({});
     const sum = summarizeFeatures(def);

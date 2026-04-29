@@ -104,7 +104,10 @@ export function planServiceCandidates(input: ServiceStatusInput): ServiceCandida
       href: v.MAILPIT_WEB_URL,
     });
   }
-  if (v.POWERSYNC_URL) {
+  // PowerSync only counts as a service when the feature flag is on —
+  // the env-var alone just records *where* the container would run,
+  // not whether the API is currently using it.
+  if (v.POWERSYNC_URL && input.features.powerSync.enabled) {
     candidates.push({
       id: "powersync",
       label: "PowerSync",

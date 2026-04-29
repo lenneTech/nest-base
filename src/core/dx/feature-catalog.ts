@@ -72,7 +72,7 @@ export const FEATURE_CATALOG: readonly FeatureMeta[] = [
     key: "powerSync",
     label: "PowerSync",
     description: "Offline-first sync engine + JWT plugin + conflict resolution.",
-    envKey: "FEATURE_POWER_SYNC_ENABLED",
+    envKey: "FEATURE_POWERSYNC_ENABLED",
     category: "data",
     exposes: ["/powersync/crud", "JWKS endpoint", "powersync container"],
   },

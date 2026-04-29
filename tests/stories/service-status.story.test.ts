@@ -43,16 +43,33 @@ describe("Story · Service-Status", () => {
       expect(off.find((c) => c.id === "nest-devtools")).toBeUndefined();
     });
 
-    it("nimmt Mailpit + PowerSync nur bei gesetzten URLs auf", () => {
+    it("nimmt Mailpit nur bei gesetzter URL auf", () => {
       const list = planServiceCandidates({
         ...baseInput,
-        env_vars: {
-          MAILPIT_WEB_URL: "http://localhost:8025",
-          POWERSYNC_URL: "http://localhost:8080",
-        },
+        env_vars: { MAILPIT_WEB_URL: "http://localhost:8025" },
       });
       expect(list.find((c) => c.id === "mailpit")?.probeUrl).toBe("http://localhost:8025");
-      expect(list.find((c) => c.id === "powersync")?.probeUrl).toBe("http://localhost:8080");
+    });
+
+    it("zeigt PowerSync nur, wenn das Feature aktiv UND die URL gesetzt ist", () => {
+      const featureOff = planServiceCandidates({
+        ...baseInput,
+        env_vars: { POWERSYNC_URL: "http://localhost:8080" },
+      });
+      expect(featureOff.find((c) => c.id === "powersync")).toBeUndefined();
+
+      const featureOnNoUrl = planServiceCandidates({
+        ...baseInput,
+        features: loadFeatures({ FEATURE_POWERSYNC_ENABLED: "true" }),
+      });
+      expect(featureOnNoUrl.find((c) => c.id === "powersync")).toBeUndefined();
+
+      const both = planServiceCandidates({
+        ...baseInput,
+        features: loadFeatures({ FEATURE_POWERSYNC_ENABLED: "true" }),
+        env_vars: { POWERSYNC_URL: "http://localhost:8080" },
+      });
+      expect(both.find((c) => c.id === "powersync")?.probeUrl).toBe("http://localhost:8080");
     });
   });
 
