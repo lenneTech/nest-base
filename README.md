@@ -110,34 +110,44 @@ boot. Single source of truth: `src/core/features/features.ts`
 2. **`FEATURE_*` env vars** (override defaults at boot)
 3. **Project override** in `src/config/features.ts` (when present)
 
-### Env var format
+### Available features
 
-`FEATURE_<SECTION>_<FIELD>=<value>`
+Every section in `FeaturesSchema`, what it provides, its default, and
+the env-var prefix to override it. `FEATURE_<SECTION>_<FIELD>=<value>`,
+booleans accept `true`/`false`/`1`/`0`/`yes`/`no`/`on`/`off`
+(case-insensitive); arrays are comma-separated.
 
-| Section | Env prefix | Fields |
-|---|---|---|
-| `authMethods` | `FEATURE_AUTH_METHODS_` | `EMAIL_PASSWORD`, `TWO_FACTOR`, `PASSKEY`, `API_KEYS`, `SOCIAL_PROVIDERS` (CSV) |
-| `multiTenancy` | `FEATURE_MULTI_TENANCY_` | `ENABLED`, `RLS`, `HEADER_NAME` |
-| `files` | `FEATURE_FILES_` | `ENABLED`, `STORAGE_DEFAULT` (`s3`/`local`/`postgres`), `TUS`, `TRANSFORMATIONS` |
-| `email` | `FEATURE_EMAIL_` | `ENABLED`, `PROVIDER` (`smtp`/`brevo`) |
-| `geo` | `FEATURE_GEO_` | `ENABLED`, `PROVIDER` (`mapbox`/`google`/`nominatim`/`local`) |
-| `webhooks` / `search` / `realtime` / `powerSync` / `mcp` / `fieldEncryption` / `rateLimit` / `idempotency` / `observability` / `jobs` | `FEATURE_<SECTION>_` | `ENABLED` |
+| Feature | What it does | Default | Env prefix |
+|---|---|---|---|
+| `authMethods` | Better-Auth method selection: email/password, 2FA (TOTP), passkey (WebAuthn), API keys, social OAuth | mostly on (see fields) | `FEATURE_AUTH_METHODS_` |
+| `multiTenancy` | Tenant header + Postgres Row-Level Security per `tenantId` | `ENABLED=true`, `RLS=true`, `HEADER_NAME=x-tenant-id` | `FEATURE_MULTI_TENANCY_` |
+| `files` | TUS resumable uploads + S3/local/postgres storage adapter + sharp image transforms | `ENABLED=true`, `STORAGE_DEFAULT=s3`, `TUS=true`, `TRANSFORMATIONS=true` | `FEATURE_FILES_` |
+| `email` | Email service (Nodemailer) with SMTP or Brevo provider; verify/reset/welcome/invitation templates | `ENABLED=true`, `PROVIDER=smtp` | `FEATURE_EMAIL_` |
+| `rateLimit` | Multi-window throttler with Postgres-backed counter store | `ENABLED=true` | `FEATURE_RATE_LIMIT_` |
+| `idempotency` | Stripe-style `Idempotency-Key` header support (sha256 fingerprint) | `ENABLED=true` | `FEATURE_IDEMPOTENCY_` |
+| `observability` | OpenTelemetry traces + Pino logging + traceparent middleware | `ENABLED=true` | `FEATURE_OBSERVABILITY_` |
+| `jobs` | pg-boss job queue + scheduled-job decorator surface (required by webhooks/realtime) | `ENABLED=true` | `FEATURE_JOBS_` |
+| `webhooks` | Outgoing webhooks (HMAC-SHA256, retry policy, auto-disable, fanout) | `ENABLED=false` | `FEATURE_WEBHOOKS_` |
+| `search` | Full-text search query parser + cross-resource search + `@Searchable` decorator | `ENABLED=false` | `FEATURE_SEARCH_` |
+| `realtime` | LISTEN/NOTIFY-driven Socket.IO gateway with channel-permission filter | `ENABLED=false` | `FEATURE_REALTIME_` |
+| `powerSync` | Mobile offline-sync via PowerSync (logical replication, sync-rules, JWT audience, conflict-resolution) | `ENABLED=false` | `FEATURE_POWERSYNC_` |
+| `mcp` | Model Context Protocol server for AI tool/resource discovery, OAuth via Better-Auth | `ENABLED=false` | `FEATURE_MCP_` |
+| `fieldEncryption` | AES-256-GCM column-level encryption with versioned KEK + audit-log masking | `ENABLED=false` | `FEATURE_FIELD_ENCRYPTION_` |
+| `geo` | PostGIS-backed geocoding (Mapbox/Google/Nominatim/local), GIST indexes, GeoJSON output mapper, address PII encryption | `ENABLED=false`, `PROVIDER=nominatim` | `FEATURE_GEO_` |
 
-Boolean values: `true`/`false`, `1`/`0`, `yes`/`no`, `on`/`off`
-(case-insensitive). Arrays are comma-separated.
+Always-on cores (no toggle): `auth`, `permissions` (CASL + DB rules),
+`audit`, `errorCodes`, `health`, `request-context`, `output-pipeline`,
+`outbox`, `concurrency` (ETag), `pagination`.
 
-### Defaults
+`authMethods` sub-fields:
 
-| Feature | Default | Note |
-|---|---|---|
-| `authMethods.emailPassword` | `true` | always-on recommendation |
-| `authMethods.twoFactor` / `passkey` / `apiKeys` | `true` | |
-| `authMethods.socialProviders` | `[]` | opt-in via CSV |
-| `multiTenancy.enabled` | `true` | with `rls: true` |
-| `files.enabled` | `true` | with `tus`/`transformations` on |
-| `email.enabled` | `true` | provider `smtp` (Mailpit locally) |
-| `rateLimit` / `idempotency` / `observability` / `jobs` | `true` | cross-cutting |
-| `webhooks` / `search` / `realtime` / `powerSync` / `mcp` / `fieldEncryption` / `geo` | `false` | opt-in per project |
+| Field | Default |
+|---|---|
+| `EMAIL_PASSWORD` | `true` |
+| `TWO_FACTOR` | `true` |
+| `PASSKEY` | `true` |
+| `API_KEYS` | `true` |
+| `SOCIAL_PROVIDERS` | `[]` (CSV: `google`, `github`, `apple`, `discord`) |
 
 ### Examples
 
