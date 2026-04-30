@@ -184,7 +184,7 @@ These live in `src/core/` and are activated via `features.ts`:
 | Subsystem | Path | Purpose |
 |---|---|---|
 | Webhooks | `src/core/webhooks/` | Outbound HMAC-signed events; see [`webhook-spec.md`](./webhook-spec.md) |
-| Realtime | `src/core/realtime/` | `LISTEN/NOTIFY` → Socket.IO, permission-aware rooms |
+| Realtime | `src/core/realtime/` | `LISTEN/NOTIFY` → Socket.IO, permission-aware rooms, dev-only inspector state with PII-masked event ringbuffer |
 | MCP | `src/core/mcp/` | Model Context Protocol server, OAuth 2.1 (PKCE) |
 | Outbox | `src/core/outbox/` | Reliable event publishing (DB-write + dispatch in one tx) |
 | Audit | `src/core/audit/` | Append-only audit log, write-only by app, read-only via admin |
@@ -270,7 +270,8 @@ in any environment because frontends + SDK generators read them.
 | Build script | `scripts/build-dev-portal.ts` | `Bun.build({ target: "browser", splitting: true, minify: true })` → `dist/dev-portal/` |
 | `/dev/*` JSON sidecars | `dev-hub.controller.ts` | `dashboard.json`, `feature-catalog.json`, `coverage.json`, `tests.json`, `diagnostics.json`, `logs.json`, `traces.json`, `queries.json`, `routes.json`, `erd.json`, `email-preview.json`, `migrations.json` |
 | `/dev/migrations/*` mutating endpoints | `dev-hub.controller.ts` + `migrations/migrations.service.ts` | `deploy`, `apply-one`, `dry-run`, `retry`, `create`, `apply-draft`, `draft/:name` (DELETE) — Postgres advisory-lock-gated, 404 outside development |
-| `/admin/*` JSON sidecars | `admin-spa.controller.ts` | `permissions/test.json`, `webhooks.json`, `realtime.json`, `audit.json`, `search.json` |
+| `/admin/*` JSON sidecars | `admin-spa.controller.ts` | `permissions/test.json`, `webhooks.json`, `realtime.json`, `realtime/channels.json`, `audit.json`, `search.json` |
+| `/admin/*` POST actions | `admin-spa.controller.ts` | `realtime/sockets/:id/disconnect`, `realtime/sockets/:id/send`, `realtime/events/replay` — all dev-only, all 404 in production |
 | Static asset endpoint | `GET /dev/static/:filename` | 404 outside development; allow-list filename, MIME-detect, stream from `dist/dev-portal/` |
 | Catch-all | `GET /dev/*splat` | Returns the SPA shell so client-side routes work without a server change |
 | Server tsconfig | `tsconfig.json` (excludes `src/core/dx/clients/**`) | Server build never sees browser code |

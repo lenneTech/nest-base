@@ -6,6 +6,7 @@ import { AdminSpaController } from "./admin-spa.controller.js";
 import { DevHubController } from "./dev-hub.controller.js";
 import { MigrationsService } from "./migrations/migrations.service.js";
 import { RouteInventoryService } from "./route-inventory-runner.js";
+import { RealtimeModule } from "../realtime/realtime.module.js";
 
 /**
  * DevHubModule — registers the `/dev` and `/admin` SPA controllers.
@@ -20,9 +21,12 @@ import { RouteInventoryService } from "./route-inventory-runner.js";
  * the global `PrismaService` for advisory locks + `_prisma_migrations`
  * reads. `JobsModule` is imported so the controller can read the
  * in-memory queue history for the `/dev/jobs/*` dashboard.
+ * `RealtimeModule` is imported so the AdminSpa controller can read
+ * the inspector snapshot and drive the disconnect / send / replay
+ * actions.
  */
 @Module({
-  imports: [DiscoveryModule, JobsModule],
+  imports: [DiscoveryModule, JobsModule, RealtimeModule],
   controllers: [DevHubController, AdminSpaController],
   providers: [RouteInventoryService, MigrationsService],
   exports: [RouteInventoryService],

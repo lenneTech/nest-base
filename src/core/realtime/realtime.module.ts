@@ -1,4 +1,6 @@
-import { Logger, Module } from "@nestjs/common";
+import { EventEmitter } from "node:events";
+
+import { Injectable, Logger, Module } from "@nestjs/common";
 import {
   type OnGatewayConnection,
   type OnGatewayDisconnect,
@@ -6,6 +8,38 @@ import {
   WebSocketServer,
 } from "@nestjs/websockets";
 import type { Server, Socket } from "socket.io";
+
+import {
+  InspectorState,
+  type InspectorEventSnapshot,
+  type SocketConnectInput,
+} from "./inspector-state.js";
+import { maskPayload } from "./inspector-filter.js";
+
+/**
+ * Inspector event names emitted by the gateway through the
+ * `InspectorEvents` bus. The admin live-push namespace listens here
+ * and re-broadcasts to its own subscribers.
+ */
+export const INSPECTOR_EVENT = {
+  socketConnected: "socket.connected",
+  socketDisconnected: "socket.disconnected",
+  socketPing: "socket.ping",
+  channelSubscribed: "channel.subscribed",
+  channelUnsubscribed: "channel.unsubscribed",
+  eventDispatched: "event.dispatched",
+} as const;
+
+/**
+ * In-process pub/sub for the Realtime-Inspector live-push channel.
+ *
+ * The admin live-push namespace (`/__inspector`) subscribes here and
+ * re-broadcasts every emit to its connected admin clients. Decoupling
+ * gateway → bus → namespace keeps the inspector additive and 100 %
+ * disable-able without touching the production Socket.IO surface.
+ */
+@Injectable()
+export class InspectorEvents extends EventEmitter {}
 
 /**
  * RealtimeGateway — Socket.IO endpoint mounted at the default `/`
@@ -21,17 +55,40 @@ import type { Server, Socket } from "socket.io";
  * `subscribe` event; the gateway runs the filter (placeholder noop
  * until the Ability resolver hooks into the session) before adding
  * the socket to the room.
+ *
+ * The gateway delegates every observable lifecycle change to the
+ * `InspectorState` (pure planner) and emits parallel events on the
+ * `InspectorEvents` bus so the admin live-push namespace can mirror
+ * them without re-implementing the bookkeeping.
  */
+@Injectable()
 @WebSocketGateway({ cors: { origin: true } })
 export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server;
 
   private readonly logger = new Logger("RealtimeGateway");
-  private readonly sockets = new Map<string, { userId?: string; rooms: Set<string> }>();
+  private readonly state = new InspectorState({ now: () => Date.now() });
+  /** Bound socket-id → live socket reference, populated on real connections. */
+  private readonly liveSockets = new Map<string, Socket>();
+
+  constructor(private readonly inspectorBus: InspectorEvents) {}
 
   handleConnection(client: Socket): void {
-    this.sockets.set(client.id, { rooms: new Set() });
+    this.liveSockets.set(client.id, client);
+    this.state.recordConnect({
+      id: client.id,
+      // Production wires Better-Auth-resolved identity here; pre-auth
+      // we tag the connection anonymous so the inspector can show every
+      // socket without crashing on missing fields.
+      userId: "anonymous",
+      tenantId: "anonymous",
+    });
+    this.inspectorBus.emit(INSPECTOR_EVENT.socketConnected, {
+      id: client.id,
+      userId: "anonymous",
+      tenantId: "anonymous",
+    });
     this.logger.log(`socket connected: ${client.id}`);
     client.on("subscribe", (channel: unknown) => {
       if (typeof channel !== "string" || !channel) return;
@@ -39,29 +96,121 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       // for now. Once Ability resolution is wired into handshake auth,
       // the gateway calls `ChannelFilter.canSubscribe()` here.
       client.join(channel);
-      const session = this.sockets.get(client.id);
-      if (session) session.rooms.add(channel);
+      this.state.recordSubscribe(client.id, channel);
+      this.inspectorBus.emit(INSPECTOR_EVENT.channelSubscribed, {
+        socketId: client.id,
+        channel,
+      });
     });
     client.on("unsubscribe", (channel: unknown) => {
       if (typeof channel !== "string" || !channel) return;
       client.leave(channel);
-      const session = this.sockets.get(client.id);
-      if (session) session.rooms.delete(channel);
+      this.state.recordUnsubscribe(client.id, channel);
+      this.inspectorBus.emit(INSPECTOR_EVENT.channelUnsubscribed, {
+        socketId: client.id,
+        channel,
+      });
     });
   }
 
   handleDisconnect(client: Socket): void {
-    this.sockets.delete(client.id);
+    this.liveSockets.delete(client.id);
+    this.state.recordDisconnect(client.id);
+    this.inspectorBus.emit(INSPECTOR_EVENT.socketDisconnected, { id: client.id });
     this.logger.log(`socket disconnected: ${client.id}`);
   }
 
   /** Used by domain code to broadcast tenant/permission-filtered events. */
   broadcast(channel: string, event: string, payload: unknown): void {
-    this.server.to(channel).emit(event, payload);
+    if (this.server) {
+      this.server.to(channel).emit(event, payload);
+    }
+    // Mirror into the inspector — masked payload, recipient count from
+    // the active subscriber registry, latency captured server-side.
+    const recipientCount = this.subscriberCount(channel);
+    const recorded = this.state.recordEvent({
+      channel,
+      eventType: event,
+      payload: maskPayload(payload),
+      recipientCount,
+      latencyMs: 0,
+    });
+    this.inspectorBus.emit(INSPECTOR_EVENT.eventDispatched, recorded);
   }
 
   activeSocketCount(): number {
-    return this.sockets.size;
+    return this.state.snapshotSockets().length;
+  }
+
+  /** Snapshot used by `GET /admin/realtime*.json`. */
+  inspectorSnapshot(): {
+    sockets: ReturnType<InspectorState["snapshotSockets"]>;
+    channels: ReturnType<InspectorState["snapshotChannels"]>;
+    events: InspectorEventSnapshot[];
+    eventsPerSecond: number;
+  } {
+    return {
+      sockets: this.state.snapshotSockets(),
+      channels: this.state.snapshotChannels(),
+      events: this.state.snapshotEvents(),
+      eventsPerSecond: this.state.eventsPerSecond(),
+    };
+  }
+
+  /** Returns true when a socket with the given id is live. */
+  hasSocket(socketId: string): boolean {
+    return this.state.snapshotSockets().some((s) => s.id === socketId);
+  }
+
+  /**
+   * Disconnect a single socket — used by the admin "Disconnect" action.
+   * In test mode the live-socket map may be empty; the inspector state
+   * is still cleaned up so the snapshot reflects the action.
+   */
+  disconnectSocket(socketId: string): boolean {
+    if (!this.hasSocket(socketId)) return false;
+    const live = this.liveSockets.get(socketId);
+    live?.disconnect(true);
+    this.liveSockets.delete(socketId);
+    this.state.recordDisconnect(socketId);
+    this.inspectorBus.emit(INSPECTOR_EVENT.socketDisconnected, { id: socketId });
+    return true;
+  }
+
+  /**
+   * Send a single custom event to one socket — debug action exposed
+   * only via the dev-only admin endpoint.
+   */
+  sendToSocket(socketId: string, event: string, payload: unknown): boolean {
+    if (!this.hasSocket(socketId)) return false;
+    const live = this.liveSockets.get(socketId);
+    if (live) live.emit(event, payload);
+    return true;
+  }
+
+  /**
+   * Re-publish a previously seen event to every subscriber of its
+   * channel — debug action used by the "Replay event" button.
+   */
+  replayEvent(channel: string, event: string, payload: unknown): void {
+    this.broadcast(channel, event, payload);
+  }
+
+  /**
+   * Test-only injection for inspector e2e tests — registers a socket
+   * in the inspector state without spinning up a real Socket.IO client.
+   * The disconnect path tolerates a missing live-socket entry, so the
+   * test can drive the controller end-to-end and assert on the JSON
+   * snapshot.
+   */
+  recordTestSocket(input: SocketConnectInput): void {
+    this.state.recordConnect(input);
+    this.inspectorBus.emit(INSPECTOR_EVENT.socketConnected, input);
+  }
+
+  private subscriberCount(channelName: string): number {
+    const channels = this.state.snapshotChannels();
+    return channels.find((c) => c.name === channelName)?.subscriberCount ?? 0;
   }
 }
 
@@ -76,7 +225,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
  * `RealtimeGateway.broadcast()`).
  */
 @Module({
-  providers: [RealtimeGateway],
-  exports: [RealtimeGateway],
+  providers: [RealtimeGateway, InspectorEvents],
+  exports: [RealtimeGateway, InspectorEvents],
 })
 export class RealtimeModule {}
