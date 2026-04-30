@@ -60,6 +60,12 @@ interface TestSummary {
   };
 }
 
+interface TunnelInfo {
+  active: boolean;
+  url?: string;
+  startedAt?: string;
+}
+
 interface DashboardJson {
   baseUrl: string;
   uptimeMs: number;
@@ -73,6 +79,7 @@ interface DashboardJson {
   logs: LogRecord[];
   logBufferCapacity: number;
   queries: { total: number; slowestMs: number; warnCount: number; badCount: number };
+  tunnel?: TunnelInfo;
 }
 
 type OverallHealthState = "ok" | "warn" | "err";
@@ -152,6 +159,9 @@ function DashboardBody({ data }: DashboardBodyProps): ReactNode {
     <>
       <Hero overall={overall} data={data} />
       <StatsGrid data={data} errorLogs={errorLogs} warnLogs={warnLogs} />
+      {data.tunnel?.active && data.tunnel.url ? (
+        <TunnelCard url={data.tunnel.url} startedAt={data.tunnel.startedAt} />
+      ) : null}
       <ServicesGrid probes={data.probes} />
       <div className="admin-grid admin-grid--2">
         <LogPreview
@@ -164,6 +174,104 @@ function DashboardBody({ data }: DashboardBodyProps): ReactNode {
       </div>
       <QuickLinks />
     </>
+  );
+}
+
+interface TunnelCardProps {
+  url: string;
+  startedAt?: string;
+}
+
+/**
+ * Surfaces the active Cloudflare-Tunnel URL the dev runner discovered.
+ * Visible only when `bun run dev --tunnel` is running. Includes a copy
+ * button (clipboard write — no secrets in the URL itself, but still
+ * convenient when wiring webhooks).
+ */
+function TunnelCard({ url, startedAt }: TunnelCardProps): ReactNode {
+  function copy(): void {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      void navigator.clipboard.writeText(url);
+    }
+  }
+  const startedLabel = startedAt ? `started ${new Date(startedAt).toLocaleTimeString()}` : "active";
+  return (
+    <div className="admin-card">
+      <h2 className="admin-card__title">
+        Cloudflare Tunnel
+        <span
+          style={{
+            fontSize: "0.7rem",
+            color: "var(--fg-dim)",
+            fontWeight: 500,
+            letterSpacing: "0.04em",
+          }}
+        >
+          {startedLabel}
+        </span>
+        <a
+          href="https://github.com/cloudflare/cloudflared"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ marginLeft: "auto", fontSize: "0.75rem", color: "var(--fg-dim)" }}
+        >
+          About cloudflared →
+        </a>
+      </h2>
+      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+        <code
+          style={{
+            background: "var(--bg-2, #111)",
+            padding: "0.4rem 0.6rem",
+            borderRadius: "4px",
+            fontSize: "0.85rem",
+          }}
+        >
+          {url}
+        </code>
+        <button
+          type="button"
+          onClick={copy}
+          style={{
+            padding: "0.4rem 0.8rem",
+            fontSize: "0.8rem",
+            background: "var(--accent, #c5fb45)",
+            color: "#000",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+        >
+          Copy URL
+        </button>
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            padding: "0.4rem 0.8rem",
+            fontSize: "0.8rem",
+            color: "var(--fg-dim)",
+            textDecoration: "none",
+            border: "1px solid var(--fg-dim)",
+            borderRadius: "4px",
+          }}
+        >
+          Open ↗
+        </a>
+      </div>
+      <p
+        style={{
+          fontSize: "0.75rem",
+          color: "var(--fg-dim)",
+          marginTop: "0.6rem",
+          marginBottom: 0,
+        }}
+      >
+        Wire this URL into Stripe / GitHub / Slack webhook configs. The URL is public — never run a
+        tunnel against a database with real-user data.
+      </p>
+    </div>
   );
 }
 

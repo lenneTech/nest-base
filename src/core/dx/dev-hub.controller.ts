@@ -18,6 +18,7 @@ import {
 } from "@nestjs/common";
 import type { Response } from "express";
 
+import { readTunnelState } from "../dev/tunnel-state-runner.js";
 import { type Features, loadFeatures } from "../features/features.js";
 import { parsePostgrestQuery } from "../permissions/postgrest-query.js";
 import { serverConfigFromEnv } from "../server/server-config.js";
@@ -171,6 +172,7 @@ export class DevHubController {
     ]);
     const buffer = getLogBuffer();
     const mem = process.memoryUsage();
+    const tunnelState = readTunnelState(process.cwd());
     return {
       baseUrl: effective.publicUrl,
       uptimeMs: Math.round(process.uptime() * 1000),
@@ -188,7 +190,26 @@ export class DevHubController {
       logs: buffer.recent(50),
       logBufferCapacity: buffer.capacity(),
       queries: getQueryBuffer().summary(),
+      tunnel: tunnelState
+        ? { active: true as const, url: tunnelState.url, startedAt: tunnelState.startedAt }
+        : { active: false as const },
     };
+  }
+
+  /**
+   * `/dev/tunnel.json` — surfaces the active Cloudflare-Tunnel URL
+   * the dev runner discovered. Reads the JSON state file at
+   * `node_modules/.cache/nest-base/tunnel.json`, which `scripts/dev.ts`
+   * writes when `--tunnel` is set and `cloudflared` reports a public
+   * URL. Returns `{ active: false }` when no tunnel is running so the
+   * Dev-Hub UI can render a clean "no tunnel" state.
+   */
+  @Get("tunnel.json")
+  tunnelJson(): { active: false } | { active: true; url: string; startedAt: string } {
+    this.assertDev();
+    const state = readTunnelState(process.cwd());
+    if (state === null) return { active: false };
+    return { active: true, url: state.url, startedAt: state.startedAt };
   }
 
   @Get("status.json")

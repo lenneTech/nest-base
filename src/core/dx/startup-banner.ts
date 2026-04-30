@@ -47,6 +47,12 @@ export interface BannerInput {
     mailpitUrl?: string;
     powerSyncUrl?: string;
     prismaStudioUrl?: string;
+    /**
+     * Active Cloudflare-Tunnel URL discovered by `bun run dev --tunnel`.
+     * Surfaced as a separate banner section so webhook setups (Stripe,
+     * GitHub, Slack, …) have a visible public endpoint to copy-paste.
+     */
+    tunnelUrl?: string;
   };
 }
 
@@ -126,6 +132,19 @@ export function planStartupBanner(input: BannerInput): BannerPlan {
     sections.push({ title: "Services", entries: services });
   }
 
+  if (input.features.tunnelUrl) {
+    sections.push({
+      title: "Tunnel",
+      entries: [
+        {
+          label: "Public URL",
+          url: input.features.tunnelUrl,
+          note: "wire this into Stripe / GitHub / Slack webhook configs",
+        },
+      ],
+    });
+  }
+
   const lines: string[] = [];
   const HR = `${DIM}${"─".repeat(72)}${RESET}`;
   lines.push("");
@@ -161,8 +180,11 @@ function planRestartBanner(input: BannerInput, variant: BannerVariant, base: str
     "",
     `${DIM}─────${RESET} ${BOLD}${CYAN}♻ Server neu gestartet${RESET} ${DIM}(${reason}, ${ts})${RESET} ${DIM}${"─".repeat(20)}${RESET}`,
     `${DIM}Base URL:${RESET} ${CYAN}${base}${RESET}   ${DIM}Dev Hub:${RESET} ${CYAN}${base}/dev${RESET}`,
-    "",
   ];
+  if (input.features.tunnelUrl) {
+    lines.push(`${DIM}Tunnel:${RESET}   ${CYAN}${input.features.tunnelUrl}${RESET}`);
+  }
+  lines.push("");
   return { text: lines.join("\n"), sections: [], variant };
 }
 
