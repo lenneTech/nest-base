@@ -89,6 +89,10 @@ Live overview of the running server: health verdict, uptime, heap, 4 stat tiles 
 
 ![Feature Toggles](docs/screenshots/features.png)
 
+### Brand — `/dev/brand`
+
+Single-file brand config (`src/modules/branding/brand.json`, with template default at `src/core/branding/brand.default.json`) drives every Dev-Portal CSS variable, the OpenAPI title, the email layouts (`Barebone` + EJS legacy), the Better-Auth issuer/RP-name, and the `EmailService` default `From:`. Edit via the UI, save, the dev runner restarts the API, every surface picks up the new look. Schema-validated hex colors + email + URL — bad input fails at load time, not at next mail send. See [docs/customization-guide.md#branding](docs/customization-guide.md#branding).
+
 ### Test Summary — `/dev/tests`
 
 Reads `coverage/test-summary.json` (populated by `bun run test:summary`). Failed suites floated to the top with embedded failure snippets.

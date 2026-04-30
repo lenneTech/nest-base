@@ -15,6 +15,7 @@ maps to the modules described in
 app/             ← root NestJS app + bootstrap
 audit/           ← encryption-aware audit-log builder
 auth/            ← Better-Auth factory + plugin wiring
+branding/        ← BrandConfig schema + loader + CSS-var generator + default
 concurrency/     ← ETag + If-Match optimistic-concurrency primitives
 config/          ← env validation, base-url + cookie + cors config
 dev/             ← (reserved — no current files)
