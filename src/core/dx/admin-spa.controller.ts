@@ -13,7 +13,16 @@ import {
 
 import { type AuditBrowserPageInput, type AuditLogEntry } from "./audit-browser-types.js";
 import { buildDevPortalShellInput, renderDevPortalShell } from "./dev-portal-shell.js";
-import { type RealtimeInspectorPageInput } from "./realtime-inspector-types.js";
+import {
+  type ActiveSocketEntry,
+  type RealtimeChannelEntry,
+  type RealtimeChannelsPageInput,
+  type RealtimeEventDetail,
+  type RealtimeEventEntry,
+  type RealtimeInspectorPageInput,
+  type RealtimeReplayInput,
+  type RealtimeSendInput,
+} from "./realtime-inspector-types.js";
 import { type SearchTesterPageInput } from "./search-tester-types.js";
 import {
   type DeliveryListEntry,
@@ -25,6 +34,7 @@ import {
   type WebhookInspectorPageInput,
   type WebhookRedeliverResponse,
 } from "./webhook-inspector-types.js";
+import { RealtimeGateway } from "../realtime/realtime.module.js";
 import { serverConfigFromEnv } from "../server/server-config.js";
 import { buildPermissionReport, type PermissionReport } from "../permissions/permission-report.js";
 import { buildHmacSignatureHeader } from "../webhooks/hmac-signature.js";
@@ -67,6 +77,8 @@ const MAX_PAGE_LIMIT = 500;
 
 @Controller("admin")
 export class AdminSpaController {
+  constructor(private readonly realtime: RealtimeGateway) {}
+
   // ── Permission Tester ────────────────────────────────────────────
 
   @Get("permissions/test")
@@ -293,7 +305,101 @@ export class AdminSpaController {
   @Get("realtime.json")
   realtimeInspectorJson(): RealtimeInspectorPageInput {
     this.assertDev();
-    return { sockets: [], events: [] };
+    const snapshot = this.realtime.inspectorSnapshot();
+    const sockets: ActiveSocketEntry[] = snapshot.sockets.map((s) => ({
+      id: s.id,
+      userId: s.userId,
+      tenantId: s.tenantId,
+      channels: s.channels,
+      connectedAt: s.connectedAt,
+      bytesSent: s.bytesSent,
+      bytesReceived: s.bytesReceived,
+      ...(s.lastPingMs !== undefined ? { lastPingMs: s.lastPingMs } : {}),
+      ...(s.userAgent !== undefined ? { userAgent: s.userAgent } : {}),
+    }));
+    const channels: RealtimeChannelEntry[] = snapshot.channels.map((c) => ({
+      name: c.name,
+      subscriberCount: c.subscriberCount,
+      subscriberIds: c.subscriberIds,
+      eventsLastHour: c.eventsLastHour,
+      p95LatencyMs: c.p95LatencyMs,
+    }));
+    const eventsDetailed: RealtimeEventDetail[] = snapshot.events.map((e) => ({
+      channel: e.channel,
+      eventType: e.eventType,
+      payload: e.payload,
+      recipientCount: e.recipientCount,
+      latencyMs: e.latencyMs,
+      occurredAt: e.occurredAt,
+    }));
+    const events: RealtimeEventEntry[] = eventsDetailed.map((e) => ({
+      channel: e.channel,
+      eventType: e.eventType,
+      payloadPreview: previewPayload(e.payload),
+      occurredAt: e.occurredAt,
+    }));
+    return {
+      sockets,
+      channels,
+      events,
+      eventsDetailed,
+      eventsPerSecond: snapshot.eventsPerSecond,
+    };
+  }
+
+  @Get("realtime/channels.json")
+  realtimeChannelsJson(): RealtimeChannelsPageInput {
+    this.assertDev();
+    const snapshot = this.realtime.inspectorSnapshot();
+    const channels: RealtimeChannelEntry[] = snapshot.channels.map((c) => ({
+      name: c.name,
+      subscriberCount: c.subscriberCount,
+      subscriberIds: c.subscriberIds,
+      eventsLastHour: c.eventsLastHour,
+      p95LatencyMs: c.p95LatencyMs,
+    }));
+    return { channels };
+  }
+
+  @Post("realtime/sockets/:id/disconnect")
+  @HttpCode(200)
+  realtimeDisconnectSocket(@Param("id") id: string): { id: string } {
+    this.assertDev();
+    const ok = this.realtime.disconnectSocket(id);
+    if (!ok) throw new NotFoundException(`unknown socket "${id}"`);
+    return { id };
+  }
+
+  @Post("realtime/sockets/:id/send")
+  @HttpCode(200)
+  realtimeSendToSocket(
+    @Param("id") id: string,
+    @Body() body: Partial<RealtimeSendInput>,
+  ): { delivered: true } {
+    this.assertDev();
+    if (!body || typeof body.eventType !== "string" || !body.eventType) {
+      throw new BadRequestException("eventType (non-empty string) is required");
+    }
+    const ok = this.realtime.sendToSocket(id, body.eventType, body.payload);
+    if (!ok) throw new NotFoundException(`unknown socket "${id}"`);
+    return { delivered: true };
+  }
+
+  @Post("realtime/events/replay")
+  @HttpCode(200)
+  realtimeReplayEvent(@Body() body: Partial<RealtimeReplayInput>): { replayed: true } {
+    this.assertDev();
+    if (
+      !body ||
+      typeof body.channel !== "string" ||
+      !body.channel ||
+      typeof body.eventType !== "string" ||
+      !body.eventType
+    ) {
+      throw new BadRequestException("channel + eventType (non-empty strings) are required");
+    }
+    this.realtime.replayEvent(body.channel, body.eventType, body.payload);
+    return { replayed: true };
   }
 
   // ── Audit Browser ───────────────────────────────────────────────
@@ -393,4 +499,14 @@ function toDeliveryListEntry(record: DeliveryAggregateInput): DeliveryListEntry 
   if (record.latencyMs !== undefined) entry.latencyMs = record.latencyMs;
   if (record.errorMessage !== undefined) entry.errorMessage = record.errorMessage;
   return entry;
+}
+
+function previewPayload(payload: unknown): string {
+  try {
+    const json = JSON.stringify(payload);
+    if (!json) return "";
+    return json.length > 80 ? `${json.slice(0, 80)}…` : json;
+  } catch {
+    return "[unserializable]";
+  }
 }
