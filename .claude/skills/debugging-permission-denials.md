@@ -80,8 +80,8 @@ If the result is **allowed** but the request still 403s:
   the controller's `@Restricted()` (legacy) or `@Roles()` decorator
   may add a second gate. Check the route definition.
 - Field-level `fields: []` array on a rule = "no field restriction"
-  in this codebase (laxer than the PLAN.md §6.3 strict reading; see
-  `OPEN_QUESTIONS.md`).
+  in this codebase (CASL cannot represent "deny every field" in a
+  single rule; see `OPEN_QUESTIONS.md`).
 
 ### 4 · Inspect the underlying DB permission rules
 
@@ -130,8 +130,8 @@ silently coming back.
 - **"The Ability says allow but I still get 403"** — check whether
   the route also uses the legacy `@Restricted()` / `@Roles()`
   decorators. They are NOT supposed to ship in nest-base (see
-  `PLAN.md §1.4`), but a downstream project may have re-introduced
-  them.
+  `docs/architecture.md` "Out of scope"), but a downstream project may
+  have re-introduced them.
 - **"It works for tenant A but not B"** — RLS blocked the underlying
   query, not the permission. Symptom is usually empty result, not
   403 — but a `findOrThrow` turns "row not visible" into

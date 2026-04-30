@@ -5,7 +5,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { KEK_PROVIDER, type KekProvider } from "./kek-provider.js";
 
 /**
- * Field-level encryption (PLAN.md §14).
+ * Field-level encryption.
  *
  * AES-256-GCM with a 96-bit random IV per encryption (NIST-recommended)
  * and the 128-bit GCM auth-tag carried alongside. Output format:

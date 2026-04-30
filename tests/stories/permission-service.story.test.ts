@@ -7,7 +7,7 @@ import {
 import type { DbPermissionRow } from "../../src/core/permissions/db-rule-resolver.js";
 
 /**
- * Story · PermissionService.abilityFor() + Cache (PLAN.md §6 + §32 Phase 3).
+ * Story · PermissionService.abilityFor() + Cache.
  *
  * The service fetches the user's resolved Permission rows from storage,
  * runs them through the DB-Rule resolver, and caches the resulting

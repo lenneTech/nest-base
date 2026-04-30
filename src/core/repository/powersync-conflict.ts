@@ -1,5 +1,5 @@
 /**
- * PowerSync conflict-resolution planner (PLAN.md §15.5 + §32 Phase 5b).
+ * PowerSync conflict-resolution planner.
  *
  * Pure decision function. Given a client patch with its claimed
  * updatedAt + the current server row + the model's protected-field

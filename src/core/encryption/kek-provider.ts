@@ -2,7 +2,7 @@
  * KEK (Key-Encryption-Key) provider.
  *
  * The interface is the swap-point between v1 (env-var) and later
- * Vault / KMS / Doppler integrations (PLAN.md §28.3/#13). Domain code
+ * Vault / KMS / Doppler integrations. Domain code
  * never touches the KEK directly — it goes through this provider so a
  * provider swap is invisible to call-sites.
  */

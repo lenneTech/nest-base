@@ -1,7 +1,7 @@
 import { uuidV7 } from "../uuid/uuid-v7.js";
 
 /**
- * Job-Queue contract (PLAN.md §32 Phase 5).
+ * Job-Queue contract.
  *
  * pg-boss in production; the in-memory implementation here is the
  * reference + the test substrate so worker code is unit-testable

@@ -14,7 +14,7 @@ function blockOf(model: string): string {
 }
 
 /**
- * Permission-system schema (PLAN.md §6.3).
+ * Permission-system schema.
  *
  * Adds the Directus-style RBAC backbone: Role inherits from Role,
  * Policies group Permissions, RolePolicy is the join table. Permissions

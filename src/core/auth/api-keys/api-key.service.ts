@@ -5,7 +5,7 @@ import { hash as argon2Hash, verify as argon2Verify } from "@node-rs/argon2";
 import { uuidV7 } from "../../uuid/uuid-v7.js";
 
 /**
- * Scoped API-Keys (PLAN.md §32 Phase 2 — CRUD, argon2id, Scopes, Rotation).
+ * Scoped API-Keys.
  *
  * Issuance + verify model:
  *   - Plaintext shipped to client: `nst_pk_<lookupId>_<secret>`

@@ -4,8 +4,7 @@ import type { z } from "zod";
 import { type McpContext, type McpPermission, type McpServerModule } from "./mcp-server.js";
 
 /**
- * @McpTool / @McpResource decorators + auto-discovery (PLAN.md §16.4 +
- * §32 Phase 6).
+ * @McpTool / @McpResource decorators + auto-discovery.
  *
  * Decorators stamp metadata onto the prototype method via
  * reflect-metadata (the same mechanism the @Can()/CanGuard pair uses

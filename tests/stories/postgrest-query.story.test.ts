@@ -6,7 +6,7 @@ import {
 } from "../../src/core/permissions/postgrest-query.js";
 
 /**
- * Story · PostgREST-Query-Parser → Prisma-WHERE (PLAN.md §22 + §32 Phase 3)
+ * Story · PostgREST-Query-Parser → Prisma-WHERE
  *
  * REST clients filter list endpoints with PostgREST-style query
  * params: `?status=eq.published&age=gte.18`. The parser maps this

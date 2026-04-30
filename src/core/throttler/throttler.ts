@@ -1,6 +1,6 @@
 /**
  * Throttler — Postgres-backed multi-window rate limiter
- * (PLAN.md §32 Phase 8 + §28.6 row).
+ *.
  *
  * Two pieces:
  *
@@ -12,10 +12,10 @@
  *      same shape so the suite stays DB-free.
  *
  *   2. `ThrottlerService.consume(input)` — multi-window decision.
- *      The PLAN mandates 1s / 1min / 1h windows; a request is denied
- *      the moment ANY window goes over its limit. The first
- *      violating window in input order is the one reported back
- *      (ordering = priority — the most restrictive should be first).
+ *      Default windows are 1s / 1min / 1h; a request is denied the
+ *      moment ANY window goes over its limit. The first violating
+ *      window in input order is the one reported back (ordering =
+ *      priority — the most restrictive should be first).
  */
 
 export interface ThrottlerBackendRow {

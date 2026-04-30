@@ -1,5 +1,5 @@
 /**
- * GeoJSON output mapper (PLAN.md §15 + §32 Phase 5c, Stage 3a).
+ * GeoJSON output mapper.
  *
  * The Output-Pipeline runs in 4 stages: permission filter, field
  * allowlist, strip secrets, safety net. Stage 3a is wedged in

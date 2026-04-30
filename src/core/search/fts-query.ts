@@ -1,5 +1,5 @@
 /**
- * Postgres FTS query helpers (PLAN.md §11 + §28.4/#17).
+ * Postgres FTS query helpers.
  *
  * `to_tsquery` rejects malformed input; user-supplied search strings
  * need normalization before they hit the DB. The helpers here cover

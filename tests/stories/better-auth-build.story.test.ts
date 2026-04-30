@@ -5,7 +5,7 @@ import { buildBetterAuth } from "../../src/core/auth/better-auth.js";
 /**
  * Story · Better-Auth integration (factory).
  *
- * The factory accepts the validated config (PLAN.md §4) and returns
+ * The factory accepts the validated config and returns
  * a Better-Auth instance whose `handler` is what the NestJS adapter
  * mounts under `/api/auth/*`. Tests stay unit-level: no DB tables, no
  * network, just the construction surface.

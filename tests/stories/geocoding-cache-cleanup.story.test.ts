@@ -6,11 +6,11 @@ import {
 } from "../../src/core/geo/geocoding-cache-cleanup.js";
 
 /**
- * Story · GeocodingCache cleanup cron (PLAN.md §15 + §32 Phase 5c).
+ * Story · GeocodingCache cleanup cron.
  *
  * Pure planner: given the current time and a retention window in
  * days, return the WHERE clause + cutoff timestamp the cleanup job
- * runs daily. Default retention is 90 days (PLAN.md §15.6).
+ * runs daily. Default retention is 90 days.
  *
  * The runner side (the actual `DELETE FROM geocoding_cache WHERE …`
  * + the pg-boss cron registration) lives in the persistence layer;

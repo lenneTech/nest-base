@@ -5,7 +5,7 @@ import { type DbPermissionRow, resolveDbRules } from "./db-rule-resolver.js";
 import { PERMISSION_STORAGE } from "./permission-storage.token.js";
 
 /**
- * PermissionService.abilityFor() (PLAN.md §6).
+ * PermissionService.abilityFor().
  *
  * Loads the user's resolved Permission rows from storage, runs them
  * through the DB-Rule resolver, and caches the resulting Ability per
@@ -21,7 +21,7 @@ export interface PermissionStorage {
 }
 
 export interface PermissionServiceOptions {
-  /** Cache TTL in milliseconds. Default 60s (PLAN.md §6). */
+  /** Cache TTL in milliseconds. Default 60s. */
   ttlMs?: number;
   /** Max number of cached abilities. Default 1000. */
   maxEntries?: number;

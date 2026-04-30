@@ -1,5 +1,5 @@
 /**
- * Audit-Log builder (PLAN.md §32 Phase 8).
+ * Audit-Log builder.
  *
  * Pure entry-shape builder that the Audit-Browser UI reads back.
  * The persistence layer (Prisma `AuditLog` table) calls this with

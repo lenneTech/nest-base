@@ -2,7 +2,7 @@ import { type ArgumentMetadata, Injectable, type PipeTransform } from "@nestjs/c
 import { type ZodType } from "zod";
 
 /**
- * Map-and-Validate pipe (PLAN.md §28.2/#4 + #5 — Zod replaces class-validator).
+ * Map-and-Validate pipe.
  *
  * The pipe parses the inbound value through the supplied Zod schema
  * and returns the parsed result. Failures throw the original `ZodError`

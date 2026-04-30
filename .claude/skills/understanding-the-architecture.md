@@ -2,8 +2,10 @@
 
 A 200-line tour of the conceptual building blocks. Read this before
 you implement anything substantial. The full rationale lives in
-`PLAN.md`; this file is the "executive summary" optimised for an AI
-agent that needs to make correct decisions fast.
+[`docs/architecture.md`](../../docs/architecture.md); this file is the
+"executive summary" optimised for an AI agent that needs to make
+correct decisions fast. For coding conventions see
+[`docs/code-guidelines.md`](../../docs/code-guidelines.md).
 
 ---
 

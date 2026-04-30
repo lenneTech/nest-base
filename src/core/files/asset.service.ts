@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import type { StorageAdapter } from "./storage-adapter.js";
 
 /**
- * Asset transform + cache service (PLAN.md §8 + §32 Phase 4).
+ * Asset transform + cache service.
  *
  * Pipeline per request:
  *   1. compute deterministic cache key from (key, options)

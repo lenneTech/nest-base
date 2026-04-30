@@ -14,7 +14,7 @@ import {
 const ROOT = resolve(import.meta.dirname, "..", "..");
 
 /**
- * Story · Scoped API-Keys (PLAN.md §32 Phase 2 — CRUD, argon2id, Scopes, Rotation)
+ * Story · Scoped API-Keys
  *
  * Issuance:
  *   - Plaintext format: `nst_pk_<lookupId>_<secret>`

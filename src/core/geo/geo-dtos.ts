@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Geo DTOs (PLAN.md §15 + §32 Phase 5c).
+ * Geo DTOs.
  *
  * Zod schemas the geo controllers consume. The controllers
  * themselves are project-side wiring (`src/modules/.../...`); this

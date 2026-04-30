@@ -7,7 +7,7 @@ import {
 } from "../../src/core/outbox/outbox.js";
 
 /**
- * Story · Outbox-Pattern (PLAN.md §28.4/#18).
+ * Story · Outbox-Pattern.
  *
  * Atomic publish-with-persist: a domain operation writes to its own
  * tables AND inserts an outbox row in the same DB transaction. A

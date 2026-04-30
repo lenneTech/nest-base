@@ -8,7 +8,7 @@ import {
 } from "@casl/ability";
 
 /**
- * CASL ability builder (PLAN.md §6.2).
+ * CASL ability builder.
  *
  * Inputs are the de-resolved rule shape — the DB-Rule resolver (next
  * slice) transforms persisted `Permission` rows into this format with

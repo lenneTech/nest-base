@@ -9,7 +9,7 @@ import { concatenateSchema } from "../../src/core/setup/schema-concat.js";
 const ROOT = resolve(import.meta.dirname, "..", "..");
 
 /**
- * Story · Geo schema (PLAN.md §15.3 + §32 Phase 5c).
+ * Story · Geo schema.
  *
  * Three feature-gated models — Address, Geofence, GeocodingCache —
  * live in `prisma/features/geo.prisma` and are concatenated into the

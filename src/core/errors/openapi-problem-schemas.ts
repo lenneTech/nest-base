@@ -1,6 +1,6 @@
 /**
  * OpenAPI 3.1 components for RFC 7807 problem-details
- * (PLAN.md §32 Phase 8 — OpenAPI-Doku komplett).
+ *.
  *
  * Pure builder. The Swagger boot wires the result into the
  * generated OpenAPI document so every route can `$ref` the same

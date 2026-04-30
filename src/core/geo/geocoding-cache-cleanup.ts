@@ -1,5 +1,5 @@
 /**
- * GeocodingCache cleanup planner (PLAN.md §15.6 + §32 Phase 5c).
+ * GeocodingCache cleanup planner.
  *
  * Pure function: given the current time + a retention window,
  * return the WHERE clause + cutoff timestamp the cleanup cron runs

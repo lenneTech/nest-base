@@ -7,7 +7,7 @@ import {
 } from "../../src/core/realtime/realtime.service.js";
 
 /**
- * Story · Realtime-Service (PLAN.md §12 + §32 Phase 5).
+ * Story · Realtime-Service.
  *
  * Each server instance listens on a Postgres connection; a NOTIFY
  * payload arrives, the service routes to local subscribers (Socket.IO

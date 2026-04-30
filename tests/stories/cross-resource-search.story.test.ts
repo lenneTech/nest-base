@@ -7,7 +7,7 @@ import {
 } from "../../src/core/search/cross-resource-search.js";
 
 /**
- * Story · Cross-Resource Search (PLAN.md §11 + §32 Phase 5).
+ * Story · Cross-Resource Search.
  *
  * One endpoint, many resources. The orchestrator fans the sanitized
  * query out to every registered resource executor (one per

@@ -1,6 +1,6 @@
 # Docker Compose for local dev dependencies only.
 # The server itself runs natively via `bun --watch` (NOT in Docker).
-# See PLAN.md §28.10/#29.
+# See docs/architecture.md for the dev-vs-prod split.
 
 name: nest-base
 
@@ -13,7 +13,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-app}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app}
       POSTGRES_DB: ${POSTGRES_DB:-app}
-    # Logical replication is required for PowerSync (PLAN.md §15.5 + Phase 5b).
+    # Logical replication is required for PowerSync.
     # Without wal_level=logical the WAL decoder cannot ship row changes; without
     # the *_senders / *_slots headroom the replication slot cannot attach.
     command:
@@ -35,7 +35,7 @@ services:
       retries: 5
 
   powersync:
-    # PowerSync sync engine (PLAN.md §15.5 + Phase 5b). Pulls the WAL from
+    # PowerSync sync engine. Pulls the WAL from
     # Postgres, applies sync-rules.yaml, exposes WebSocket+HTTP for clients.
     image: journeyapps/powersync-service:latest
     container_name: nest-base-powersync

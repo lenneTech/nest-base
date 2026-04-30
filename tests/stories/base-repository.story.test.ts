@@ -7,7 +7,7 @@ import {
 } from "../../src/core/repository/base.repository.js";
 
 /**
- * Story · Repository-Pattern (PLAN.md §19.13)
+ * Story · Repository-Pattern
  *
  * Services do not call `prisma.<model>.findMany()` directly. They go
  * through a thin Repository layer that:

@@ -47,18 +47,18 @@ export interface BuildBetterAuthInput {
   sessionExpiresInSeconds: number;
   /** Optional override; defaults to /api/auth via `resolveBetterAuthMountPath()`. */
   basePath?: string;
-  /** Switch on the TOTP plugin (PLAN.md §32 Phase 6 / 2FA-Endpunkte). */
+  /** Switch on the TOTP plugin. */
   twoFactor?: TwoFactorOptions;
   /**
-   * Wire the Better-Auth `jwt` plugin (PLAN.md §32 Phase 5b).
+   * Wire the Better-Auth `jwt` plugin.
    * `audience: 'powersync'` lets PowerSync verify the issued tokens
    * via the JWKS endpoint Better-Auth exposes at
    * `/api/auth/.well-known/jwks`.
    */
   jwtPlugin?: { audience: string };
-  /** Switch on the Passkey/WebAuthn plugin (PLAN.md §32 Phase 6 / Passkey-Endpunkte). */
+  /** Switch on the Passkey/WebAuthn plugin. */
   passkey?: PasskeyOptions;
-  /** Wire OAuth providers (PLAN.md §32 Phase 6 / Social-Login-Provider). */
+  /** Wire OAuth providers. */
   socialProviders?: SocialProviderConfig;
 }
 

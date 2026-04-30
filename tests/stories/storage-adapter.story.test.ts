@@ -8,7 +8,7 @@ import {
 } from "../../src/core/files/storage-adapter.js";
 
 /**
- * Story · Storage-Adapter-Interface (PLAN.md §8 + §32 Phase 4).
+ * Story · Storage-Adapter-Interface.
  *
  * Contract:
  *   - `put(input)`     → stores bytes under `key`, returns metadata

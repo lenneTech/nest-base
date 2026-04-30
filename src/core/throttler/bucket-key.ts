@@ -1,10 +1,9 @@
 /**
- * Throttle bucket-key derivation (PLAN.md §32 Phase 8 — per-API-Key
- * Rate-Limit-Bucket).
+ * Throttle bucket-key derivation — per-API-key rate-limit bucket.
  *
  * The throttler service is bucket-key-agnostic; the caller decides
  * how to identify "the same actor" across requests. This builder
- * applies the three-tier priority PLAN.md mandates:
+ * applies a three-tier priority:
  *
  *   1. apiKeyId — service accounts get their own quota
  *   2. userId   — authenticated session

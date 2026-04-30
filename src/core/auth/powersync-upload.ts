@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * PowerSync upload-controller planner (PLAN.md §15.5 + §32 Phase 5b).
+ * PowerSync upload-controller planner.
  *
  * The PowerSync client buffers offline mutations as a batch of CRUD
  * operations and POSTs them to `/powersync/crud` once back online.

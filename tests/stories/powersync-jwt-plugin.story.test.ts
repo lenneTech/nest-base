@@ -7,7 +7,7 @@ import {
 } from "../../src/core/auth/powersync-jwt.js";
 
 /**
- * Story · Better-Auth JWT plugin for PowerSync (PLAN.md §15.5 + §32 Phase 5b).
+ * Story · Better-Auth JWT plugin for PowerSync.
  *
  * PowerSync requires:
  *   - JWT signed by Better-Auth's JWKS keypair

@@ -12,15 +12,14 @@ import {
 } from "../../src/core/mcp/mcp-auth.js";
 
 /**
- * Story · MCP-Auth via Better-Auth-OAuth-Provider (PLAN.md §16.3 +
- * §32 Phase 6).
+ * Story · MCP-Auth via Better-Auth-OAuth-Provider.
  *
  * Two layers, one contract:
  *   - extractBearerToken / McpAuthGuard normalise the Authorization
  *     header and delegate validation to an injected `McpAuthValidator`.
  *   - StdioBootstrapMcpValidator covers the local-dev stdio transport
  *     where auth is bypassed and every call runs as a provisioned
- *     bootstrap user (PLAN.md §16.3 last paragraph).
+ *     bootstrap user.
  *
  * The Better-Auth-backed validator that hits the OIDC-provider plugin
  * for OAuth 2.1 / PKCE bearer tokens lives behind the same interface;

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { buildOnboardReport, type OnboardChecklistInput } from "../../src/core/dx/onboard.js";
 
 /**
- * Story · `bun run onboard` (PLAN.md §32 Phase 8).
+ * Story · `bun run onboard`.
  *
  * Pure planner. The CLI runner gathers the inputs (Bun version,
  * Postgres reachability, presence of `.env`, Prisma client status,

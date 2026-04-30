@@ -1,7 +1,7 @@
 import type { AppEnv } from "./cookie-cors-config.js";
 
 /**
- * Helmet + CSP configuration (PLAN.md §30).
+ * Helmet + CSP configuration.
  *
  * Per-env tuning:
  *   - production / staging: default-src=self, frame-ancestors=none,

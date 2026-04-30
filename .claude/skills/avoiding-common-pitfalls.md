@@ -294,14 +294,14 @@ hook fails, fix the cause.
 
 `feat(<scope>): <message>`, `fix(<scope>): <message>`,
 `test(<scope>): <message>`, `docs(<scope>): <message>`,
-`chore(<scope>): <message>`. The PLAN.md slice cycle uses `test(...)`
-for the red commit, `feat(...)` for the green commit.
+`chore(<scope>): <message>`. The TDD cycle uses `test(...)` for the
+red commit and `feat(...)` for the green commit.
 
-### One slice per commit
+### One change per commit
 
-PLAN.md §32 boxes are one-checkbox-per-slice. Each slice = one test
-commit + one impl commit (or sometimes one combined `feat(...)` that
-ships both).
+Each behaviour change ships as a discrete commit pair: one `test(...)`
+red, one `feat(...)` green. Combining unrelated changes makes review
+and revert harder.
 
 ---
 
@@ -312,7 +312,7 @@ ships both).
 2. **Look at the closest similar example** in the codebase. The
    conventions are internally consistent — if you're unsure how to
    wire a new feature, find an existing one and copy the pattern.
-3. **Check `OPEN_QUESTIONS.md`.** Some divergences from the strict
-   PLAN.md reading are documented there.
+3. **Check `OPEN_QUESTIONS.md`.** Known design divergences and their
+   rationale are documented there.
 4. **Ask the user.** Better to clarify than to commit a fix to the
    wrong root cause.

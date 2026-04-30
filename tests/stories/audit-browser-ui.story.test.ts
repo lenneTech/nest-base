@@ -7,7 +7,7 @@ import {
 } from "../../src/core/dx/audit-browser-ui.js";
 
 /**
- * Story · Audit-Browser UI (PLAN.md §27.1 + §32 Phase 8).
+ * Story · Audit-Browser UI.
  *
  * Pure HTML renderer for the `/admin/audit` page. The controller
  * loads audit-log entries (filtered + paginated server-side) and

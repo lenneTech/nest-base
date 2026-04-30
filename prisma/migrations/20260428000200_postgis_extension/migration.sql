@@ -1,4 +1,4 @@
--- PostGIS extension (PLAN.md §15 + §32 Phase 5c).
+-- PostGIS extension.
 --
 -- Enables the spatial-types and GIST-index support that prisma/features/geo.prisma
 -- relies on (Address.location, Geofence.area). The migration is idempotent so a

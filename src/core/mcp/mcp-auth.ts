@@ -3,7 +3,7 @@ import type { McpContext, McpUser } from "./mcp-server.js";
 export type { McpUser };
 
 /**
- * MCP-Auth (PLAN.md §16.3 + §32 Phase 6).
+ * MCP-Auth.
  *
  * Two layers, one contract:
  *   - `extractBearerToken` / `McpAuthGuard` normalise the
@@ -14,7 +14,7 @@ export type { McpUser };
  *     so unit tests stay DB-free.
  *   - `StdioBootstrapMcpValidator` covers the local-dev stdio
  *     transport (auth disabled, every call runs as a provisioned
- *     bootstrap user — PLAN.md §16.3 last paragraph).
+ *     bootstrap user).
  *
  * The guard does **not** make policy decisions — those live in the
  * existing PermissionService once the resolved user reaches the

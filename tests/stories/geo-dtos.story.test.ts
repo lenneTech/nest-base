@@ -10,7 +10,7 @@ import {
 } from "../../src/core/geo/geo-dtos.js";
 
 /**
- * Story · Geo DTOs (PLAN.md §15 + §32 Phase 5c).
+ * Story · Geo DTOs.
  *
  * Zod schemas the geo controllers consume. The controllers
  * themselves are project-side wiring (`src/modules/...`) — this

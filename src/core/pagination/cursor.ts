@@ -1,5 +1,5 @@
 /**
- * Cursor pagination (PLAN.md §32 Phase 8).
+ * Cursor pagination.
  *
  * Stable append-only pagination as an alternative to page/limit.
  * The cursor is opaque to the client — base64url of a minimal

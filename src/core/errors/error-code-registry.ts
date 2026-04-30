@@ -1,6 +1,6 @@
 /**
  * Error-Code-Registry + i18n endpoint
- * (PLAN.md §32 Phase 8 + §28.8 #22).
+ *.
  *
  * Single source of truth for `CORE_*` and `APP_*` error codes.
  * The exception filter (`problem-details.filter.ts`) maps thrown

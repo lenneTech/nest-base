@@ -11,7 +11,7 @@ import {
 import type { GeocodingProvider, GeocodingResult } from "../../src/core/geo/geocoding-providers.js";
 
 /**
- * Story · GeoService (PLAN.md §15 + §32 Phase 5c).
+ * Story · GeoService.
  *
  * Cache-aware façade over the GeocodingProvider adapters plus three
  * pure helpers (`haversineDistanceMeters`, `buildFindNearbyQuery`,

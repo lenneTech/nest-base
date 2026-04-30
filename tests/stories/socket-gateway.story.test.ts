@@ -11,7 +11,7 @@ import {
 } from "../../src/core/realtime/socket-gateway.js";
 
 /**
- * Story · Socket.IO Gateway (PLAN.md §12 + §32 Phase 5).
+ * Story · Socket.IO Gateway.
  *
  * Three concerns glued together:
  *   1. Auth-handshake: a connecting socket presents a token; the

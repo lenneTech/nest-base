@@ -8,7 +8,7 @@ import { LocalStorageAdapter } from "../../src/core/files/local-storage-adapter.
 import { StorageObjectNotFoundError } from "../../src/core/files/storage-adapter.js";
 
 /**
- * Story · Local Storage Adapter (PLAN.md §8 + §32 Phase 4).
+ * Story · Local Storage Adapter.
  *
  * Implements the StorageAdapter contract against the local
  * filesystem. Used in dev (when RustFS is too heavy) and in tests

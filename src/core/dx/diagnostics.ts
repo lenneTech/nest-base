@@ -1,7 +1,7 @@
 import type { Features } from "../features/features.js";
 
 /**
- * Diagnostics report builder (PLAN.md §27 + §32 Phase 8).
+ * Diagnostics report builder.
  *
  * Pure assembler. Inputs are gathered by the surrounding controller
  * (process info, runtime versions, the active Features object) and

@@ -10,7 +10,7 @@ import {
 import { verifyHmacSignatureHeader } from "../../src/core/webhooks/hmac-signature.js";
 
 /**
- * Story · Webhook-Dispatcher (PLAN.md §10).
+ * Story · Webhook-Dispatcher.
  *
  * Glues the HMAC-signature, retry-policy, and fanout helpers from
  * iteration 48 into a service that:

@@ -1,7 +1,7 @@
 import { sanitizeFtsQuery } from "./fts-query.js";
 
 /**
- * Cross-Resource Search Service (PLAN.md §11 + §32 Phase 5).
+ * Cross-Resource Search Service.
  *
  * Fans the sanitized query out to every registered resource
  * executor, aggregates hits, sorts by rank descending, trims to the

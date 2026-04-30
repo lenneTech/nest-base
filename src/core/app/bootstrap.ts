@@ -86,7 +86,7 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
 
   app.useGlobalFilters(new ProblemDetailsExceptionFilter());
 
-  // OpenAPI spec generator (PLAN.md §32 Phase 8). The document builder
+  // OpenAPI spec generator. The document builder
   // walks every controller registered in DI and produces an OpenAPI
   // 3.1 JSON. Mounted at `/api/openapi.json` (Scalar UI consumes it,
   // kubb generates the SDK from it).
@@ -124,7 +124,7 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
     });
   }
 
-  // Scalar API-UI mount (PLAN.md §32 Phase 8). Default `/api/docs` with
+  // Scalar API-UI mount. Default `/api/docs` with
   // the stock theme; consumers override via env or by tweaking
   // `buildScalarConfig` inputs in their own bootstrap shim. The spec
   // URL points at the (future) OpenAPI builder mount.

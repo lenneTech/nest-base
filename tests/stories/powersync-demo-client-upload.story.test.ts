@@ -9,7 +9,7 @@ import { resolvePowerSyncConflict } from "../../src/core/repository/powersync-co
 
 /**
  * Story · PowerSync demo client + upload-backend integration
- *           (PLAN.md §15.5 + §32 Phase 5b, item 5b-9).
+ *.
  *
  * The actual React-Native PowerSync client lives in a separate mobile
  * repo; what we own *here* is the in-memory simulator that buffers

@@ -8,7 +8,7 @@ import {
 } from "../../src/core/geo/address-pii-encryption.js";
 
 /**
- * Story · Address PII encryption (PLAN.md §15.3 + §32 Phase 5c).
+ * Story · Address PII encryption.
  *
  * Address PII (`street`, `zip`) gets app-layer field-encryption at
  * write time + decryption at read time. The audit-log builder

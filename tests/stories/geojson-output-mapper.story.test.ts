@@ -6,7 +6,7 @@ import {
 } from "../../src/core/geo/geojson-output-mapper.js";
 
 /**
- * Story · GeoJSON Output Mapper (PLAN.md §15 + §32 Phase 5c).
+ * Story · GeoJSON Output Mapper.
  *
  * Stage 3a of the Output-Pipeline: when a record carries a Postgres
  * geometry column, replace it with a GeoJSON-shaped object so the

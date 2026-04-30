@@ -12,8 +12,13 @@ for Y" without spelunking through 80+ files.
 
 A **template-shaped NestJS server** built on Bun + Prisma + Postgres + Better-Auth.
 Many projects share the same `src/core/` and add their own resources in
-`src/modules/`. The full spec lives in [`PLAN.md`](./PLAN.md); the human
-quick-start in [`README.md`](./README.md).
+`src/modules/`.
+
+- Architecture & subsystems → [`docs/architecture.md`](./docs/architecture.md)
+- Coding conventions → [`docs/code-guidelines.md`](./docs/code-guidelines.md)
+- Contribution workflow → [`CONTRIBUTING.md`](./CONTRIBUTING.md)
+- Initialisation history → [`docs/initialisation-history.md`](./docs/initialisation-history.md)
+- Human quick-start → [`README.md`](./README.md)
 
 | Aspect | Choice |
 |---|---|
@@ -30,7 +35,9 @@ quick-start in [`README.md`](./README.md).
 
 Out-of-scope features (don't add): GraphQL, MongoDB / Mongoose, Vendor-Mode,
 Mailjet, the legacy `@Restricted`/`@Roles` stack, the `@UnifiedField`
-decorator, `process()`-style raw pipelines. See PLAN.md §1.4 for context.
+decorator, `process()`-style raw pipelines. See
+[`docs/architecture.md`](./docs/architecture.md) "Out of scope" for the
+rationale.
 
 ## Repo layout
 
@@ -59,14 +66,13 @@ Per-folder navigation guides live in `src/core/CLAUDE.md`, `src/modules/CLAUDE.m
 
 ## How development happens (TDD discipline)
 
-The project follows **strict red-green-refactor TDD**. Every PLAN.md §32
-checklist item is one *slice* — one slice = one test commit + one impl
-commit. The discipline is non-negotiable:
+The project follows **strict red-green-refactor TDD**. The discipline
+is non-negotiable:
 
 1. **Red** — write the failing story / e2e test first
    (`tests/stories/<feature>.story.test.ts` or `tests/<feature>.e2e-spec.ts`).
    Verify red with `bun run test:e2e <path>`. Commit
-   `test(<scope>): add red tests for <slice>`.
+   `test(<scope>): add red tests for <change>`.
 2. **Green** — write the minimal code under `src/core/` or `src/modules/`
    until the test passes. No extras, no anticipatory refactors.
 3. **Refactor** — clean up without changing behaviour. Tests stay green.
@@ -76,18 +82,15 @@ commit. The discipline is non-negotiable:
      && bun run test:types && bun run test:coverage && bun run build
    ```
    Coverage thresholds: `src/core/` ≥ 90 %, `src/modules/` ≥ 80 %.
-5. **Mark done** — `[ ]` → `[x]` in PLAN.md §32.
-6. **Commit** — Conventional Commits: `feat(<scope>): <slice>` /
-   `fix(<scope>): <slice>`.
+5. **Commit** — Conventional Commits: `feat(<scope>): <summary>` /
+   `fix(<scope>): <summary>`.
 
 Forbidden:
 - `it.skip` / `xit` / `--no-verify` / `--force` / coverage drops
 - Implementation without a prior failing test
-- Features / refactors / helpers outside PLAN.md
-- Editing PLAN.md beyond the checkbox flip
 
-If a slice is unclear, log it in `OPEN_QUESTIONS.md` and pick the next
-independent slice. Don't loop on a stuck question.
+If something is unclear, log it in `OPEN_QUESTIONS.md` and pick the next
+independent piece of work. Don't loop on a stuck question.
 
 ## Common tasks (links to skills)
 
@@ -96,7 +99,7 @@ These are the recurring workflows; each has a step-by-step skill in
 
 | Task | Skill |
 |---|---|
-| Implement one PLAN.md §32 slice | [`running-tdd-slice`](./.claude/skills/running-tdd-slice.md) |
+| Run one TDD red-green-refactor cycle | [`running-tdd-slice`](./.claude/skills/running-tdd-slice.md) |
 | Add a project resource | [`adding-feature-module`](./.claude/skills/adding-feature-module.md) |
 | Wire permissions on a handler | [`wiring-permissions`](./.claude/skills/wiring-permissions.md) |
 | Add a feature flag | [`adding-feature-flag`](./.claude/skills/adding-feature-flag.md) |
@@ -107,7 +110,6 @@ These are the recurring workflows; each has a step-by-step skill in
 
 For larger workflows, use the agents in `.claude/agents/`:
 
-- `slice-implementer` — runs the full red-green-refactor cycle on the next PLAN.md slice
 - `quality-gate-runner` — runs all six gates and produces a remediation report
 - `module-scaffolder` — scaffolds a new `src/modules/<name>/` subtree
 - `feature-toggle-implementer` — wires a new feature flag end-to-end (schema → catalog → tests → live)
@@ -121,9 +123,9 @@ For the user, the slash command [`/add-feature <key> "<description>"`](./.claude
 - **Path imports** — TypeScript modules import each other with the `.js`
   extension (ESM). `import { X } from '../foo.js'` is correct even when the
   source file is `foo.ts`.
-- **`fields=[]` on permissions** — currently treated as "no field
-  restriction" (laxer than the PLAN.md §6.3 strict reading); see
-  `OPEN_QUESTIONS.md`.
+- **`fields=[]` on permissions** — treated as "no field restriction".
+  See `OPEN_QUESTIONS.md` for the rationale (CASL cannot represent
+  "deny every field" in a single rule).
 - **`features.ts` is the SoT** — every conditional module reads
   `FeaturesSchema.parse(...)`. Never hard-code feature toggles.
 - **Pure planners over runners** — every `dx/`, `setup/`, error/audit
@@ -133,19 +135,22 @@ For the user, the slash command [`/add-feature <key> "<description>"`](./.claude
   renderers HTML-escape user-controlled values via the standard 5-char
   table. The Search-Tester is the only renderer that trusts a payload
   fragment (`ts_headline`'s `<b>` tags).
-- **PLAN.md is read-only** — only the checkbox flip is allowed. If the
-  spec needs to change, that's a user decision; ask first.
+- **The initialisation phase is closed.** Architectural decisions live
+  in `docs/architecture.md`, conventions in `docs/code-guidelines.md`,
+  the historical phase log in `docs/initialisation-history.md`. New
+  work happens against issues, not against a frozen spec.
 
 ## Where to find things
 
-- **Architecture overview** — `PLAN.md` §3 ("Modul-Übersicht")
-- **Tech stack rationale** — `PLAN.md` §2
-- **Permission model** — `PLAN.md` §6 + `src/core/permissions/`
-- **Output pipeline (4 stages)** — `PLAN.md` §7 + `src/core/output-pipeline/`
+- **Architecture overview** — [`docs/architecture.md`](./docs/architecture.md)
+- **Coding conventions** — [`docs/code-guidelines.md`](./docs/code-guidelines.md)
+- **Permission model** — `docs/architecture.md` "Permission model" + `src/core/permissions/`
+- **Output pipeline (4 stages)** — `docs/architecture.md` "Output pipeline" + `src/core/output-pipeline/`
 - **Feature flags** — `src/core/features/features.ts`
 - **Error codes** — `src/core/errors/error-code.ts` +
   `src/core/errors/error-code-registry.ts`
 - **Webhook contract** — `docs/webhook-spec.md` + `src/core/webhooks/`
+- **API stability** — `docs/api-stability-promise.md`
 - **Realtime** — `src/core/realtime/`
 - **MCP** — `src/core/mcp/`
 
@@ -161,6 +166,8 @@ For the user, the slash command [`/add-feature <key> "<description>"`](./.claude
 
 ## When in doubt
 
-Read PLAN.md for the spec and `OPEN_QUESTIONS.md` for known divergences
-between the spec and the implementation. The git history is the third
-source of truth — every commit is one slice with a written rationale.
+Read [`docs/architecture.md`](./docs/architecture.md) for the structure,
+[`docs/code-guidelines.md`](./docs/code-guidelines.md) for the
+conventions, `OPEN_QUESTIONS.md` for known divergences. The git history
+is the third source of truth — every commit is one slice with a written
+rationale.

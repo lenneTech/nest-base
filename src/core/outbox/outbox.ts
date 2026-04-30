@@ -1,7 +1,7 @@
 import { uuidV7 } from "../uuid/uuid-v7.js";
 
 /**
- * Outbox-Pattern recorder (PLAN.md §28.4/#18).
+ * Outbox-Pattern recorder.
  *
  * Atomic publish-with-persist: the domain operation writes to its
  * own tables AND inserts an outbox row in the same DB transaction.

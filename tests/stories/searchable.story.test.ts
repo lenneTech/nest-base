@@ -8,7 +8,7 @@ import {
 } from "../../src/core/search/searchable.js";
 
 /**
- * Story · @Searchable + Migration-Generator (PLAN.md §11 + §32 Phase 5).
+ * Story · @Searchable + Migration-Generator.
  *
  *   class Project {
  *     @Searchable({ weight: 'A' })

@@ -1,5 +1,5 @@
 /**
- * Audit-Browser UI renderer (PLAN.md §27.1 + §32 Phase 8).
+ * Audit-Browser UI renderer.
  *
  * Pure HTML for the `/admin/audit` page. The controller filters and
  * paginates audit-log entries server-side and hands the result plus

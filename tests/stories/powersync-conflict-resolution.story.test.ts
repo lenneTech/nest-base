@@ -6,7 +6,7 @@ import {
 } from "../../src/core/repository/powersync-conflict.js";
 
 /**
- * Story · PowerSync conflict-resolution hook (PLAN.md §15.5 + §32 Phase 5b).
+ * Story · PowerSync conflict-resolution hook.
  *
  * When the upload-controller replays an offline mutation, the row may
  * already have moved on (a different client wrote first, or the

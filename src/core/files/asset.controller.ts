@@ -7,7 +7,7 @@ import { type TransformOptions, computeCacheKey } from "./asset.service.js";
 
 /**
  * `/assets/:key` HTTP surface for image-transform downloads
- * (PLAN.md §32 Phase 4 — Asset-Endpoint mit Transformations + Cache).
+ *.
  *
  * Today: synthesizes a tiny placeholder PNG via sharp + applies the
  * requested transforms. Real implementation: fetch the original from

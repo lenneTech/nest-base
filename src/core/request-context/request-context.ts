@@ -3,7 +3,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { uuidV7 } from "../uuid/uuid-v7.js";
 
 /**
- * Request-Context (PLAN.md §18).
+ * Request-Context.
  *
  * Carries per-request metadata (trace-id, parent-id, sampled-flag,
  * request-id) through async boundaries via AsyncLocalStorage. Loggers,

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { buildBetterAuth } from "../../src/core/auth/better-auth.js";
 
 /**
- * Story · Better-Auth Two-Factor (PLAN.md §4 + §32 Phase 6).
+ * Story · Better-Auth Two-Factor.
  *
  * The factory accepts an optional `twoFactor: { issuer }` block. When
  * present, Better-Auth's `twoFactor` plugin is wired into the options

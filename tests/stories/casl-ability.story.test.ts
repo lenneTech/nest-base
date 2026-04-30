@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { buildAbility, type AbilityRule } from "../../src/core/permissions/casl-ability.js";
 
 /**
- * Story · CASL Integration (PLAN.md §6.2 + §6.3 — `@casl/ability`).
+ * Story · CASL Integration.
  *
  * The ability factory consumes the rule shape produced by the
  * DB-Rule → CASL-Rule resolver (next slice). Each rule is `{ action,

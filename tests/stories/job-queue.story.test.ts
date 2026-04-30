@@ -7,7 +7,7 @@ import {
 } from "../../src/core/jobs/job-queue.js";
 
 /**
- * Story · Job-Queue + Worker (PLAN.md §32 Phase 5).
+ * Story · Job-Queue + Worker.
  *
  * pg-boss in production; the unit suite uses an in-memory queue
  * with the same surface so the worker code is tested without a DB.

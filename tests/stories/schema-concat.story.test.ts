@@ -4,7 +4,7 @@ import { FeaturesSchema } from "../../src/core/features/features.js";
 import { concatenateSchema, type SchemaConcatInput } from "../../src/core/setup/schema-concat.js";
 
 /**
- * Story · Schema-Concat (PLAN.md §19.4 Approach B + §32 Phase 7).
+ * Story · Schema-Concat.
  *
  * Pure planner: features + schema sources → concatenated schema string
  * + included-feature list. The CLI script reads core / feature
@@ -12,7 +12,7 @@ import { concatenateSchema, type SchemaConcatInput } from "../../src/core/setup/
  * `prisma/schema.generated.prisma`; the planner stays I/O-free so it's
  * unit-testable and fully deterministic.
  *
- * Per PLAN.md §19.4 Approach B:
+ * Layout:
  *   prisma/schema.prisma           (core, always present)
  *   prisma/features/<f>.prisma     (loaded only if features.<f>.enabled)
  */

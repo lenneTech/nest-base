@@ -9,7 +9,7 @@ import {
 } from "../../src/core/repository/soft-delete-extension.js";
 
 /**
- * Story · Soft-Delete Prisma-Extension (PLAN.md §32 Phase 3).
+ * Story · Soft-Delete Prisma-Extension.
  *
  * The Prisma extension layer auto-applies a `deletedAt: null` filter
  * to every read against soft-delete-enabled models so direct

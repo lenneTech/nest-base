@@ -1,4 +1,4 @@
--- Install the pg_uuidv7 extension (PLAN.md §31).
+-- Install the pg_uuidv7 extension.
 -- Provides `uuid_generate_v7()` so column defaults stay time-ordered
 -- without depending on application-side ID minting.
 --

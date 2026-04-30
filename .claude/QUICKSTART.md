@@ -41,13 +41,15 @@ If `bun install` hasn't run: `bun install && bun run prisma:generate`.
 
 ## Where to look first
 
-| Question                  | File                                                        |
-| ------------------------- | ----------------------------------------------------------- |
-| What's the spec?          | `PLAN.md` (3000+ lines, search the table of contents)       |
-| What's already built?     | `RALPH_LOG.md`                                              |
-| What's known to diverge?  | `OPEN_QUESTIONS.md`                                         |
-| What tools are available? | [`.claude/AGENTS.md`](AGENTS.md) — master index             |
-| Per-folder conventions    | `src/core/CLAUDE.md`, `tests/CLAUDE.md`, `prisma/CLAUDE.md` |
+| Question                  | File                                                                  |
+| ------------------------- | --------------------------------------------------------------------- |
+| Architecture & subsystems | [`docs/architecture.md`](../docs/architecture.md)                     |
+| Coding conventions        | [`docs/code-guidelines.md`](../docs/code-guidelines.md)               |
+| Initialisation history    | [`docs/initialisation-history.md`](../docs/initialisation-history.md) |
+| What's already built?     | `RALPH_LOG.md`                                                        |
+| What's known to diverge?  | `OPEN_QUESTIONS.md`                                                   |
+| What tools are available? | [`.claude/AGENTS.md`](AGENTS.md) — master index                       |
+| Per-folder conventions    | `src/core/CLAUDE.md`, `tests/CLAUDE.md`, `prisma/CLAUDE.md`           |
 
 ## When the user says X, reach for Y
 
@@ -55,7 +57,6 @@ If `bun install` hasn't run: `bun install && bun run prisma:generate`.
 | ------------------------------ | ----------------------------------------------------------- |
 | "Add a feature flag"           | `/add-feature` command + `feature-toggle-implementer` agent |
 | "Add an admin/dev page"        | `/add-page` command + skill `extending-dev-hub`             |
-| "Implement the next slice"     | `slice-implementer` agent (reads PLAN.md §32)               |
 | "Run all gates"                | `quality-gate-runner` agent                                 |
 | "Why does X work this way?"    | skill `understanding-the-architecture`                      |
 | "I keep hitting Y error"       | skill `avoiding-common-pitfalls`                            |
@@ -99,27 +100,22 @@ add files to the exclude list without strong justification.
 - **Build fails with "Could not resolve .prisma/client/default"?**
   Run `bun run prepare:schema && bun run prisma:generate` first.
 
-## TDD slice template
+## TDD cycle template
 
 ```
 1. Write failing story test → bun run test:e2e <path> → confirm RED
-2. Commit: test(<scope>): add red tests for <slice>
+2. Commit: test(<scope>): add red tests for <change>
 3. Implement minimal code → tests green
 4. Refactor without changing behavior
 5. Run all 6 gates
-6. Commit: feat(<scope>): <slice>
+6. Commit: feat(<scope>): <change>
 ```
-
-For PLAN.md slices: flip `[ ]` → `[x]` in §32 in the same commit as
-the implementation.
 
 ## Don'ts (non-negotiable)
 
 - Don't `git push --force` to main. Don't bypass hooks (`--no-verify`).
 - Don't read `process.env.FEATURE_*` directly — go through `loadFeatures()`.
 - Don't write features without a prior failing test (`it.skip` is forbidden).
-- Don't edit `PLAN.md` beyond the checkbox flip (spec changes are user decisions).
-- Don't add features outside what PLAN.md mandates without user approval.
 - Don't import a feature module unconditionally — use `conditionalImport`.
 
 ## Your first move on a fresh session
@@ -137,8 +133,11 @@ Then ask the user what they want.
 
 ---
 
-**Bottom line**: You don't need to read 3000 lines of PLAN.md to be
-productive. Match the user's intent to a primitive, follow that
+**Bottom line**: Match the user's intent to a primitive, follow that
 primitive's spec, run the six gates, commit. The conventions encoded
 in the skills mean you get the same quality as the human author with
-a fraction of the cognitive load.
+a fraction of the cognitive load. Architecture lives in
+[`docs/architecture.md`](../docs/architecture.md), conventions in
+[`docs/code-guidelines.md`](../docs/code-guidelines.md), the
+initialisation phase log in
+[`docs/initialisation-history.md`](../docs/initialisation-history.md).

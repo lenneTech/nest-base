@@ -8,7 +8,7 @@ import {
 } from "../../src/core/features/features.js";
 
 /**
- * Story · Feature-Flag-System (PLAN.md §20)
+ * Story · Feature-Flag-System
  *
  * Single source of truth: `src/core/features/features.ts` declares every
  * feature toggle as a Zod schema. ENV-Vars `FEATURE_*` override fields,

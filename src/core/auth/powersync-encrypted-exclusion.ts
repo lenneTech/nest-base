@@ -1,6 +1,6 @@
 /**
  * Encrypted-fields exclusion for PowerSync sync-rules
- *   (PLAN.md §15.5 + §32 Phase 5b, item 5b-8).
+ *.
  *
  * The Postgres logical publication is permissive (FOR ALL TABLES) on
  * purpose — sync-rules.yaml is the single enforcement point that picks

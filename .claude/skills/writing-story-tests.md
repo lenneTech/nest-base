@@ -239,19 +239,6 @@ git commit -m "feat(widgets): planner + renderer for the widget surface"
 
 ---
 
-## Phase-audit story tests
-
-`tests/stories/phase-N-test-first-audit.story.test.ts` files exist as
-regression guards — they assert that PLAN.md §32's mandated story
-files are still on disk. If a future doc rewrite renames a story
-file, the audit wakes up.
-
-You don't write these — they're auto-managed by the slice-implementer.
-If one fails because you renamed a story, update the audit assertion
-in the same commit.
-
----
-
 ## When story tests aren't enough
 
 Some surfaces require the HTTP layer:

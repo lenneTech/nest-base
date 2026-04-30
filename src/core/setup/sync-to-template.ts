@@ -1,5 +1,5 @@
 /**
- * sync-to-template planner (PLAN.md §32 Phase 7).
+ * sync-to-template planner.
  *
  * Inverse of sync-from-template. Given the local working tree and a
  * template `src/core/` snapshot, produce the patch payload that a PR

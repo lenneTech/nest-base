@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 /**
- * Idempotency-Key service (PLAN.md §19.6 + §32 Phase 8).
+ * Idempotency-Key service.
  *
  * Stripe-style idempotency for non-idempotent endpoints (POST,
  * PATCH). The interceptor wiring (NestJS adapter) layers on top of

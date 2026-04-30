@@ -11,7 +11,7 @@ import {
 } from "../../src/shared/geo-types.js";
 
 /**
- * Story · Shared geo types (PLAN.md §32 Phase 5c).
+ * Story · Shared geo types.
  *
  * `src/shared/` ships types the SDK + frontend pin against. Geo
  * types follow GeoJSON (RFC 7946); we expose them through small

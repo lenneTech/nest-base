@@ -7,7 +7,7 @@ import {
 } from "../../src/core/files/tus-upload-config.js";
 
 /**
- * Story · TUS resumable upload (PLAN.md §8 + §28.2/#6).
+ * Story · TUS resumable upload.
  *
  * `@tus/server` v3 powers resumable uploads. This spec pins the
  * config surface — the running endpoint lands when the storage

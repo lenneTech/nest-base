@@ -11,7 +11,7 @@ import {
 const ROOT = resolve(import.meta.dirname, "..", "..");
 
 /**
- * Story · Test-Containers-Setup (PLAN.md §32 Phase 8).
+ * Story · Test-Containers-Setup.
  *
  * Two pieces:
  *

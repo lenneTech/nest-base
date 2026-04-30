@@ -7,7 +7,7 @@ import {
 } from "../../src/core/encryption/index.js";
 
 /**
- * Story · Field-Encryption-Service (PLAN.md §14)
+ * Story · Field-Encryption-Service
  *
  * AES-256-GCM with a KEK sourced from a `KekProvider`. Default driver
  * reads the KEK from `FIELD_ENCRYPTION_KEK` env-var (32-byte base64).

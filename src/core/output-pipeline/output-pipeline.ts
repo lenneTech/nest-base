@@ -3,14 +3,14 @@ import { removeSecrets } from "./remove-secrets.js";
 import { applySafetyNet, type SafetyNetMode } from "./safety-net.js";
 
 /**
- * Output-Pipeline (PLAN.md §7).
+ * Output-Pipeline.
  *
  * Four stages, run in order over the response body:
  *   1. Permission filter   — record-level access (caller-side; the
  *                             accessibleBy() filter ran at the DB layer)
  *   2. Field allowlist     — drop fields the ability doesn't permit
  *                             for the given (read, subject)
- *   3. Strip secrets       — known secret-named keys (PLAN-defined list)
+ *   3. Strip secrets       — known secret-named keys (DEFAULT_SECRET_FIELDS)
  *   4. Safety net          — regression catch in throw|mask mode
  */
 

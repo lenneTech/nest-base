@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const ROOT = resolve(import.meta.dirname, "..", "..");
 
 /**
- * Story · `.vscode/` defaults (PLAN.md §27 + §32 Phase 8).
+ * Story · `.vscode/` defaults.
  *
  * Four files seed an out-of-the-box VSCode/Cursor experience for
  * the template:

@@ -1,28 +1,24 @@
 # Running a TDD Slice
 
-The Ralph red-green-refactor procedure for one PLAN.md §32 box. Follow
-it exactly when you're implementing a slice yourself; delegate to the
-`slice-implementer` agent when you want to hand off the whole loop.
+The red-green-refactor procedure for one behaviour change. Follow it
+exactly when you're implementing a feature or fixing a bug yourself —
+every PR follows this discipline regardless of the source of the task
+(issue, user request, `OPEN_QUESTIONS.md` answer, scratch refactor).
 
 ## Pre-flight
 
 ```bash
-git status                     # clean working tree
-git log --oneline -10          # recent context
-grep -n "^- \[ \]" PLAN.md     # find first unchecked box
+git status                   # clean working tree
+git log --oneline -10        # recent context
 ```
 
-If `OPEN_QUESTIONS.md` has an entry blocking the next slice, address
-the question first (or skip to the next independent slice).
+If `OPEN_QUESTIONS.md` has an entry blocking what you're about to do,
+address the question first (or pick a different, independent change).
 
-## 1. Pick the slice
+## 1. Scope the change
 
-First unchecked `- [ ]` box in PLAN.md §32, in phase order
-(1 → 2 → 3 → 4 → 5 → 7 → 8). Optional phases (5b/5c/6) only when
-`RALPH_DIRECTIVES.md` flips them on.
-
-State the slice in one sentence to yourself before writing any test.
-If you can't, the slice isn't well-scoped — split it.
+State the change in one sentence to yourself before writing any test.
+If you can't, the scope is wrong — split it.
 
 ## 2. Write the red test
 
@@ -38,9 +34,9 @@ import {} from // … the symbols you're about to create
 "../../src/core/<area>/<feature>.js";
 
 /**
- * Story · <Feature> (PLAN.md §<n> + §32 Phase <p>).
+ * Story · <Feature>.
  *
- * <One paragraph: what the slice promises, what surfaces it touches.>
+ * <One paragraph: what the change promises, what surfaces it touches.>
  */
 describe("Story · <Feature>", () => {
   describe("<aspect>", () => {
@@ -73,7 +69,7 @@ Commit:
 
 ```bash
 git add -A
-git commit -m "test(<scope>): add red tests for <slice>" -m "$(cat <<'EOF'
+git commit -m "test(<scope>): add red tests for <change>" -m "$(cat <<'EOF'
 <short paragraph: what surfaces the test covers, e.g.
 "5 stories cover happy path / two error sentinels / determinism /
 empty-input handling.">
@@ -90,7 +86,7 @@ Write the _minimal_ code in `src/core/<area>/<feature>.ts` (or
 - Named error sentinels (e.g. `<Feature>NotFoundError`) for
   user-distinguishable failures
 - ESM imports use `.js` extensions (even on `.ts` source)
-- No anticipatory features. If a future slice needs more, that slice
+- No anticipatory features. If a future change needs more, that change
   writes its own test.
 
 Verify green:
@@ -108,7 +104,7 @@ Tighten the code. Tests stay green. Common cleanups:
 - Tighten type signatures (replace `unknown` with the actual type)
 
 If a refactor breaks a test, the test is over-specified. Surface in
-`OPEN_QUESTIONS.md` and pick the next slice.
+`OPEN_QUESTIONS.md` and pick the next change.
 
 ## 5. Quality gates
 
@@ -123,7 +119,7 @@ bun run test:coverage
 bun run build
 ```
 
-Coverage thresholds (PLAN.md mandates):
+Coverage thresholds:
 
 - `src/core/` ≥ **90 %** lines
 - `src/modules/` ≥ **80 %** lines
@@ -132,44 +128,33 @@ If a gate fails: read the output, fix, re-run. Never bypass with
 `--no-verify`, `--force`, `it.skip`, or coverage tweaks.
 
 After three failed retries on the same gate: log in
-`OPEN_QUESTIONS.md`, run `git restore .` for the slice, pick the next
-independent slice. Don't loop on a stuck slice.
+`OPEN_QUESTIONS.md`, run `git restore .`, pick the next independent
+piece of work. Don't loop on a stuck change.
 
-## 6. Mark PLAN.md done
-
-```bash
-# Edit PLAN.md: - [ ] <slice> → - [x] <slice>
-```
-
-No other PLAN.md changes. If you think the spec is wrong, that's an
-`OPEN_QUESTIONS.md` entry.
-
-## 7. Commit the green
+## 6. Commit the green
 
 ```bash
 git add -A
-git commit -m "feat(<scope>): <slice>" -m "$(cat <<'EOF'
-<one paragraph: what the slice does, design decision rationale>
+git commit -m "feat(<scope>): <change>" -m "$(cat <<'EOF'
+<one paragraph: what the change does, design decision rationale>
 
 <one paragraph: load-bearing detail you'd want to know in 6 months>
 
-PLAN.md §32 Phase <p> box checked. <count> stories pass. Coverage
-src/core <S>/<B>/<F>/<L>.
+<count> stories pass. Coverage src/core <S>/<B>/<F>/<L>.
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 EOF
 )"
 ```
 
-## 8. Log the iteration
+## 7. Log the iteration
 
 Append to `RALPH_LOG.md`:
 
 ```markdown
 ## Iteration <n> · <ISO-Timestamp>
 
-- Phase: <p>
-- Slice: <slice text>
+- Change: <one-line summary>
 - Tests: `tests/stories/<feature>.story.test.ts` rot (Modul fehlt) → grün (<n> Tests; <surface summary>)
 - Coverage: src/core <S>/<B>/<F>/<L>, src/modules <…>
 - Commits: <test-sha> (test red) · <feat-sha> (feat green) · <log>
@@ -179,7 +164,7 @@ Append to `RALPH_LOG.md`:
 Commit the log:
 
 ```bash
-git commit -am "docs(ralph): log iteration <n> (<slice-summary>)"
+git commit -am "docs(ralph): log iteration <n> (<change-summary>)"
 ```
 
 ## You're done
@@ -199,5 +184,5 @@ Three commits total: `test(scope): red`, `feat(scope): green`,
   (in-memory), inject a clock, never touch `process.*` or `node:fs`.
   Examples: `IdempotencyService`, `ThrottlerService`.
 
-When in doubt, find a similar slice in `RALPH_LOG.md` and copy its
+When in doubt, find a similar change in `RALPH_LOG.md` and copy its
 test structure.

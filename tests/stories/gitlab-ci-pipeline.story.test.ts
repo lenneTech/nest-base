@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const ROOT = resolve(import.meta.dirname, "..", "..");
 
 /**
- * Story · GitLab CI pipeline shape (PLAN.md §32 Phase 8 + §28b.8).
+ * Story · GitLab CI pipeline shape.
  *
  * The pipeline ships four stages: lint → test → audit → build.
  * The template MUST NOT contain a container-build / image-signing

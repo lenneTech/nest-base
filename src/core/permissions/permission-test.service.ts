@@ -7,7 +7,7 @@ import { PermissionService } from "./permission.service.js";
 
 /**
  * Service backing the `/admin/permissions/test` endpoint
- * (PLAN.md §6 + §32 Phase 3).
+ *.
  *
  * Combines `PermissionService.abilityFor()` (cached) with the
  * `buildPermissionReport()` serializer to answer "what can this user

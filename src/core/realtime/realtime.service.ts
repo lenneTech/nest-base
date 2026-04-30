@@ -1,5 +1,5 @@
 /**
- * Realtime Service (PLAN.md §12 + §32 Phase 5).
+ * Realtime Service.
  *
  * Each server instance listens on a Postgres connection;
  * `pg_notify(channel, payload)` from any instance triggers a

@@ -13,7 +13,7 @@ import {
 } from "../../src/core/email/email.service.js";
 
 /**
- * Story · EmailService (PLAN.md §9 + §32 Phase 6).
+ * Story · EmailService.
  *
  * Two-driver design — Nodemailer for SMTP/EJS, Brevo for transactional
  * template-id sends. send() always goes through the primary driver

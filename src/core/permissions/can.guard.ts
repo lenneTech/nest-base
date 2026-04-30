@@ -13,7 +13,7 @@ import type { Ability, AbilityAction, AbilitySubjectType } from "./casl-ability.
 
 /**
  * `@Can()` decorator + `CanGuard` + `@Ability()` param decorator
- * (PLAN.md §32 Phase 3).
+ *.
  *
  *   @Can('read', 'Project')
  *   @Get()

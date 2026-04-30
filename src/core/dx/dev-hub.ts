@@ -1,7 +1,7 @@
 import type { Features } from "../features/features.js";
 
 /**
- * Dev-Hub planner (PLAN.md §27.4 + §32 Phase 8).
+ * Dev-Hub planner.
  *
  * Pure function: features + DX-tool configs → ordered link list for
  * the `/dev` landing page. The page itself is a thin controller that
@@ -9,10 +9,10 @@ import type { Features } from "../features/features.js";
  * link categorisation, gating, and ordering without booting NestJS
  * in the test suite.
  *
- * Categorisation mirrors PLAN.md §27.4's mockup: api → architecture
- * → data → async (the order users actually scan visually). Within a
- * category, links are alphabetical by label so toggling a feature
- * on/off doesn't shuffle the rest of the page.
+ * Categorisation: api → architecture → data → async (the order users
+ * actually scan visually). Within a category, links are alphabetical
+ * by label so toggling a feature on/off doesn't shuffle the rest of
+ * the page.
  *
  * Production / test environments return an empty list — `/dev` is
  * a developer affordance and the controller itself is admin-gated,

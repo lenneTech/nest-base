@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * TUS resumable upload config (PLAN.md §8 + §28.2/#6).
+ * TUS resumable upload config.
  *
  * The actual `@tus/server` v3 binding lands when the storage adapter
  * is wired. This module owns the config schema + sensible defaults.

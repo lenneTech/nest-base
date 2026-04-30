@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const ROOT = resolve(import.meta.dirname, "..", "..");
 
 /**
- * Story · GIST indexes for geo (PLAN.md §15 + §32 Phase 5c).
+ * Story · GIST indexes for geo.
  *
  * Prisma can't declare GIST indexes on `Unsupported(...)` columns,
  * so we ship them as a raw-SQL migration that runs after

@@ -8,7 +8,7 @@ import {
 } from "../../src/core/realtime/channel-permission.js";
 
 /**
- * Story · Realtime Permission-aware Channels (PLAN.md §12).
+ * Story · Realtime Permission-aware Channels.
  *
  * Channel naming convention:
  *   `<resource>:<scope>:<id?>` — e.g. `Project:tenant:t1`,

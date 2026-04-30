@@ -2,7 +2,7 @@ import { buildHmacSignatureHeader } from "./hmac-signature.js";
 import { type RetryConfig, WEBHOOK_RETRY_DEFAULTS, shouldAutoDisable } from "./retry-policy.js";
 
 /**
- * Webhook Dispatcher (PLAN.md §10).
+ * Webhook Dispatcher.
  *
  * Glues the HMAC-signature, retry-policy, and fanout helpers from
  * earlier slices into a service that:

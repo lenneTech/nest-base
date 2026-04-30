@@ -8,7 +8,7 @@ import {
 } from "../../src/core/dx/realtime-inspector-ui.js";
 
 /**
- * Story · Realtime-Inspector UI (PLAN.md §27.1 + §32 Phase 8).
+ * Story · Realtime-Inspector UI.
  *
  * Pure HTML renderer for the `/admin/realtime` page. Two read models
  * land here:

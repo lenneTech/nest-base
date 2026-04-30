@@ -6,8 +6,8 @@ import { defaultAuthRateLimits, type AuthRateLimitWindow } from "../../src/core/
  * Story · Better-Auth rate limits
  *
  * Per-endpoint rate-limit windows for the auth surface (sign-in,
- * sign-up, password-reset, verify-email). Numbers come from PLAN.md
- * §1 + Better-Auth recommendations.
+ * sign-up, password-reset, verify-email). Numbers follow Better-Auth
+ * recommendations.
  */
 describe("Story · Better-Auth rate limits", () => {
   it("exposes a window for sign-in", () => {

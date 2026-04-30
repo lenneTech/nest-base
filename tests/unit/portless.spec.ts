@@ -14,7 +14,7 @@ const PORTLESS_YML = resolve(ROOT, "portless.yml");
 const PACKAGE_JSON = resolve(ROOT, "package.json");
 
 /**
- * portless integration (PLAN.md §28.10/#30).
+ * portless integration.
  *
  * Local dev routing exposes services under `<service>.<project>.localhost`
  * with automatic HTTPS (mkcert). `bun run dev` boots portless when it's

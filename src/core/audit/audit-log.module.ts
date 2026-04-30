@@ -54,7 +54,7 @@ export class AuditLogger {
  *
  * Encryption-aware: callers pass the field-encryption registry's
  * encrypted-field list per resource; values for those keys get masked
- * before the sink ever sees them (PLAN.md §32 Phase 8).
+ * before the sink ever sees them.
  */
 @Module({
   providers: [{ provide: AUDIT_LOG_SINK, useClass: InMemoryAuditLogSink }, AuditLogger],

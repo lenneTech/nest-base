@@ -1,5 +1,5 @@
 /**
- * PostgREST-Query-Parser → Prisma-WHERE (PLAN.md §22).
+ * PostgREST-Query-Parser → Prisma-WHERE.
  *
  * Maps PostgREST-style query parameters to a Prisma `where` clause:
  *

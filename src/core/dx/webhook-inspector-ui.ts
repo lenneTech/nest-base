@@ -1,5 +1,5 @@
 /**
- * Webhook-Inspector UI renderer (PLAN.md §27.1 + §32 Phase 8).
+ * Webhook-Inspector UI renderer.
  *
  * Pure HTML for the `/admin/webhooks` page. The controller fetches
  * recent deliveries through the dispatcher's delivery store, applies

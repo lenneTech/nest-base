@@ -14,7 +14,7 @@ import {
 const ROOT = resolve(import.meta.dirname, "..", "..");
 
 /**
- * Story · Tenant-Member-CRUD (PLAN.md §5.3)
+ * Story · Tenant-Member-CRUD
  *
  * The membership join-table glues users to tenants with a role and a
  * lifecycle status (ACTIVE / INVITED / SUSPENDED). This service is

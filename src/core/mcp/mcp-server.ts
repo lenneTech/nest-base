@@ -2,7 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { z } from "zod";
 
 /**
- * MCP-Server-Modul (PLAN.md §16 + §32 Phase 6).
+ * MCP-Server-Modul.
  *
  * Wraps `@modelcontextprotocol/sdk`'s `McpServer` so the rest of the
  * codebase has a single ingress for tool/resource registration. The

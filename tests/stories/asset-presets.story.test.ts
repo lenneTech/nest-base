@@ -10,7 +10,7 @@ import { InMemoryStorageAdapter } from "../../src/core/files/storage-adapter.js"
 import { AssetService, type AssetTransformer } from "../../src/core/files/asset.service.js";
 
 /**
- * Story · Asset-Presets (PLAN.md §8 + §32 Phase 4).
+ * Story · Asset-Presets.
  *
  * Named transform profiles (`thumbnail`, `avatar`, `hero`, …) map to
  * a TransformOptions record. Presets restrict the set of valid URLs,

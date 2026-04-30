@@ -7,7 +7,7 @@ import {
 } from "../../src/core/dx/webhook-inspector-ui.js";
 
 /**
- * Story · Webhook-Inspector UI (PLAN.md §27.1 + §32 Phase 8).
+ * Story · Webhook-Inspector UI.
  *
  * Pure HTML renderer for the `/admin/webhooks` page. The controller
  * loads recent deliveries through the existing webhook dispatcher's

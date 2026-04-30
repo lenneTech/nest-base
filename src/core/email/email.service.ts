@@ -1,5 +1,5 @@
 /**
- * EmailService (PLAN.md §9 + §32 Phase 6).
+ * EmailService.
  *
  * Two-driver design — `primary` (Nodemailer/SMTP) renders EJS
  * templates server-side, `transactional` (Brevo) takes a

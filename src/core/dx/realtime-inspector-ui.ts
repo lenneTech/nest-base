@@ -1,5 +1,5 @@
 /**
- * Realtime-Inspector UI renderer (PLAN.md §27.1 + §32 Phase 8).
+ * Realtime-Inspector UI renderer.
  *
  * Pure HTML for the `/admin/realtime` page. Two read models feed in:
  *

@@ -9,7 +9,7 @@ import {
 
 /**
  * Story · Error-Code-Registry + i18n endpoint
- * (PLAN.md §32 Phase 8 + §28.8 #22).
+ *.
  *
  * The registry is the single source of truth for `CORE_*` and
  * `APP_*` error codes. Each code carries:

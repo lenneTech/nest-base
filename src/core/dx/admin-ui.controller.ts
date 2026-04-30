@@ -8,7 +8,7 @@ import { renderSearchTesterPage } from "./search-tester-ui.js";
 import { renderWebhookInspectorPage } from "./webhook-inspector-ui.js";
 
 /**
- * `/admin/*` developer UIs (PLAN.md §27 + §32 Phase 8). All routes
+ * `/admin/*` developer UIs. All routes
  * 404 outside `NODE_ENV=development` — same gating as the Dev-Hub.
  *
  * Data sources are stub-empty for now (the underlying registries —

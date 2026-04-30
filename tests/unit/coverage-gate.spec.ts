@@ -8,7 +8,7 @@ import { coverageThresholds } from "../../src/core/testing/coverage-gate.js";
 const ROOT = resolve(import.meta.dirname, "..", "..");
 
 /**
- * The Coverage-Gate slice (PLAN.md §32 Phase 1) requires that:
+ * The Coverage-Gate slice requires that:
  *  - src/core/  has a line-coverage floor enforced by Vitest
  *  - src/modules/ has a (slightly looser) line-coverage floor
  *  - the gate is enforced as part of `.gitlab-ci.yml` (build breaks on miss)

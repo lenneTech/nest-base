@@ -5,7 +5,7 @@ import { PermissionService } from "../../src/core/permissions/permission.service
 import type { DbPermissionRow } from "../../src/core/permissions/db-rule-resolver.js";
 
 /**
- * Story · Admin Test-Endpunkt für Permissions (PLAN.md §6 + §32 Phase 3).
+ * Story · Admin Test-Endpunkt für Permissions.
  *
  * `/admin/permissions/test` answers "what can this user do?" by
  * combining PermissionService (the cached, resolved Ability) with the

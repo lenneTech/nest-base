@@ -1,7 +1,7 @@
 import type { AbilityRule } from "./casl-ability.js";
 
 /**
- * DB-Rule → CASL-Rule resolver (PLAN.md §6.2).
+ * DB-Rule → CASL-Rule resolver.
  *
  * Persisted Permission rows speak Directus-flavored filter DSL with
  * variables (`$CURRENT_USER`, `$NOW`). The resolver:

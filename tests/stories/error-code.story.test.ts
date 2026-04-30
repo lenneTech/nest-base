@@ -11,7 +11,7 @@ import {
  * Adapted from nest-server `error-code.story.test.ts`.
  *
  * Story: every error response on the API follows RFC 7807 Problem Details.
- * Library/framework codes are prefixed with `CORE_` (PLAN.md §28.8/#22);
+ * Library/framework codes are prefixed with `CORE_`;
  * project-app codes use `APP_*` and live in `src/modules/`.
  *
  * What this iteration covers — the contract level only:

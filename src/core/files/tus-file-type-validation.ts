@@ -1,5 +1,5 @@
 /**
- * TUS upload — mime-type allowlist enforcement (PLAN.md §8).
+ * TUS upload — mime-type allowlist enforcement.
  *
  * Allowlist semantics:
  *   []                  → no restriction (opt-in policy)

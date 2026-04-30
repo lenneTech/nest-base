@@ -4,7 +4,7 @@ import { buildAbility } from "../../src/core/permissions/casl-ability.js";
 import { OutputPipeline } from "../../src/core/output-pipeline/output-pipeline.js";
 
 /**
- * Story · Output-Pipeline (4 stages, PLAN.md §7).
+ * Story · Output-Pipeline (4 stages — see docs/architecture.md "Output pipeline").
  *
  *   Stage 1 — Permission filter (record-level): the controller hands
  *             the pipeline an already-filtered list (the `accessibleBy()`

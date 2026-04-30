@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { buildBetterAuth } from "../../src/core/auth/better-auth.js";
 
 /**
- * Story · Better-Auth Passkey (PLAN.md §4.1 + §32 Phase 6).
+ * Story · Better-Auth Passkey.
  *
  * The factory accepts an optional `passkey: { rpName, rpID? }` block.
  * When present, `@better-auth/passkey` is wired in and the resulting
@@ -11,8 +11,7 @@ import { buildBetterAuth } from "../../src/core/auth/better-auth.js";
  * verify-registration, verify-authentication, list-user-passkeys,
  * delete-passkey. When absent the plugin stays unloaded.
  *
- * `rpID` defaults to the host of `baseUrl` (PLAN.md §4.1: "Passkey/
- * WebAuthn — auto-detection aus BASE_URL"); `origin` to baseUrl
+ * `rpID` defaults to the host of `baseUrl`; `origin` to baseUrl
  * itself. Both can be overridden for production multi-domain setups.
  */
 describe("Story · Better-Auth Passkey", () => {

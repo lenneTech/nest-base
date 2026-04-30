@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { planSetup, type WizardAnswers } from "../../src/core/setup/setup-wizard.js";
 
 /**
- * Story · Setup-Wizard (PLAN.md §19.5 + §32 Phase 7).
+ * Story · Setup-Wizard.
  *
  * The wizard is split into a pure planner + an interactive runner.
  * Only the planner is in scope for this slice — given a set of

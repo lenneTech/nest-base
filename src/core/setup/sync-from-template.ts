@@ -1,5 +1,5 @@
 /**
- * sync-from-template planner (PLAN.md §32 Phase 7).
+ * sync-from-template planner.
  *
  * Pure function: given the template repo's `src/core/` snapshot and
  * the local working tree, return the file operations needed to bring

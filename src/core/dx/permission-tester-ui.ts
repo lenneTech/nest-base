@@ -2,7 +2,7 @@ import type { PermissionReport, ResourceReport } from "../permissions/permission
 import { renderAdminLayout } from "./admin-layout.js";
 
 /**
- * Permission-Tester UI renderer (PLAN.md §27.1 + §32 Phase 8).
+ * Permission-Tester UI renderer.
  *
  * Pure function: takes the request input and (when a lookup ran)
  * the resulting PermissionReport, produces the HTML string the

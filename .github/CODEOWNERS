@@ -8,7 +8,6 @@
 # projects via `bun run sync:from-template`. Higher review bar.
 /src/core/                              @lenneTech
 /.claude/                               @lenneTech
-/PLAN.md                                @lenneTech
 /CLAUDE.md                              @lenneTech
 /docs/                                  @lenneTech
 

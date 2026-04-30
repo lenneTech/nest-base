@@ -1,5 +1,5 @@
 /**
- * Shared geo types (PLAN.md §32 Phase 5c).
+ * Shared geo types.
  *
  * GeoJSON (RFC 7946) types the SDK + frontend pin against. Coordinate
  * order is GeoJSON-canonical: `[longitude, latitude]` (the inverse of

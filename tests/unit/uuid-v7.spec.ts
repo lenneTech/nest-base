@@ -8,7 +8,7 @@ import { isUuidV7, uuidV7 } from "../../src/core/uuid/uuid-v7.js";
 const ROOT = resolve(import.meta.dirname, "..", "..");
 
 /**
- * UUID v7 setup (PLAN.md §31 — datamodel skeleton; uses pg_uuidv7).
+ * UUID v7 setup.
  *
  * Two layers:
  *   - Application-side generator (`uuidV7()`) — used wherever the DB is

@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { TransformOptions } from "./asset.service.js";
 
 /**
- * Asset Presets (PLAN.md §8 + §32 Phase 4).
+ * Asset Presets.
  *
  * Named transform profiles that limit valid request URLs and keep
  * the cache hot. Projects extend the framework defaults via

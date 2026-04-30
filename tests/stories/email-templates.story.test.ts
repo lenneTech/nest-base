@@ -9,7 +9,7 @@ import {
 } from "../../src/core/email/email-templates.js";
 
 /**
- * Story · Email-Templates (PLAN.md §9.2 + §32 Phase 6).
+ * Story · Email-Templates.
  *
  * Locale-aware template registry + EJS-subset renderer that produces
  * `{ subject, html, text }` per call. The renderer covers what the

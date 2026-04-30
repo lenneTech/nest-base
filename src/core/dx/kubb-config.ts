@@ -1,5 +1,5 @@
 /**
- * kubb config builder (PLAN.md §32 Phase 8).
+ * kubb config builder.
  *
  * Pure builder for the config object kubb's CLI consumes. The
  * top-level `kubb.config.ts` calls this with the project's OpenAPI

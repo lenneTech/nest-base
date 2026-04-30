@@ -8,7 +8,7 @@ const TUS_PATH = "/files/upload";
 
 /**
  * TusModule — mounts the `@tus/server` Server on `/files/upload`
- * (PLAN.md §32 Phase 4 — TUS Resumable-Upload).
+ *.
  *
  * Storage: local filesystem under `${TMPDIR}/lt-tus` by default;
  * the `STORAGE_DEFAULT=s3` route uses an S3-backed store via the

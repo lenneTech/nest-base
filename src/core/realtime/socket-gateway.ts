@@ -2,7 +2,7 @@ import type { Ability } from "../permissions/casl-ability.js";
 import { canSubscribeToChannel, parseChannelName } from "./channel-permission.js";
 
 /**
- * Socket.IO Gateway (PLAN.md §12 + §32 Phase 5).
+ * Socket.IO Gateway.
  *
  * Three concerns glued together:
  *   1. Auth-handshake — connecting socket presents a token; the

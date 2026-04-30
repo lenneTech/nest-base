@@ -1,7 +1,7 @@
 import { uuidV7 } from "../uuid/uuid-v7.js";
 
 /**
- * TUS upload-session state machine (PLAN.md §8 + §32 Phase 4).
+ * TUS upload-session state machine.
  *
  * Tracks the offset / status of resumable uploads. Storage stays
  * behind a tiny `UploadSessionStorage` interface so the unit suite

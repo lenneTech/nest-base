@@ -7,7 +7,7 @@ import {
 } from "../../src/core/permissions/db-rule-resolver.js";
 
 /**
- * Story · DB-Rule → CASL-Rule Resolver (PLAN.md §6.2)
+ * Story · DB-Rule → CASL-Rule Resolver
  *
  * Persisted `Permission` rows speak Directus-style filter DSL with
  * variables (`$CURRENT_USER`, `$NOW`). The resolver:

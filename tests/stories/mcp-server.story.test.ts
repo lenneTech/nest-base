@@ -10,7 +10,7 @@ import {
 } from "../../src/core/mcp/mcp-server.js";
 
 /**
- * Story · MCP-Server-Modul (PLAN.md §16 + §32 Phase 6).
+ * Story · MCP-Server-Modul.
  *
  * The module wraps `@modelcontextprotocol/sdk`'s `McpServer` and gives
  * us a single ingress for tool + resource registration. Decorators

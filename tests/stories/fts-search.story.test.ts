@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { sanitizeFtsQuery, toTsquery } from "../../src/core/search/fts-query.js";
 
 /**
- * Story · FTS-Search Edge Cases (PLAN.md §11 + §28.4/#17).
+ * Story · FTS-Search Edge Cases.
  *
  * Postgres `to_tsquery` rejects malformed input; user-supplied search
  * strings need normalization before they hit the DB. The helpers

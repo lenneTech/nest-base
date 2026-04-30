@@ -7,7 +7,7 @@ import {
 } from "../../src/core/errors/openapi-problem-schemas.js";
 
 /**
- * Story · OpenAPI Problem-Details schemas (PLAN.md §32 Phase 8).
+ * Story · OpenAPI Problem-Details schemas.
  *
  * Pure builder for the OpenAPI 3.1 `components` block that
  * documents the RFC 7807 problem-details responses every endpoint

@@ -6,7 +6,7 @@ import {
 } from "../../src/core/setup/setup-wizard-runner.js";
 
 /**
- * Story · `bun run setup` runner planner (PLAN.md §19.5 + §32 Phase 7).
+ * Story · `bun run setup` runner planner.
  *
  * The runner is the I/O wrapper around the existing `planSetup()`
  * planner; it copies `.env.example` → `.env` and substitutes the

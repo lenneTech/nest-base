@@ -8,7 +8,7 @@ import {
 
 /**
  * PowerSync demo client + in-memory upload backend
- *   (PLAN.md §15.5 + §32 Phase 5b, item 5b-9).
+ *.
  *
  * The mobile RN client lives in another repo. Here we ship:
  *

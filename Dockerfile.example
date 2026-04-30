@@ -1,7 +1,7 @@
 # Dockerfile.example — Reference template for consumer projects.
 # This file is NOT built in CI and NOT published as an image.
 # Consumer projects copy / adapt this file in their own repo.
-# See PLAN.md §28.10/#29.
+# See docs/architecture.md and the consumer guide for context.
 
 # ---------- Stage 1: install dependencies ----------
 FROM oven/bun:1.3 AS deps

@@ -7,7 +7,7 @@ import { parse } from "yaml";
 const ROOT = resolve(import.meta.dirname, "..", "..");
 
 /**
- * Story · Postgres logical replication for PowerSync (PLAN.md §15.5 + §32 Phase 5b).
+ * Story · Postgres logical replication for PowerSync.
  *
  * PowerSync subscribes to the WAL stream to ship row changes to mobile
  * clients. That requires `wal_level = logical` (default is `replica`),

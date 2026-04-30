@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const ROOT = resolve(import.meta.dirname, "..", "..");
 
 /**
- * Story · PostGIS extension migration (PLAN.md §15 + §32 Phase 5c).
+ * Story · PostGIS extension migration.
  *
  * The Geo feature needs PostGIS available before the geo schema can
  * declare `Unsupported("geometry(...)")` columns. A dedicated raw-SQL

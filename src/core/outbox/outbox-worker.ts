@@ -1,7 +1,7 @@
 import type { OutboxEntry, OutboxStorage } from "./outbox.js";
 
 /**
- * Outbox Worker (PLAN.md §28.4/#18).
+ * Outbox Worker.
  *
  * Reads claimed outbox entries in order, fans them out to every
  * registered dispatcher (webhooks / realtime / search index), and

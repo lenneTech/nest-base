@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Error-Code conventions (PLAN.md §28.8/#22).
+ * Error-Code conventions.
  *
  * Framework-level codes carry the `CORE_` prefix and live here. Project-level
  * apps add their own `APP_*` codes in `src/modules/`. The exception filter

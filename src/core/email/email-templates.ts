@@ -1,7 +1,7 @@
 import type { EmailRenderedTemplate, EmailTemplateRenderer } from "./email.service.js";
 
 /**
- * Email-Templates (PLAN.md §9.2 + §32 Phase 6).
+ * Email-Templates.
  *
  * Two pieces glued together:
  *   1. A locale-aware registry — `name + locale` first, plain `name`

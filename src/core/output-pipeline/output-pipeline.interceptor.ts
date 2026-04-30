@@ -11,7 +11,7 @@ import { removeSecrets } from "./remove-secrets.js";
 import { applySafetyNet } from "./safety-net.js";
 
 /**
- * Global Output-Pipeline interceptor (PLAN.md §7).
+ * Global Output-Pipeline interceptor.
  *
  * Runs Stages 3a (GeoJSON conversion), 3 (strip secrets) and 4
  * (safety-net) on every controller response. Stages 1 (record-level

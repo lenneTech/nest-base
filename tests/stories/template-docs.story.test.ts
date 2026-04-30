@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const ROOT = resolve(import.meta.dirname, "..", "..");
 
 /**
- * Story · Template-Tooling docs (PLAN.md §32 Phase 7).
+ * Story · Template-Tooling docs.
  *
  * Three guides need to exist next to the planners they document so a
  * project consumer can answer the three questions a Template-shaped

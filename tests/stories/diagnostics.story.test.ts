@@ -4,7 +4,7 @@ import { FeaturesSchema } from "../../src/core/features/features.js";
 import { buildDiagnosticsReport, type DiagnosticsInput } from "../../src/core/dx/diagnostics.js";
 
 /**
- * Story · Diagnostics endpoint (PLAN.md §27 + §32 Phase 8).
+ * Story · Diagnostics endpoint.
  *
  * Pure assembler that collects every signal the `/dev/diagnostics`
  * endpoint shows — process info, runtime, memory, active features,

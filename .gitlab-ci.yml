@@ -1,7 +1,7 @@
 # GitLab CI Pipeline for nest-base
 # Stages: lint → test → audit → build
 # NOTE: This template is NOT a deployable app — no container build, no signing, no deploy.
-# Consumer projects build their own images (see PLAN.md §28.10/#29).
+# Consumer projects build their own images.
 
 stages:
   - lint

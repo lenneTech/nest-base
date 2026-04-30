@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { AppEnv } from "../http/cookie-cors-config.js";
 
 /**
- * Feature-Flag-System (PLAN.md §20).
+ * Feature-Flag-System.
  *
  * Single source of truth for runtime module-activation. Consumed by:
  *   - `AppModule` via `conditionalImport()` — gates module registration

@@ -1,5 +1,5 @@
 /**
- * Standard pagination envelope (PLAN.md §22).
+ * Standard pagination envelope.
  *
  * The `meta` shape is consumed by the kubb SDK generator, so the
  * contract is intentionally narrow and stable: total / page / perPage

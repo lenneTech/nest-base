@@ -1,7 +1,7 @@
 import { uuidV7 } from "../uuid/uuid-v7.js";
 
 /**
- * File CRUD service (PLAN.md §8 + §32 Phase 4).
+ * File CRUD service.
  *
  * Storage-agnostic via `FileServiceStorage`. The metadata persisted
  * here points at a key in the storage adapter — the bytes live wherever

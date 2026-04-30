@@ -1,4 +1,4 @@
--- PowerSync replication bootstrap (PLAN.md §15.5 + §32 Phase 5b).
+-- PowerSync replication bootstrap.
 --
 -- Creates a dedicated `powersync` role with REPLICATION + LOGIN attributes
 -- and a logical publication PowerSync subscribes to. Both are guarded so

@@ -12,7 +12,7 @@ const ROOT = resolve(import.meta.dirname, "..", "..");
 
 /**
  * Story · Encrypted-Fields excluded from PowerSync sync-rules
- *           (PLAN.md §15.5 + §32 Phase 5b).
+ *.
  *
  * The publication is permissive (FOR ALL TABLES) — sync-rules.yaml is
  * the *only* place that decides which columns reach a mobile client.

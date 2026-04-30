@@ -27,7 +27,7 @@ const STORE = new Map<string, AddressRecord>();
 
 /**
  * `/addresses` CRUD with field-level encryption for PII columns
- * (PLAN.md §32 Phase 5c — Field-Encryption-Integration für street/zip).
+ *.
  *
  * Writes pass through `encryptAddress()` before persistence; reads pass
  * through `decryptAddress()` so callers see plaintext. The `street`/`zip`

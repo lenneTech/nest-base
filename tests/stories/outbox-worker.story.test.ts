@@ -8,7 +8,7 @@ import {
 import { OutboxWorker, type OutboxDispatcher } from "../../src/core/outbox/outbox-worker.js";
 
 /**
- * Story · Outbox Worker (PLAN.md §28.4/#18).
+ * Story · Outbox Worker.
  *
  * Reads claimed outbox entries in order, fans them out to every
  * registered dispatcher (webhooks / realtime / search), and marks

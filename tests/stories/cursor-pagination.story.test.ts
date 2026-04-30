@@ -9,7 +9,7 @@ import {
 } from "../../src/core/pagination/cursor.js";
 
 /**
- * Story · Cursor pagination (PLAN.md §32 Phase 8).
+ * Story · Cursor pagination.
  *
  * Stable, append-only cursor pagination as an alternative to
  * page/limit. The cursor is opaque to the client — base64 of a

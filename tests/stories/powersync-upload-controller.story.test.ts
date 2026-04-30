@@ -7,7 +7,7 @@ import {
 } from "../../src/core/auth/powersync-upload.js";
 
 /**
- * Story · PowerSync /powersync/crud upload controller (PLAN.md §15.5 + Phase 5b).
+ * Story · PowerSync /powersync/crud upload controller.
  *
  * The PowerSync client buffers offline mutations as a batch of CRUD
  * operations and POSTs them to `/powersync/crud` once back online.

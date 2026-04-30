@@ -10,7 +10,7 @@ import {
 
 /**
  * Story · ETag / If-Match optimistic concurrency
- * (PLAN.md §32 Phase 8).
+ *.
  *
  * GET responses carry a strong ETag derived from the resource's
  * `version` + `updatedAt`. Mutating endpoints require the client to

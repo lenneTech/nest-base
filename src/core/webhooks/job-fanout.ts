@@ -1,5 +1,5 @@
 /**
- * Webhook Master/Sub-Job-Fanout (PLAN.md §28.4/#18).
+ * Webhook Master/Sub-Job-Fanout.
  *
  * One Master-Job per event; the dispatcher splits it into one
  * Sub-Job per matching subscriber. Subscribers can scope by event

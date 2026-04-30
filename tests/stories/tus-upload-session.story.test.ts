@@ -10,7 +10,7 @@ import {
 } from "../../src/core/files/upload-session.js";
 
 /**
- * Story · Multipart / TUS Upload-Session State (PLAN.md §8 + §32 Phase 4).
+ * Story · Multipart / TUS Upload-Session State.
  *
  * The TUS protocol is HTTP-shaped (POST creates, HEAD reads offset,
  * PATCH appends bytes at the current offset, DELETE aborts). This

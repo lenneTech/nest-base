@@ -1,9 +1,18 @@
 # Contributing to nest-base
 
 Thanks for considering a contribution. This file is the minimum you
-need to know before opening a PR — for the deep dive on how the
-project is structured, see [`CLAUDE.md`](./CLAUDE.md) and
-[`PLAN.md`](./PLAN.md).
+need to know before opening a PR.
+
+For deeper context:
+
+- [`docs/architecture.md`](./docs/architecture.md) — how the system is
+  put together (modules, permission model, output pipeline, security
+  layers).
+- [`docs/code-guidelines.md`](./docs/code-guidelines.md) — conventions a
+  quick scan won't teach you (naming, validation, error codes, planner /
+  runner split, HTML escaping, …).
+- [`CLAUDE.md`](./CLAUDE.md) — the agent-facing "where do I find X"
+  index.
 
 ## TL;DR
 
@@ -20,9 +29,12 @@ project is structured, see [`CLAUDE.md`](./CLAUDE.md) and
 - Read [`.claude/QUICKSTART.md`](./.claude/QUICKSTART.md) — the 60-second
   onboarding card. It tells you where everything lives and what
   conventions are non-negotiable.
-- Skim [`PLAN.md`](./PLAN.md) §32 for the slice list. If your idea
-  doesn't have a slice, it's outside the spec — open an issue first
-  to discuss.
+- For architectural context, read
+  [`docs/architecture.md`](./docs/architecture.md). For conventions,
+  [`docs/code-guidelines.md`](./docs/code-guidelines.md). The
+  eight-phase initialisation log lives in
+  [`docs/initialisation-history.md`](./docs/initialisation-history.md)
+  for historical reference.
 - For a feature flag: read
   [`.claude/skills/adding-feature-flag.md`](./.claude/skills/adding-feature-flag.md).
 - For a new dev/admin page: read
@@ -123,7 +135,6 @@ Code. If you're using an AI agent:
 
 - Spawn `feature-toggle-implementer` for feature flags
 - Spawn `module-scaffolder` for new resources
-- Spawn `slice-implementer` for PLAN.md slices
 - Use `/add-feature`, `/add-module`, `/add-page` slash commands
 - Read the matching skill in `.claude/skills/` before letting the
   agent loose

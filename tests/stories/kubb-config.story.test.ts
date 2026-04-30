@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { buildKubbConfig, type KubbConfigInput } from "../../src/core/dx/kubb-config.js";
 
 /**
- * Story · kubb config builder (PLAN.md §32 Phase 8).
+ * Story · kubb config builder.
  *
  * Pure builder for the config object kubb's CLI consumes. The
  * top-level `kubb.config.ts` calls this builder with the project's

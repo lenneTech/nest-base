@@ -17,7 +17,7 @@ interface SyncRules {
 }
 
 /**
- * Story · PowerSync sync-rules.yaml (PLAN.md §15.5 + §32 Phase 5b).
+ * Story · PowerSync sync-rules.yaml.
  *
  * sync-rules.yaml is what makes the WAL stream user-aware: each bucket
  * names a parameter query (resolves to the user's id / tenant) and a

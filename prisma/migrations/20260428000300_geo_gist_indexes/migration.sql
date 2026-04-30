@@ -1,4 +1,4 @@
--- GIST indexes for the geo feature (PLAN.md §15 + §32 Phase 5c).
+-- GIST indexes for the geo feature.
 --
 -- Prisma can't declare GIST indexes on `Unsupported("geometry(...)")` columns,
 -- so we ship them as raw SQL. Idempotent (`IF NOT EXISTS`) so a consumer

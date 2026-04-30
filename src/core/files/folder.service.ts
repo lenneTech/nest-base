@@ -1,7 +1,7 @@
 import { uuidV7 } from "../uuid/uuid-v7.js";
 
 /**
- * Folder CRUD service (PLAN.md §8 + §32 Phase 4).
+ * Folder CRUD service.
  *
  * Storage-agnostic via `FolderStorage` so unit tests skip Prisma.
  * Folders are tenant-scoped (`tenantId` mandatory) and can nest via

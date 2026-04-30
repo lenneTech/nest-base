@@ -22,8 +22,9 @@ bun run setup
 
 The wizard asks one question per feature flag (multi-tenancy, mobile/PowerSync,
 search, MCP, realtime, field encryption, email provider) so you don't have to
-read every PLAN section before starting. The output is fully reproducible —
-run it twice with the same answers and you get byte-identical files.
+read every architecture section before starting. The output is fully
+reproducible — run it twice with the same answers and you get byte-identical
+files.
 
 ## Environment contract
 

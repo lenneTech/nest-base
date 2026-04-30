@@ -1,5 +1,5 @@
 /**
- * Webhook retry-policy (PLAN.md §10 + §28.4/#18).
+ * Webhook retry-policy.
  *
  * Exponential backoff with a hard ceiling and an auto-disable after
  * N consecutive failures so a chronically broken endpoint stops

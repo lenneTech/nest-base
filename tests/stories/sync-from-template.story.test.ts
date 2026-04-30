@@ -6,7 +6,7 @@ import {
 } from "../../src/core/setup/sync-from-template.js";
 
 /**
- * Story · sync:from-template (PLAN.md §32 Phase 7).
+ * Story · sync:from-template.
  *
  * Pure planner: given a snapshot of the template repo's `src/core/`
  * tree and the local working tree, return the list of file

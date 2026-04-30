@@ -10,7 +10,7 @@ import {
 } from "../../src/core/gdpr/gdpr.service.js";
 
 /**
- * Story · GDPR endpoints (PLAN.md §32 Phase 8).
+ * Story · GDPR endpoints.
  *
  * Two pure functions cover the GDPR surface, the controllers stay
  * thin:

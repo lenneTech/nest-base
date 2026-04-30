@@ -1,7 +1,7 @@
 import type { Features } from "../features/features.js";
 
 /**
- * Schema-Concat planner (PLAN.md §19.4 Approach B + §32 Phase 7).
+ * Schema-Concat planner.
  *
  * Pure function: takes the core Prisma schema, a map of per-feature
  * schemas, and the resolved Features object; returns a single

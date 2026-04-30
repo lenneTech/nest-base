@@ -1,5 +1,5 @@
 /**
- * portless integration (PLAN.md §28.10/#30).
+ * portless integration.
  *
  * Pure functions used by `scripts/dev.ts` to decide whether to boot
  * portless, build its argv, and pick a port for the no-portless

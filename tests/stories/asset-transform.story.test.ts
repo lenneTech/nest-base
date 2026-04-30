@@ -9,7 +9,7 @@ import {
 } from "../../src/core/files/asset.service.js";
 
 /**
- * Story · Asset-Endpoint with transformations + cache (PLAN.md §8 + §32 Phase 4).
+ * Story · Asset-Endpoint with transformations + cache.
  *
  * The service:
  *   1. fetches the original from storage

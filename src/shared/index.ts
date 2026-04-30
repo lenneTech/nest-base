@@ -1,6 +1,6 @@
 /**
  * `src/shared/` — barrel for types/contracts that are shared between
- * the server and the kubb-generated SDK (PLAN.md §28.10/#32).
+ * the server and the kubb-generated SDK.
  *
  * Channel-Constants for Realtime, event-schemas for Webhooks, and
  * cross-cutting branded types live here. Consumers import from

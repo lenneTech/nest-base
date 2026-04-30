@@ -6,7 +6,7 @@ import {
 } from "./storage-adapter.js";
 
 /**
- * S3 Storage Adapter (PLAN.md §8 + §32 Phase 4).
+ * S3 Storage Adapter.
  *
  * Implements the StorageAdapter contract against any S3-API-compatible
  * backend (RustFS, AWS S3, Cloudflare R2, Backblaze B2, …).

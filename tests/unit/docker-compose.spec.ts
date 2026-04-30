@@ -9,7 +9,7 @@ const PACKAGE = resolve(ROOT, "package.json");
 
 /**
  * `docker-compose.yml` provides ONLY local dev dependencies — the
- * server itself runs natively via `bun --watch` (PLAN.md §28.10/#29).
+ * server itself runs natively via `bun --watch`.
  *
  * The compose file must declare exactly the four backing services
  * Postgres / RustFS / Mailpit / OTel-Collector. No `api`/`server`/
@@ -39,7 +39,7 @@ describe("docker-compose.yml (dev dependencies only)", () => {
     expect(yaml).not.toMatch(/postgres:1[3-7]/);
   });
 
-  it("uses RustFS as the S3 backend (PLAN.md §28.10/#28 — not MinIO)", () => {
+  it("uses RustFS as the S3 backend", () => {
     expect(yaml).toMatch(/rustfs\/rustfs/);
     expect(yaml).not.toMatch(/minio\/minio/);
   });

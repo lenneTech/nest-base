@@ -4,7 +4,7 @@ import { buildAbility } from "../../src/core/permissions/casl-ability.js";
 import { ChannelFilter, type ChannelSubscriber } from "../../src/core/realtime/channel-filter.js";
 
 /**
- * Story · Permission-Aware Channel-Filter (PLAN.md §12 + §32 Phase 5).
+ * Story · Permission-Aware Channel-Filter.
  *
  * After SocketGateway gates *subscription* to a channel, this filter
  * gates *delivery* of each broadcast event so a subscriber only sees

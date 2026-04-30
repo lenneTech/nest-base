@@ -1,5 +1,5 @@
 /**
- * PowerSync JWT + JWKS planner (PLAN.md §15.5 + §32 Phase 5b).
+ * PowerSync JWT + JWKS planner.
  *
  * Pure planner. Returns the options bag that the Better-Auth `jwt`
  * plugin is constructed with, plus the public-route metadata for the

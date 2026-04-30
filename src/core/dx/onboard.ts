@@ -1,5 +1,5 @@
 /**
- * Onboard report builder (PLAN.md §32 Phase 8).
+ * Onboard report builder.
  *
  * Pure planner. The CLI runner collects the inputs (Bun version,
  * env-file presence, Postgres reachability, Prisma client +

@@ -1,5 +1,5 @@
 /**
- * Search-Tester UI renderer (PLAN.md §27.1 + §32 Phase 8).
+ * Search-Tester UI renderer.
  *
  * Pure HTML for the `/admin/search` page. The controller runs the
  * FTS query through CrossResourceSearchService (or a single-

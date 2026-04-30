@@ -4,7 +4,10 @@ How permissions flow through the request, from authenticated user to
 gated handler to filtered response. Reference for when you're adding
 or debugging an `@Can()` decorator.
 
-## The model (PLAN.md §6)
+## The model
+
+See [`docs/architecture.md`](../../docs/architecture.md) "Permission
+model" for the full picture; condensed here:
 
 Three persisted concepts in Postgres:
 
@@ -146,9 +149,9 @@ admin tooling.
 - **Manage as a superset**: a rule with `action: 'manage'` covers
   every CRUD verb. The PermissionTestService also promotes
   full-CRUD-coverage to `isSuperset` for the report.
-- **`fields=[]` semantics**: currently treated as "no field-level
-  restriction" (laxer than PLAN.md §6.3 strict reading). See
-  `OPEN_QUESTIONS.md`.
+- **`fields=[]` semantics**: treated as "no field-level restriction".
+  See `OPEN_QUESTIONS.md` (CASL cannot represent "deny every field" in a
+  single rule).
 - **Cache eviction**: `PermissionService` has a 60s TTL. After
   changing roles/policies, expect up to 60s of staleness or call
   `permissions.invalidate(userId, tenantId)` explicitly.

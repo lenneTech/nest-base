@@ -1,5 +1,5 @@
 /**
- * Scalar API-UI config (PLAN.md §32 Phase 8).
+ * Scalar API-UI config.
  *
  * Thin builder that produces the options bag consumed by
  * `@scalar/nestjs-api-reference`'s `apiReference()` middleware. The

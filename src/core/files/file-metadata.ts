@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * File metadata schema (PLAN.md §8).
+ * File metadata schema.
  *
  * The shape every storage adapter (S3, Local, Postgres) maps to and
  * the controller emits over the API. Mirrors Directus' file model

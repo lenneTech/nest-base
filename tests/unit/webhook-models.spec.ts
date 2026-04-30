@@ -14,7 +14,7 @@ function blockOf(model: string): string {
 }
 
 /**
- * Webhook persistence schema (PLAN.md §10).
+ * Webhook persistence schema.
  *
  * Two models cover the deliver-and-track surface:
  *   - WebhookEndpoint: subscriber config (URL, secret, events, status,

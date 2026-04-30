@@ -1,7 +1,7 @@
 import { type PowerSyncConflictOutcome, resolvePowerSyncConflict } from "./powersync-conflict.js";
 
 /**
- * BaseRepository (PLAN.md §19.13).
+ * BaseRepository.
  *
  * Wraps a Prisma-shaped `ModelDelegate<T>` and centralizes:
  *   - Soft-Delete filter (`deletedAt: null` by default; opt-out via
@@ -108,7 +108,7 @@ export abstract class BaseRepository<T extends { id: string } & Partial<SoftDele
 
   /**
    * PowerSync-aware update — delegates conflict resolution to
-   * `resolvePowerSyncConflict()` (PLAN.md §15.5 Phase 5b). Use this
+   * `resolvePowerSyncConflict()`. Use this
    * from the `/powersync/crud` upload-controller (or any other
    * offline-first writer) so a stale client's PATCH cannot overwrite
    * fresher server state and `protectedFields` are never overwritten.

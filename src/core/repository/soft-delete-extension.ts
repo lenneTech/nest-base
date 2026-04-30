@@ -1,5 +1,5 @@
 /**
- * Soft-Delete Prisma extension helpers (PLAN.md §32 Phase 3).
+ * Soft-Delete Prisma extension helpers.
  *
  * Pure functions that the Prisma client extension consumes:
  *   - `addSoftDeleteFilter(args, opts)` adds `deletedAt: null` to every

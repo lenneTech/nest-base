@@ -1,5 +1,5 @@
 /**
- * Permission report serializer (PLAN.md §32 Phase 3 — `permissions-report`).
+ * Permission report serializer.
  *
  * Aggregates raw CASL rules into a per-resource summary suitable for
  * the `/admin/permissions/test` endpoint. The `manage` action marks

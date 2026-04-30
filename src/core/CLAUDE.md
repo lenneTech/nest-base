@@ -8,7 +8,8 @@ guaranteed untouched.
 ## What lives here
 
 Each subfolder is a self-contained core module. The list (36 folders)
-maps to PLAN.md §3:
+maps to the modules described in
+[`docs/architecture.md`](../../docs/architecture.md):
 
 ```
 app/             ← root NestJS app + bootstrap

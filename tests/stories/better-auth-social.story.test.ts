@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { buildBetterAuth } from "../../src/core/auth/better-auth.js";
 
 /**
- * Story · Better-Auth Social-Login Providers (PLAN.md §4.1 + §32 Phase 6).
+ * Story · Better-Auth Social-Login Providers.
  *
  * The factory accepts a `socialProviders` block keyed by provider id
  * (google · github · apple · discord — the Better-Auth providers we

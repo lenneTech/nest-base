@@ -3,7 +3,7 @@ import { Controller, Get, HttpCode, HttpStatus, HttpException } from "@nestjs/co
 import { HealthService, type ReadinessReport } from "./health.service.js";
 
 /**
- * Health endpoints (PLAN.md §24).
+ * Health endpoints.
  *
  * - `/health/live` — process probe; never queries dependencies.
  * - `/health/ready` — readiness probe; pings DB + critical deps and

@@ -1,7 +1,7 @@
 import { uuidV7 } from "../uuid/uuid-v7.js";
 
 /**
- * Tenant-Member CRUD (PLAN.md §5.3).
+ * Tenant-Member CRUD.
  *
  * The membership join-table glues users to tenants with a role and a
  * lifecycle status. Service is storage-agnostic — the Prisma adapter

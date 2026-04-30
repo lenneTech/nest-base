@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 /**
- * HMAC-SHA256 signature for webhook delivery (PLAN.md §10).
+ * HMAC-SHA256 signature for webhook delivery.
  *
  * Header format: `t=<unix>,v1=<base64-sig>` (Standard Webhooks-style).
  * The signed value is `<timestamp>.<body>` so a replay attack with a

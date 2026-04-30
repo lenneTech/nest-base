@@ -11,7 +11,7 @@ import {
 } from "../../src/core/geo/geocoding-providers.js";
 
 /**
- * Story · GeocodingProvider adapters (PLAN.md §15.4 + §32 Phase 5c).
+ * Story · GeocodingProvider adapters.
  *
  * Four adapters, one normalised result shape (`GeocodingResult`).
  * Each adapter takes an injectable HTTP client + its own credentials

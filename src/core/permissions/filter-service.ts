@@ -1,7 +1,7 @@
 import "reflect-metadata";
 
 /**
- * Filter-Service Pattern (PLAN.md §22).
+ * Filter-Service Pattern.
  *
  *   @FilterFor('Project')
  *   @Injectable()

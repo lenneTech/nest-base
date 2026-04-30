@@ -9,7 +9,7 @@ import {
 } from "../../src/core/idempotency/idempotency.service.js";
 
 /**
- * Story · Idempotency-Key (PLAN.md §19.6 + §32 Phase 8).
+ * Story · Idempotency-Key.
  *
  * Stripe-style idempotency:
  *

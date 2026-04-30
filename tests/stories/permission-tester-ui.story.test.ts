@@ -7,7 +7,7 @@ import {
 import type { PermissionReport } from "../../src/core/permissions/permission-report.js";
 
 /**
- * Story · Permission-Tester UI (PLAN.md §27.1 + §32 Phase 8).
+ * Story · Permission-Tester UI.
  *
  * Pure HTML renderer for the `/admin/permissions/test` page. The
  * controller calls this function with the request input and (when a

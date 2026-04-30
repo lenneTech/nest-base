@@ -17,7 +17,7 @@ loading sequence:
 2. **`.claude/QUICKSTART.md`** — 60-second onboarding card
 3. **`.claude/AGENTS.md`** — what tools (agents / skills / commands) are available
 4. **The skill matching the task** — `.claude/skills/<topic>.md`
-5. (Lazy) **`PLAN.md`** — only when the spec is the source of truth
+5. (Lazy) **`docs/architecture.md`** + **`docs/code-guidelines.md`** — deeper reference
 
 Read times: about 3 minutes total to be fully oriented. Compare to
 the typical "explore the codebase to figure out the conventions"
@@ -31,7 +31,6 @@ session that costs 30 minutes and still leaves the agent guessing.
 | "Make webhooks toggleable" / "Add a feature flag" | `/add-feature` |
 | "Add a /dev page that shows X" | `/add-page` |
 | "Run the six gates and tell me what's broken" | `quality-gate-runner` agent |
-| "Implement the next slice from PLAN.md" | `slice-implementer` agent |
 | "Why is X structured this way?" | skill: `understanding-the-architecture` |
 | "I keep hitting Y error" | skill: `avoiding-common-pitfalls` |
 | "How do I write a story test?" | skill: `writing-story-tests` |
@@ -122,10 +121,9 @@ prevent, but worth knowing:
 - **Agent disables a coverage rule** to make the gate pass — only OK
   for `*-ui.ts` (UI glue) and the explicit list in `vitest.config.ts`.
   Anything else means more tests are needed.
-- **Agent commits multiple slices in one PR.** Push back: split.
-  One slice = one PR is the discipline that makes review tractable.
-- **Agent edits `PLAN.md` beyond a checkbox flip.** The spec is a
-  user-decision artefact. Spec changes need explicit user sign-off.
+- **Agent commits multiple unrelated changes in one PR.** Push back:
+  split. One behaviour change = one PR is the discipline that makes
+  review tractable.
 
 If you see any of these patterns: the agent is drifting from the
 discipline. Stop, re-state the convention, and have it re-do the

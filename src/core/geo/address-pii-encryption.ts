@@ -1,7 +1,7 @@
 import type { FieldEncryptionService } from "../encryption/field-encryption.service.js";
 
 /**
- * Address PII encryption helpers (PLAN.md §15.3 + §32 Phase 5c).
+ * Address PII encryption helpers.
  *
  * The Address model stores street + zip as PII; persistence wraps
  * them through these helpers so the at-rest representation is

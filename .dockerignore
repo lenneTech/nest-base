@@ -50,7 +50,6 @@ docs
 # Ralph / Claude scratch
 RALPH_*.md
 OPEN_QUESTIONS.md
-PLAN.md
 .claude
 
 # Runtime artifacts the host injects

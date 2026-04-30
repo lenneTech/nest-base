@@ -15,7 +15,7 @@ import { CORE_ERROR_CODES, type ProblemDetails, problemDetails } from "./error-c
 
 /**
  * Global exception filter that converts every uncaught exception into an
- * RFC 7807 Problem-Details JSON response (PLAN.md §27 + §28.8).
+ * RFC 7807 Problem-Details JSON response.
  *
  * Mapping:
  *   - HttpException                → reuse status, map well-known statuses

@@ -7,7 +7,7 @@ import {
 } from "../../src/core/dx/scalar-config.js";
 
 /**
- * Story · Scalar API-UI config (PLAN.md §32 Phase 8).
+ * Story · Scalar API-UI config.
  *
  * Thin config builder that produces the options bag consumed by
  * `@scalar/nestjs-api-reference`'s `apiReference()` middleware. The

@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const ROOT = resolve(import.meta.dirname, "..", "..");
 
 /**
- * Repo-Layout (PLAN.md §28.10/#32) — strict 3-way split:
+ * Repo-Layout — strict 3-way split:
  *   - src/core/    template-owned, syncs in via `bun run sync:from-template`,
  *                  syncs back via `bun run sync:to-template`
  *   - src/modules/ project-owned, NEVER part of the template-sync

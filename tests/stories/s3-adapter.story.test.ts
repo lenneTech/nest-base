@@ -4,7 +4,7 @@ import { S3StorageAdapter, type S3Operations } from "../../src/core/files/s3-sto
 import { StorageObjectNotFoundError } from "../../src/core/files/storage-adapter.js";
 
 /**
- * Story · S3 Storage Adapter (PLAN.md §8 + §32 Phase 4).
+ * Story · S3 Storage Adapter.
  *
  * Implements the StorageAdapter contract against any S3-API-compatible
  * backend (RustFS, AWS S3, Cloudflare R2, Backblaze B2, …). Uses an

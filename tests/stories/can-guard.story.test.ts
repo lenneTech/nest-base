@@ -6,7 +6,7 @@ import { buildAbility, type Ability } from "../../src/core/permissions/casl-abil
 import { Can, CanGuard, CAN_METADATA_KEY } from "../../src/core/permissions/can.guard.js";
 
 /**
- * Story · @Can() + CanGuard + @Ability() (PLAN.md §32 Phase 3).
+ * Story · @Can() + CanGuard + @Ability().
  *
  * Decorator/Guard pair gates handlers by `(action, subject)`. The
  * Guard reads metadata + the active Ability (attached to the request

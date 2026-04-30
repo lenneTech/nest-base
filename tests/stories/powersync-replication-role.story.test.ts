@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const ROOT = resolve(import.meta.dirname, "..", "..");
 
 /**
- * Story · PowerSync replication role + publication (PLAN.md §15.5 + §32 Phase 5b).
+ * Story · PowerSync replication role + publication.
  *
  * PowerSync needs a dedicated Postgres role with the `REPLICATION`
  * attribute and a logical publication that lists every synced table.

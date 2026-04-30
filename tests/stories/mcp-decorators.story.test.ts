@@ -11,7 +11,7 @@ import {
 } from "../../src/core/mcp/mcp-decorators.js";
 
 /**
- * Story · @McpTool / @McpResource (PLAN.md §16.4 + §32 Phase 6).
+ * Story · @McpTool / @McpResource.
  *
  * Decorators that mark instance methods as MCP tools/resources, plus
  * `discoverMcpHandlers(module, instance)` that walks the prototype,

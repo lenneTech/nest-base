@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { buildDefaultEnvExample } from "./setup-wizard.js";
 
 /**
- * Setup-wizard runner planner (PLAN.md §19.5 + Phase 7 follow-up).
+ * Setup-wizard runner planner.
  *
  * Pure function: takes the `.env.example` text + an injectable RNG,
  * returns the rendered `.env` text with every recognised placeholder

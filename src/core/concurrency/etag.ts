@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 
 /**
  * ETag / If-Match optimistic-concurrency primitives
- * (PLAN.md §32 Phase 8 + §28.6 / §29 row).
+ *.
  *
  * Strong-comparison only — `W/` weak tags are explicitly rejected so
  * a proxy that downgrades a strong tag to a weak one can't bypass

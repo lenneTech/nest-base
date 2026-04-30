@@ -1,5 +1,5 @@
 /**
- * @Searchable + Migration-Generator (PLAN.md §11 + §32 Phase 5).
+ * @Searchable + Migration-Generator.
  *
  * Decorator stamps a per-class metadata table that the migration
  * generator walks to emit:

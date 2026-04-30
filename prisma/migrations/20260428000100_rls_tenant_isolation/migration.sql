@@ -1,4 +1,4 @@
--- Tenant-isolation policies (PLAN.md §5 + §28.2/#8).
+-- Tenant-isolation policies.
 --
 -- Every request stamps `app.tenant_id` via the Prisma extension. The
 -- policies below filter every row read/written through the public

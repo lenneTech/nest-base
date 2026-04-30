@@ -205,7 +205,7 @@ src/
 
 **Conventions:** ESM with `.js` import suffixes (TypeScript `nodenext`). Pure-planner / thin-runner split — every helper that touches I/O has a pure planner + a thin glue layer. Named error sentinels mapped to RFC 7807 by the global filter.
 
-The full architectural rationale lives in [`PLAN.md`](./PLAN.md). The agent-readable orientation in [`CLAUDE.md`](./CLAUDE.md).
+The architectural rationale lives in [`docs/architecture.md`](./docs/architecture.md), the coding conventions in [`docs/code-guidelines.md`](./docs/code-guidelines.md), the agent-readable orientation in [`CLAUDE.md`](./CLAUDE.md).
 
 ---
 
@@ -219,7 +219,7 @@ The full architectural rationale lives in [`PLAN.md`](./PLAN.md). The agent-read
 | `bun run test:coverage` | Vitest + V8 coverage report | core ≥ 80% lines · modules ≥ 75% lines |
 | `bun run test:summary` | Vitest JSON reporter → `/dev/tests` page | — |
 
-**Discipline:** strict red-green-refactor TDD. Every PLAN.md slice is one test file → one impl → one commit. The 6 quality gates (`lint`, `format`, `test:types`, `test:unit`, `test:e2e`, `test:coverage`, `build`) gate every commit.
+**Discipline:** strict red-green-refactor TDD — every behaviour change starts as a failing test. The 6 quality gates (`lint`, `format`, `test:types`, `test:unit`, `test:e2e`, `test:coverage`, `build`) gate every commit.
 
 Currently **1712 tests** across 194 files. Coverage 95.48% lines (well above the 80% gate). Lines are the headline metric; statements / functions / branches are tuned looser since defensive runtime guards inflate them without representing real risk — see `src/core/testing/coverage-gate.ts`.
 
@@ -330,7 +330,7 @@ This project is **optimised for AI-assisted development** with [Claude Code](htt
 | `understanding-the-architecture` | First contact — mental model in 200 lines |
 | `avoiding-common-pitfalls` | Catalogue of every place this codebase will burn you |
 | `writing-story-tests` | TDD pattern for `tests/stories/*.story.test.ts` |
-| `running-tdd-slice` | Red-green-refactor cycle for one PLAN.md slice |
+| `running-tdd-slice` | Red-green-refactor cycle for one behaviour change |
 | `working-with-prisma` | Prisma 7 + driver-adapter mode |
 | `writing-migrations` | Schema → prepare → migrate → RLS pattern |
 | `wiring-permissions` | Add CASL ability checks to a handler |
@@ -360,11 +360,13 @@ A fresh agent reads [`.claude/QUICKSTART.md`](./.claude/QUICKSTART.md) (60 sec) 
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md) — TDD discipline, six gates, PR rituals
 
 **Reference**
-- [`PLAN.md`](./PLAN.md) — full spec with architecture rationale per module
+- [`docs/architecture.md`](./docs/architecture.md) — module overview, permission model, output pipeline, security layers
+- [`docs/code-guidelines.md`](./docs/code-guidelines.md) — conventions a quick scan won't teach you
 - [`CLAUDE.md`](./CLAUDE.md) — agent-readable orientation
 - [`.claude/AGENTS.md`](./.claude/AGENTS.md) — full agent / skill / command catalogue
 - [`docs/api-stability-promise.md`](./docs/api-stability-promise.md) — semver + deprecation rules
 - [`docs/webhook-spec.md`](./docs/webhook-spec.md) — outbound webhook contract
+- [`docs/initialisation-history.md`](./docs/initialisation-history.md) — historical record of the eight-phase bootstrap
 
 **Workflows**
 - [`docs/template-update-workflow.md`](./docs/template-update-workflow.md) — pulling upstream changes

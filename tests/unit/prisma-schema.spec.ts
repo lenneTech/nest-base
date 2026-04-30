@@ -7,7 +7,7 @@ const ROOT = resolve(import.meta.dirname, "..", "..");
 const SCHEMA = readFileSync(resolve(ROOT, "prisma/schema.prisma"), "utf8");
 
 /**
- * Prisma schema v1 (PLAN.md §31 — datamodel skeleton).
+ * Prisma schema v1.
  *
  * Slice deliverable: User / Tenant / Role models with `@@map` (table)
  * and `@map` (column) snake_case mappings. Real foreign-keys + RLS

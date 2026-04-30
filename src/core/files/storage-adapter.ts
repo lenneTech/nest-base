@@ -1,5 +1,5 @@
 /**
- * Storage adapter interface (PLAN.md §8 + §32 Phase 4).
+ * Storage adapter interface.
  *
  * The contract every storage backend implements: S3 (RustFS, AWS,
  * Cloudflare R2, …), Local-FS, Postgres Large Objects. The

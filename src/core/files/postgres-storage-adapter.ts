@@ -6,7 +6,7 @@ import {
 } from "./storage-adapter.js";
 
 /**
- * Postgres Storage Adapter (PLAN.md §8 + §32 Phase 4).
+ * Postgres Storage Adapter.
  *
  * Backs the StorageAdapter contract with the `FileBlob` Prisma model.
  * Tenant isolation rides the existing RLS policies (iteration 23) so

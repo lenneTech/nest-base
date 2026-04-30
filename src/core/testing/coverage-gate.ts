@@ -5,8 +5,8 @@
  * coverage drops. GitLab CI runs `bun run test:coverage`, so the same
  * thresholds break the pipeline if a regression is introduced.
  *
- * Numbers come from PLAN.md §28b.7. Lines stays the headline metric;
- * the other dimensions are deliberately looser:
+ * Lines stays the headline metric; the other dimensions are
+ * deliberately looser:
  *   - statements: defensive runtime guards (`if (!input) return …`)
  *     inflate the denominator without representing real risk.
  *   - functions: getter / setter / one-line helper count balloons in

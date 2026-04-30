@@ -3,7 +3,7 @@ import { pluginOas } from '@kubb/plugin-oas';
 import { pluginTs } from '@kubb/plugin-ts';
 
 /**
- * Kubb config for SDK generation (PLAN.md §32 Phase 8).
+ * Kubb config for SDK generation.
  *
  * Source: the running server's OpenAPI document at
  * `/api/openapi.json`. Run `bun run dev` in one terminal, then

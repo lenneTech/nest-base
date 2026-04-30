@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const ROOT = resolve(import.meta.dirname, "..", "..");
 
 /**
- * Story · Consumer-facing docs (PLAN.md §32 Phase 8).
+ * Story · Consumer-facing docs.
  *
  * Three guides land in `docs/` for projects consuming the
  * template:

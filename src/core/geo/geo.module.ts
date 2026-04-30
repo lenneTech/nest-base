@@ -75,7 +75,7 @@ class GeocodingCacheCleanupCron implements OnModuleInit {
           provider: new LocalStubGeocodingProvider({ seedFixtures: [] }),
           cache: new InMemoryGeocodingCache(),
           now: () => Date.now(),
-          ttlMs: 90 * 24 * 60 * 60 * 1000, // 90 days (PLAN §15.4)
+          ttlMs: 90 * 24 * 60 * 60 * 1000, // 90-day GeocodingCache TTL
         }),
     },
     GeocodingCacheCleanupCron,

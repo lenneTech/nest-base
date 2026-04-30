@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 /**
- * GDPR endpoints (PLAN.md §32 Phase 8).
+ * GDPR endpoints.
  *
  * Two pure functions cover the surface; the controllers
  * (`/me/export`, `/me/account`) stay thin and delegate.

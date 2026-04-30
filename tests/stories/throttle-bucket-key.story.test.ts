@@ -7,11 +7,11 @@ import {
 } from "../../src/core/throttler/bucket-key.js";
 
 /**
- * Story · Per-API-Key throttle bucket-key (PLAN.md §32 Phase 8).
+ * Story · Per-API-Key throttle bucket-key.
  *
  * The throttler service is bucket-key-agnostic — the caller decides
- * how to identify "the same actor" across requests. PLAN.md asks for
- * three identity tiers:
+ * how to identify "the same actor" across requests. Three identity
+ * tiers:
  *
  *   1. API-Key ID (when present) — a service account each get their
  *      own quota independent of the human user that owns them.

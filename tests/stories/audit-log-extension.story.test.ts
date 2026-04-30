@@ -8,7 +8,7 @@ import {
 
 /**
  * Story · Audit-Log-Extension with encryption-awareness
- * (PLAN.md §32 Phase 8).
+ *.
  *
  * The audit log records every CRUD on every covered resource so an
  * admin can replay "who changed what when". The Audit-Browser UI

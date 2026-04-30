@@ -1,5 +1,5 @@
 /**
- * RustFS testcontainer config builder (PLAN.md §32 Phase 8).
+ * RustFS testcontainer config builder.
  *
  * Pure function — no `testcontainers` import here so the builder
  * is unit-testable without a Docker daemon. The runner side

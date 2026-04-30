@@ -1,5 +1,5 @@
 /**
- * GeocodingProvider adapters (PLAN.md §15.4 + §32 Phase 5c).
+ * GeocodingProvider adapters.
  *
  * Four adapters, one normalised result shape. Each takes an
  * injectable HTTP client + its own credentials. The HTTP layer is

@@ -19,7 +19,7 @@ import {
 const ROOT = resolve(import.meta.dirname, "..", "..");
 
 /**
- * Story · File/Folder CRUD (PLAN.md §8 + §32 Phase 4).
+ * Story · File/Folder CRUD.
  *
  * Two services:
  *   - FolderService: nested folders per tenant (parentId NULL = root)

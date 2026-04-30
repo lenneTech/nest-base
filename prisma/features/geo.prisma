@@ -1,4 +1,4 @@
-// Geo schema (PLAN.md §15.3 + §32 Phase 5c).
+// Geo schema.
 //
 // Loaded by `bun run prepare:schema` only when `features.geo.enabled === true`.
 // Depends on the PostGIS extension migration shipping first

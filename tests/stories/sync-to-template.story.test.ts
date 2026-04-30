@@ -6,7 +6,7 @@ import {
 } from "../../src/core/setup/sync-to-template.js";
 
 /**
- * Story · sync:to-template (PLAN.md §32 Phase 7).
+ * Story · sync:to-template.
  *
  * Inverse of sync-from-template: given the local working tree and a
  * template `src/core/` snapshot, produce the patch payload that a PR

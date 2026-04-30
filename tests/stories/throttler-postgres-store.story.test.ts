@@ -9,7 +9,7 @@ import {
 
 /**
  * Story · @nestjs/throttler Postgres store + multi-window
- * (PLAN.md §32 Phase 8 + §28.6).
+ *.
  *
  * Two pieces:
  *
@@ -20,11 +20,10 @@ import {
  *     so the suite stays DB-free; the Postgres adapter is a thin
  *     SQL wrapper over the same shape.
  *
- *   - ThrottlerService — multi-window decision logic. The PLAN
- *     mandates 1s/1min/1h buckets; a request is denied as soon as
- *     ANY window is over its limit (defense-in-depth, like
- *     Cloudflare). The service stays I/O-free behind the storage
- *     abstraction.
+ *   - ThrottlerService — multi-window decision logic. We use
+ *     1s/1min/1h buckets; a request is denied as soon as ANY window
+ *     is over its limit (defense-in-depth, like Cloudflare). The
+ *     service stays I/O-free behind the storage abstraction.
  */
 describe("Story · Throttler Postgres store + multi-window", () => {
   function memoryBackend(): { rows: Map<string, { count: number; expiresAt: number }> } & {

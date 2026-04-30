@@ -7,7 +7,7 @@ import {
 } from "../../src/core/dx/search-tester-ui.js";
 
 /**
- * Story · Search-Tester UI (PLAN.md §27.1 + §32 Phase 8).
+ * Story · Search-Tester UI.
  *
  * Pure HTML renderer for the `/admin/search` page. The controller
  * runs the FTS query through CrossResourceSearchService (or a

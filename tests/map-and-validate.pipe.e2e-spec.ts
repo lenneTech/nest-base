@@ -24,7 +24,7 @@ class EchoModule {}
 /**
  * Adapted from nest-server `map-and-validate.pipe.e2e-spec.ts`.
  *
- * Replaces class-validator with Zod (PLAN.md §28.2 #4–#5). The pipe
+ * Replaces class-validator with Zod. The pipe
  * runs on every body, query, or param parameter that uses it; failures
  * surface as a 400 + RFC 7807 Problem-Details with field-level errors.
  */

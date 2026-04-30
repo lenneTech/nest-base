@@ -4,7 +4,7 @@ import { FeaturesSchema } from "../../src/core/features/features.js";
 import { planDevHub, type DevHubInput, type DevHubLink } from "../../src/core/dx/dev-hub.js";
 
 /**
- * Story · Dev-Hub planner (PLAN.md §27.4 + §32 Phase 8).
+ * Story · Dev-Hub planner.
  *
  * Pure planner: given the active feature set + DX-tool configs,
  * returns the link list the `/dev` landing page renders. The page

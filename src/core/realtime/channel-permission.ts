@@ -1,7 +1,7 @@
 import type { Ability } from "../permissions/casl-ability.js";
 
 /**
- * Realtime permission-aware channels (PLAN.md §12).
+ * Realtime permission-aware channels.
  *
  * Channel naming convention: `<subject>:<scope>:<id>`
  *   `Project:item:abc`     — single project record

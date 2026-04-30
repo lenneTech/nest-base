@@ -10,7 +10,7 @@ const GITLAB_CI = resolve(ROOT, ".gitlab-ci.yml");
 
 /**
  * `Dockerfile.example` is a reference template for consumer projects
- * (PLAN.md §28.10/#29). The template repository itself does NOT build,
+ *. The template repository itself does NOT build,
  * sign, or publish a container — consumer projects copy/adapt this file
  * in their own repo. Tests pin the file's structural properties so a
  * regression is caught early.

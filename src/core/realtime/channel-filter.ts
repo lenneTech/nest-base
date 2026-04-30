@@ -2,7 +2,7 @@ import { parseChannelName } from "./channel-permission.js";
 import type { SocketClient, SocketSession } from "./socket-gateway.js";
 
 /**
- * Permission-Aware Channel-Filter (PLAN.md §12 + §32 Phase 5).
+ * Permission-Aware Channel-Filter.
  *
  * SocketGateway gates *who joins a room*; this filter gates *what each
  * subscriber receives once a broadcast lands*. The two layers run the

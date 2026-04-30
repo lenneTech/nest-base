@@ -1,7 +1,7 @@
 import { type Features, FeaturesSchema } from "../features/features.js";
 
 /**
- * Setup-Wizard planner (PLAN.md §19.5 + §32 Phase 7).
+ * Setup-Wizard planner.
  *
  * Pure function: WizardAnswers → WizardOutcome. The CLI prompt loop
  * (next slice) collects answers, the planner produces the exact bytes
@@ -25,7 +25,7 @@ export type EmailProvider = "smtp" | "brevo";
 export interface WizardAnswers {
   projectName: string;
   multiTenant: boolean;
-  /** Enables PowerSync for offline-first mobile clients (PLAN.md §13). */
+  /** Enables PowerSync for offline-first mobile clients. */
   mobile: boolean;
   webhooks: boolean;
   search: boolean;

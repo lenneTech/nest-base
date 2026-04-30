@@ -1,0 +1,257 @@
+# Architecture
+
+This is the load-bearing reference for *how* the server is put together —
+the modules, the layered defenses, the design choices we are not going
+to revisit casually. If you only have ten minutes, read this once and
+then keep it open while you work.
+
+For *how to write code that fits* this architecture, see
+[`code-guidelines.md`](./code-guidelines.md). For *how to contribute
+changes*, see [`../CONTRIBUTING.md`](../CONTRIBUTING.md).
+
+## What this server is
+
+A template-shaped NestJS server: many projects share the same
+`src/core/`, each project adds its own resources in `src/modules/`. The
+template itself is *not* a deployable application — consumers fork or
+sync, then deploy. See [`customization-guide.md`](./customization-guide.md)
+for the consumer perspective.
+
+## Tech stack
+
+| Layer | Choice | Why |
+|---|---|---|
+| Runtime | Bun 1.x (Node 22 fallback) | TypeScript-first, fast cold start, native test runner |
+| Framework | NestJS 11 | DI, decorators, modular, runs on Bun |
+| Language | TypeScript 5.9+ strict | No implicit `any`, no `@ts-ignore` |
+| ORM | Prisma 7 (driver-adapter mode) | Typed, migrations, Postgres-first |
+| DB | Postgres 18 | RLS, JSONB, FTS, `LISTEN/NOTIFY`, `pg_uuidv7` |
+| Auth | Better-Auth 1.6 | Email/PW, OAuth, 2FA, Passkey, sessions, JWT — one stack |
+| AuthZ | CASL 6 + DB-persisted rules | Industry standard; we own the persistence, not the engine |
+| Validation | Zod 4 | Single SoT for DTOs and OpenAPI schemas |
+| API | REST + OpenAPI 3.1 + Scalar UI | No GraphQL by design |
+| Storage | S3 / Local / Postgres | Three adapters, one interface |
+| Email | Nodemailer + Brevo | SMTP for dev, Brevo for prod |
+| Webhooks | pg-boss + HMAC-SHA256 | Standard-Webhooks spec, see [`webhook-spec.md`](./webhook-spec.md) |
+| Search | Postgres FTS (`tsvector` + GIN) | No external infra |
+| Realtime | Postgres `LISTEN/NOTIFY` + Socket.IO | Multi-instance without Redis |
+| Mobile sync | PowerSync + SQLite client | Offline-first |
+| Encryption | AES-256-GCM via `@47ng/cloak` | Field-level, key-versioned |
+| Geo | PostGIS + Mapbox/Nominatim/Google adapter | Standard Postgres-Geo, GeoJSON I/O |
+| Jobs | pg-boss (Postgres-native) | Cron, background, outbox — no Redis |
+| Rate limit | `@nestjs/throttler` + Postgres store | Multi-instance |
+| Observability | OpenTelemetry (OTLP) + Pino | Traces + metrics + correlated logs |
+| Errors | RFC 7807 Problem Details | `application/problem+json` |
+| IDs | UUID v7 | Time-sorted, B-tree friendly |
+| Tests | Vitest 4 (Bun test for perf only) | Bigger plugin ecosystem |
+| Lint/format | oxlint + oxfmt | Rust-based, fast |
+| API style | REST | No GraphQL, no subscriptions outside Socket.IO |
+
+### Out of scope (do not add)
+
+| Removed | Reason |
+|---|---|
+| GraphQL / Apollo | REST + OpenAPI is sufficient and halves complexity |
+| Legacy `CoreAuthService` | Better-Auth covers everything |
+| Vendor-Mode | Workaround for code comprehension; greenfield doesn't need it |
+| Mailjet | Brevo covers all use cases |
+| Mongoose / MongoDB / GridFS | Prisma + Postgres + S3 storage |
+| `@UnifiedField` decorator | Prisma + Zod are the SoT |
+| Self-built `@Restricted`/`@Roles` | Replaced by DB-configurable CASL permissions |
+| `process()`-style raw pipelines | Replaced by clear service vs. repository split |
+
+## Repository layout
+
+```
+src/
+├── main.ts
+├── app.module.ts
+├── core/                            ← Template-owned. Synced via bun run sync:from-template.
+│   ├── auth/                        ← Better-Auth integration
+│   ├── permissions/                 ← CASL engine + DB persistence
+│   ├── output-pipeline/             ← 4-stage interceptor (translate → CASL → filter → secrets)
+│   ├── multi-tenancy/               ← Tenant resolution + Postgres RLS
+│   ├── files/  storage/             ← Directus-style files, pluggable storage adapters
+│   ├── email/  webhooks/            ← Outbound channels
+│   ├── search/  realtime/           ← FTS, Socket.IO + LISTEN/NOTIFY
+│   ├── encryption/  geo/  mcp/      ← PII encryption, PostGIS, Model-Context-Protocol
+│   ├── jobs/  outbox/               ← pg-boss, outbox pattern for reliable events
+│   ├── errors/  audit/              ← RFC 7807, audit log
+│   ├── request-context/             ← AsyncLocalStorage per request
+│   ├── observability/               ← OpenTelemetry setup
+│   ├── dx/  dev/                    ← Scalar, NestJS DevTools, dev hub
+│   ├── features/                    ← FeaturesSchema (zod) — single source of truth for toggles
+│   └── http/  validation/  …
+├── modules/                         ← Project-owned. Add your domain code here.
+└── shared/                          ← Cross-tier types (channels, events, SDK seeds).
+prisma/
+├── schema.prisma                    ← Core schema, always present
+└── features/                        ← Feature-gated schemas, concatenated by bun run prepare:schema
+```
+
+For the `core/` ↔ `modules/` boundary, see
+[`customization-guide.md`](./customization-guide.md). For *what counts
+as public surface*, see
+[`api-stability-promise.md`](./api-stability-promise.md).
+
+## Permission model
+
+The system has three layers of authorization, applied in order on every
+read and every write — defense in depth:
+
+1. **Application layer (CASL)** — `can(action, subject, conditions)`
+   resolved per request from DB-persisted rules. Field-level and
+   item-level. This is the layer that decides *whether* a handler runs
+   and *which fields* it may write.
+2. **Repository layer (Prisma `WHERE`)** — `accessibleBy(ability, 'read')`
+   produces a Prisma filter that is `AND`-merged into every read query.
+   This is the layer that ensures a `findMany` never returns rows the
+   user can't see — even if the handler forgets to filter.
+3. **Database layer (Postgres RLS)** — tenant-isolation enforced by the
+   database itself. This is the last-resort backstop: even a SQL
+   injection that bypasses the ORM hits an RLS policy.
+
+CASL is the engine, *we own the persistence*. The schema:
+
+```
+Role  ──→  RolePolicy  ──→  Policy  ──→  Permission(resource, action, itemFilter, fields, validation, presets)
+```
+
+- **`itemFilter`** is a JSON filter expression (Directus DSL —
+  `_eq`, `_in`, `_and`, `_or`, etc.) with variable markers
+  (`$CURRENT_USER`, `$CURRENT_TENANT`, `$NOW`) resolved at request time.
+- **`fields`** is a string-array allowlist. **`fields = []` means "no
+  field-level restriction"** — see
+  [`OPEN_QUESTIONS.md`](../OPEN_QUESTIONS.md) for the rationale (CASL
+  cannot represent "deny every field" in a single rule; the deny case
+  is expressed by simply not granting the action).
+- **`presets`** are default values applied on `CREATE`.
+- **`validation`** is a JSON schema applied on `CREATE`/`UPDATE`.
+
+`Administrator` and `Public` are system roles — `Administrator` bypasses
+every check; `Public` applies to unauthenticated requests.
+
+## Output pipeline
+
+CASL handles read visibility (item filter) and static field allowlists.
+For *instance-dependent* filtering (masking, cross-lookups, computed
+visibility) we run a four-stage pipeline as a global interceptor:
+
+```
+Service returns Plain Object(s) from Prisma
+  ↓ Stage 1   i18n translate (Accept-Language → _translations)
+  ↓ Stage 2   CASL field allowlist (permittedFieldsOf → strip)
+  ↓ Stage 3   Filter-Service (per-resource @FilterFor, async, DI-aware)
+  ↓ Stage 4   Secret safety net (DEFAULT_SECRET_FIELDS + *Hash/*Token/*Secret regex)
+HTTP response
+```
+
+**Order matters**: translate before allowlist (otherwise `_translations`
+gets stripped); allowlist before filter-service (filters see only
+permitted fields); secret safety net last (independent of everything
+else).
+
+**Filter services** live in `src/core/output-pipeline/` and
+`src/modules/<resource>/<resource>.filter.service.ts`. They register
+themselves via `@FilterFor('Subject')` and implement
+`applyInstance(item, ctx)` — return `null` to drop the item entirely,
+return the (possibly modified) item to keep it.
+
+**The secret safety net is non-negotiable.** Even if a permission
+mistakenly grants a secret field, even if a filter forgets to strip it,
+the safety net removes it. New secret-shaped fields (`*Hash`, `*Token`,
+`*Secret`) are picked up automatically.
+
+## Multi-tenancy
+
+Two-layer isolation:
+
+- **App layer** — a request-scoped interceptor reads `tenantId` from
+  the session/JWT/API-key and stores it in `AsyncLocalStorage`. Every
+  CASL filter that includes `$CURRENT_TENANT` substitutes it from the
+  context.
+- **DB layer** — Postgres RLS policies enforce `tenant_id = current_setting('app.tenant_id')`.
+  `PrismaService` sets the session variable on every connection check-out.
+
+If app code forgets to scope a query, RLS denies the rows. If RLS is
+misconfigured, CASL still denies the rows. Both layers must fail open
+for a tenant leak to occur.
+
+## Cross-cutting subsystems
+
+These live in `src/core/` and are activated via `features.ts`:
+
+| Subsystem | Path | Purpose |
+|---|---|---|
+| Webhooks | `src/core/webhooks/` | Outbound HMAC-signed events; see [`webhook-spec.md`](./webhook-spec.md) |
+| Realtime | `src/core/realtime/` | `LISTEN/NOTIFY` → Socket.IO, permission-aware rooms |
+| MCP | `src/core/mcp/` | Model Context Protocol server, OAuth 2.1 (PKCE) |
+| Outbox | `src/core/outbox/` | Reliable event publishing (DB-write + dispatch in one tx) |
+| Audit | `src/core/audit/` | Append-only audit log, write-only by app, read-only via admin |
+| Jobs | `src/core/jobs/` | pg-boss wrapper for cron + background work |
+| Idempotency | `src/core/idempotency/` | Stripe-style `Idempotency-Key` header |
+| Concurrency | `src/core/concurrency/` | ETag / `If-Match` optimistic-lock |
+| Encryption | `src/core/encryption/` | AES-256-GCM field-level, key-versioned |
+| Geo | `src/core/geo/` | PostGIS + geocoding adapters |
+
+All are **opt-in via `features.ts`** — disabled features have zero
+footprint (no module load, no migration, no env-var requirement).
+
+## Security mechanisms (overview)
+
+| Layer | Mechanism |
+|---|---|
+| Network | TLS via reverse proxy, HSTS |
+| Boot | ENV validation (Zod), `assertCookiesProductionSafe()`, fail-fast |
+| CORS | Auto-derived from `BASE_URL`/`APP_URL`; opt-in `allowedOrigins[]` |
+| Cookies | httpOnly, Secure, SameSite=Lax (default), signed |
+| Auth | Better-Auth (sessions + JWT), 2FA, Passkey, rate-limit, brute-force lockout |
+| API keys | argon2id hash, scopes, expiry, revocation |
+| AuthZ | CASL + DB rules, field-level + item-level, presets, validation |
+| Output | 4-stage pipeline, secret safety net |
+| Field encryption | AES-256-GCM, key versioning, optional blind-index |
+| Webhooks | HMAC-SHA256, replay protection, auto-disable |
+| Realtime | Permission-aware rooms, auth handshake |
+| Mobile sync | Sync rules ⊆ READ permissions, JWT audience validation |
+| Tenant isolation | App layer + RLS |
+| Input | Zod pipe, mime-magic-byte for files |
+| DB | RLS, FK with `ON DELETE`, soft-delete |
+| Files | Mime allowlist, magic-byte, path-traversal guards, signed URLs |
+| Logging | Pino + OTel, W3C trace context, no PII in logs |
+| Rate limit | `@nestjs/throttler` + Postgres store, multi-window |
+| Headers | Helmet (HSTS, X-Content-Type-Options, X-Frame-Options, CSP) |
+| Idempotency | `Idempotency-Key` header, 24h cache |
+| Concurrency | `ETag` / `If-Match` |
+| Errors | RFC 7807 (`application/problem+json`) |
+| Secrets | Never in code; Better-Auth secret 32+ chars; rotation supported |
+| Dependencies | `bun audit` gate in CI, Renovate |
+
+## Initial data model
+
+```
+Auth        User · Account · Session · VerificationToken · TwoFactor · Passkey · Jwks · ApiKey
+Tenancy     Tenant · TenantMember
+Permission  Role · Policy · RolePolicy · Permission
+Files       FileFolder · File · FileBlob · AssetPreset
+Webhooks    WebhookEndpoint · WebhookDelivery
+Realtime    RealtimeSubscription                       (optional)
+Geo         Address · Geofence · GeocodingCache         (optional, PostGIS)
+Mobile      PowerSyncDevice                            (optional)
+Reliability AuditLog · OutboxEvent · IdempotencyKey
+System      ScheduledJob
+```
+
+Schemas in `prisma/schema.prisma` (always present) and
+`prisma/features/<feature>.prisma` (concatenated by
+`bun run prepare:schema` based on `features.ts`).
+
+## Where to read more
+
+- Coding conventions → [`code-guidelines.md`](./code-guidelines.md)
+- How to contribute → [`../CONTRIBUTING.md`](../CONTRIBUTING.md)
+- Project-specific code → [`customization-guide.md`](./customization-guide.md)
+- Public-surface stability → [`api-stability-promise.md`](./api-stability-promise.md)
+- Upstream PR workflow → [`core-contribution-guide.md`](./core-contribution-guide.md)
+- Template sync → [`template-update-workflow.md`](./template-update-workflow.md)
+- Webhook contract → [`webhook-spec.md`](./webhook-spec.md)
+- Working with AI agents → [`working-with-ai-agents.md`](./working-with-ai-agents.md)

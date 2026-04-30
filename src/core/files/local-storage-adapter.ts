@@ -10,7 +10,7 @@ import {
 } from "./storage-adapter.js";
 
 /**
- * Local Storage Adapter (PLAN.md §8 + §32 Phase 4).
+ * Local Storage Adapter.
  *
  * Backs the StorageAdapter contract with the local filesystem rooted
  * at `options.root`. Used in dev (when running RustFS feels heavy)

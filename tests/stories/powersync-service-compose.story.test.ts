@@ -21,7 +21,7 @@ interface Compose {
 }
 
 /**
- * Story · PowerSync service in docker-compose (PLAN.md §15.5 + §32 Phase 5b).
+ * Story · PowerSync service in docker-compose.
  *
  * The PowerSync sync engine runs as a sidecar container that pulls
  * the WAL from Postgres, applies sync-rules.yaml, and exposes a

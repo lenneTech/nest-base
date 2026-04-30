@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import type { GeocodingProvider, GeocodingResult } from "./geocoding-providers.js";
 
 /**
- * GeoService (PLAN.md §15 + §32 Phase 5c).
+ * GeoService.
  *
  * Cache-aware façade over the GeocodingProvider adapters plus three
  * pure SQL builders for the spatial query shapes downstream services

@@ -1,4 +1,4 @@
-# PowerSync sync rules (PLAN.md §15.5 + Phase 5b).
+# PowerSync sync rules.
 #
 # Each bucket is the unit of subscription a mobile client mounts. The
 # parameter query resolves a bucket *instance* per token (so userA and

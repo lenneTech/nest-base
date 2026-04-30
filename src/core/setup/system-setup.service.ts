@@ -1,10 +1,10 @@
 import type { SystemSetupConfig } from "./system-setup-config.js";
 
 /**
- * System-Setup (PLAN.md §25).
+ * System-Setup.
  *
  * On first boot the server provisions a single bootstrap admin from
- * env-var-derived config (PLAN.md §25). The service is intentionally
+ * env-var-derived config. The service is intentionally
  * storage-agnostic — it depends on a small `AdminProvisioningStorage`
  * interface so the actual user creation can be backed by Better-Auth
  * once its Prisma adapter lands without churning this code.

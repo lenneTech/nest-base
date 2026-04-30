@@ -12,7 +12,7 @@ import { StorageObjectNotFoundError } from "../../src/core/files/storage-adapter
 const ROOT = resolve(import.meta.dirname, "..", "..");
 
 /**
- * Story · Postgres Storage Adapter (PLAN.md §8 + §32 Phase 4).
+ * Story · Postgres Storage Adapter.
  *
  * Stores blobs in Postgres via Prisma. The injectable
  * `FileBlobOperations` interface lets unit tests run without a DB;

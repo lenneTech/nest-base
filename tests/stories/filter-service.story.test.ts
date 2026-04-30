@@ -8,7 +8,7 @@ import {
 } from "../../src/core/permissions/filter-service.js";
 
 /**
- * Story · Filter-Service Pattern (PLAN.md §22)
+ * Story · Filter-Service Pattern
  *
  *   @FilterFor('Project')
  *   @Injectable()

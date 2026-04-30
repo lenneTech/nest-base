@@ -97,7 +97,7 @@ class BoomModule {}
  * Adapted from nest-server `error-code-scenarios.e2e-spec.ts`.
  *
  * Every error response on the API must follow RFC 7807 Problem Details
- * with our `CORE_*` codes (PLAN.md §28.8/#22). The filter recognizes:
+ * with our `CORE_*` codes. The filter recognizes:
  *   - `HttpException` (NestJS) → reuse status + `CORE_*` mapping
  *   - `ZodError` → 400 + `CORE_VALIDATION` + per-field `errors`
  *   - anything else → 500 + `CORE_INTERNAL`, message redacted
