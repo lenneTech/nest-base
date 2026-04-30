@@ -153,14 +153,30 @@ function renderEnvExample(answers: WizardAnswers): string {
   if (answers.emailEnabled) {
     lines.push("");
     lines.push("# ── Email ──────────────────────────────────────────────────────");
-    if (answers.emailProvider === "smtp") {
-      lines.push("SMTP_HOST=localhost");
-      lines.push("SMTP_PORT=1025");
-      lines.push("SMTP_USER=");
-      lines.push("SMTP_PASS=");
-    } else {
-      lines.push("BREVO_API_KEY=");
-    }
+    lines.push("# Default points at the Mailpit container in docker-compose");
+    lines.push("# (`docker compose up -d mailpit`, web UI on http://localhost:8025).");
+    lines.push("# For production, set SMTP_HOST/PORT/USER/PASS to your real relay or");
+    lines.push("# switch the provider to Brevo via FEATURE_EMAIL_PROVIDER=brevo.");
+    lines.push("SMTP_HOST=localhost");
+    lines.push("SMTP_PORT=1025");
+    lines.push("SMTP_USER=");
+    lines.push("SMTP_PASS=");
+    lines.push("# Sender address for outbound mail. Override per environment.");
+    lines.push("SMTP_FROM=no-reply@example.com");
+    lines.push("# Implicit-TLS (port 465). Leave false for STARTTLS (587) or plain dev.");
+    lines.push("SMTP_SECURE=false");
+    lines.push("# Force STARTTLS upgrade on a non-secure port. Off by default so dev");
+    lines.push("# relays without TLS (Mailpit) keep working out of the box.");
+    lines.push("SMTP_REQUIRE_TLS=false");
+    lines.push("# Outbound connection pool size + per-attempt timeout (ms). Outbox");
+    lines.push("# (#11) handles retries; the driver itself fails fast.");
+    lines.push("SMTP_POOL_SIZE=5");
+    lines.push("SMTP_TIMEOUT_MS=10000");
+    lines.push("");
+    lines.push("# Brevo (transactional API). Required when FEATURE_EMAIL_PROVIDER=brevo");
+    lines.push("# OR when you want to use sendTemplate({ brevoTemplateId }) alongside SMTP.");
+    lines.push("# Get a key at https://app.brevo.com/settings/keys/api.");
+    lines.push("BREVO_API_KEY=");
   }
   if (answers.fieldEncryption) {
     lines.push("");

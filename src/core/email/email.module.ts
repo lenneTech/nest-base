@@ -2,10 +2,7 @@ import { Logger, Module } from "@nestjs/common";
 
 import { loadFeatures } from "../features/features.js";
 import { resolveBrandConfig } from "./brand.js";
-import {
-  BrevoEmailDriver,
-  createBrevoHttpClient,
-} from "./drivers/brevo.driver.js";
+import { BrevoEmailDriver, createBrevoHttpClient } from "./drivers/brevo.driver.js";
 import {
   SmtpEmailDriver,
   createSmtpTransporter,

@@ -92,14 +92,25 @@ describe("Story · Setup-Wizard planner", () => {
       expect(env).toMatch(/^BETTER_AUTH_SECRET=/m);
     });
 
-    it("includes BREVO_API_KEY when emailProvider=brevo", () => {
-      const env = planSetup(answers({ emailProvider: "brevo" })).envExample;
-      expect(env).toMatch(/^BREVO_API_KEY=/m);
+    it("includes BREVO_API_KEY whenever email is enabled (Brevo is also a transactional add-on for SMTP)", () => {
+      const envBrevo = planSetup(answers({ emailProvider: "brevo" })).envExample;
+      expect(envBrevo).toMatch(/^BREVO_API_KEY=/m);
+      const envSmtp = planSetup(answers({ emailProvider: "smtp" })).envExample;
+      expect(envSmtp).toMatch(/^BREVO_API_KEY=/m);
     });
 
-    it("omits BREVO_API_KEY when emailProvider=smtp", () => {
-      const env = planSetup(answers({ emailProvider: "smtp" })).envExample;
+    it("omits BREVO_API_KEY when email is fully disabled", () => {
+      const env = planSetup(answers({ emailEnabled: false })).envExample;
       expect(env).not.toMatch(/^BREVO_API_KEY=/m);
+    });
+
+    it("includes the SMTP_FROM/SECURE/REQUIRE_TLS/POOL_SIZE/TIMEOUT_MS knobs when SMTP is the provider", () => {
+      const env = planSetup(answers({ emailProvider: "smtp" })).envExample;
+      expect(env).toMatch(/^SMTP_FROM=/m);
+      expect(env).toMatch(/^SMTP_SECURE=/m);
+      expect(env).toMatch(/^SMTP_REQUIRE_TLS=/m);
+      expect(env).toMatch(/^SMTP_POOL_SIZE=/m);
+      expect(env).toMatch(/^SMTP_TIMEOUT_MS=/m);
     });
 
     it("includes FIELD_ENCRYPTION_KEK when fieldEncryption=true", () => {

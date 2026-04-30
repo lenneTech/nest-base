@@ -175,7 +175,9 @@ export class BrevoEmailDriver implements EmailDriver {
       body,
     });
     if (res.status < 200 || res.status >= 300) {
-      this.logger.error(`[brevo] send failed: status=${res.status} body=${JSON.stringify(res.body)}`);
+      this.logger.error(
+        `[brevo] send failed: status=${res.status} body=${JSON.stringify(res.body)}`,
+      );
       throw new BrevoApiError(res.status, res.body);
     }
     const messageId = pickMessageId(res.body);

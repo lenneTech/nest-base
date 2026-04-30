@@ -121,21 +121,20 @@ export class SmtpEmailDriver implements EmailDriver {
  * pass `secure: false` and Nodemailer auto-upgrades the connection
  * (`requireTLS: true` makes the upgrade mandatory).
  */
-export function createSmtpTransporter(
-  cfg: SmtpConnectionConfig,
-): Transporter & SmtpTransporter {
-  const auth = cfg.user
-    ? { user: cfg.user, pass: cfg.pass ?? "" }
-    : undefined;
-  return nodemailer.createTransport({
+export function createSmtpTransporter(cfg: SmtpConnectionConfig): Transporter & SmtpTransporter {
+  const auth = cfg.user ? { user: cfg.user, pass: cfg.pass ?? "" } : undefined;
+  // `allowInternalNetworkInterfaces` is a Nodemailer ≥ 7 runtime option
+  // that bypasses the SSRF guard against loopback / private addresses.
+  // Mailpit, Brevo's local relay, and any dev-side SMTP container all
+  // sit on private IPs, so without this flag the socket connects but
+  // the data event never fires. The option is missing from the public
+  // `TransportOptions` type (as of @types/nodemailer 8.0.0); cast keeps
+  // the call type-safe at the boundary without weakening the rest.
+  const options = {
     host: cfg.host,
     port: cfg.port,
     secure: cfg.secure,
     ...(cfg.requireTls ? { requireTLS: true } : {}),
-    // Nodemailer 7+ blocks connections to private/loopback addresses by
-    // default (SSRF guard). Mailpit, Brevo's local relay, and any
-    // dev-side SMTP container all sit on private IPs — without this
-    // flag the SMTP socket connects but the data event never fires.
     allowInternalNetworkInterfaces: true,
     pool: true,
     maxConnections: cfg.poolSize ?? DEFAULT_POOL_SIZE,
@@ -143,14 +142,17 @@ export function createSmtpTransporter(
     greetingTimeout: cfg.timeoutMs ?? DEFAULT_TIMEOUT_MS,
     socketTimeout: cfg.timeoutMs ?? DEFAULT_TIMEOUT_MS,
     ...(auth ? { auth } : {}),
-  });
+  } as Parameters<typeof nodemailer.createTransport>[0];
+  return nodemailer.createTransport(options);
 }
 
 /**
  * Pure planner — derives the SMTP-driver config from a flat env map.
  * Returns `null` if no `SMTP_HOST` is set (caller falls back to log-only).
  */
-export function readSmtpConfigFromEnv(env: Record<string, string | undefined>): SmtpConnectionConfig | null {
+export function readSmtpConfigFromEnv(
+  env: Record<string, string | undefined>,
+): SmtpConnectionConfig | null {
   const host = env.SMTP_HOST?.trim();
   if (!host) return null;
   const port = Number(env.SMTP_PORT ?? "1025");

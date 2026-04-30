@@ -174,7 +174,10 @@ describe("Story · BrevoEmailDriver", () => {
     });
 
     it("throws BrevoMissingApiKeyError when no api key is configured", async () => {
-      const driver = new BrevoEmailDriver({ apiKey: "", http: fakeHttp(async () => ({ status: 0, body: {} })) });
+      const driver = new BrevoEmailDriver({
+        apiKey: "",
+        http: fakeHttp(async () => ({ status: 0, body: {} })),
+      });
       await expect(
         driver.send({
           to: "u@example.com",
@@ -226,13 +229,14 @@ describe("Story · BrevoEmailDriver", () => {
         method: "GET",
         path: "/v3/smtp/templates?limit=50&offset=0",
       });
-      expect(list).toEqual([
-        { id: 1, name: "welcome", subject: "Welcome", isActive: true },
-      ]);
+      expect(list).toEqual([{ id: 1, name: "welcome", subject: "Welcome", isActive: true }]);
     });
 
     it("throws BrevoMissingApiKeyError when called without a key", async () => {
-      const driver = new BrevoEmailDriver({ apiKey: "", http: fakeHttp(async () => ({ status: 0, body: {} })) });
+      const driver = new BrevoEmailDriver({
+        apiKey: "",
+        http: fakeHttp(async () => ({ status: 0, body: {} })),
+      });
       await expect(driver.listTemplates({})).rejects.toThrow(BrevoMissingApiKeyError);
     });
   });
@@ -259,7 +263,10 @@ describe("Story · BrevoEmailDriver", () => {
     });
 
     it("throws BrevoMissingApiKeyError when called without a key", async () => {
-      const driver = new BrevoEmailDriver({ apiKey: "", http: fakeHttp(async () => ({ status: 0, body: {} })) });
+      const driver = new BrevoEmailDriver({
+        apiKey: "",
+        http: fakeHttp(async () => ({ status: 0, body: {} })),
+      });
       await expect(driver.getTemplate(1)).rejects.toThrow(BrevoMissingApiKeyError);
     });
   });

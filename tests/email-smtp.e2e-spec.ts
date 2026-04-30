@@ -1,10 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { GenericContainer, type StartedTestContainer, Wait } from "testcontainers";
 
-import {
-  SmtpEmailDriver,
-  createSmtpTransporter,
-} from "../src/core/email/drivers/smtp.driver.js";
+import { SmtpEmailDriver, createSmtpTransporter } from "../src/core/email/drivers/smtp.driver.js";
 
 /**
  * E2E · SMTP-Driver against Mailpit.
@@ -71,9 +68,12 @@ describe("E2E · SMTP-Driver against Mailpit", () => {
     // Close the pool so the test process exits cleanly.
     transporter.close();
 
-    const list = await fetch(`${httpUrl}/api/v1/messages`).then((r) => r.json() as Promise<{
-      messages: Array<{ Subject: string; To: Array<{ Address: string }> }>;
-    }>);
+    const list = await fetch(`${httpUrl}/api/v1/messages`).then(
+      (r) =>
+        r.json() as Promise<{
+          messages: Array<{ Subject: string; To: Array<{ Address: string }> }>;
+        }>,
+    );
     const found = list.messages.find((m) => m.Subject === subject);
     expect(found, `no Mailpit message with subject ${subject}`).toBeDefined();
     expect(found?.To?.[0]?.Address).toBe("test@example.com");
@@ -97,9 +97,12 @@ describe("E2E · SMTP-Driver against Mailpit", () => {
     });
     transporter.close();
 
-    const list = await fetch(`${httpUrl}/api/v1/messages`).then((r) => r.json() as Promise<{
-      messages: Array<{ ID: string; Subject: string }>;
-    }>);
+    const list = await fetch(`${httpUrl}/api/v1/messages`).then(
+      (r) =>
+        r.json() as Promise<{
+          messages: Array<{ ID: string; Subject: string }>;
+        }>,
+    );
     const msg = list.messages.find((m) => m.Subject === subject);
     expect(msg).toBeDefined();
     if (!msg) return;

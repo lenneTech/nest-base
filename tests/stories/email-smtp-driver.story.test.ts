@@ -19,9 +19,7 @@ import type { EmailMessage } from "../../src/core/email/email.service.js";
  * keeps the test independent of any third-party lib.
  */
 describe("Story · SmtpEmailDriver", () => {
-  function fakeTransporter(
-    mode: "ok" | "fail" = "ok",
-  ): SmtpTransporter & { sent: object[] } {
+  function fakeTransporter(mode: "ok" | "fail" = "ok"): SmtpTransporter & { sent: object[] } {
     const sent: object[] = [];
     return {
       sent,
