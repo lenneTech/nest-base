@@ -12,11 +12,13 @@ import {
 import {
   type EmailDriver,
   type EmailMessage,
+  type EmailOutboxEnqueuer,
   type EmailSendResult,
   type EmailTemplateRenderer,
   EmailService,
 } from "./email.service.js";
 import { ReactEmailTemplateRenderer } from "./email-templates.react.js";
+import { EMAIL_OUTBOX_RECORDER } from "./email-outbox.token.js";
 
 /**
  * Logs the message to stdout instead of sending. Default driver when
@@ -104,7 +106,7 @@ export function selectEmailDriver(input: DriverSelectionInput): DriverSelection 
   providers: [
     {
       provide: EmailService,
-      useFactory: (): EmailService => {
+      useFactory: (outbox?: EmailOutboxEnqueuer): EmailService => {
         const env = process.env as Record<string, string | undefined>;
         const features = loadFeatures(env);
         const selection = selectEmailDriver({
@@ -129,8 +131,15 @@ export function selectEmailDriver(input: DriverSelectionInput): DriverSelection 
         if (selection.transactional) {
           options.transactional = createDriver(selection.transactional, env);
         }
+        // Wire the outbox recorder when EmailOutboxModule is in the
+        // import graph. EmailService stays usable without it (direct
+        // mode); only `mode: "outbox"` calls would then throw.
+        if (outbox) options.outbox = outbox;
         return new EmailService(options);
       },
+      // Optional inject — EmailService still works in test setups
+      // that don't pull in the outbox module.
+      inject: [{ token: EMAIL_OUTBOX_RECORDER, optional: true }],
     },
   ],
   exports: [EmailService],
