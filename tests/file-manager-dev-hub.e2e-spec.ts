@@ -110,9 +110,9 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
           .set("x-tenant-id", tenantId);
         expect(res.status).toBe(200);
         expect(Array.isArray(res.body.files)).toBe(true);
-        const matched = (res.body.files as Array<{ id: string; filename: string; thumbnailUrl?: string }>).find(
-          (f) => f.id === fileRow.id,
-        );
+        const matched = (
+          res.body.files as Array<{ id: string; filename: string; thumbnailUrl?: string }>
+        ).find((f) => f.id === fileRow.id);
         expect(matched).toBeDefined();
         expect(matched!.filename).toBe("annual.pdf");
         expect(typeof res.body.totalCount).toBe("number");

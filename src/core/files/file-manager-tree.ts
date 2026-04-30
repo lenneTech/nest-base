@@ -93,7 +93,8 @@ export function buildFolderTree(input: readonly FolderTreeInput[]): FolderTreeNo
       const folder = byId.get(id);
       if (!folder) continue;
       // Detach: remove from its current parent's child list, attach as root.
-      const oldParent = folder.parentId !== null && byId.has(folder.parentId) ? folder.parentId : null;
+      const oldParent =
+        folder.parentId !== null && byId.has(folder.parentId) ? folder.parentId : null;
       const oldList = childrenByParent.get(oldParent);
       if (oldList) {
         childrenByParent.set(

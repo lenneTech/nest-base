@@ -81,6 +81,9 @@ const ErrorsPage = lazy(() =>
 const OpenApiPage = lazy(() =>
   import("./pages/OpenApiPage.js").then((m) => ({ default: m.OpenApiPage })),
 );
+const FileManagerPage = lazy(() =>
+  import("./pages/FileManagerPage.js").then((m) => ({ default: m.FileManagerPage })),
+);
 
 function PageFallback(): ReactNode {
   return (
@@ -111,6 +114,7 @@ export function App(): ReactNode {
         <Route path="/dev/email-preview" element={<EmailPreviewPage />} />
         <Route path="/dev/email-builder" element={<EmailBuilderPage />} />
         <Route path="/dev/postgrest-parse" element={<PostgrestParsePage />} />
+        <Route path="/dev/files" element={<FileManagerPage />} />
         <Route path="/admin/permissions/test" element={<PermissionTesterPage />} />
         <Route path="/admin/webhooks" element={<WebhookInspectorPage />} />
         <Route path="/admin/realtime" element={<RealtimeInspectorPage />} />

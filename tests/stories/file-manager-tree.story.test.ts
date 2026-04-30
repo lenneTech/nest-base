@@ -66,10 +66,7 @@ describe("Story · File-Manager folder-tree planner", () => {
   });
 
   it("promotes orphans (unknown parentId) to root so a partial load still renders", () => {
-    const tree = buildFolderTree([
-      f("a", "Anchor"),
-      f("orphan", "Orphan", "missing-parent"),
-    ]);
+    const tree = buildFolderTree([f("a", "Anchor"), f("orphan", "Orphan", "missing-parent")]);
     // Orphan is at the root level; the root array has both nodes.
     expect(tree.map((n) => n.name).sort()).toEqual(["Anchor", "Orphan"]);
   });

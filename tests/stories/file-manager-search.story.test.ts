@@ -102,7 +102,9 @@ describe("Story · File-Manager sort + filter planner", () => {
     });
 
     it("ignores unknown sortBy values and falls back to name asc", () => {
-      const out = applyFileSearch(files, { sortBy: "garbage" as unknown as FileSearchOptions["sortBy"] });
+      const out = applyFileSearch(files, {
+        sortBy: "garbage" as unknown as FileSearchOptions["sortBy"],
+      });
       expect(out.map((f) => f.id)).toEqual(["2", "1", "3"]);
     });
   });

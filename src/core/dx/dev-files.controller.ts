@@ -223,10 +223,7 @@ export class DevFilesController {
    * Defense in depth: explicit UUID check on the resolved value so a
    * misbehaving operator cannot smuggle a non-UUID into Prisma queries.
    */
-  private resolveTenantId(
-    queryParam: string | undefined,
-    headerValue: string | undefined,
-  ): string {
+  private resolveTenantId(queryParam: string | undefined, headerValue: string | undefined): string {
     const candidate = (queryParam ?? headerValue ?? "").trim();
     if (!candidate) {
       throw new BadRequestException("tenantId required (header or ?tenantId=)");
