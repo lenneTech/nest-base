@@ -197,6 +197,68 @@ These live in `src/core/` and are activated via `features.ts`:
 All are **opt-in via `features.ts`** — disabled features have zero
 footprint (no module load, no migration, no env-var requirement).
 
+## Dev-Portal-Frontend
+
+Every `/dev/*` HTML page is served by a React 19 single-page app.
+The legacy server-rendered `/admin/*` pages stay HTML-only; the
+`*-ui.ts` legacy renderers live on at `/dev/<name>.html` for visual
+regression diffing. The SPA is developer-only — every route 404s
+outside `NODE_ENV=development`.
+
+| Aspect | Path | Purpose |
+|---|---|---|
+| Shell renderer (planner) | `src/core/dx/dev-portal-shell.ts` | Pure function: title + script URL + token CSS URL → static HTML5 skeleton with `<div id="root">` |
+| SPA source tree | `src/core/dx/clients/` | Browser-only: `main.tsx` (entry), `App.tsx` (router), `layout/`, `pages/`, `components/`, `lib/`, `styles/` |
+| Layout shell | `src/core/dx/clients/layout/AdminShell.tsx` + `nav.ts` + `icons.tsx` | React port of `admin-layout.ts` — same sidebar / header / SVG icons / active-state highlight |
+| Pages | `src/core/dx/clients/pages/` | One component per `/dev/*` URL: `DevHubLandingPage`, `FeaturesPage`, `CoveragePage`, `TestsPage`, `DiagnosticsPage`, `LogsPage`, `TracesPage`, `QueriesPage`, `RoutesPage`, `ErdPage`, `EmailPreviewPage`, `PostgrestParsePage`, `ComponentShowcasePage` — each lazy-loaded via `React.lazy` |
+| Component library | `src/core/dx/clients/components/` | `react-aria-components` wrappers — Button, TextField, NumberField, Switch, Checkbox, RadioGroup, Select, Combobox, DialogModal, Tabs, Menu, Tooltip, FileTrigger, Toast — plus a `JsonViewer` that mirrors `json-viewer-ui.ts` |
+| Design tokens | `src/core/dx/clients/styles/tokens.css` | `:root` custom properties, mirror of `admin-layout.ts` (Z. 184-262) |
+| Page chrome CSS | `src/core/dx/clients/styles/admin-layout.css` | 1:1 port of `admin-layout.ts`'s `ADMIN_LAYOUT_CSS` plus every per-page `<style>` block from the `*-ui.ts` renderers; React JSX re-uses the same classnames so the diff vs. the server HTML is zero |
+| Component styles | `src/core/dx/clients/styles/components.css` | `.dp-*` selectors targeting `react-aria` `data-*` states (input primitives only) |
+| Build script | `scripts/build-dev-portal.ts` | `Bun.build({ target: "browser", splitting: true, minify: true })` → `dist/dev-portal/` |
+| JSON aggregates | `dev-hub.controller.ts` | `/dev/dashboard.json` (cockpit aggregate), `/dev/feature-catalog.json`, `/dev/coverage.json`, `/dev/tests.json` plus the existing `*.json` siblings the React pages consume |
+| Static asset endpoint | `GET /dev/static/:filename` | 404 outside development; allow-list filename, MIME-detect, stream from `dist/dev-portal/` |
+| Catch-all | `GET /dev/*splat` | Returns the SPA shell so client-side routes work without a server change |
+| Legacy server pages | `GET /dev/<name>.html` | Each migrated `*-ui.ts` renderer is still reachable at its `.html` URL — useful for pixel-fidelity diffing during the React port |
+| Server tsconfig | `tsconfig.json` (excludes `src/core/dx/clients/**`) | Server build never sees browser code |
+| Client tsconfig | `tsconfig.client.json` | `jsx: "react-jsx"`, `lib: ["ES2022","DOM","DOM.Iterable"]`, `types: []` |
+
+### Build & dev-loop
+
+- `bun run build:dev-portal` produces `dist/dev-portal/main.js` (+
+  code-split chunks + `main.css` + `tokens.css`). Bundle budget: ≤ 400
+  KB gzipped for the Base-SPA (no Monaco, no TipTap). Current size:
+  ~116 KB initial / ~261 KB total (all chunks) gzipped.
+- `bun run dev` runs an awaited initial portal build *before* the API
+  child spawns, then starts `bun run build:dev-portal --watch` for
+  incremental rebuilds (~80 ms warm). This eliminates the startup
+  race where a request to `/dev/static/main.js` could hit a missing
+  bundle.
+- `bun run setup` builds the SPA once after `bun install` so
+  `/dev/static/main.js` exists before the first dev start.
+
+### Coverage
+
+`src/core/dx/clients/**` is **excluded** from the ≥ 70 % core
+coverage threshold (see `vitest.config.ts`). UI glue is exercised
+manually in development and by future Chrome-DevTools-MCP smoke
+tests; the **shell renderer** keeps a story test
+(`tests/stories/dev-portal-shell.story.test.ts`) because it crosses
+the trust boundary (server → browser).
+
+### Conventions
+
+- **Native HTML inputs (`<button>`, `<input>`, `<select>`, …) are
+  forbidden in `clients/`.** Every interactive primitive goes through
+  `react-aria-components` via the wrappers in `components/`. Focus
+  rings, ARIA roles, and keyboard navigation stay correct without
+  per-call boilerplate.
+- **No `process.env.*` / Node imports.** This tree is browser-only;
+  `tsconfig.client.json` excludes Node types so this fails at compile
+  time.
+- **`/admin/*` stays server-rendered** — out of scope for the
+  Dev-Portal migration.
+
 ## Security mechanisms (overview)
 
 | Layer | Mechanism |

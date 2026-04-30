@@ -38,6 +38,11 @@ export default defineConfig({
         // Smoke-tested via story tests + visited live during dev.
         'src/core/dx/*-ui.ts',
         'src/core/dx/dashboard-ui.ts',
+        // Dev-Portal SPA source. Browser-only React tree, bundled by
+        // `bun run build:dev-portal` and exercised manually in
+        // development. The shell renderer (dev-portal-shell.ts) stays
+        // covered — it crosses the trust boundary (server → browser).
+        'src/core/dx/clients/**',
         // Non-source artefacts that may live inside src/ but never
         // execute: directory placeholders, ignore lists, docs. v8 can
         // pick these up if they end up in the include glob — exclude

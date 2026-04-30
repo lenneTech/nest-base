@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { randomBytes as nodeRandomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -173,6 +174,12 @@ export interface RunSetupWizardOptions {
    * tests but collides between two `--next` workspaces in real life.
    */
   postgresHostPort?: number;
+  /**
+   * Override the dev-portal build invocation (tests). Defaults to
+   * `bun run scripts/build-dev-portal.ts` so the SPA bundle is in place
+   * before the first `bun run dev`. Pass `() => 0` in tests to skip.
+   */
+  buildDevPortal?: (cwd: string) => number;
 }
 
 export interface SetupWizardResult {
@@ -180,6 +187,8 @@ export interface SetupWizardResult {
   envPath: string;
   /** True when this run wrote `.env`; false when it was already present. */
   created: boolean;
+  /** Exit code returned by the dev-portal bundler. `null` when not run. */
+  devPortalBuildExit: number | null;
 }
 
 const SILENT_LOGGER: SetupWizardLogger = { info: () => {}, warn: () => {} };
@@ -201,21 +210,47 @@ export function runSetupWizard(options: RunSetupWizardOptions): SetupWizardResul
     writeFileSync(examplePath, buildDefaultEnvExample(), "utf8");
   }
 
+  let created = false;
   if (existsSync(envPath)) {
     logger.warn(
       `${envPath} already exists — refusing to overwrite (delete it first to regenerate)`,
     );
-    return { envPath, created: false };
+  } else {
+    const exampleText = readFileSync(examplePath, "utf8");
+    const projectName = readPackageJsonName(options.projectRoot);
+    const rendered = planEnvFromExample(exampleText, {
+      randomBytes: options.randomBytes ?? ((size) => nodeRandomBytes(size)),
+      projectName,
+      postgresHostPort: options.postgresHostPort,
+    });
+    writeFileSync(envPath, rendered, "utf8");
+    logger.info(`wrote ${envPath} with auto-generated secrets`);
+    created = true;
   }
 
-  const exampleText = readFileSync(examplePath, "utf8");
-  const projectName = readPackageJsonName(options.projectRoot);
-  const rendered = planEnvFromExample(exampleText, {
-    randomBytes: options.randomBytes ?? ((size) => nodeRandomBytes(size)),
-    projectName,
-    postgresHostPort: options.postgresHostPort,
-  });
-  writeFileSync(envPath, rendered, "utf8");
-  logger.info(`wrote ${envPath} with auto-generated secrets`);
-  return { envPath, created: true };
+  // Build the Dev-Portal SPA once so `/dev/static/main.js` exists from
+  // the very first `bun run dev`. Skipped silently when the entry file
+  // is absent (some downstream projects may strip the dev surface).
+  let devPortalBuildExit: number | null = null;
+  const portalEntry = join(options.projectRoot, "src/core/dx/clients/main.tsx");
+  const buildPortalScript = join(options.projectRoot, "scripts/build-dev-portal.ts");
+  if (existsSync(portalEntry) && existsSync(buildPortalScript)) {
+    const builder =
+      options.buildDevPortal ??
+      ((cwd: string) =>
+        spawnSync("bun", ["run", "scripts/build-dev-portal.ts"], {
+          cwd,
+          stdio: "inherit",
+        }).status ?? 1);
+    devPortalBuildExit = builder(options.projectRoot);
+    if (devPortalBuildExit === 0) {
+      logger.info("built dev-portal bundle (dist/dev-portal/main.js)");
+    } else {
+      logger.warn(
+        `dev-portal build returned exit code ${devPortalBuildExit} — run \`bun run build:dev-portal\` manually`,
+      );
+    }
+  }
+
+  return { envPath, created, devPortalBuildExit };
 }

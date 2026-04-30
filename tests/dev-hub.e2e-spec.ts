@@ -33,34 +33,66 @@ describe("Dev-Hub · GET /dev", () => {
       expect(res.headers["content-type"]).toMatch(/text\/html/);
     });
 
-    it('mentions "Dev Hub" or similar in the page title', async () => {
+    it('serves the SPA shell with a "Dev Portal" title', async () => {
       const res = await request(app.getHttpServer()).get("/dev");
-      expect(res.text).toMatch(/Dev[ -]Hub|Dev Tools|Developer/i);
+      // The shell renders one HTML5 document with a fixed title and a
+      // <div id="root"> mount point — the React bundle hydrates the
+      // rest at runtime.
+      expect(res.text).toMatch(/<title>Dev Portal — nest-server<\/title>/);
+      expect(res.text).toContain('<div id="root"></div>');
     });
 
-    it("renders at least the always-on tool links (Permission Tester, Active Features)", async () => {
+    it("loads the bundled SPA script as type=module from /dev/static/main.js", async () => {
       const res = await request(app.getHttpServer()).get("/dev");
-      expect(res.text).toContain("/admin/permissions/test");
-      expect(res.text).toContain("/dev/features");
+      expect(res.text).toMatch(
+        /<script\s+type="module"\s+src="\/dev\/static\/main\.js"><\/script>/,
+      );
     });
 
     it("escapes HTML in the rendered page (no raw user-controlled fragments)", async () => {
       const res = await request(app.getHttpServer()).get("/dev");
       // Anti-injection heuristic: every <script> opening must have a
-      // matching </script> close somewhere in the document. The page
-      // legitimately contains a few <script> tags (live polling, dev-hub
-      // overlays); they all close themselves.
+      // matching </script> close somewhere in the document.
       const opens = (res.text.match(/<script\b/g) ?? []).length;
       const closes = (res.text.match(/<\/script>/g) ?? []).length;
       expect(opens).toBe(closes);
     });
 
-    it("GET /dev/features renders the HTML feature page", async () => {
+    it("legacy server-rendered cockpit is still reachable at /dev/cockpit", async () => {
+      const res = await request(app.getHttpServer()).get("/dev/cockpit");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/text\/html/);
+      // The cockpit lists every server-rendered tool link.
+      expect(res.text).toContain("/admin/permissions/test");
+      expect(res.text).toContain("/dev/features");
+    });
+
+    it("GET /dev/features serves the SPA shell with the correct title", async () => {
       const res = await request(app.getHttpServer()).get("/dev/features");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/text\/html/);
+      // The Dev-Portal SPA shell. The page-specific DOM is rendered by
+      // React on the client; the HTML response is just the loader.
+      expect(res.text).toContain('<div id="root"></div>');
+      expect(res.text).toContain("Features — nest-server");
+    });
+
+    it("GET /dev/features.html still renders the legacy server HTML page", async () => {
+      const res = await request(app.getHttpServer()).get("/dev/features.html");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/text\/html/);
       expect(res.text).toContain("FEATURE_WEBHOOKS_ENABLED");
       expect(res.text).toContain("Multi-Tenancy");
+    });
+
+    it("GET /dev/feature-catalog.json returns the FEATURE_CATALOG + active Features", async () => {
+      const res = await request(app.getHttpServer()).get("/dev/feature-catalog.json");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/application\/json/);
+      expect(Array.isArray(res.body.catalog)).toBe(true);
+      expect(res.body.catalog.length).toBeGreaterThan(0);
+      expect(res.body.catalog.find((m: { key: string }) => m.key === "webhooks")).toBeTruthy();
+      expect(res.body).toHaveProperty("features.multiTenancy");
     });
 
     it("GET /dev/features.json returns the active Features object as JSON", async () => {
@@ -89,8 +121,16 @@ describe("Dev-Hub · GET /dev", () => {
       expect(res.body.runtime.platform).toMatch(/darwin|linux|win32/);
     });
 
-    it("GET /dev/routes renders the HTML route inventory page", async () => {
+    it("GET /dev/routes serves the SPA shell with the correct title", async () => {
       const res = await request(app.getHttpServer()).get("/dev/routes");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/text\/html/);
+      expect(res.text).toContain('<div id="root"></div>');
+      expect(res.text).toContain("Routes — nest-server");
+    });
+
+    it("GET /dev/routes.html still renders the legacy server route inventory page", async () => {
+      const res = await request(app.getHttpServer()).get("/dev/routes.html");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/text\/html/);
       expect(res.text).toMatch(/Routes/);
@@ -121,8 +161,16 @@ describe("Dev-Hub · GET /dev", () => {
       expect(typeof trace.status).toBe("number");
     });
 
-    it("GET /dev/queries renders the HTML query-performance page", async () => {
+    it("GET /dev/queries serves the SPA shell with the correct title", async () => {
       const res = await request(app.getHttpServer()).get("/dev/queries");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/text\/html/);
+      expect(res.text).toContain('<div id="root"></div>');
+      expect(res.text).toContain("Queries — nest-server");
+    });
+
+    it("GET /dev/queries.html still renders the legacy server query-performance page", async () => {
+      const res = await request(app.getHttpServer()).get("/dev/queries.html");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/text\/html/);
       expect(res.text).toMatch(/Queries/);
@@ -143,8 +191,16 @@ describe("Dev-Hub · GET /dev", () => {
       expect(typeof res.body.summary.badCount).toBe("number");
     });
 
-    it("GET /dev/email-preview renders all built-in templates with sample payloads", async () => {
+    it("GET /dev/email-preview serves the SPA shell with the correct title", async () => {
       const res = await request(app.getHttpServer()).get("/dev/email-preview");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/text\/html/);
+      expect(res.text).toContain('<div id="root"></div>');
+      expect(res.text).toContain("Email Preview — nest-server");
+    });
+
+    it("GET /dev/email-preview.html still renders all built-in templates with sample payloads", async () => {
+      const res = await request(app.getHttpServer()).get("/dev/email-preview.html");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/text\/html/);
       expect(res.text).toContain("email-verification");
@@ -163,8 +219,16 @@ describe("Dev-Hub · GET /dev", () => {
       expect(res.body.rendered.welcome.subject).toBe("Welcome to nest-base");
     });
 
-    it("GET /dev/erd renders the HTML ERD viewer with Mermaid source", async () => {
+    it("GET /dev/erd serves the SPA shell with the correct title", async () => {
       const res = await request(app.getHttpServer()).get("/dev/erd");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/text\/html/);
+      expect(res.text).toContain('<div id="root"></div>');
+      expect(res.text).toContain("ERD — nest-server");
+    });
+
+    it("GET /dev/erd.html still renders the legacy server ERD viewer with Mermaid source", async () => {
+      const res = await request(app.getHttpServer()).get("/dev/erd.html");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/text\/html/);
       expect(res.text).toContain("erDiagram");
@@ -178,6 +242,50 @@ describe("Dev-Hub · GET /dev", () => {
       expect(res.body.mermaid).toContain("erDiagram");
       expect(typeof res.body.modelCount).toBe("number");
       expect(typeof res.body.relationCount).toBe("number");
+    });
+
+    it("GET /dev/static/main.js serves the bundled SPA entry as JavaScript", async () => {
+      // Build artefact must exist for this test. `bun run build:dev-portal`
+      // is part of the standard quality-gate sequence and emits the
+      // file before the e2e suite runs in CI.
+      const res = await request(app.getHttpServer()).get("/dev/static/main.js");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/javascript/);
+      // First chunk should look like JavaScript (`import`/`export`/`var`/
+      // `let`/`const`/`(function` — at least one of these is always present
+      // at the top of a Bun browser bundle).
+      expect(res.text.length).toBeGreaterThan(100);
+    });
+
+    it("GET /dev/static/tokens.css serves the design-token CSS", async () => {
+      const res = await request(app.getHttpServer()).get("/dev/static/tokens.css");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/text\/css/);
+      expect(res.text).toContain("--accent: #c5fb45");
+    });
+
+    it("GET /dev/static/../package.json is rejected (no path traversal)", async () => {
+      const res = await request(app.getHttpServer()).get("/dev/static/..%2Fpackage.json");
+      expect(res.status).toBe(404);
+    });
+
+    it("GET /dev/components renders the SPA shell (showcase route)", async () => {
+      const res = await request(app.getHttpServer()).get("/dev/components");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/text\/html/);
+      expect(res.text).toContain('<div id="root"></div>');
+      expect(res.text).toMatch(/<title>Components — nest-server<\/title>/);
+    });
+
+    it("GET /dev/some-future-spa-path falls through to the SPA shell", async () => {
+      // The catch-all gives the client router room to add new pages
+      // without a server change. Server-rendered routes still win;
+      // unknown paths hand off to React.
+      const res = await request(app.getHttpServer()).get(
+        "/dev/this-route-only-exists-on-the-client",
+      );
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('<div id="root"></div>');
     });
 
     it("GET /dev/routes.json returns the structured inventory", async () => {
@@ -211,6 +319,11 @@ describe("Dev-Hub · GET /dev", () => {
 
     it("returns 404 outside development", async () => {
       const res = await request(app.getHttpServer()).get("/dev");
+      expect(res.status).toBe(404);
+    });
+
+    it("returns 404 for /dev/static/* outside development", async () => {
+      const res = await request(app.getHttpServer()).get("/dev/static/main.js");
       expect(res.status).toBe(404);
     });
   });
