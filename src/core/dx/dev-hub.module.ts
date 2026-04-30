@@ -3,6 +3,7 @@ import { DiscoveryModule } from "@nestjs/core";
 
 import { AdminSpaController } from "./admin-spa.controller.js";
 import { DevHubController } from "./dev-hub.controller.js";
+import { MigrationsService } from "./migrations/migrations.service.js";
 import { RouteInventoryService } from "./route-inventory-runner.js";
 
 /**
@@ -13,12 +14,15 @@ import { RouteInventoryService } from "./route-inventory-runner.js";
  * production.
  *
  * `DiscoveryModule` is imported so `RouteInventoryService` can walk
- * the registered controllers for `/dev/routes`.
+ * the registered controllers for `/dev/routes`. `MigrationsService` is
+ * a dev-only orchestrator for the `/dev/migrations` page; it depends on
+ * the global `PrismaService` for advisory locks + `_prisma_migrations`
+ * reads.
  */
 @Module({
   imports: [DiscoveryModule],
   controllers: [DevHubController, AdminSpaController],
-  providers: [RouteInventoryService],
+  providers: [RouteInventoryService, MigrationsService],
   exports: [RouteInventoryService],
 })
 export class DevHubModule {}

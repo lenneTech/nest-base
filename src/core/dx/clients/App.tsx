@@ -40,6 +40,9 @@ const TracesPage = lazy(() =>
 const QueriesPage = lazy(() =>
   import("./pages/QueriesPage.js").then((m) => ({ default: m.QueriesPage })),
 );
+const MigrationsPage = lazy(() =>
+  import("./pages/MigrationsPage.js").then((m) => ({ default: m.MigrationsPage })),
+);
 const RoutesPage = lazy(() =>
   import("./pages/RoutesPage.js").then((m) => ({ default: m.RoutesPage })),
 );
@@ -93,6 +96,7 @@ export function App(): ReactNode {
         <Route path="/dev/logs" element={<LogsPage />} />
         <Route path="/dev/traces" element={<TracesPage />} />
         <Route path="/dev/queries" element={<QueriesPage />} />
+        <Route path="/dev/migrations" element={<MigrationsPage />} />
         <Route path="/dev/routes" element={<RoutesPage />} />
         <Route path="/dev/erd" element={<ErdPage />} />
         <Route path="/dev/email-preview" element={<EmailPreviewPage />} />
