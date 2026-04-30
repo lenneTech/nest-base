@@ -199,27 +199,29 @@ footprint (no module load, no migration, no env-var requirement).
 
 ## Dev-Portal-Frontend
 
-Every `/dev/*` HTML page is served by a React 19 single-page app.
-The legacy server-rendered `/admin/*` pages stay HTML-only; the
-`*-ui.ts` legacy renderers live on at `/dev/<name>.html` for visual
-regression diffing. The SPA is developer-only — every route 404s
-outside `NODE_ENV=development`.
+Every developer-facing HTML surface — `/dev/*`, `/admin/*`, `/errors`,
+`/api/openapi` — is served by a single React 19 single-page app.
+The legacy server-rendered `*-ui.ts` renderers were deleted; the SPA
+is the canonical UI for every developer route. `/dev/*` and
+`/admin/*` are developer-only (every route 404s outside
+`NODE_ENV=development`); `/errors` and `/api/openapi` stay reachable
+in any environment because frontends + SDK generators read them.
 
 | Aspect | Path | Purpose |
 |---|---|---|
 | Shell renderer (planner) | `src/core/dx/dev-portal-shell.ts` | Pure function: title + script URL + token CSS URL → static HTML5 skeleton with `<div id="root">` |
 | SPA source tree | `src/core/dx/clients/` | Browser-only: `main.tsx` (entry), `App.tsx` (router), `layout/`, `pages/`, `components/`, `lib/`, `styles/` |
-| Layout shell | `src/core/dx/clients/layout/AdminShell.tsx` + `nav.ts` + `icons.tsx` | React port of `admin-layout.ts` — same sidebar / header / SVG icons / active-state highlight |
-| Pages | `src/core/dx/clients/pages/` | One component per `/dev/*` URL: `DevHubLandingPage`, `FeaturesPage`, `CoveragePage`, `TestsPage`, `DiagnosticsPage`, `LogsPage`, `TracesPage`, `QueriesPage`, `RoutesPage`, `ErdPage`, `EmailPreviewPage`, `PostgrestParsePage`, `ComponentShowcasePage` — each lazy-loaded via `React.lazy` |
-| Component library | `src/core/dx/clients/components/` | `react-aria-components` wrappers — Button, TextField, NumberField, Switch, Checkbox, RadioGroup, Select, Combobox, DialogModal, Tabs, Menu, Tooltip, FileTrigger, Toast — plus a `JsonViewer` that mirrors `json-viewer-ui.ts` |
-| Design tokens | `src/core/dx/clients/styles/tokens.css` | `:root` custom properties, mirror of `admin-layout.ts` (Z. 184-262) |
-| Page chrome CSS | `src/core/dx/clients/styles/admin-layout.css` | 1:1 port of `admin-layout.ts`'s `ADMIN_LAYOUT_CSS` plus every per-page `<style>` block from the `*-ui.ts` renderers; React JSX re-uses the same classnames so the diff vs. the server HTML is zero |
+| Layout shell | `src/core/dx/clients/layout/AdminShell.tsx` + `nav.ts` + `icons.tsx` | Sidebar + header + SVG icons + active-state highlight |
+| Pages | `src/core/dx/clients/pages/` | One component per route: `DevHubLandingPage`, `FeaturesPage`, `CoveragePage`, `TestsPage`, `DiagnosticsPage`, `LogsPage`, `TracesPage`, `QueriesPage`, `RoutesPage`, `ErdPage`, `EmailPreviewPage`, `PostgrestParsePage`, `ComponentShowcasePage`, `PermissionTesterPage`, `WebhookInspectorPage`, `RealtimeInspectorPage`, `AuditBrowserPage`, `SearchTesterPage`, `ErrorsPage`, `OpenApiPage` — each lazy-loaded via `React.lazy` |
+| Component library | `src/core/dx/clients/components/` | `react-aria-components` wrappers — Button, TextField, NumberField, Switch, Checkbox, RadioGroup, Select, Combobox, DialogModal, Tabs, Menu, Tooltip, FileTrigger, Toast — plus a `JsonViewer` reused by `/errors`, `/api/openapi`, and `/dev/postgrest-parse` |
+| Design tokens | `src/core/dx/clients/styles/tokens.css` | `:root` custom properties (electric-lime accent, near-black surfaces) |
+| Page chrome CSS | `src/core/dx/clients/styles/admin-layout.css` | Shell + every per-page CSS block; React JSX re-uses the same classnames the legacy renderers produced so the diff vs. the historical HTML is zero |
 | Component styles | `src/core/dx/clients/styles/components.css` | `.dp-*` selectors targeting `react-aria` `data-*` states (input primitives only) |
 | Build script | `scripts/build-dev-portal.ts` | `Bun.build({ target: "browser", splitting: true, minify: true })` → `dist/dev-portal/` |
-| JSON aggregates | `dev-hub.controller.ts` | `/dev/dashboard.json` (landing-page aggregate), `/dev/feature-catalog.json`, `/dev/coverage.json`, `/dev/tests.json` plus the existing `*.json` siblings the React pages consume |
+| `/dev/*` JSON sidecars | `dev-hub.controller.ts` | `dashboard.json`, `feature-catalog.json`, `coverage.json`, `tests.json`, `diagnostics.json`, `logs.json`, `traces.json`, `queries.json`, `routes.json`, `erd.json`, `email-preview.json` |
+| `/admin/*` JSON sidecars | `admin-spa.controller.ts` | `permissions/test.json`, `webhooks.json`, `realtime.json`, `audit.json`, `search.json` |
 | Static asset endpoint | `GET /dev/static/:filename` | 404 outside development; allow-list filename, MIME-detect, stream from `dist/dev-portal/` |
 | Catch-all | `GET /dev/*splat` | Returns the SPA shell so client-side routes work without a server change |
-| Legacy server pages | `GET /dev/<name>.html` | Each migrated `*-ui.ts` renderer is still reachable at its `.html` URL — useful for pixel-fidelity diffing during the React port |
 | Server tsconfig | `tsconfig.json` (excludes `src/core/dx/clients/**`) | Server build never sees browser code |
 | Client tsconfig | `tsconfig.client.json` | `jsx: "react-jsx"`, `lib: ["ES2022","DOM","DOM.Iterable"]`, `types: []` |
 
@@ -248,16 +250,20 @@ the trust boundary (server → browser).
 
 ### Conventions
 
-- **Native HTML inputs (`<button>`, `<input>`, `<select>`, …) are
-  forbidden in `clients/`.** Every interactive primitive goes through
-  `react-aria-components` via the wrappers in `components/`. Focus
-  rings, ARIA roles, and keyboard navigation stay correct without
-  per-call boilerplate.
+- **Native HTML inputs in net-new pages are forbidden.** Every
+  interactive primitive on a brand-new page goes through
+  `react-aria-components` via the wrappers in `components/`. The
+  existing admin-page ports (`WebhookInspectorPage`, `AuditBrowserPage`,
+  …) intentionally render bare `<input>` / `<select>` inside
+  `form.admin-form` because the legacy CSS targets those selectors —
+  swapping them for `dp-*` wrappers would break the byte-for-byte
+  fidelity contract with the historical server pages.
 - **No `process.env.*` / Node imports.** This tree is browser-only;
   `tsconfig.client.json` excludes Node types so this fails at compile
   time.
-- **`/admin/*` stays server-rendered** — out of scope for the
-  Dev-Portal migration.
+- **No server-rendered HTML left.** Every `Controller` returning HTML
+  returns the dev-portal SPA shell; React + react-router decide what
+  to render based on the URL.
 
 ## Security mechanisms (overview)
 

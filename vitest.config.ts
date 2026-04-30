@@ -33,10 +33,6 @@ export default defineConfig({
         'src/**/*.interceptor.ts',
         'src/**/*.middleware.ts',
         'src/**/*.guard.ts',
-        // Dev/admin HTML renderers — pure presentation glue (lots of
-        // conditional CSS branches that don't represent real logic).
-        // Smoke-tested via story tests + visited live during dev.
-        'src/core/dx/*-ui.ts',
         // Dev-Portal SPA source. Browser-only React tree, bundled by
         // `bun run build:dev-portal` and exercised manually in
         // development. The shell renderer (dev-portal-shell.ts) stays

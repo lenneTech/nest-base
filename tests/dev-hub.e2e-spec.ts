@@ -68,14 +68,6 @@ describe("Dev-Hub · GET /dev", () => {
       expect(res.text).toContain("Features — nest-server");
     });
 
-    it("GET /dev/features.html still renders the legacy server HTML page", async () => {
-      const res = await request(app.getHttpServer()).get("/dev/features.html");
-      expect(res.status).toBe(200);
-      expect(res.headers["content-type"]).toMatch(/text\/html/);
-      expect(res.text).toContain("FEATURE_WEBHOOKS_ENABLED");
-      expect(res.text).toContain("Multi-Tenancy");
-    });
-
     it("GET /dev/feature-catalog.json returns the FEATURE_CATALOG + active Features", async () => {
       const res = await request(app.getHttpServer()).get("/dev/feature-catalog.json");
       expect(res.status).toBe(200);
@@ -120,15 +112,6 @@ describe("Dev-Hub · GET /dev", () => {
       expect(res.text).toContain("Routes — nest-server");
     });
 
-    it("GET /dev/routes.html still renders the legacy server route inventory page", async () => {
-      const res = await request(app.getHttpServer()).get("/dev/routes.html");
-      expect(res.status).toBe(200);
-      expect(res.headers["content-type"]).toMatch(/text\/html/);
-      expect(res.text).toMatch(/Routes/);
-      // The page lists at least the dev-hub's own routes.
-      expect(res.text).toContain("/dev/diagnostics");
-    });
-
     it("GET /dev/traces renders the HTML trace viewer", async () => {
       // Make a request first so the buffer has something to show.
       await request(app.getHttpServer()).get("/dev/diagnostics.json");
@@ -160,15 +143,6 @@ describe("Dev-Hub · GET /dev", () => {
       expect(res.text).toContain("Queries — nest-server");
     });
 
-    it("GET /dev/queries.html still renders the legacy server query-performance page", async () => {
-      const res = await request(app.getHttpServer()).get("/dev/queries.html");
-      expect(res.status).toBe(200);
-      expect(res.headers["content-type"]).toMatch(/text\/html/);
-      expect(res.text).toMatch(/Queries/);
-      expect(res.text).toMatch(/Slowest queries/);
-      expect(res.text).toMatch(/Most frequent templates/);
-    });
-
     it("GET /dev/queries.json returns the structured buffer + summary + slowest + topTemplates", async () => {
       const res = await request(app.getHttpServer()).get("/dev/queries.json");
       expect(res.status).toBe(200);
@@ -190,18 +164,6 @@ describe("Dev-Hub · GET /dev", () => {
       expect(res.text).toContain("Email Preview — nest-server");
     });
 
-    it("GET /dev/email-preview.html still renders all built-in templates with sample payloads", async () => {
-      const res = await request(app.getHttpServer()).get("/dev/email-preview.html");
-      expect(res.status).toBe(200);
-      expect(res.headers["content-type"]).toMatch(/text\/html/);
-      expect(res.text).toContain("email-verification");
-      expect(res.text).toContain("password-reset");
-      expect(res.text).toContain("welcome");
-      expect(res.text).toContain("invitation");
-      // Sample-payload values must show up rendered.
-      expect(res.text).toContain("Alice Example");
-    });
-
     it("GET /dev/email-preview.json returns structured catalog + rendered", async () => {
       const res = await request(app.getHttpServer()).get("/dev/email-preview.json");
       expect(res.status).toBe(200);
@@ -216,13 +178,6 @@ describe("Dev-Hub · GET /dev", () => {
       expect(res.headers["content-type"]).toMatch(/text\/html/);
       expect(res.text).toContain('<div id="root"></div>');
       expect(res.text).toContain("ERD — nest-server");
-    });
-
-    it("GET /dev/erd.html still renders the legacy server ERD viewer with Mermaid source", async () => {
-      const res = await request(app.getHttpServer()).get("/dev/erd.html");
-      expect(res.status).toBe(200);
-      expect(res.headers["content-type"]).toMatch(/text\/html/);
-      expect(res.text).toContain("erDiagram");
     });
 
     it("GET /dev/erd.json returns the parsed ERD plan", async () => {

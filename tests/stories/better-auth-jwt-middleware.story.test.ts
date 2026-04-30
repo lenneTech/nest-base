@@ -17,6 +17,10 @@ describe("Story · Better-Auth JWT middleware", () => {
     "/health/ready",
     "/api/auth/sign-in",
     "/api/auth/sign-up",
+    "/errors",
+    "/errors/CORE_NOT_FOUND",
+    "/api/openapi",
+    "/api/openapi.json",
   ];
 
   it.each(publicPaths)("treats %s as public (no JWT required)", (path) => {

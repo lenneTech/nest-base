@@ -3,13 +3,13 @@
  *
  * Single source of truth for the dark, near-black + electric-lime
  * surface used by both the server-rendered `/admin/*` / `/dev/*` pages
- * (via `src/core/dx/admin-layout.ts`) and the React Dev-Portal SPA.
- * Keep these values in sync with `admin-layout.ts` (Z. 184-262);
+ * — consumed verbatim by the dev-portal SPA shell.
+ * They drive the design language of every dev/admin/errors/openapi page.
  * deviation means the two surfaces drift visually.
  *
  * The full chrome (resets, sidebar, header, cards, tables, …) lives
  * in `admin-layout.css` next to this file — a 1:1 port of the embedded
- * `ADMIN_LAYOUT_CSS` block in `admin-layout.ts`. Both stylesheets are
+ * previously inline `ADMIN_LAYOUT_CSS` block. Both stylesheets are
  * loaded from the SPA shell; the React tree re-uses the *same* class
  * names the server emitted so the diff between the React surface and
  * the legacy `*-ui.ts` renderers is zero.

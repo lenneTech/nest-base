@@ -15,7 +15,7 @@ import { apiReference } from "@scalar/nestjs-api-reference";
 import { type BrowserOpenPlatform, planBrowserOpen } from "../dx/browser-open.js";
 import { transitionDevSession } from "../dx/dev-session-runner.js";
 import { resolveEffectiveBaseUrl } from "../dx/effective-base-url.js";
-import { renderJsonViewerPage } from "../dx/json-viewer-ui.js";
+import { buildDevPortalShellInput, renderDevPortalShell } from "../dx/dev-portal-shell.js";
 import { planPrismaStudio } from "../dx/prisma-studio.js";
 import { buildScalarConfig } from "../dx/scalar-config.js";
 import { planStartupBanner } from "../dx/startup-banner.js";
@@ -112,15 +112,14 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
       // Only catch GET, fall through for other methods to keep the API
       // surface clean in case anything ever wants to POST here.
       if (req.method !== "GET") return next();
-      res.type("text/html; charset=utf-8").send(
-        renderJsonViewerPage({
-          title: "OpenAPI Spec",
-          subtitle: "OpenAPI 3.1 document this server emits — consumed by Scalar UI and kubb.",
-          currentNav: "openapi",
-          value: openApiDocument,
-          rawJsonHref: "/api/openapi.json",
-        }),
-      );
+      // The HTML branch is the Dev-Portal SPA shell. The React
+      // `/api/openapi` page fetches `/api/openapi.json` and renders
+      // the spec through the same `JsonViewer` component the legacy
+      // server viewer wrapped — keeps the SPA the single owner of
+      // the dev-hub chrome.
+      res
+        .type("text/html; charset=utf-8")
+        .send(renderDevPortalShell(buildDevPortalShellInput({ title: "OpenAPI Spec" })));
     });
   }
 

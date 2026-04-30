@@ -73,7 +73,7 @@ The Dev Hub opens automatically at the URL the dev runner prints — `https://ap
 
 ## 🎯 The Dev Hub
 
-A black + lime developer console rendered server-side, no SPA, no build step. Every page is reachable from the sidebar.
+A black + lime developer console powered by a React 19 SPA (`src/core/dx/clients/`). Every developer-facing page — `/dev/*`, `/admin/*`, `/errors`, `/api/openapi` — is rendered by the same shell; the Nest controllers return JSON sidecars + the SPA shell, the SPA decides which page to mount. Every page is reachable from the sidebar.
 
 ### Cockpit Dashboard — `/dev`
 
@@ -139,7 +139,7 @@ Every registered email template rendered with a realistic sample payload. Subjec
 
 ### JSON Endpoints — `/errors`, `/api/openapi`, `/dev/postgrest-parse`
 
-Every JSON endpoint has a sister HTML page with a real **JSON viewer** — syntax-highlighted, collapsible tree, copy button, key-filter search. Browser default → viewer; `Accept: application/json` or `?format=json` → raw JSON for SDKs.
+Every JSON endpoint has a sister HTML page that mounts the React SPA's shared **JSON viewer** — syntax-highlighted, collapsible tree, copy button, key-filter search. Browser default → viewer; `Accept: application/json` or `?format=json` → raw JSON for SDKs.
 
 ![Error Catalog](docs/screenshots/errors.png)
 ![OpenAPI Viewer](docs/screenshots/openapi.png)
@@ -187,7 +187,7 @@ src/
 │   ├── app/             ← Bootstrap + AppModule + dev-tab auto-open
 │   ├── auth/            ← Better-Auth wiring + API keys + PowerSync JWT
 │   ├── concurrency/     ← ETag + If-Match optimistic concurrency
-│   ├── dx/              ← /dev landing + cockpit + JSON viewer + admin UIs
+│   ├── dx/              ← /dev + /admin + /errors + /api/openapi (React SPA shell + JSON sidecars)
 │   ├── email/           ← EmailService + EJS templates
 │   ├── encryption/      ← AES-256-GCM field encryption
 │   ├── errors/          ← CORE_* error codes + RFC 7807 filter

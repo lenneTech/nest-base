@@ -181,7 +181,7 @@ If not, copy the helper from `dev-hub.controller.ts`.
    }
    ```
 
-3. Sidebar entry in `src/core/dx/admin-layout.ts:defaultAdminNav()`:
+3. Sidebar entry in `src/core/dx/clients/layout/nav.ts` (`NAV_SECTIONS` + `SPA_ROUTES`):
 
    ```typescript
    {
@@ -258,7 +258,7 @@ feat(<slug>): add /<slug> page with <flavour> layout
 
 - **Don't roll your own `<html>`/`<head>`** — always go through `renderAdminLayout`.
 - **Don't skip the XSS test** — every renderer needs one.
-- **Don't hard-code colours** — use the CSS variables from `admin-layout.ts`.
+- **Don't hard-code colours** — use the CSS variables from `clients/styles/tokens.css`.
 - **Don't add functional logic to `*-ui.ts`** — those are coverage-excluded as glue. Put logic in a sibling planner that gets full coverage.
 - **Don't forget the sidebar entry** — without it, the page is unreachable from navigation.
 - **Don't forget to gate dev-only pages with `assertDev()`** — otherwise they leak in production.

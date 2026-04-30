@@ -50,6 +50,27 @@ const EmailPreviewPage = lazy(() =>
 const PostgrestParsePage = lazy(() =>
   import("./pages/PostgrestParsePage.js").then((m) => ({ default: m.PostgrestParsePage })),
 );
+const PermissionTesterPage = lazy(() =>
+  import("./pages/PermissionTesterPage.js").then((m) => ({ default: m.PermissionTesterPage })),
+);
+const WebhookInspectorPage = lazy(() =>
+  import("./pages/WebhookInspectorPage.js").then((m) => ({ default: m.WebhookInspectorPage })),
+);
+const RealtimeInspectorPage = lazy(() =>
+  import("./pages/RealtimeInspectorPage.js").then((m) => ({ default: m.RealtimeInspectorPage })),
+);
+const AuditBrowserPage = lazy(() =>
+  import("./pages/AuditBrowserPage.js").then((m) => ({ default: m.AuditBrowserPage })),
+);
+const SearchTesterPage = lazy(() =>
+  import("./pages/SearchTesterPage.js").then((m) => ({ default: m.SearchTesterPage })),
+);
+const ErrorsPage = lazy(() =>
+  import("./pages/ErrorsPage.js").then((m) => ({ default: m.ErrorsPage })),
+);
+const OpenApiPage = lazy(() =>
+  import("./pages/OpenApiPage.js").then((m) => ({ default: m.OpenApiPage })),
+);
 
 function PageFallback(): ReactNode {
   return (
@@ -76,6 +97,13 @@ export function App(): ReactNode {
         <Route path="/dev/erd" element={<ErdPage />} />
         <Route path="/dev/email-preview" element={<EmailPreviewPage />} />
         <Route path="/dev/postgrest-parse" element={<PostgrestParsePage />} />
+        <Route path="/admin/permissions/test" element={<PermissionTesterPage />} />
+        <Route path="/admin/webhooks" element={<WebhookInspectorPage />} />
+        <Route path="/admin/realtime" element={<RealtimeInspectorPage />} />
+        <Route path="/admin/audit" element={<AuditBrowserPage />} />
+        <Route path="/admin/search" element={<SearchTesterPage />} />
+        <Route path="/errors" element={<ErrorsPage />} />
+        <Route path="/api/openapi" element={<OpenApiPage />} />
       </Routes>
     </Suspense>
   );

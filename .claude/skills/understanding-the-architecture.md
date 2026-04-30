@@ -104,39 +104,40 @@ files.
 
 ## The dev hub layer
 
-`/dev` is a React 19 SPA bundled by `bun build` and served from
-`dist/dev-portal/`. The Nest controller (`dev-hub.controller.ts`)
-renders a thin HTML shell (`renderDevPortalShell`) and a JSON
-aggregate (`/dev/dashboard.json`); React handles the rest on the
-client. `/admin/*` pages stay server-rendered HTML wrapped by
-`renderAdminLayout()`.
+Every developer-facing HTML surface — `/dev/*`, `/admin/*`, `/errors`,
+`/api/openapi` — is served by a single React 19 SPA bundled by
+`bun build` and emitted to `dist/dev-portal/`. The Nest controllers
+(`dev-hub.controller.ts`, `admin-spa.controller.ts`,
+`error-code.controller.ts`, the `/api/openapi` mount in
+`bootstrap.ts`) all return the same thin HTML shell
+(`renderDevPortalShell`); React + react-router decides what to render.
+Each page reads from a sibling `*.json` sidecar — never inlines data
+into the HTML.
 
 The composition:
 
 ```
 clients/                  ← React 19 SPA source (TypeScript + react-aria)
 ├── main.tsx              ← bundle entry; mounted by the shell
-├── pages/                ← one tsx file per /dev/* surface
-└── styles/tokens.css     ← design tokens (served verbatim)
+├── App.tsx               ← lazy-loaded route table
+├── layout/AdminShell.tsx ← sidebar + header + active-nav highlight
+├── pages/                ← one tsx file per route (admin + dev + errors + openapi)
+├── components/           ← react-aria-component wrappers + JsonViewer
+└── styles/               ← tokens.css, admin-layout.css, components.css
 
 dev-portal-shell.ts       ← server-side shell renderer (`<div id="root">`)
-admin-layout.ts           ← shell for legacy /admin/* pages
-├── features-ui.ts        ← /dev/features.html (legacy reference)
-├── coverage-ui.ts        ← /dev/coverage
-├── test-summary-ui.ts    ← /dev/tests
-├── log-viewer-ui.ts      ← /dev/logs
-├── diagnostics-ui.ts     ← /dev/diagnostics
-├── json-viewer-ui.ts     ← reusable JSON viewer for /errors, /api/openapi, ...
-└── (admin/*) — permission-tester-ui, audit-browser-ui, search-tester-ui, ...
+dev-hub.controller.ts     ← /dev/* SPA shell + JSON sidecars
+admin-spa.controller.ts   ← /admin/* SPA shell + JSON sidecars
 ```
 
-Renderers are **glue** — coverage-excluded in `vitest.config.ts`.
-Story tests assert structure + XSS escaping. Real verification is
-visual (open the page).
+The whole `clients/` tree is **coverage-excluded** in `vitest.config.ts`.
+The cross-tier contract — route ↔ sidebar ↔ JSON-endpoint mapping —
+is mechanically pinned by `tests/stories/dev-portal-pages.story.test.ts`.
+Real verification is visual (open the page).
 
 The theme is **near-black surfaces + electric-lime accent (#c5fb45)**.
-CSS variables in `admin-layout.ts:ADMIN_LAYOUT_CSS` define every
-colour, radius, easing. Don't hard-code values.
+CSS variables in `clients/styles/tokens.css` and `admin-layout.css`
+define every colour, radius, easing. Don't hard-code values.
 
 ---
 
@@ -241,7 +242,7 @@ edit a source file: the lock remembers it's already open.
 this server (not features the server delivers to end users) lives
 here:
 
-- `admin-layout.ts` — shared dark theme shell
+- `clients/layout/AdminShell.tsx` — React shell rendered for every dev/admin route
 - `dashboard-ui.ts`, `*-ui.ts` — per-page renderers
 - `feature-catalog.ts` — drives `/dev/features` UI
 - `service-status.ts` — probes for the dashboard's service grid

@@ -23,30 +23,23 @@ import { parsePostgrestQuery } from "../permissions/postgrest-query.js";
 import { serverConfigFromEnv } from "../server/server-config.js";
 import { APP_NAME, APP_VERSION } from "../app/app.metadata.js";
 import { buildCoverageReport, type RawCoverageSummary } from "./coverage-report.js";
-import { renderCoveragePage } from "./coverage-ui.js";
 import { buildDevPortalShellInput, renderDevPortalShell } from "./dev-portal-shell.js";
-import { renderDiagnosticsPage } from "./diagnostics-ui.js";
 import { resolveEffectiveBaseUrl } from "./effective-base-url.js";
 import { planEnvFileUpdate } from "./env-file-update.js";
 import { FEATURE_CATALOG } from "./feature-catalog.js";
-import { renderFeaturesPage } from "./features-ui.js";
 import { buildDiagnosticsReport, type DiagnosticsReport } from "./diagnostics.js";
 import {
   buildEmailPreviewCatalog,
   renderEmailPreview,
   type EmailPreviewResult,
 } from "./email-preview.js";
-import { renderEmailPreviewPage } from "./email-preview-ui.js";
 import { buildErdForProject } from "./erd-runner.js";
-import { renderErdPage } from "./erd-ui.js";
 import {
   EjsEmailTemplateRenderer,
   buildBuiltInEmailTemplateRegistry,
 } from "../email/email-templates.js";
 import { getLogBuffer } from "./log-buffer.js";
-import { renderLogViewerPage } from "./log-viewer-ui.js";
 import { RouteInventoryService } from "./route-inventory-runner.js";
-import { renderRouteInventoryPage } from "./route-inventory-ui.js";
 import type { RouteInventory } from "./route-inventory.js";
 import {
   getQueryBuffer,
@@ -54,11 +47,8 @@ import {
   type QuerySummary,
   type TemplateGroup,
 } from "./query-buffer.js";
-import { renderQueryViewerPage } from "./query-viewer-ui.js";
 import { getTraceBuffer, type TraceRecord, type TraceSummary } from "./trace-buffer.js";
-import { renderTraceViewerPage } from "./trace-viewer-ui.js";
 import { buildTestSummary, type RawTestSummary } from "./test-summary.js";
-import { renderTestSummaryPage } from "./test-summary-ui.js";
 import { planServiceCandidates, probeServices, type ServiceProbeResult } from "./service-status.js";
 
 /**
@@ -240,19 +230,6 @@ export class DevHubController {
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Features" }));
   }
 
-  /**
-   * Legacy server-rendered `/dev/features.html` — kept as the
-   * canonical reference for the React port. Useful when comparing
-   * pixel fidelity side-by-side. Always returns the legacy CSS-in-HTML
-   * page; never the SPA shell.
-   */
-  @Get("features.html")
-  @Header("content-type", "text/html; charset=utf-8")
-  featuresLegacyPage(): string {
-    this.assertDev();
-    return renderFeaturesPage(this.featuresOnly());
-  }
-
   @Get("features.json")
   featuresJson(): Features {
     this.assertDev();
@@ -351,15 +328,6 @@ export class DevHubController {
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Coverage" }));
   }
 
-  /** Legacy server-rendered coverage page — see `featuresLegacyPage`. */
-  @Get("coverage.html")
-  @Header("content-type", "text/html; charset=utf-8")
-  async coverageLegacyPage(): Promise<string> {
-    this.assertDev();
-    const report = await this.readCoverageSummary(process.cwd());
-    return renderCoveragePage(report);
-  }
-
   /** JSON sibling for the React `/dev/coverage` page. */
   @Get("coverage.json")
   async coverageJson(): Promise<unknown> {
@@ -372,19 +340,6 @@ export class DevHubController {
   logsPage(): string {
     this.assertDev();
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Logs" }));
-  }
-
-  /** Legacy server-rendered logs page — see `featuresLegacyPage`. */
-  @Get("logs.html")
-  @Header("content-type", "text/html; charset=utf-8")
-  logsLegacyPage(): string {
-    this.assertDev();
-    const buffer = getLogBuffer();
-    return renderLogViewerPage({
-      records: buffer.recent(200),
-      bufferCapacity: buffer.capacity(),
-      bufferSize: buffer.size(),
-    });
   }
 
   @Get("logs.json")
@@ -402,15 +357,6 @@ export class DevHubController {
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Tests" }));
   }
 
-  /** Legacy server-rendered tests page — see `featuresLegacyPage`. */
-  @Get("tests.html")
-  @Header("content-type", "text/html; charset=utf-8")
-  async testsLegacyPage(): Promise<string> {
-    this.assertDev();
-    const report = await this.readTestSummary(process.cwd());
-    return renderTestSummaryPage(report);
-  }
-
   /** JSON sibling for the React `/dev/tests` page. */
   @Get("tests.json")
   async testsJson(): Promise<unknown> {
@@ -423,14 +369,6 @@ export class DevHubController {
   diagnostics(): string {
     this.assertDev();
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Diagnostics" }));
-  }
-
-  /** Legacy server-rendered diagnostics page — see `featuresLegacyPage`. */
-  @Get("diagnostics.html")
-  @Header("content-type", "text/html; charset=utf-8")
-  diagnosticsLegacyPage(): string {
-    this.assertDev();
-    return renderDiagnosticsPage(this.buildDiagnostics());
   }
 
   @Get("diagnostics.json")
@@ -446,14 +384,6 @@ export class DevHubController {
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Routes" }));
   }
 
-  /** Legacy server-rendered routes page — see `featuresLegacyPage`. */
-  @Get("routes.html")
-  @Header("content-type", "text/html; charset=utf-8")
-  routesLegacyPage(): string {
-    this.assertDev();
-    return renderRouteInventoryPage(this.routes.build());
-  }
-
   @Get("routes.json")
   routesJson(): RouteInventory {
     this.assertDev();
@@ -467,14 +397,6 @@ export class DevHubController {
     return renderDevPortalShell(buildDevPortalShellInput({ title: "ERD" }));
   }
 
-  /** Legacy server-rendered ERD page — see `featuresLegacyPage`. */
-  @Get("erd.html")
-  @Header("content-type", "text/html; charset=utf-8")
-  erdLegacyPage(): string {
-    this.assertDev();
-    return renderErdPage(buildErdForProject());
-  }
-
   @Get("erd.json")
   erdJson(): { mermaid: string; modelCount: number; relationCount: number } {
     this.assertDev();
@@ -486,18 +408,6 @@ export class DevHubController {
   tracesPage(): string {
     this.assertDev();
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Traces" }));
-  }
-
-  /** Legacy server-rendered traces page — see `featuresLegacyPage`. */
-  @Get("traces.html")
-  @Header("content-type", "text/html; charset=utf-8")
-  tracesLegacyPage(): string {
-    this.assertDev();
-    const buffer = getTraceBuffer();
-    return renderTraceViewerPage({
-      traces: buffer.recent({ limit: 100 }),
-      summary: buffer.summary(),
-    });
   }
 
   @Get("traces.json")
@@ -524,20 +434,6 @@ export class DevHubController {
   queriesPage(): string {
     this.assertDev();
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Queries" }));
-  }
-
-  /** Legacy server-rendered queries page — see `featuresLegacyPage`. */
-  @Get("queries.html")
-  @Header("content-type", "text/html; charset=utf-8")
-  queriesLegacyPage(): string {
-    this.assertDev();
-    const buffer = getQueryBuffer();
-    return renderQueryViewerPage({
-      recent: buffer.recent({ limit: 100 }),
-      slowest: buffer.slowest(10),
-      topTemplates: buffer.topTemplates(10),
-      summary: buffer.summary(),
-    });
   }
 
   @Get("queries.json")
@@ -571,25 +467,6 @@ export class DevHubController {
   emailPreviewPage(): string {
     this.assertDev();
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Email Preview" }));
-  }
-
-  /** Legacy server-rendered email-preview page — see `featuresLegacyPage`. */
-  @Get("email-preview.html")
-  @Header("content-type", "text/html; charset=utf-8")
-  async emailPreviewLegacyPage(): Promise<string> {
-    this.assertDev();
-    const renderer = new EjsEmailTemplateRenderer(buildBuiltInEmailTemplateRegistry());
-    const catalog = buildEmailPreviewCatalog();
-    const rendered: Record<string, EmailPreviewResult> = {};
-    for (const entry of catalog.entries) {
-      rendered[entry.template] = await renderEmailPreview({
-        renderer,
-        template: entry.template,
-        locale: "en",
-        payload: entry.samplePayload,
-      });
-    }
-    return renderEmailPreviewPage({ catalog, rendered });
   }
 
   @Get("email-preview.json")
