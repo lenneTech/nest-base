@@ -110,6 +110,15 @@ function renderEnvExample(answers: WizardAnswers): string {
     `DATABASE_URL=postgresql://${answers.projectName}:change-me-strong-pass@localhost:5432/${answers.projectName}`,
   );
   lines.push("");
+  lines.push("# ── Docker Compose ────────────────────────────────────────────");
+  // Pin the Compose project name so each workspace gets its own
+  // `<name>_postgres_data` volume — without this, Compose derives the
+  // project name from the parent dir of `docker-compose.yml`, which is
+  // always `api` (since the file lives at `projects/api/`). Two `--next`
+  // workspaces then share the same volume and inherit each other's
+  // POSTGRES_PASSWORD on first boot, surfacing as P1000 auth errors.
+  lines.push(`COMPOSE_PROJECT_NAME=${answers.projectName}`);
+  lines.push("");
   lines.push("# ── Auth (Better-Auth) ─────────────────────────────────────────");
   lines.push("BETTER_AUTH_SECRET=change-me-32-chars-minimum-XXXXXX");
   lines.push("");

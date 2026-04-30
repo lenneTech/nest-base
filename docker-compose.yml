@@ -18,10 +18,14 @@ services:
       context: ./docker/postgres
     image: nest-base-postgres:local
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-app}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app}
-      POSTGRES_DB: ${POSTGRES_DB:-app}
+    # Use `env_file:` instead of `${VAR:-default}` substitution. Substitution
+    # reads shell env first, .env second — which silently leaks
+    # POSTGRES_USER / POSTGRES_PASSWORD from a previous workspace's shell into
+    # this workspace's container. `env_file:` injects directly from .env on
+    # the workspace, ignoring shell. The `$$VAR` escapes in healthcheck below
+    # defer expansion to the container shell, so they read the same env_file.
+    env_file:
+      - .env
     # Logical replication is required for PowerSync.
     # Without wal_level=logical the WAL decoder cannot ship row changes; without
     # the *_senders / *_slots headroom the replication slot cannot attach.
@@ -38,7 +42,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-app} -d ${POSTGRES_DB:-app}']
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
       interval: 10s
       timeout: 3s
       retries: 5
@@ -51,8 +55,11 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # Same rationale as postgres: env_file beats shell-env precedence.
+    env_file:
+      - .env
     environment:
-      POWERSYNC_DATABASE_URI: postgresql://powersync:${POWERSYNC_DB_PASSWORD:-change-me-at-runtime}@postgres:5432/${POSTGRES_DB:-app}
+      POWERSYNC_DATABASE_URI: postgresql://powersync:$${POWERSYNC_DB_PASSWORD}@postgres:5432/$${POSTGRES_DB}
       POWERSYNC_PORT: '8080'
       # Better-Auth exposes JWKS at /.well-known/jwks (see Phase 5b-5).
       # The host.docker.internal host lets the container reach the bun-watched
