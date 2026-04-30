@@ -1,6 +1,6 @@
 import { createReadStream } from "node:fs";
-import { readFile, rm, stat, utimes, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { mkdir, readFile, rm, stat, utimes, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 
 import {
   BadRequestException,
@@ -284,6 +284,11 @@ export class DevHubController {
       throw new BadRequestException((err as Error).message);
     }
     const paths = resolveBrandPaths(process.cwd());
+    // First-write: the project may have never created
+    // src/modules/branding/. mkdir({ recursive: true }) is idempotent
+    // and avoids ENOENT on writeFile in fresh checkouts (CI containers,
+    // newly-cloned consumer projects).
+    await mkdir(dirname(paths.overlayPath), { recursive: true });
     await writeFile(paths.overlayPath, JSON.stringify(parsed, null, 2) + "\n", "utf8");
     __clearBrandCache();
     return { ok: true, brand: parsed };
