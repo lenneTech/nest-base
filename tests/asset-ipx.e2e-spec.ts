@@ -170,4 +170,25 @@ describe("Asset · IPX endpoint", () => {
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.headers["content-type"]).toContain("image/webp");
   });
+
+  it("DELETE /_ipx/cache/:sourcePath drops cached transforms", async () => {
+    // Prime the cache via the legacy controller — this writes a row
+    // into the cache adapter (the IPX endpoint itself bypasses our
+    // cache; see asset.controller comments).
+    await request(app.getHttpServer())
+      .get(`/assets/${encodeURIComponent(storageKey)}?width=4&format=webp`)
+      .set("x-tenant-id", tenantId)
+      .set("cookie", sessionCookie)
+      .set("x-test-ability", "full")
+      .expect(200);
+
+    const res = await request(app.getHttpServer())
+      .delete(`/_ipx/cache/${encodeURIComponent(storageKey)}`)
+      .set("x-tenant-id", tenantId)
+      .set("cookie", sessionCookie)
+      .set("x-test-ability", "full");
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(typeof res.body.removed).toBe("number");
+    expect(res.body.removed).toBeGreaterThanOrEqual(1);
+  });
 });

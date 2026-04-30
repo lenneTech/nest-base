@@ -182,6 +182,7 @@ The realtime inspector at `/admin/realtime` ships with three tabs (Sockets / Cha
 | | Idempotency (Stripe-style `Idempotency-Key`) | ✓ | `FEATURE_IDEMPOTENCY_ENABLED` |
 | | Background Jobs (in-memory, pg-boss-ready) | ✓ | `FEATURE_JOBS_ENABLED` |
 | **Data** | Files & TUS Uploads (S3 / local / postgres) | ✓ | `FEATURE_FILES_ENABLED` |
+| | Asset transforms via IPX (Nuxt-Image-compatible `/_ipx/*`) | ✓ | follows `FEATURE_FILES_ENABLED` |
 | | Full-Text Search (Postgres FTS) | ✗ | `FEATURE_SEARCH_ENABLED` |
 | | PowerSync (offline-first) | ✗ | `FEATURE_POWERSYNC_ENABLED` |
 | | Field Encryption (AES-256-GCM) | ✗ | `FEATURE_FIELD_ENCRYPTION_ENABLED` |

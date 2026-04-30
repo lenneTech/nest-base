@@ -2,15 +2,9 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 
 import { createIPX, createIPXNodeServer, type IPX } from "ipx";
 
-import {
-  AssetPresetNotFoundError,
-  type AssetPresetRegistry,
-} from "./asset-presets.js";
+import { AssetPresetNotFoundError, type AssetPresetRegistry } from "./asset-presets.js";
 import { storageAdapterSource } from "./ipx-source.js";
-import {
-  buildIpxModifierString,
-  resolvePresetModifiers,
-} from "./ipx-url-planner.js";
+import { buildIpxModifierString, resolvePresetModifiers } from "./ipx-url-planner.js";
 import type { StorageAdapter } from "./storage-adapter.js";
 
 /**
@@ -48,25 +42,37 @@ export interface IpxAssetServer {
   /** The underlying IPX instance — exposed for dev tooling / tests. */
   readonly ipx: IPX;
   /**
-   * Node-style `(req, res) => void` request listener that handles
-   * `/_ipx/<modifiers>/<source>` GETs.
+   * Express-style middleware handler. The optional `next` argument
+   * lets non-GET/HEAD verbs (e.g. the admin `DELETE /_ipx/cache/:key`
+   * cache-invalidation endpoint) fall through to the Nest router.
    */
-  readonly handle: (req: IncomingMessage, res: ServerResponse) => void;
+  readonly handle: (
+    req: IncomingMessage,
+    res: ServerResponse,
+    next?: (err?: unknown) => void,
+  ) => void;
 }
 
-export function createIpxAssetServer(
-  options: IpxAssetServerOptions,
-): IpxAssetServer {
+export function createIpxAssetServer(options: IpxAssetServerOptions): IpxAssetServer {
   const ipx = createIPX({
-    storage: storageAdapterSource(options.origin, {
-      ...(options.defaultMaxAge !== undefined
-        ? { defaultMaxAge: options.defaultMaxAge }
-        : {}),
-    }),
+    storage: storageAdapterSource(
+      options.origin,
+      options.defaultMaxAge !== undefined ? { defaultMaxAge: options.defaultMaxAge } : {},
+    ),
   });
   const ipxNode = createIPXNodeServer(ipx);
 
-  function handle(req: IncomingMessage, res: ServerResponse): void {
+  function handle(req: IncomingMessage, res: ServerResponse, next?: (err?: unknown) => void): void {
+    // Only GET / HEAD reach IPX. Other verbs (e.g. the admin-only
+    // `DELETE /_ipx/cache/:key` cache-invalidation endpoint) fall
+    // through to the Nest router via Express' `next()` callback.
+    const method = (req.method ?? "GET").toUpperCase();
+    if (method !== "GET" && method !== "HEAD") {
+      if (typeof next === "function") return next();
+      res.statusCode = 404;
+      res.end();
+      return;
+    }
     try {
       const rewritten = rewritePresetUrl(req.url ?? "/", options.presets);
       // The IPX node listener reads `req.url` to extract path + modifiers;
@@ -102,10 +108,7 @@ export function createIpxAssetServer(
  *
  * The function is exported for testing — it's a pure path-rewriter.
  */
-export function rewritePresetUrl(
-  pathWithQuery: string,
-  registry: AssetPresetRegistry,
-): string {
+export function rewritePresetUrl(pathWithQuery: string, registry: AssetPresetRegistry): string {
   // Split the query suffix (IPX ignores it but we preserve verbatim).
   const queryStart = pathWithQuery.indexOf("?");
   const path = queryStart >= 0 ? pathWithQuery.slice(0, queryStart) : pathWithQuery;

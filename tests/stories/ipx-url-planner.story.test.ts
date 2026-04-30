@@ -59,9 +59,7 @@ describe("Story · IPX URL planner", () => {
     });
 
     it("rejects formats outside the documented allow-list (silently drops)", () => {
-      expect(
-        legacyQueryToIpxModifiers({ width: "100", format: "tiff" }),
-      ).toEqual({ w: "100" });
+      expect(legacyQueryToIpxModifiers({ width: "100", format: "tiff" })).toEqual({ w: "100" });
     });
 
     it("rejects fit values outside the documented allow-list", () => {
@@ -87,12 +85,8 @@ describe("Story · IPX URL planner", () => {
     it("emits `<key>_<value>` separated by commas in stable key order", () => {
       // Stable order (sorted) keeps the produced URL deterministic so
       // CDN cache hits match across calls regardless of input ordering.
-      expect(buildIpxModifierString({ w: "300", f: "webp" })).toBe(
-        "f_webp,w_300",
-      );
-      expect(buildIpxModifierString({ f: "webp", w: "300" })).toBe(
-        "f_webp,w_300",
-      );
+      expect(buildIpxModifierString({ w: "300", f: "webp" })).toBe("f_webp,w_300");
+      expect(buildIpxModifierString({ f: "webp", w: "300" })).toBe("f_webp,w_300");
     });
 
     it("emits all known modifiers", () => {
@@ -151,9 +145,7 @@ describe("Story · IPX URL planner", () => {
     it("returns the input verbatim when the URL has no source path", () => {
       // No `/<source>` segment after the modifier-segment — leave it
       // untouched and let IPX produce its own 400.
-      expect(rewritePresetUrl("/preset_thumbnail", registry)).toBe(
-        "/preset_thumbnail",
-      );
+      expect(rewritePresetUrl("/preset_thumbnail", registry)).toBe("/preset_thumbnail");
     });
 
     it("throws when the preset name is unknown — caller maps to 404", () => {

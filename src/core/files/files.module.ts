@@ -15,7 +15,7 @@ import {
 
 import { loadFeatures } from "../features/features.js";
 import { uuidV7 } from "../uuid/uuid-v7.js";
-import { AssetController } from "./asset.controller.js";
+import { AssetController, IpxCacheController } from "./asset.controller.js";
 import { AssetService, type AssetTransformer } from "./asset.service.js";
 import {
   PrismaFolderStorage,
@@ -256,7 +256,7 @@ function buildCacheAdapter(
  * migration between backends.
  */
 @Module({
-  controllers: [FileController, FolderController, AssetController],
+  controllers: [FileController, FolderController, AssetController, IpxCacheController],
   providers: [
     // ── Metadata storage (Prisma) ─────────────────────────────────
     {

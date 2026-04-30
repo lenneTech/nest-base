@@ -148,9 +148,8 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   // controllers and binds directly to `app.use(<path>, ...)`. The
   // server instance + path live in the FilesModule DI container.
   try {
-    const { TUS_SERVER_TOKEN, TUS_CONFIG_TOKEN, IPX_SERVER_TOKEN } = await import(
-      "../files/files.module.js"
-    );
+    const { TUS_SERVER_TOKEN, TUS_CONFIG_TOKEN, IPX_SERVER_TOKEN } =
+      await import("../files/files.module.js");
     const tusServer = app.get(TUS_SERVER_TOKEN, { strict: false }) as {
       handle: (req: unknown, res: unknown) => Promise<void> | void;
     } | null;
@@ -167,13 +166,15 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
     // IPX `/_ipx/<modifiers>/<source>` — Nuxt-Image-compatible asset
     // pipeline. Mounted as a raw Node listener (h3 → Node) so IPX's
     // own ETag / Cache-Control / Accept-negotiation logic stays intact.
+    // Non-GET verbs fall through to the Nest router (so the admin
+    // `DELETE /_ipx/cache/:key` controller can handle cache-busting).
     const ipxServer = app.get(IPX_SERVER_TOKEN, { strict: false }) as {
-      handle: (req: unknown, res: unknown) => void;
+      handle: (req: unknown, res: unknown, next?: (err?: unknown) => void) => void;
     } | null;
     if (ipxServer) {
-      expressApp.use("/_ipx", (req: unknown, res: unknown) => {
+      expressApp.use("/_ipx", (req: unknown, res: unknown, next: unknown) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ipxServer.handle(req as any, res as any);
+        ipxServer.handle(req as any, res as any, next as any);
       });
     }
   } catch {

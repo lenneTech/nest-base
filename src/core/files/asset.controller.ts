@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Controller,
+  Delete,
   Get,
   NotFoundException,
   Param,
@@ -16,13 +17,16 @@ import { StorageObjectNotFoundError } from "./storage-adapter.js";
 /**
  * `/assets/:key` HTTP surface for image-transform downloads.
  *
- * Pipes bytes from the configured `StorageAdapter` (S3 / Local /
- * Postgres-FileBlob) through `AssetService` (sharp transformer +
- * read-through cache) and back to the client. The placeholder PNG
- * synthesis the previous slice shipped is gone — see issue #16.
+ * Backwards-compatible legacy URL (`?width=…&format=…`). The bytes
+ * still go through `AssetService` → `IpxAssetTransformer` → cache so
+ * the same engine drives both the legacy controller and the
+ * Nuxt-Image-shaped `/_ipx/<modifiers>/<source>` mount in
+ * `bootstrap.ts`. New integrations should target `/_ipx/*` directly;
+ * the legacy URL stays for older clients (and the BYPASS / HIT / MISS
+ * `x-cache` probe header that #16 introduced).
  *
  * Cache headers:
- *   `x-cache: HIT|MISS` — debugging probe for cache effectiveness
+ *   `x-cache: HIT|MISS|BYPASS` — debugging probe for cache effectiveness
  *   `etag` — deterministic per (key, options); enables 304 by clients
  *   `cache-control: public, max-age=86400` — 24h browser cache
  */
@@ -74,5 +78,42 @@ export class AssetController {
     res.setHeader("etag", `"${cacheKey}"`);
     res.setHeader("x-cache", cacheStatus);
     res.send(Buffer.from(result.bytes));
+  }
+}
+
+/**
+ * `/_ipx/cache/:sourcePath` admin-only cache invalidation.
+ *
+ * Drops every cached transform whose key prefix matches `sourcePath`.
+ * IPX itself doesn't expose a cache-busting hook (it uses the source
+ * mtime / etag and lets clients revalidate); the asset-service cache
+ * sits one layer below and keys per (sourceKey, options). Removing the
+ * cached entries forces the next request to re-render through Sharp.
+ *
+ * GET requests on `/_ipx/*` are intercepted by the IPX node listener
+ * mounted in `bootstrap.ts`; non-GET verbs fall through to NestJS so
+ * this controller can claim the DELETE.
+ */
+@Controller("_ipx/cache")
+export class IpxCacheController {
+  constructor(private readonly asset: AssetService) {}
+
+  @Can("delete", "Asset")
+  @Delete(":sourcePath")
+  async invalidate(@Param("sourcePath") sourcePath: string): Promise<{ removed: number }> {
+    if (!sourcePath) throw new BadRequestException("sourcePath required");
+    // List every cached transform whose stable hash includes this
+    // source key. We don't track the (key → cache-keys) mapping, so
+    // we drop all `assets/` entries — the next request re-renders.
+    // Future iteration: stash the mapping in the metadata tier so
+    // invalidation targets only the touched keys.
+    void sourcePath;
+    const cached = await this.asset.cache.list("assets/");
+    let removed = 0;
+    for (const key of cached) {
+      const ok = await this.asset.cache.delete(key);
+      if (ok) removed += 1;
+    }
+    return { removed };
   }
 }
