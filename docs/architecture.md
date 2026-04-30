@@ -268,7 +268,8 @@ in any environment because frontends + SDK generators read them.
 | Page chrome CSS | `src/core/dx/clients/styles/admin-layout.css` | Shell + every per-page CSS block; React JSX re-uses the same classnames the legacy renderers produced so the diff vs. the historical HTML is zero |
 | Component styles | `src/core/dx/clients/styles/components.css` | `.dp-*` selectors targeting `react-aria` `data-*` states (input primitives only) |
 | Build script | `scripts/build-dev-portal.ts` | `Bun.build({ target: "browser", splitting: true, minify: true })` → `dist/dev-portal/` |
-| `/dev/*` JSON sidecars | `dev-hub.controller.ts` | `dashboard.json`, `feature-catalog.json`, `coverage.json`, `tests.json`, `diagnostics.json`, `logs.json`, `traces.json`, `queries.json`, `routes.json`, `erd.json`, `email-preview.json` |
+| `/dev/*` JSON sidecars | `dev-hub.controller.ts` | `dashboard.json`, `feature-catalog.json`, `coverage.json`, `tests.json`, `diagnostics.json`, `logs.json`, `traces.json`, `queries.json`, `routes.json`, `erd.json`, `email-preview.json`, `migrations.json` |
+| `/dev/migrations/*` mutating endpoints | `dev-hub.controller.ts` + `migrations/migrations.service.ts` | `deploy`, `apply-one`, `dry-run`, `retry`, `create`, `apply-draft`, `draft/:name` (DELETE) — Postgres advisory-lock-gated, 404 outside development |
 | `/admin/*` JSON sidecars | `admin-spa.controller.ts` | `permissions/test.json`, `webhooks.json`, `realtime.json`, `audit.json`, `search.json` |
 | Static asset endpoint | `GET /dev/static/:filename` | 404 outside development; allow-list filename, MIME-detect, stream from `dist/dev-portal/` |
 | Catch-all | `GET /dev/*splat` | Returns the SPA shell so client-side routes work without a server change |
