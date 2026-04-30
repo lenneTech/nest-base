@@ -1,8 +1,9 @@
 ---
-description: Run the LLM-driven feature-test loop and report the findings — runs `bun run llm-test`, waits for the headless agent to finish, then triages the friction log into actionable recommendations.
+description: Run the LLM-driven feature-test loop and report the findings — runs `bun run llm-test`, waits for the headless agent to finish, then triages the friction log into actionable recommendations. Pushes a desktop / mobile notification when the run is done.
 allowed-tools:
   - Bash
   - Read
+  - PushNotification
 ---
 
 # /llm-test
@@ -107,9 +108,32 @@ regardless of severity.
 - `discuss` — unclear if bug or design choice; needs human call.
 - `skip` — nit / low severity / out of scope.
 
-### 6. Report back
+### 6. Push notification
 
-Format your reply as:
+The run was long enough that the user almost certainly walked away. Use
+`PushNotification` exactly once — when the run is done and you've
+classified the findings — with a one-line headline they would act on.
+
+Severity-ordered message templates (pick the worst case that applies):
+
+- timeout / crash:
+  `LLM-test failed — <reason> after <wallclock>m`
+- regressions present:
+  `LLM-test: <N> regressions, <M> new — review now`
+- blocker / high present:
+  `LLM-test: <N> blocker, <M> high, <K> med — review when free`
+- only medium / low:
+  `LLM-test: <N> findings, none critical — read when free`
+- clean:
+  `LLM-test clean — 0 frictions in <wallclock>m`
+
+Keep under 200 chars. No markdown. Lead with the headline. Send only
+once per run. Do **not** send notifications during the run, on each
+finding, or for routine progress.
+
+### 7. Report back
+
+Format your in-chat reply as:
 
 ```
 LLM-Test report — <wallclock> · <archive-path>
@@ -134,7 +158,7 @@ Recommended next step:
 
 Then ask the user which findings they want to fix now vs defer.
 
-### 7. Apply fixes (optional, only on user signal)
+### 8. Apply fixes (optional, only on user signal)
 
 If the user picks specific findings to fix, treat each as its own
 mini-task: locate the relevant file in `src/core/` or wherever, make
