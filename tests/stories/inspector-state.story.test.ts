@@ -81,6 +81,12 @@ describe("Story · Inspector State", () => {
       expect(sock.bytesSent).toBe(125);
       expect(sock.bytesReceived).toBe(60);
     });
+
+    it("recordBytes() on an unknown socket is a no-op", () => {
+      const state = new InspectorState({ now: () => 0 });
+      state.recordBytes("ghost", { sent: 100, received: 50 });
+      expect(state.snapshotSockets()).toHaveLength(0);
+    });
   });
 
   describe("channel registry", () => {
@@ -100,6 +106,18 @@ describe("Story · Inspector State", () => {
       state.recordUnsubscribe("s1", "Project:tenant:t1");
       const sock = state.snapshotSockets()[0]!;
       expect(sock.channels).toEqual(["Asset:tenant:t1"]);
+    });
+
+    it("recordSubscribe() on an unknown socket is a no-op", () => {
+      const state = new InspectorState({ now: () => 0 });
+      state.recordSubscribe("ghost", "X:tenant:t1");
+      expect(state.snapshotChannels()).toHaveLength(0);
+    });
+
+    it("recordUnsubscribe() on an unknown socket is a no-op", () => {
+      const state = new InspectorState({ now: () => 0 });
+      state.recordUnsubscribe("ghost", "X:tenant:t1");
+      expect(state.snapshotChannels()).toHaveLength(0);
     });
 
     it("snapshotChannels() aggregates subscribers across sockets", () => {
@@ -198,6 +216,43 @@ describe("Story · Inspector State", () => {
       const eps = state.eventsPerSecond();
       expect(eps).toBeGreaterThan(0);
       expect(eps).toBeLessThanOrEqual(10);
+    });
+
+    it("snapshotChannels() includes channels seen only in events (no subscribers)", () => {
+      const clock = makeNow(0);
+      const state = new InspectorState({ now: clock.now });
+      state.recordEvent({
+        channel: "Ghost:tenant:t1",
+        eventType: "x",
+        payload: {},
+        recipientCount: 0,
+        latencyMs: 5,
+      });
+      const channels = state.snapshotChannels();
+      const ghost = channels.find((c) => c.name === "Ghost:tenant:t1");
+      expect(ghost).toBeDefined();
+      expect(ghost!.subscriberCount).toBe(0);
+      expect(ghost!.eventsLastHour).toBe(1);
+    });
+
+    it("snapshotChannels() drops events older than one hour from the eventsLastHour count", () => {
+      const clock = makeNow(0);
+      const state = new InspectorState({ now: clock.now });
+      state.recordConnect({ id: "s1", userId: "u1", tenantId: "t1" });
+      state.recordSubscribe("s1", "X:tenant:t1");
+      state.recordEvent({
+        channel: "X:tenant:t1",
+        eventType: "x",
+        payload: {},
+        recipientCount: 1,
+        latencyMs: 0,
+      });
+      // Advance past the hour cutoff.
+      clock.advance(2 * 60 * 60 * 1000);
+      const x = state.snapshotChannels().find((c) => c.name === "X:tenant:t1")!;
+      expect(x.eventsLastHour).toBe(0);
+      // Subscribers still tracked.
+      expect(x.subscriberCount).toBe(1);
     });
 
     it("eventsPerSecond() returns 0 when no recent events", () => {
