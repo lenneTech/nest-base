@@ -28,12 +28,12 @@ auth/
 attaches three hook closures driven by a shared
 `createEmailHookRunner()`:
 
-| Better-Auth hook                           | Template             | Vars                                                                                |
-| ------------------------------------------ | -------------------- | ----------------------------------------------------------------------------------- |
-| `emailVerification.sendVerificationEmail`  | `email-verification` | `recipientName`, `appName`, `verificationUrl`                                       |
-| `emailAndPassword.sendResetPassword`       | `password-reset`     | `recipientName`, `appName`, `resetUrl`                                              |
-| `emailVerification.afterEmailVerification` | `welcome`            | `recipientName`, `appName`                                                          |
-| (manual call) `runner.sendInvitation()`    | `invitation`         | `recipientName`, `appName`, `acceptUrl`, `senderName`                               |
+| Better-Auth hook                           | Template             | Vars                                                                                          |
+| ------------------------------------------ | -------------------- | --------------------------------------------------------------------------------------------- |
+| `emailVerification.sendVerificationEmail`  | `email-verification` | `recipientName`, `appName`, `verificationUrl`                                                 |
+| `emailAndPassword.sendResetPassword`       | `password-reset`     | `recipientName`, `appName`, `resetUrl`                                                        |
+| `emailVerification.afterEmailVerification` | `welcome`            | `recipientName`, `appName`                                                                    |
+| (manual call) `runner.sendInvitation()`    | `invitation`         | `recipientName`, `appName`, `acceptUrl`, `senderName`                                         |
 | `databaseHooks.session.create.after` (#13) | `new-device`         | `recipientName`, `appName`, `deviceLabel`, `location`, `ipAddress`, `signedInAt`, `revokeUrl` |
 
 The `invitation` template fires when project code calls the runner

@@ -46,7 +46,7 @@ pre-#13 deployments.
   forbid IP-based tracking. The IP component is dropped from the
   hash entirely.
 
-The *mode* is part of the hash input. Flipping the toggle on a live
+The _mode_ is part of the hash input. Flipping the toggle on a live
 deployment produces a fresh fingerprint set instead of silently
 re-classifying every old session as "known".
 
@@ -61,7 +61,7 @@ re-classifying every old session as "known".
 - The new-device email surfaces **city + country only**. Even when
   GeoIP returns lat/lng, the runner drops them before rendering.
   When GeoIP returns nothing usable, the email shows "Location
-  unknown" + the raw IP (so the user has *something* to cross-check
+  unknown" + the raw IP (so the user has _something_ to cross-check
   against their own router / VPN).
 
 ## Throttle policy
@@ -107,28 +107,28 @@ to the `DeviceHandling` channel and swallowed.
 ## Endpoints
 
 `/me/devices` is mounted under `DeviceModule` (always wired,
-independent of the feature flag — the feature gates the *fingerprint
-pipeline*, not the read surface):
+independent of the feature flag — the feature gates the _fingerprint
+pipeline_, not the read surface):
 
-| Method | Path                | Auth | Effect                                      |
-| ------ | ------------------- | ---- | ------------------------------------------- |
-| GET    | `/me/devices`       | yes  | Lists the user's active sessions, parsed UA |
-| DELETE | `/me/devices/:id`   | yes  | Revokes a session; ownership check enforced |
+| Method | Path              | Auth | Effect                                      |
+| ------ | ----------------- | ---- | ------------------------------------------- |
+| GET    | `/me/devices`     | yes  | Lists the user's active sessions, parsed UA |
+| DELETE | `/me/devices/:id` | yes  | Revokes a session; ownership check enforced |
 
 Both endpoints are tenant-scoped (the global `TenantInterceptor`
 applies). Frontend / SDK callers must send `x-tenant-id`.
 
 ## Tests
 
-| Layer                      | File                                                    |
-| -------------------------- | ------------------------------------------------------- |
-| Fingerprint planner        | `tests/stories/device-fingerprint.story.test.ts`        |
-| UA parser                  | `tests/stories/device-ua-parser.story.test.ts`          |
-| Decision planner           | `tests/stories/device-handling.story.test.ts`           |
-| Email payload              | `tests/stories/new-device-email-payload.story.test.ts`  |
-| Hook runner + throttle     | `tests/stories/new-device-email-runner.story.test.ts`   |
-| Orchestrator (mocked deps) | `tests/stories/device-handling-runner.story.test.ts`    |
-| Full e2e (boots app)       | `tests/devices.e2e-spec.ts`                             |
+| Layer                      | File                                                   |
+| -------------------------- | ------------------------------------------------------ |
+| Fingerprint planner        | `tests/stories/device-fingerprint.story.test.ts`       |
+| UA parser                  | `tests/stories/device-ua-parser.story.test.ts`         |
+| Decision planner           | `tests/stories/device-handling.story.test.ts`          |
+| Email payload              | `tests/stories/new-device-email-payload.story.test.ts` |
+| Hook runner + throttle     | `tests/stories/new-device-email-runner.story.test.ts`  |
+| Orchestrator (mocked deps) | `tests/stories/device-handling-runner.story.test.ts`   |
+| Full e2e (boots app)       | `tests/devices.e2e-spec.ts`                            |
 
 ## Hard rules
 
