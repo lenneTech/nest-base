@@ -80,6 +80,7 @@
     "@tus/file-store": "^2.1.0",
     "@tus/server": "^2.4.0",
     "better-auth": "^1.6.9",
+    "dotenv": "^17.4.2",
     "helmet": "^8.1.0",
     "pg": "^8.20.0",
     "pg-boss": "^12.18.1",

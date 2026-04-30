@@ -1,3 +1,10 @@
+// Load `.env` BEFORE Prisma reads `datasource.url`. Bun's `bun run`
+// auto-populates `process.env` for the parent script, but the Prisma
+// CLI is a Node-spawned subprocess that does not inherit Bun's env
+// loading — so without this side-effect import, `prisma migrate deploy`
+// fails with "Connection url is empty" even though `.env` exists.
+import 'dotenv/config';
+
 import { defineConfig } from 'prisma/config';
 
 /**
@@ -8,12 +15,12 @@ import { defineConfig } from 'prisma/config';
  * `datasource.url`; the runtime `PrismaClient` receives its driver
  * adapter in `PrismaService`.
  *
- * `process.env.DATABASE_URL` is auto-populated from the project's
- * `.env` file by the Prisma CLI before this module loads. The
- * empty-string fallback keeps `prisma generate` and read-only commands
- * working when `.env` is missing — the DB-touching commands (`migrate
- * deploy`, `migrate reset`, `studio`) fail loudly with the usual P1000
- * / P1001 error instead of silently bypassing the gate.
+ * `dotenv/config` above guarantees `.env` is loaded into `process.env`
+ * before Prisma resolves the datasource. The empty-string fallback
+ * keeps `prisma generate` and read-only commands working when `.env`
+ * is missing — the DB-touching commands (`migrate deploy`, `migrate
+ * reset`, `studio`) fail loudly with the usual P1000 / P1001 error
+ * instead of silently bypassing the gate.
  */
 export default defineConfig({
   schema: './prisma/schema.prisma',
