@@ -171,10 +171,9 @@ async function createMaxmindReader(
     // identifier is hidden behind a string so `tsc` doesn't try to
     // resolve the type when the package isn't installed.
     const moduleId = "maxmind";
-    const dynamicImport = new Function(
-      "id",
-      "return import(id)",
-    ) as (id: string) => Promise<unknown>;
+    const dynamicImport = new Function("id", "return import(id)") as (
+      id: string,
+    ) => Promise<unknown>;
     const maxmind = (await dynamicImport(moduleId)) as MaxmindModuleShape;
     const opener = maxmind.open ?? maxmind.default?.open;
     if (typeof opener !== "function") {

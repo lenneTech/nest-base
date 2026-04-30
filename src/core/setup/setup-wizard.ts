@@ -242,20 +242,14 @@ function renderEnvExample(answers: WizardAnswers): string {
   lines.push("# FEATURE_GEO_PROVIDER=nominatim");
   lines.push("");
   lines.push("# GeoIP (offline IP→country/city lookup via .mmdb)");
-  lines.push(
-    "# Default provider `dbip-lite` is CC-BY-4.0, no key required, monthly snapshot.",
-  );
-  lines.push(
-    "# `bun run scripts/download-geoip.ts` populates `./data/geoip/city.mmdb`.",
-  );
+  lines.push("# Default provider `dbip-lite` is CC-BY-4.0, no key required, monthly snapshot.");
+  lines.push("# `bun run scripts/download-geoip.ts` populates `./data/geoip/city.mmdb`.");
   lines.push("# FEATURE_GEO_IP_ENABLED=false");
   lines.push("# FEATURE_GEO_IP_PROVIDER=dbip-lite");
   lines.push("# FEATURE_GEO_IP_DB_PATH=./data/geoip/city.mmdb");
   lines.push("#");
   lines.push("# Opt-in: MaxMind GeoLite2-City for higher accuracy + weekly updates.");
-  lines.push(
-    "# Free signup at https://www.maxmind.com/en/geolite2/signup. NB: every",
-  );
+  lines.push("# Free signup at https://www.maxmind.com/en/geolite2/signup. NB: every");
   lines.push("# download leaks the caller's IP to MaxMind — pick `dbip-lite` for");
   lines.push("# Schrems-II-strict setups.");
   lines.push("# FEATURE_GEO_IP_PROVIDER=maxmind");
