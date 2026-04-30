@@ -1,10 +1,12 @@
 import {
-  BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Header,
+  HttpCode,
   NotFoundException,
+  Param,
   Post,
   Query,
 } from "@nestjs/common";
@@ -13,9 +15,33 @@ import { type AuditBrowserPageInput, type AuditLogEntry } from "./audit-browser-
 import { buildDevPortalShellInput, renderDevPortalShell } from "./dev-portal-shell.js";
 import { type RealtimeInspectorPageInput } from "./realtime-inspector-types.js";
 import { type SearchTesterPageInput } from "./search-tester-types.js";
-import { type WebhookInspectorPageInput } from "./webhook-inspector-types.js";
+import {
+  type DeliveryListEntry,
+  type DeliveryStatus,
+  type EndpointAggregateWithSparkline,
+  type InspectorListFilter,
+  type WebhookAggregatesResponse,
+  type WebhookDeliveryDetailResponse,
+  type WebhookInspectorPageInput,
+  type WebhookRedeliverResponse,
+} from "./webhook-inspector-types.js";
 import { serverConfigFromEnv } from "../server/server-config.js";
 import { buildPermissionReport, type PermissionReport } from "../permissions/permission-report.js";
+import { buildHmacSignatureHeader } from "../webhooks/hmac-signature.js";
+import {
+  buildEndpointAggregates,
+  buildSparkline,
+  type DeliveryAggregateInput,
+  filterDeliveries,
+  type InspectorDeliveryStatus,
+} from "../webhooks/inspector-aggregates.js";
+import { buildCurlCommand } from "../webhooks/inspector-curl.js";
+import { issueCsrfToken, verifyCsrfToken } from "../webhooks/inspector-csrf.js";
+import {
+  getInspectorCsrfSecret,
+  getWebhookInspectorBuffer,
+} from "../webhooks/inspector-singleton.js";
+import { buildDemoDeliveries } from "../webhooks/inspector-store.js";
 
 /**
  * `/admin/*` SPA shell + JSON sidecars.
@@ -29,11 +55,16 @@ import { buildPermissionReport, type PermissionReport } from "../permissions/per
  *
  * All routes 404 outside `NODE_ENV=development`, identical to the Dev-Hub.
  *
- * Data sources are stub-empty for now (the underlying registries —
- * webhook deliveries, audit log, active sockets, permission storage —
- * are not yet wired up). The pages render with empty results and a
- * "no data yet" hint, mirroring the legacy `*-ui.ts` behaviour.
+ * Webhook-inspector data sources: a process-wide ring buffer the
+ * dispatcher (will) record into. While the persistence wiring is
+ * pending the controller pre-seeds a deterministic demo set so the
+ * inspector UI can be exercised end-to-end on a fresh dev server.
  */
+
+const CSRF_TTL_SECONDS = 30 * 60;
+const DEFAULT_PAGE_LIMIT = 100;
+const MAX_PAGE_LIMIT = 500;
+
 @Controller("admin")
 export class AdminSpaController {
   // ── Permission Tester ────────────────────────────────────────────
@@ -78,10 +109,178 @@ export class AdminSpaController {
   }
 
   @Get("webhooks.json")
-  webhookInspectorJson(@Query("status") status: string | undefined): WebhookInspectorPageInput {
+  webhookInspectorJson(
+    @Query("status") status: string | undefined,
+    @Query("endpointId") endpointId: string | undefined,
+    @Query("eventType") eventType: string | undefined,
+    @Query("from") from: string | undefined,
+    @Query("to") to: string | undefined,
+    @Query("search") search: string | undefined,
+    @Query("cursor") cursor: string | undefined,
+    @Query("limit") limitRaw: string | undefined,
+  ): WebhookInspectorPageInput {
     this.assertDev();
+    const limit = clampLimit(limitRaw);
     const filterStatus = normaliseDeliveryStatus(status);
-    return { deliveries: [], filter: { status: filterStatus } };
+    const filter: InspectorListFilter = { status: filterStatus };
+    if (endpointId) filter.endpointId = endpointId;
+    if (eventType) filter.eventType = eventType;
+    if (from) filter.from = from;
+    if (to) filter.to = to;
+    if (search) filter.search = search;
+
+    const all = this.snapshotDeliveries();
+    const matched = filterDeliveries({
+      deliveries: all,
+      ...(filter.endpointId !== undefined && { endpointId: filter.endpointId }),
+      status: filter.status,
+      ...(filter.eventType !== undefined && { eventType: filter.eventType }),
+      ...(filter.from !== undefined && { from: filter.from }),
+      ...(filter.to !== undefined && { to: filter.to }),
+      ...(filter.search !== undefined && { search: filter.search }),
+    });
+    // Newest-first ordering — the React list scrolls top → bottom.
+    const sorted = [...matched].sort(
+      (a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt),
+    );
+
+    const startIdx = cursor ? Math.max(0, Number(cursor)) : 0;
+    const slice = sorted.slice(startIdx, startIdx + limit);
+    const hasMore = startIdx + slice.length < sorted.length;
+
+    const result: WebhookInspectorPageInput = {
+      deliveries: slice.map(toDeliveryListEntry),
+      filter,
+      csrfToken: issueCsrfToken({ secret: getInspectorCsrfSecret() }),
+    };
+    if (hasMore) result.nextCursor = String(startIdx + slice.length);
+    return result;
+  }
+
+  @Get("webhooks/aggregates.json")
+  webhookAggregatesJson(): WebhookAggregatesResponse {
+    this.assertDev();
+    const now = Date.now();
+    const all = this.snapshotDeliveries();
+    const aggregates = buildEndpointAggregates({
+      deliveries: all,
+      now,
+      windowMs: 24 * 60 * 60 * 1000,
+    });
+    const endpoints: EndpointAggregateWithSparkline[] = aggregates.map((agg) => {
+      const endpointDeliveries = all.filter((d) => d.endpointId === agg.endpointId);
+      return {
+        ...agg,
+        sparkline: buildSparkline({
+          deliveries: endpointDeliveries,
+          now,
+          bucketCount: 24,
+          bucketMs: 60 * 60 * 1000,
+        }),
+      };
+    });
+    return { endpoints };
+  }
+
+  @Get("webhooks/:id.json")
+  webhookDeliveryDetailJson(@Param("id") id: string): WebhookDeliveryDetailResponse {
+    this.assertDev();
+    const found = getWebhookInspectorBuffer().findById(id) ?? this.findDemoById(id);
+    if (!found) throw new NotFoundException();
+    const delivery = toDeliveryListEntry(found);
+
+    // Reconstruct the headers the dispatcher would emit so the curl
+    // command + drawer "Request" tab show realistic values. The HMAC
+    // is computed against the demo body and a deterministic timestamp
+    // — production deliveries will replace this with persisted headers.
+    const ts = Math.floor(Date.parse(delivery.occurredAt) / 1000).toString();
+    const body = JSON.stringify({
+      eventId: delivery.id,
+      eventType: delivery.eventType ?? "unknown",
+      occurredAt: delivery.occurredAt,
+    });
+    const headers: Record<string, string> = {
+      "content-type": "application/json",
+      "webhook-id": delivery.id,
+      "webhook-timestamp": ts,
+      "webhook-signature": buildHmacSignatureHeader("inspector-demo-secret", ts, body),
+    };
+
+    const detail: WebhookDeliveryDetailResponse["delivery"] = {
+      ...delivery,
+      requestHeaders: headers,
+      requestBody: body,
+    };
+    if (delivery.statusCode !== undefined) {
+      detail.responseHeaders = {
+        "content-type": "application/json",
+      };
+      detail.responseBody = delivery.errorMessage
+        ? JSON.stringify({ error: delivery.errorMessage })
+        : JSON.stringify({ ok: true });
+    }
+
+    return {
+      delivery: detail,
+      curl: buildCurlCommand({
+        url: delivery.endpointUrl,
+        method: "POST",
+        headers,
+        body,
+      }),
+    };
+  }
+
+  /**
+   * Manual re-deliver action — gated by a per-request CSRF token issued
+   * via `/admin/webhooks.json`. Idempotent in the sense that a tampered
+   * or stale token is rejected without touching the buffer.
+   */
+  @Post("webhooks/:id/redeliver")
+  @HttpCode(200)
+  redeliverWebhook(
+    @Param("id") id: string,
+    @Body() body: { csrfToken?: string } | undefined,
+  ): WebhookRedeliverResponse {
+    this.assertDev();
+    const token = body?.csrfToken ?? "";
+    if (!token) {
+      throw new ForbiddenException("missing CSRF token");
+    }
+    const ok = verifyCsrfToken({
+      token,
+      secret: getInspectorCsrfSecret(),
+      now: Math.floor(Date.now() / 1000),
+      ttlSeconds: CSRF_TTL_SECONDS,
+    });
+    if (!ok) {
+      throw new ForbiddenException("invalid or expired CSRF token");
+    }
+
+    const buffer = getWebhookInspectorBuffer();
+    let existing = buffer.findById(id);
+    if (!existing) {
+      // Demo-seed entries live outside the buffer; copy on first
+      // re-deliver so subsequent attempts persist for the session.
+      const demoEntry = this.findDemoById(id);
+      if (demoEntry) {
+        buffer.record(demoEntry);
+        existing = buffer.findById(id);
+      }
+    }
+    if (!existing) throw new NotFoundException();
+
+    const updated = buffer.appendAttempt(id, {
+      // Demo redelivery is always treated as successful — production
+      // wiring will execute the real HTTP POST and record actual
+      // status/latency.
+      status: "DELIVERED",
+      statusCode: 200,
+      latencyMs: 95,
+      occurredAt: new Date().toISOString(),
+    });
+    if (!updated) throw new NotFoundException();
+    return { delivery: toDeliveryListEntry(updated) };
   }
 
   // ── Realtime Inspector ──────────────────────────────────────────
@@ -149,16 +348,17 @@ export class AdminSpaController {
     return { query: q, hits: [] };
   }
 
-  /**
-   * Echo endpoint mirroring the legacy POST-redeliver action — the
-   * legacy server never persisted webhooks, so we return a 400 to make
-   * the absence of a delivery store explicit. React keeps the redeliver
-   * button disabled when there are no rows.
-   */
-  @Post("webhooks/:id/redeliver")
-  redeliverWebhook(@Body() _body: unknown): never {
-    this.assertDev();
-    throw new BadRequestException("webhook delivery store not wired yet");
+  // ── helpers ─────────────────────────────────────────────────────
+
+  private snapshotDeliveries(): DeliveryAggregateInput[] {
+    const buf = getWebhookInspectorBuffer().recent();
+    if (buf.length > 0) return [...buf];
+    return buildDemoDeliveries({ now: Date.now() });
+  }
+
+  private findDemoById(id: string): DeliveryAggregateInput | null {
+    const demos = buildDemoDeliveries({ now: Date.now() });
+    return demos.find((d) => d.id === id) ?? null;
   }
 
   private assertDev(): void {
@@ -169,7 +369,30 @@ export class AdminSpaController {
   }
 }
 
-function normaliseDeliveryStatus(value: string | undefined): "ALL" | "DELIVERED" | "FAILED" {
-  if (value === "DELIVERED" || value === "FAILED") return value;
+function normaliseDeliveryStatus(value: string | undefined): InspectorDeliveryStatus | "ALL" {
+  if (value === "DELIVERED" || value === "FAILED" || value === "PENDING") return value;
   return "ALL";
+}
+
+function clampLimit(raw: string | undefined): number {
+  if (!raw) return DEFAULT_PAGE_LIMIT;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return DEFAULT_PAGE_LIMIT;
+  return Math.min(MAX_PAGE_LIMIT, Math.floor(n));
+}
+
+function toDeliveryListEntry(record: DeliveryAggregateInput): DeliveryListEntry {
+  const entry: DeliveryListEntry = {
+    id: record.id,
+    endpointId: record.endpointId,
+    endpointUrl: record.endpointUrl,
+    status: record.status as DeliveryStatus,
+    attemptCount: record.attemptCount,
+    occurredAt: record.occurredAt,
+  };
+  if (record.eventType !== undefined) entry.eventType = record.eventType;
+  if (record.statusCode !== undefined) entry.statusCode = record.statusCode;
+  if (record.latencyMs !== undefined) entry.latencyMs = record.latencyMs;
+  if (record.errorMessage !== undefined) entry.errorMessage = record.errorMessage;
+  return entry;
 }
