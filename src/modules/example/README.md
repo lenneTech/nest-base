@@ -1,147 +1,111 @@
 # Example module
 
-Reference implementation of a tenant-scoped CRUD resource. Copy this
-folder when you start a new module — the structure below is what the
-project considers a clean, well-separated NestJS module.
+Reference implementation of a tenant-scoped CRUD resource — the
+**blank-slate** pattern (start a new resource from scratch). Compare
+with `src/modules/user-profile/` which is the **extend-existing**
+pattern.
 
-## File layout — one responsibility per file
+## File layout — slim default, 5 files
 
 ```
 src/modules/example/
-├── README.md                       ← this file
-├── example.module.ts               ← @Module wiring (controller + service + repo binding)
-├── example.controller.ts           ← REST endpoints — thin transport layer
-├── example.service.ts              ← business logic only (id, timestamps, pagination, errors)
-├── example.repository.ts           ← repository contract (interface)
-├── example.repository.prisma.ts    ← Prisma-backed implementation (production default)
-├── example.repository.in-memory.ts ← in-memory implementation (tests / cold-boot dev)
-├── example.dto.ts                  ← Zod request + response schemas
-├── example.types.ts                ← internal record + status types
-├── example.errors.ts               ← named error sentinels (ExampleNotFoundError)
-├── example.tokens.ts               ← DI tokens (EXAMPLE_REPOSITORY symbol)
-├── example.mapper.ts               ← record → response shape
-└── require-tenant.ts               ← tenant-id retrieval helper from AsyncLocalStorage
+├── README.md               ← this file
+├── example.module.ts       ← @Module wiring (10 lines)
+├── example.controller.ts   ← REST endpoints + tenant helper
+├── example.service.ts      ← business logic + Prisma calls + types + errors
+└── example.dto.ts          ← Zod schemas + inferred types
 ```
 
-Every file is small (most under 50 lines) and named for what it owns.
-A new contributor opening any single file knows what's in it without
-having to scroll.
+That's the slim default for ~95 % of modules. Service uses
+`PrismaService` directly via the typed Prisma client. No repository
+abstraction, no DI token, no in-memory variant in production code.
+Tests run against a small `FakePrismaService` from
+`tests/lib/fake-prisma.ts`.
 
-## Layer responsibilities
+If you genuinely need mock-swappable storage (multiple backends,
+non-Prisma persistence, paranoid security-test isolation): bring
+back the `<x>.repository.ts` interface + Prisma + in-memory split.
+The pattern is documented in
+`.claude/skills/adding-feature-module.md`. Default is slim.
 
-```
-HTTP request
-   │
-   ▼
-ExampleController          ← validates DTO, picks tenant, delegates
-   │
-   ▼  (interface call)
-ExampleService             ← business logic: ids, timestamps, pagination, errors
-   │
-   ▼  (interface call)
-ExampleRepository          ← persistence contract
-   │
-   ├─► PrismaExampleRepository    (real Postgres + RLS)
-   └─► InMemoryExampleRepository  (tests + dev fallback)
-```
+## Endpoints
 
-The service depends on the `ExampleRepository` _interface_, never on a
-specific implementation. Swapping production from in-memory to Prisma
-is a one-line change in `example.module.ts`.
+| Method   | Path            | Behaviour                                                |
+| -------- | --------------- | -------------------------------------------------------- |
+| `POST`   | `/examples`     | Create record. 201 on success.                           |
+| `GET`    | `/examples`     | List records (cursor-paginated, optional status filter). |
+| `GET`    | `/examples/:id` | Fetch one. 404 when missing or foreign-tenant.           |
+| `PATCH`  | `/examples/:id` | Patch fields.                                            |
+| `DELETE` | `/examples/:id` | Remove. 204 on success.                                  |
+
+Every handler carries `@Can('action', 'Example')` so `/dev/routes`
+shows the module guarded.
 
 ## Patterns demonstrated
 
 ### 1. Tenant scoping via RLS
 
-Every Postgres call in `PrismaExampleRepository` goes through
+Every Postgres call goes through
 `prisma.runWithRlsTenant(callback, tenantId)`. That opens a
-transaction, runs `SET LOCAL app.tenant_id = '<uuid>'`, and executes
-the callback inside. The RLS policy on the `examples` table refuses
-rows from other tenants automatically — even if a `WHERE` clause is
-forgotten, the database enforces the boundary.
+transaction, runs `SET LOCAL app.tenant_id = '<uuid>'`, and runs the
+callback inside. The RLS policy on the `examples` table refuses
+foreign-tenant rows automatically — even a forgotten `WHERE` clause
+can't leak across tenants.
 
-### 2. Repository interface (not BaseRepository inheritance)
+### 2. Typed Prisma client
 
-`ExampleRepository` is a small interface, not an abstract base class.
-Two implementations satisfy it side-by-side. The service can mock the
-repo with three lines of code in tests:
+The service uses `tx.example.create({data})`,
+`tx.example.findMany({where, orderBy})`, etc. — typed methods, not
+raw SQL. After `bun run prisma:generate` the types come from the
+generated client.
 
-```typescript
-const fake: ExampleRepository = {
-  insert: vi.fn(),
-  findById: vi.fn(),
-  list: vi.fn(),
-  update: vi.fn(),
-  delete: vi.fn(),
-};
-const service = new ExampleService(fake);
-```
+### 3. Cursor pagination
 
-### 3. Named error sentinels
+`buildCursorPage()` from `src/core/pagination/cursor.js` slices the
+filtered set. The repository (the in-line Prisma call) returns the
+full filtered list ordered by `createdAt DESC`; the service trims to
+the requested page.
 
-`ExampleNotFoundError` is thrown by the service. The global
-`ProblemDetailsFilter` maps it to RFC 7807 with the right status code.
-The HTTP layer never has to know about specific error classes.
+### 4. Named error sentinels
 
-### 4. Zod-driven DTOs
+`ExampleNotFoundError` lives at the top of `example.service.ts`. The
+global `ProblemDetailsFilter` maps it to RFC 7807 with a 404 status.
+The controller never has to know about the error class.
 
-`example.dto.ts` defines four schemas: `CreateExample`, `UpdateExample`,
-`ListExampleQuery`, `ExampleResponse`. Each schema is the single
-source of truth — TypeScript types are inferred (`z.infer<...>`),
-runtime validation goes through `ZodValidationPipe`, and Swagger
-schemas are generated from the same shape.
+### 5. Zod-driven DTOs
 
-### 5. Cursor pagination
+`example.dto.ts` defines four schemas (Create, Update, ListQuery,
+Response). Each schema is the single source of truth — TypeScript
+types are inferred (`z.infer<...>`), runtime validation goes through
+`ZodValidationPipe`, Swagger schemas come from the same shape.
 
-`buildCursorPage()` from `src/core/pagination/cursor.js` handles the
-slicing. The repository returns the full filtered set; the service
-sorts and asks the helper for "give me page N starting after cursor X".
+## Schema + migration
 
-### 6. Permission gates
-
-Every handler carries `@Can("action", "Example")`. The
-`PermissionInterceptor` resolves the active CASL ability per request,
-the `CanGuard` reads it. Auditors check `/dev/routes` to see every
-endpoint's guard at a glance.
-
-## Schema + migration shipped with this module
-
-Out of the box the module wires `PrismaExampleRepository` and ships
-the matching `Example` model in `prisma/schema.prisma` plus a
-migration at
+The `Example` model lives in `prisma/schema.prisma`; the migration
+lives at
 `prisma/migrations/20260430000000_example_module/migration.sql`. The
 migration creates the `examples` table, indexes `tenant_id`, enables
-RLS, and installs the tenant-isolation policy. After
-`bun run prisma:migrate` (or `bun run reset`), `POST /examples`
-works end-to-end against real Postgres.
-
-Story tests run against the in-memory repository — no DB needed.
-
-## Swapping to the in-memory repository
-
-Useful if you want the module to boot before migrations are applied
-or you're in a CI lane without Postgres. One line in
-`example.module.ts`:
-
-```typescript
-// Default — real DB, real RLS:
-{ provide: EXAMPLE_REPOSITORY, useClass: PrismaExampleRepository },
-
-// In-memory — process-local, no DB:
-{ provide: EXAMPLE_REPOSITORY, useClass: InMemoryExampleRepository },
-```
-
-The service stays unchanged; the DI token is what makes the swap
-trivial.
+RLS, and installs the `tenant_isolation` policy. After
+`bun run prisma:migrate` (or `bun run reset`) the routes work
+end-to-end against real Postgres.
 
 ## Tests
 
-| Where                                             | What it covers                                                                                                                                     |
-| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tests/stories/example-module.story.test.ts`      | Service behaviour against the in-memory repo: tenant isolation, list filter, cursor pagination, not-found, update / delete cross-tenant rejection. |
-| `tests/<resource>.e2e-spec.ts` (when you add one) | Full HTTP round-trip including @Can() guard, permissions interceptor, RLS.                                                                         |
+`tests/stories/example-module.story.test.ts` exercises the service
+against `createFakePrisma()` from `tests/lib/fake-prisma.ts`. Fast
+(no DB), realistic enough (every method the service uses is
+mirrored). When you copy this module:
 
-When you copy this module: rename `Example`/`example` everywhere,
-adjust the DTO schemas to your domain, write the Prisma migration with
-the RLS policy, write your story tests RED first, then implementation,
-then six gates.
+```typescript
+import { createFakePrisma, asPrismaService } from "../lib/fake-prisma.js";
+const prisma = createFakePrisma();
+const service = new ExampleService(asPrismaService(prisma));
+```
+
+For full HTTP-round-trip tests (with `@Can()`, output pipeline, RLS),
+write `tests/<resource>.e2e-spec.ts` against a real testcontainer
+Postgres — that's what `tests/global-setup.ts` already provides.
+
+When you copy this module: rename `Example`/`example`, adjust the DTO
+fields, update the migration, write story tests RED first, six gates
+green, commit.

@@ -1,24 +1,27 @@
 /**
- * Story tests for the Example module — exercise the service against
- * the in-memory repository. The same pattern applies to real modules:
- * inject the fake / in-memory repo, assert tenant-isolation, list
- * filtering, and not-found errors.
+ * Story tests for the slim Example module — exercise the service
+ * against the in-memory `FakePrismaService` so the tests run fast
+ * without booting a Postgres container.
+ *
+ * The same shape applies to your real modules: instantiate the
+ * fake, cast it to `PrismaService`, instantiate the service, assert
+ * tenant-isolation, list filtering, not-found errors.
  */
+
 import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   CreateExampleSchema,
   ListExampleQuerySchema,
 } from "../../src/modules/example/example.dto.js";
-import { ExampleNotFoundError } from "../../src/modules/example/example.errors.js";
-import { InMemoryExampleRepository } from "../../src/modules/example/example.repository.in-memory.js";
-import { ExampleService } from "../../src/modules/example/example.service.js";
+import { ExampleNotFoundError, ExampleService } from "../../src/modules/example/example.service.js";
+import { asPrismaService, createFakePrisma } from "../lib/fake-prisma.js";
 
 const TENANT_A = "00000000-0000-7000-8000-00000000000a";
 const TENANT_B = "00000000-0000-7000-8000-00000000000b";
 
 function makeService(): ExampleService {
-  return new ExampleService(new InMemoryExampleRepository());
+  return new ExampleService(asPrismaService(createFakePrisma()));
 }
 
 describe("Story · Example module", () => {
@@ -66,6 +69,9 @@ describe("Story · Example module", () => {
 
     it("paginates with cursor", async () => {
       for (let i = 0; i < 5; i++) {
+        // Stagger createdAt so the order-by is deterministic in the
+        // fake (which only knows the values we pass it).
+        await new Promise((r) => setTimeout(r, 2));
         await service.create(TENANT_A, { name: `n${i}`, status: "draft" });
       }
       const first = await service.list(TENANT_A, { limit: 2 });
@@ -77,10 +83,8 @@ describe("Story · Example module", () => {
         cursor: first.items[first.items.length - 1]!.id,
       });
       expect(second.items).toHaveLength(2);
-      // No overlap between pages
       const firstIds = new Set(first.items.map((r) => r.id));
-      const secondIds = second.items.map((r) => r.id);
-      for (const id of secondIds) expect(firstIds.has(id)).toBe(false);
+      for (const id of second.items.map((r) => r.id)) expect(firstIds.has(id)).toBe(false);
     });
 
     it("query schema coerces string limit to number", () => {
@@ -125,7 +129,6 @@ describe("Story · Example module", () => {
 
     it("bumps updatedAt", async () => {
       const created = await service.create(TENANT_A, { name: "x", status: "draft" });
-      // Wait one ms so the timestamp changes deterministically
       await new Promise((r) => setTimeout(r, 2));
       const updated = await service.update(TENANT_A, created.id, { name: "y" });
       expect(updated.updatedAt > created.updatedAt).toBe(true);

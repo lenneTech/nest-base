@@ -1,14 +1,9 @@
 /**
  * UserProfile controller — `/me/profile` endpoints.
  *
- * Two routes, both inherently scoped to the current user:
- *   - GET  /me/profile    → read your own profile
- *   - PATCH /me/profile   → edit your own profile
- *
- * No `:id` parameter on either route — the user can ONLY see their
- * own profile, identified by the authenticated session. That's the
- * key difference from the example module: data scoping is by
- * `req.user.id`, not by URL params.
+ * Both routes are inherently scoped to the current user — there's
+ * no `:id` param. The user can ONLY see their own profile,
+ * identified by the authenticated session.
  */
 
 import { Body, Controller, Get, Patch, Req } from "@nestjs/common";
@@ -16,7 +11,6 @@ import { Body, Controller, Get, Patch, Req } from "@nestjs/common";
 import { Can } from "../../core/permissions/can.guard.js";
 import { ZodValidationPipe } from "../../core/validation/zod-validation.pipe.js";
 
-import { requireCurrentUser } from "./require-current-user.js";
 import {
   type UpdateUserProfileDto,
   UpdateUserProfileSchema,
@@ -48,4 +42,13 @@ export class UserProfileController {
     const { id, tenantId } = requireCurrentUser(req);
     return this.service.update(tenantId, id, dto);
   }
+}
+
+function requireCurrentUser(req: AuthedRequest): { id: string; tenantId: string } {
+  const id = req.user?.id;
+  const tenantId = req.user?.tenantId;
+  if (!id || !tenantId) {
+    throw new Error("user-profile: no authenticated user on request");
+  }
+  return { id, tenantId };
 }

@@ -1,24 +1,16 @@
 /**
- * Example controller — REST endpoints. Thin by design: the controller
- * is a transport adapter that:
- *   1. validates the request body / query (via the Zod pipe)
- *   2. picks the active tenant out of the AsyncLocalStorage (set
- *      by `TenantInterceptor` from the `x-tenant-id` header)
- *   3. delegates to `ExampleService`
- *   4. returns the response shape to NestJS
+ * Example controller — REST endpoints for the example resource.
  *
- * What it does NOT do:
- *   - mutate records directly (that's the service)
- *   - look at the database (that's the repository)
- *   - format errors (the global RFC 7807 filter does that)
- *
- * The `@Can()` decorators are deliberately wired here so an auditor
- * scanning `/dev/routes` sees every endpoint guarded by the same
- * mechanism the rest of the codebase uses.
+ * Thin transport layer: validates the body / query (Zod pipe), pulls
+ * the active tenant from the AsyncLocalStorage that
+ * `TenantInterceptor` populates on every non-exempt request, and
+ * delegates to `ExampleService`. Errors flow through the global
+ * RFC 7807 filter.
  */
 
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from "@nestjs/common";
 
+import { getCurrentTenantId } from "../../core/multi-tenancy/tenant.interceptor.js";
 import { Can } from "../../core/permissions/can.guard.js";
 import { ZodValidationPipe } from "../../core/validation/zod-validation.pipe.js";
 
@@ -32,7 +24,6 @@ import {
   UpdateExampleSchema,
 } from "./example.dto.js";
 import { ExampleService } from "./example.service.js";
-import { requireTenant } from "./require-tenant.js";
 
 @Controller("examples")
 export class ExampleController {
@@ -74,4 +65,12 @@ export class ExampleController {
   async remove(@Param("id") id: string): Promise<void> {
     await this.service.remove(requireTenant(), id);
   }
+}
+
+function requireTenant(): string {
+  const tenantId = getCurrentTenantId();
+  if (!tenantId) {
+    throw new Error("example: no tenant id in request context (route is exempt?)");
+  }
+  return tenantId;
 }

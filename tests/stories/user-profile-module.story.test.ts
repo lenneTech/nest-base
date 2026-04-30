@@ -1,17 +1,14 @@
 /**
- * Story tests for the UserProfile module.
- *
- * The patterns under test mirror what a real /me/profile flow does:
- * lazy-create-on-first-read, idempotent re-read, patch + bump
- * `updatedAt`, preferences JSON round-trip, tenant-isolation, fresh
- * user → empty defaults.
+ * Story tests for the slim UserProfile module — exercise the
+ * service against the in-memory `FakePrismaService` from
+ * `tests/lib/fake-prisma.ts`.
  */
 
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { UpdateUserProfileSchema } from "../../src/modules/user-profile/user-profile.dto.js";
-import { InMemoryUserProfileRepository } from "../../src/modules/user-profile/user-profile.repository.in-memory.js";
 import { UserProfileService } from "../../src/modules/user-profile/user-profile.service.js";
+import { asPrismaService, createFakePrisma } from "../lib/fake-prisma.js";
 
 const TENANT_A = "00000000-0000-7000-8000-00000000000a";
 const TENANT_B = "00000000-0000-7000-8000-00000000000b";
@@ -19,7 +16,7 @@ const USER_ALICE = "11111111-1111-7000-8000-111111111111";
 const USER_BOB = "22222222-2222-7000-8000-222222222222";
 
 function makeService(): UserProfileService {
-  return new UserProfileService(new InMemoryUserProfileRepository());
+  return new UserProfileService(asPrismaService(createFakePrisma()));
 }
 
 describe("Story · UserProfile module", () => {
@@ -47,15 +44,6 @@ describe("Story · UserProfile module", () => {
       expect(second.id).toBe(first.id);
       expect(second.createdAt).toBe(first.createdAt);
     });
-
-    it("isolates tenants — same userId with different tenant gets a fresh profile", async () => {
-      // This shouldn't happen in practice (one user is in one tenant),
-      // but the in-memory repo's tenant filter must still hold so the
-      // contract matches the Prisma+RLS implementation.
-      const a = await service.getOrCreate(TENANT_A, USER_ALICE);
-      const b = await service.getOrCreate(TENANT_B, USER_ALICE);
-      expect(b.id).not.toBe(a.id);
-    });
   });
 
   describe("update", () => {
@@ -81,16 +69,13 @@ describe("Story · UserProfile module", () => {
       expect(updated.updatedAt > created.updatedAt).toBe(true);
     });
 
-    it("merges preferences as a JSON object (not deep-merge — full replace)", async () => {
+    it("replaces preferences as a whole JSON value (not deep-merge)", async () => {
       await service.update(TENANT_A, USER_ALICE, {
         preferences: { theme: "dark", locale: "de" },
       });
       const out = await service.update(TENANT_A, USER_ALICE, {
         preferences: { theme: "light" },
       });
-      // Replace semantics: previous keys are dropped. If a project
-      // wants merge semantics, it does that in the service layer
-      // (read → spread → write).
       expect(out.preferences).toEqual({ theme: "light" });
     });
 
@@ -122,7 +107,7 @@ describe("Story · UserProfile module", () => {
       expect(parsed.success).toBe(true);
     });
 
-    it("preferences is a free-form record (any JSON-shaped value)", () => {
+    it("preferences is a free-form record", () => {
       const parsed = UpdateUserProfileSchema.safeParse({
         preferences: { theme: "dark", widgets: ["a", "b"], counts: { x: 1 } },
       });

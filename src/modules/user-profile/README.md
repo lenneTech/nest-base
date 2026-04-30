@@ -1,49 +1,39 @@
 # UserProfile module
 
 Reference implementation for **extending an existing
-framework-managed entity** with project-specific fields. The User
-itself is owned by the core (Better-Auth manages its lifecycle —
-sign-up, sign-in, session). When a project needs `displayName`,
-`avatarUrl`, `bio`, `preferences`, or any other domain field on top
-of the user, the right pattern is a separate `UserProfile` table
-linked 1:1 via the unique `user_id` foreign key.
+framework-managed entity** with project-specific fields. Compare
+with `src/modules/example/` (blank-slate pattern); this module
+shows what to do when the entity itself (the User) is owned by the
+core (Better-Auth handles its lifecycle).
 
-Compare with `src/modules/example/` — the `example` module is the
-**blank-slate** reference (new resource from scratch); this module
-is the **extend-existing** reference. Both use the same internal
-structure (12-file layout) so a contributor can pattern-match
-between them.
-
-## File layout
+## File layout — slim default, 5 files
 
 ```
 src/modules/user-profile/
-├── README.md                            ← this file
-├── user-profile.module.ts               ← @Module wiring
-├── user-profile.controller.ts           ← /me/profile GET + PATCH
-├── user-profile.service.ts              ← lazy-create-on-first-read
-├── user-profile.repository.ts           ← interface contract
-├── user-profile.repository.prisma.ts    ← real Postgres + RLS (default)
-├── user-profile.repository.in-memory.ts ← tests / fallback
-├── user-profile.dto.ts                  ← Zod schemas
-├── user-profile.types.ts                ← UserProfileRecord
-├── user-profile.errors.ts               ← named sentinels
-├── user-profile.tokens.ts               ← DI token
-├── user-profile.mapper.ts               ← record → response
-└── require-current-user.ts              ← `req.user.id` helper
+├── README.md                       ← this file
+├── user-profile.module.ts          ← @Module wiring
+├── user-profile.controller.ts      ← /me/profile GET + PATCH
+├── user-profile.service.ts         ← business logic + Prisma + types + errors
+└── user-profile.dto.ts             ← Zod schemas
 ```
+
+Same structure as `example/` — service uses `PrismaService` directly,
+no repository abstraction, tests use the `FakePrismaService` helper
+from `tests/lib/fake-prisma.ts`. If you genuinely need
+mock-swappable storage, bring back the repository layer; the slim
+default fits 95 % of cases.
 
 ## Endpoints
 
-| Method  | Path          | Behaviour                                                                                                         |
-| ------- | ------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `GET`   | `/me/profile` | Returns the calling user's profile. Auto-creates an empty profile on first call so a fresh user never sees a 404. |
-| `PATCH` | `/me/profile` | Patches the calling user's profile (idempotent: lazy-create if missing).                                          |
+| Method  | Path          | Behaviour                                                       |
+| ------- | ------------- | --------------------------------------------------------------- |
+| `GET`   | `/me/profile` | Returns the calling user's profile. Auto-creates on first call. |
+| `PATCH` | `/me/profile` | Patches the profile. Lazy-creates if missing.                   |
 
 Both routes are guarded by `@Can('read'|'update', 'UserProfile')`
-and inherently scoped to the authenticated user via
-`req.user.id` — there's no `:id` parameter, so a user can never
-ask for someone else's profile.
+and inherently scoped to the authenticated user via `req.user.id` —
+no `:id` parameter, so a user can never ask for someone else's
+profile.
 
 ## Patterns demonstrated (different from `example/`)
 
@@ -53,39 +43,34 @@ ask for someone else's profile.
 user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE
 ```
 
-The UNIQUE constraint enforces the 1:1 invariant at the DB layer.
-ON DELETE CASCADE means user-account deletion (Better-Auth or the
-GDPR `/me/account` flow) automatically removes the profile too — no
-orphan rows.
+UNIQUE enforces the 1:1 invariant at the DB layer. ON DELETE CASCADE
+means user-account deletion (Better-Auth or the GDPR `/me/account`
+flow) auto-removes the profile — no orphan rows.
 
 ### 2. Denormalised tenant column
 
-The `tenant_id` lives on `user_profiles` as well as on `users`,
-even though it could be joined. Why: RLS policies need
-`current_setting('app.tenant_id')` to compare against a column on
-the same table — without the denormalised column, every read
-would have to JOIN users which kills RLS performance.
-
-The trade-off: a write-time consistency rule. The service guarantees
-`profile.tenant_id == user.tenant_id` because both come from the
-same `req.user.tenantId` on every call.
+`tenant_id` lives on `user_profiles` even though it could be joined
+from `users`. Why: RLS policies need the column on the same table to
+fire without a JOIN. Trade-off is a write-time consistency rule
+(service guarantees `profile.tenantId == user.tenantId`, easy
+because both come from the same `req.user`).
 
 ### 3. Lazy-create on first read
 
 `service.getOrCreate(tenantId, userId)` returns the existing profile
 or creates an empty one and returns that. Two upsides:
 
-- A freshly signed-up user sees `200 { displayName: null, ... }`
-  on first GET, not a confusing 404.
-- The frontend never has to decide between POST-then-PATCH and just
-  PATCH; PATCH always works and creates if needed.
+- A freshly signed-up user sees `200 { displayName: null, ... }` on
+  first GET, never a confusing 404.
+- The frontend never has to choose between POST-then-PATCH and just
+  PATCH; PATCH always works.
 
-### 4. JSONB for flexible preferences
+### 4. JSONB preferences bucket
 
-`preferences` is a `JSONB` bucket that holds whatever the project
-hasn't promoted to its own column yet — theme, locale, notification
-toggles, dashboard layout. When a key in there proves load-bearing,
-promote it to a real column in a follow-up migration.
+`preferences` is a `JSONB` column for fields that don't deserve their
+own column yet (theme, locale, notification toggles, dashboard
+layout). When a key proves load-bearing, promote it to a real column
+in a follow-up migration.
 
 ### 5. Current-user retrieval, not URL params
 
@@ -97,27 +82,19 @@ async getMine(@Req() req: AuthedRequest) {
 }
 ```
 
-Compared to `example/` where the controller takes the resource id
-from `:id`, this controller takes nothing from the URL — the data
-scope IS the authenticated user. That's the model for any `/me/*`
+The data scope IS the authenticated user. Pattern for any `/me/*`
 route.
 
 ## Schema + migration
 
-`Example` and `UserProfile` are both in `prisma/schema.prisma` and
-both ship migration files. After `bun run prisma:migrate` the routes
-are fully functional against real Postgres.
-
-If you don't want the `user_profiles` table in your project, drop
-the model from `schema.prisma`, drop the migration directory, and
-unwire `UserProfileModule` from `AppModule`.
+`prisma/schema.prisma` has the `UserProfile` model;
+`prisma/migrations/20260430000100_user_profile_module/migration.sql`
+creates the table + index + RLS policy. After `bun run prisma:migrate`
+the routes work end-to-end.
 
 ## Tests
 
-Story tests cover the service against the in-memory repo:
-lazy-create on GET, idempotent re-read, patch semantics, preferences
-JSON round-trip, tenant isolation, fresh user → empty defaults.
-
-When you copy this module for `Project`, `Order`, or any other
-"extend the user" use-case: rename the prefix, adjust the DTO
-fields, and the patterns transfer 1:1.
+`tests/stories/user-profile-module.story.test.ts` runs against
+`createFakePrisma()`. Same fast-test ergonomics as `example/`. When
+you copy this module: rename the prefix, adjust DTO fields, update
+the migration.
