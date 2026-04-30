@@ -167,6 +167,8 @@ Every JSON endpoint has a sister HTML page that mounts the React SPA's shared **
 
 Permission tester, audit browser, search tester, webhook inspector, realtime inspector. All in the same dark-mode shell with consistent navigation.
 
+The realtime inspector at `/admin/realtime` ships with three tabs (Sockets / Channels / Events), per-socket disconnect / send-event actions, payload-replay, and a 1.5 s React-Query poll so the live snapshot reflects every gateway lifecycle change without a page reload. Payloads are PII-masked and the surface 404s outside `NODE_ENV=development`.
+
 ![Permission Tester](docs/screenshots/permission-tester.png)
 
 ---
