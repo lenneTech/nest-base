@@ -107,4 +107,35 @@ describe("Story · Storage factory", () => {
     expect(resolveStorageBaseUrl({ APP_BASE_URL: "https://api" })).toBe("https://api");
     expect(resolveStorageBaseUrl({})).toBe("http://localhost:3000/files");
   });
+
+  it("driver=s3 without S3_BUCKET fails fast", async () => {
+    await expect(
+      createStorageAdapter({
+        driver: "s3",
+        env: {},
+      }),
+    ).rejects.toThrow(/S3_BUCKET/);
+  });
+
+  it("driver=s3 surfaces a descriptive error when the AWS SDK fails to load", async () => {
+    // Default factory is used — the SDK isn't installed in this
+    // workspace, so loading raises a wrapped error pointing at the
+    // install command.
+    await expect(
+      createStorageAdapter({
+        driver: "s3",
+        env: { S3_BUCKET: "test" },
+      }),
+    ).rejects.toThrow(/aws-sdk|s3 driver/);
+  });
+
+  it("rejects an unknown driver", async () => {
+    await expect(
+      createStorageAdapter({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        driver: "ftp" as any,
+        env: {},
+      }),
+    ).rejects.toThrow(/unknown driver/);
+  });
 });

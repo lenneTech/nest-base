@@ -79,13 +79,7 @@ describe("Story · PrismaFileStorage", () => {
             }
             return out;
           },
-          async update({
-            where,
-            data,
-          }: {
-            where: { id: string };
-            data: Partial<FileRow>;
-          }) {
+          async update({ where, data }: { where: { id: string }; data: Partial<FileRow> }) {
             const existing = rows.get(where.id);
             if (!existing) return null;
             const next = { ...existing, ...data };
@@ -287,13 +281,7 @@ describe("Story · PrismaFolderStorage", () => {
             }
             return out;
           },
-          async update({
-            where,
-            data,
-          }: {
-            where: { id: string };
-            data: Partial<FolderRow>;
-          }) {
+          async update({ where, data }: { where: { id: string }; data: Partial<FolderRow> }) {
             const existing = rows.get(where.id);
             if (!existing) return null;
             const next = { ...existing, ...data };

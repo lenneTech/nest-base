@@ -117,6 +117,7 @@ async function defaultS3OperationsFactory(env: StorageFactoryEnv): Promise<S3Ope
   if (!bucket) throw new Error("storage-factory: S3_BUCKET is required for the s3 driver");
 
   const { AwsS3Operations } = await loadAwsS3Operations();
+  await AwsS3Operations.preload();
   return new AwsS3Operations({
     bucket,
     ...(env.S3_REGION ? { region: env.S3_REGION } : {}),

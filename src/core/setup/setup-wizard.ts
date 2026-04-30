@@ -222,7 +222,9 @@ function renderEnvExample(answers: WizardAnswers): string {
   lines.push("# ── File storage (origin + cache) ──────────────────────────────");
   lines.push("# Local driver — filesystem under STORAGE_LOCAL_ROOT (default ./data/uploads)");
   lines.push("# STORAGE_LOCAL_ROOT=./data/uploads");
-  lines.push("# Public-facing base URL the LocalStorageAdapter signs into (defaults to APP_BASE_URL)");
+  lines.push(
+    "# Public-facing base URL the LocalStorageAdapter signs into (defaults to APP_BASE_URL)",
+  );
   lines.push("# STORAGE_BASE_URL=https://api.example.com/files");
   lines.push("# S3 driver — uncomment when FEATURE_FILES_STORAGE_DEFAULT=s3");
   lines.push("# S3_BUCKET=");
@@ -234,7 +236,9 @@ function renderEnvExample(answers: WizardAnswers): string {
   lines.push("# ── TUS resumable uploads ──────────────────────────────────────");
   lines.push("# Hard cap per single upload (bytes); default 50MB");
   lines.push("# TUS_MAX_UPLOAD_BYTES=52428800");
-  lines.push("# Per-tenant total quota across in-progress uploads (bytes); default unset = no quota");
+  lines.push(
+    "# Per-tenant total quota across in-progress uploads (bytes); default unset = no quota",
+  );
   lines.push("# TUS_MAX_BYTES_PER_TENANT=");
   lines.push("# Chunk expiration (seconds) — sweeps stale resumable uploads; default 24h");
   lines.push("# TUS_CHUNK_EXPIRATION_SECONDS=86400");

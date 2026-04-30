@@ -31,10 +31,7 @@ interface FileTable {
     orderBy?: { [k: string]: "asc" | "desc" };
   }): Promise<File[]>;
   update(input: { where: { id: string }; data: Partial<File> }): Promise<File | null>;
-  updateMany(input: {
-    where: Partial<File>;
-    data: Partial<File>;
-  }): Promise<{ count: number }>;
+  updateMany(input: { where: Partial<File>; data: Partial<File> }): Promise<{ count: number }>;
 }
 
 interface FileTx {
@@ -106,15 +103,12 @@ export class PrismaFileStorage implements FileServiceStorage {
   async delete(id: string): Promise<boolean> {
     const existing = await this.scanById(id);
     if (!existing || existing.deletedAt) return false;
-    await this.deps.runWithRlsTenant(
-      async (tx) => {
-        await tx.file.update({
-          where: { id },
-          data: { deletedAt: new Date() } as Partial<File>,
-        });
-      },
-      existing.tenantId,
-    );
+    await this.deps.runWithRlsTenant(async (tx) => {
+      await tx.file.update({
+        where: { id },
+        data: { deletedAt: new Date() } as Partial<File>,
+      });
+    }, existing.tenantId);
     return true;
   }
 
@@ -132,7 +126,7 @@ export class PrismaFileStorage implements FileServiceStorage {
       return await this.deps.runWithRlsTenant(
         (tx) => tx.file.findFirst({ where: { id } as Partial<File> }),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (undefined as unknown) as any,
+        undefined as unknown as any,
       );
     } catch {
       return null;
@@ -192,10 +186,7 @@ interface FolderTable {
   findFirst(input: { where: Partial<Folder> }): Promise<Folder | null>;
   findMany(input: { where?: Partial<Folder> }): Promise<Folder[]>;
   update(input: { where: { id: string }; data: Partial<Folder> }): Promise<Folder | null>;
-  updateMany(input: {
-    where: Partial<Folder>;
-    data: Partial<Folder>;
-  }): Promise<{ count: number }>;
+  updateMany(input: { where: Partial<Folder>; data: Partial<Folder> }): Promise<{ count: number }>;
 }
 
 interface FolderTx {
@@ -256,15 +247,12 @@ export class PrismaFolderStorage implements FolderStorage {
   async delete(id: string): Promise<boolean> {
     const existing = await this.scanById(id);
     if (!existing || existing.deletedAt) return false;
-    await this.deps.runWithRlsTenant(
-      async (tx) => {
-        await tx.folder.update({
-          where: { id },
-          data: { deletedAt: new Date() } as Partial<Folder>,
-        });
-      },
-      existing.tenantId,
-    );
+    await this.deps.runWithRlsTenant(async (tx) => {
+      await tx.folder.update({
+        where: { id },
+        data: { deletedAt: new Date() } as Partial<Folder>,
+      });
+    }, existing.tenantId);
     return true;
   }
 

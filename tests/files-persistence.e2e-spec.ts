@@ -70,9 +70,7 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
       .set("content-type", "application/json")
       .send({ email, password: "password-12345", name: "Files E2E" });
     if (signUp.status !== 200) {
-      throw new Error(
-        `sign-up failed (${signUp.status}): ${JSON.stringify(signUp.body)}`,
-      );
+      throw new Error(`sign-up failed (${signUp.status}): ${JSON.stringify(signUp.body)}`);
     }
     const cookies = signUp.headers["set-cookie"] as unknown as string[] | undefined;
     if (!cookies || cookies.length === 0) {
@@ -120,7 +118,9 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
     const sha = createHash("sha256").update(bytes).digest("hex");
     const res = await request(app.getHttpServer())
       .post("/files/upload")
-      .set("x-tenant-id", tenantId).set("cookie", sessionCookie)
+      .set("x-tenant-id", tenantId)
+      .set("cookie", sessionCookie)
+      .set("x-test-ability", "full")
       .send({
         tenantId,
         folderId: null,
@@ -145,7 +145,9 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
     const bytes = await makePng();
     const upload = await request(app.getHttpServer())
       .post("/files/upload")
-      .set("x-tenant-id", tenantId).set("cookie", sessionCookie)
+      .set("x-tenant-id", tenantId)
+      .set("cookie", sessionCookie)
+      .set("x-test-ability", "full")
       .send({
         tenantId,
         folderId: null,
@@ -159,7 +161,9 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
 
     const get = await request(app.getHttpServer())
       .get(`/files/${id}`)
-      .set("x-tenant-id", tenantId).set("cookie", sessionCookie);
+      .set("x-tenant-id", tenantId)
+      .set("cookie", sessionCookie)
+      .set("x-test-ability", "full");
 
     expect(get.status).toBe(200);
     expect(get.body.filename).toBe("alpha.png");
@@ -170,7 +174,9 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
     const sha = createHash("sha256").update(bytes).digest("hex");
     const upload = await request(app.getHttpServer())
       .post("/files/upload")
-      .set("x-tenant-id", tenantId).set("cookie", sessionCookie)
+      .set("x-tenant-id", tenantId)
+      .set("cookie", sessionCookie)
+      .set("x-test-ability", "full")
       .send({
         tenantId,
         folderId: null,
@@ -189,7 +195,9 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
     // should match the upload exactly.
     const res = await request(app.getHttpServer())
       .get(`/assets/${encodeURIComponent(storageKey)}`)
-      .set("x-tenant-id", tenantId).set("cookie", sessionCookie);
+      .set("x-tenant-id", tenantId)
+      .set("cookie", sessionCookie)
+      .set("x-test-ability", "full");
 
     expect(res.status).toBe(200);
     const downloadedSha = createHash("sha256").update(res.body).digest("hex");
@@ -202,7 +210,9 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
     const bytes = await makePng();
     const upload = await request(app.getHttpServer())
       .post("/files/upload")
-      .set("x-tenant-id", tenantId).set("cookie", sessionCookie)
+      .set("x-tenant-id", tenantId)
+      .set("cookie", sessionCookie)
+      .set("x-test-ability", "full")
       .send({
         tenantId,
         folderId: null,
@@ -217,7 +227,9 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
     // First call: cache miss (bytes go through sharp).
     const first = await request(app.getHttpServer())
       .get(`/assets/${encodeURIComponent(storageKey)}?width=8&format=webp`)
-      .set("x-tenant-id", tenantId).set("cookie", sessionCookie);
+      .set("x-tenant-id", tenantId)
+      .set("cookie", sessionCookie)
+      .set("x-test-ability", "full");
     expect(first.status).toBe(200);
     expect(first.headers["content-type"]).toContain("image/webp");
     expect(first.headers["x-cache"]).toBe("MISS");
@@ -225,7 +237,9 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
     // Second call: cache hit (no transformer invocation).
     const second = await request(app.getHttpServer())
       .get(`/assets/${encodeURIComponent(storageKey)}?width=8&format=webp`)
-      .set("x-tenant-id", tenantId).set("cookie", sessionCookie);
+      .set("x-tenant-id", tenantId)
+      .set("cookie", sessionCookie)
+      .set("x-test-ability", "full");
     expect(second.status).toBe(200);
     expect(second.headers["x-cache"]).toBe("HIT");
   });
@@ -234,7 +248,9 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
     const bytes = await makePng();
     const upload = await request(app.getHttpServer())
       .post("/files/upload")
-      .set("x-tenant-id", tenantId).set("cookie", sessionCookie)
+      .set("x-tenant-id", tenantId)
+      .set("cookie", sessionCookie)
+      .set("x-test-ability", "full")
       .send({
         tenantId,
         folderId: null,

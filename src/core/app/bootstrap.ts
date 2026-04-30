@@ -149,12 +149,10 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   // server instance + path live in the FilesModule DI container.
   try {
     const { TUS_SERVER_TOKEN, TUS_CONFIG_TOKEN } = await import("../files/files.module.js");
-    const tusServer = app.get(TUS_SERVER_TOKEN, { strict: false }) as
-      | { handle: (req: unknown, res: unknown) => Promise<void> | void }
-      | null;
-    const tusConfig = app.get(TUS_CONFIG_TOKEN, { strict: false }) as
-      | { mountPath: string }
-      | null;
+    const tusServer = app.get(TUS_SERVER_TOKEN, { strict: false }) as {
+      handle: (req: unknown, res: unknown) => Promise<void> | void;
+    } | null;
+    const tusConfig = app.get(TUS_CONFIG_TOKEN, { strict: false }) as { mountPath: string } | null;
     if (tusServer && tusConfig?.mountPath) {
       const expressApp = app.getHttpAdapter().getInstance() as {
         use: (path: string, handler: unknown) => void;

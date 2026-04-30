@@ -42,7 +42,11 @@ describe("Story · Prisma FileBlobOperations binding", () => {
           }
           return rows.get(k)!;
         },
-        async findUnique({ where }: { where: { tenantId_key: { tenantId: string; key: string } } }) {
+        async findUnique({
+          where,
+        }: {
+          where: { tenantId_key: { tenantId: string; key: string } };
+        }) {
           return rows.get(`${where.tenantId_key.tenantId}/${where.tenantId_key.key}`) ?? null;
         },
         async delete({ where }: { where: { tenantId_key: { tenantId: string; key: string } } }) {

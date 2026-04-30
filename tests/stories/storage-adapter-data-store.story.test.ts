@@ -42,9 +42,9 @@ describe("Story · StorageAdapterDataStore", () => {
     const store = new StorageAdapterDataStore(storage);
     await store.create(new Upload({ id: "u1", size: 5, offset: 0 }));
     await store.write(Readable.from([Buffer.from("hi")]), "u1", 0);
-    await expect(
-      store.write(Readable.from([Buffer.from("x")]), "u1", 0),
-    ).rejects.toThrow(/offset/i);
+    await expect(store.write(Readable.from([Buffer.from("x")]), "u1", 0)).rejects.toThrow(
+      /offset/i,
+    );
   });
 
   it("declareUploadLength() updates the persisted size", async () => {
@@ -62,5 +62,41 @@ describe("Story · StorageAdapterDataStore", () => {
     await store.remove("u1");
     expect(await storage.exists("_tus/u1")).toBe(false);
     expect(await storage.exists("_tus/u1.meta")).toBe(false);
+  });
+
+  it("deleteExpired() purges only uploads older than the configured expiration", async () => {
+    const storage = new InMemoryStorageAdapter();
+    const store = new StorageAdapterDataStore(storage);
+    Object.assign(store, { getExpiration: () => 1000 });
+
+    // Two uploads — one with an old creation_date, one fresh.
+    await store.create(new Upload({ id: "old", size: 1, offset: 0 }));
+    const oldMeta = await store.readMeta("old");
+    oldMeta.creation_date = new Date(Date.now() - 5_000).toISOString();
+    await storage.put({
+      key: "_tus/old.meta",
+      body: new TextEncoder().encode(JSON.stringify(oldMeta)),
+      mimeType: "application/json",
+    });
+    await store.create(new Upload({ id: "fresh", size: 1, offset: 0 }));
+
+    const purged = await store.deleteExpired();
+    expect(purged).toBe(1);
+    expect(await storage.exists("_tus/fresh")).toBe(true);
+    expect(await storage.exists("_tus/old")).toBe(false);
+  });
+
+  it("deleteExpired() returns 0 when the expiration is unset", async () => {
+    const storage = new InMemoryStorageAdapter();
+    const store = new StorageAdapterDataStore(storage);
+    expect(await store.deleteExpired()).toBe(0);
+  });
+
+  it("readBody() returns the assembled bytes of a completed upload", async () => {
+    const storage = new InMemoryStorageAdapter();
+    const store = new StorageAdapterDataStore(storage);
+    await store.create(new Upload({ id: "u", size: 5, offset: 0 }));
+    await store.write(Readable.from([Buffer.from("hello")]), "u", 0);
+    expect(new TextDecoder().decode(await store.readBody("u"))).toBe("hello");
   });
 });

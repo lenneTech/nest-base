@@ -260,8 +260,7 @@ function buildCacheAdapter(
     },
     {
       provide: FOLDER_STORAGE,
-      useFactory: (prisma: PrismaService): PrismaFolderStorage =>
-        bindPrismaFolderStorage(prisma),
+      useFactory: (prisma: PrismaService): PrismaFolderStorage => bindPrismaFolderStorage(prisma),
       inject: [PrismaService],
     },
     // ── Storage adapter (origin) ──────────────────────────────────
@@ -413,10 +412,7 @@ declare module "./file.service.js" {
   }
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace FileService {
-    function withStorageAdapter(
-      storage: FileServiceStorage,
-      adapter: StorageAdapter,
-    ): FileService;
+    function withStorageAdapter(storage: FileServiceStorage, adapter: StorageAdapter): FileService;
   }
 }
 

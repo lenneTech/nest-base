@@ -110,12 +110,12 @@ export class StorageAdapterDataStore extends DataStore {
   }
 
   override async deleteExpired(): Promise<number> {
-    const expirationSeconds = this.getExpiration();
-    if (!expirationSeconds || expirationSeconds <= 0) return 0;
-    const cutoff = Date.now() - expirationSeconds * 1000;
-    const metaKeys = (await this.storage.list(TUS_PREFIX)).filter((k) =>
-      k.endsWith(META_SUFFIX),
-    );
+    // `getExpiration()` returns milliseconds (per the @tus DataStore
+    // convention) — no further unit conversion.
+    const expirationMs = this.getExpiration();
+    if (!expirationMs || expirationMs <= 0) return 0;
+    const cutoff = Date.now() - expirationMs;
+    const metaKeys = (await this.storage.list(TUS_PREFIX)).filter((k) => k.endsWith(META_SUFFIX));
     let purged = 0;
     for (const metaKey of metaKeys) {
       const id = metaKey.slice(TUS_PREFIX.length, -META_SUFFIX.length);

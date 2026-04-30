@@ -35,7 +35,11 @@ interface AwsSdkBindings {
   DeleteObjectCommand: new (input: unknown) => unknown;
   HeadObjectCommand: new (input: unknown) => unknown;
   ListObjectsV2Command: new (input: unknown) => unknown;
-  getSignedUrl(client: S3ClientLike, command: unknown, options: { expiresIn: number }): Promise<string>;
+  getSignedUrl(
+    client: S3ClientLike,
+    command: unknown,
+    options: { expiresIn: number },
+  ): Promise<string>;
 }
 
 let cachedBindings: AwsSdkBindings | null = null;
@@ -186,8 +190,10 @@ async function streamToUint8Array(body: unknown): Promise<Uint8Array> {
   // Node.js Readable. We support both — and a Uint8Array passthrough
   // for tests that pre-resolve the body.
   if (body instanceof Uint8Array) return body;
-  if (typeof (body as { transformToByteArray?: () => Promise<Uint8Array> })
-    .transformToByteArray === "function") {
+  if (
+    typeof (body as { transformToByteArray?: () => Promise<Uint8Array> }).transformToByteArray ===
+    "function"
+  ) {
     return (body as { transformToByteArray: () => Promise<Uint8Array> }).transformToByteArray();
   }
   // Fallback: collect chunks from an async-iterable.

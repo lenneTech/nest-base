@@ -1,11 +1,16 @@
-import { BadRequestException, Controller, Get, NotFoundException, Param, Query, Res } from "@nestjs/common";
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Query,
+  Res,
+} from "@nestjs/common";
 import type { Response } from "express";
 
-import {
-  AssetService,
-  type TransformOptions,
-  computeCacheKey,
-} from "./asset.service.js";
+import { Can } from "../permissions/can.guard.js";
+import { AssetService, type TransformOptions, computeCacheKey } from "./asset.service.js";
 import { StorageObjectNotFoundError } from "./storage-adapter.js";
 
 /**
@@ -25,6 +30,7 @@ import { StorageObjectNotFoundError } from "./storage-adapter.js";
 export class AssetController {
   constructor(private readonly asset: AssetService) {}
 
+  @Can("read", "Asset")
   @Get(":key")
   async get(
     @Param("key") key: string,

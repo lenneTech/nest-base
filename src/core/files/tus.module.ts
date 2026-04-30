@@ -41,14 +41,17 @@ export class TusModule {
     // factory below, called by Nest at module-init time.
     const serverFactory = async (): Promise<TusServerLike> => {
       const { Server } = await import("@tus/server");
+      // The DataStore advertises its own expiration via
+      // `getExpiration()` — return milliseconds per the @tus
+      // convention so cleanup sweeps know how stale to consider
+      // in-progress uploads.
+      Object.assign(dataStore, {
+        getExpiration: () => config.chunkExpirationSeconds * 1000,
+      });
       const server: TusServerLike = new Server({
         path: config.mountPath,
-        // The DataStore advertises its own expiration via
-        // `getExpiration()` — we set the value here so cleanup sweeps
-        // know how stale to consider in-progress uploads.
-        datastore: Object.assign(dataStore, {
-          getExpiration: () => config.chunkExpirationSeconds * 1000,
-        }),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        datastore: dataStore as any,
       });
       return server;
     };
