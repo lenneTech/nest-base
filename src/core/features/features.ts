@@ -21,6 +21,7 @@ const SOCIAL_PROVIDERS = ["google", "github", "apple", "discord"] as const;
 const STORAGE_DRIVERS = ["s3", "local", "postgres"] as const;
 const EMAIL_PROVIDERS = ["smtp", "brevo"] as const;
 const GEO_PROVIDERS = ["mapbox", "google", "nominatim", "local"] as const;
+const GEO_IP_PROVIDERS = ["dbip-lite", "maxmind"] as const;
 
 // Per-section schemas — defined separately so we can pre-parse their
 // defaults and feed them into the parent `.default()` call. Zod 4's
@@ -52,6 +53,14 @@ const GeoSchema = z.object({
   enabled: z.boolean().default(false),
   provider: z.enum(GEO_PROVIDERS).default("nominatim"),
 });
+const GeoIpSchema = z.object({
+  enabled: z.boolean().default(false),
+  provider: z.enum(GEO_IP_PROVIDERS).default("dbip-lite"),
+  /** Optional MaxMind GeoLite2 license key — only required for `provider=maxmind`. */
+  licenseKey: z.string().optional(),
+  /** Where the unpacked `.mmdb` lives. `download-geoip` writes here. */
+  dbPath: z.string().default("./data/geoip/city.mmdb"),
+});
 const togglableDefault = (on: boolean) => z.object({ enabled: z.boolean().default(on) });
 
 const Webhooks = togglableDefault(false);
@@ -77,6 +86,7 @@ export const FeaturesSchema = z.object({
   mcp: Mcp.default(() => Mcp.parse({})),
   fieldEncryption: FieldEncryption.default(() => FieldEncryption.parse({})),
   geo: GeoSchema.default(() => GeoSchema.parse({})),
+  geoIp: GeoIpSchema.default(() => GeoIpSchema.parse({})),
   rateLimit: RateLimit.default(() => RateLimit.parse({})),
   idempotency: Idempotency.default(() => Idempotency.parse({})),
   observability: Observability.default(() => Observability.parse({})),
@@ -97,6 +107,7 @@ export type ToggleableFeatureKey =
   | "mcp"
   | "fieldEncryption"
   | "geo"
+  | "geoIp"
   | "rateLimit"
   | "idempotency"
   | "observability"
@@ -139,6 +150,7 @@ const SECTION_KEYS = new Set([
   "FIELDENCRYPTION",
   "FIELD_ENCRYPTION",
   "GEO",
+  "GEO_IP",
   "RATELIMIT",
   "RATE_LIMIT",
   "IDEMPOTENCY",
@@ -159,6 +171,7 @@ const SECTION_TO_KEY: Record<string, FeatureKey> = {
   FIELDENCRYPTION: "fieldEncryption",
   FIELD_ENCRYPTION: "fieldEncryption",
   GEO: "geo",
+  GEO_IP: "geoIp",
   RATELIMIT: "rateLimit",
   RATE_LIMIT: "rateLimit",
   IDEMPOTENCY: "idempotency",
@@ -183,9 +196,19 @@ const FIELD_TO_PROP: Record<string, string> = {
   API_KEYS: "apiKeys",
   SOCIALPROVIDERS: "socialProviders",
   SOCIAL_PROVIDERS: "socialProviders",
+  LICENSEKEY: "licenseKey",
+  LICENSE_KEY: "licenseKey",
+  DBPATH: "dbPath",
+  DB_PATH: "dbPath",
 };
 
-const STRING_VALUE_PROPS = new Set(["storageDefault", "headerName", "provider"]);
+const STRING_VALUE_PROPS = new Set([
+  "storageDefault",
+  "headerName",
+  "provider",
+  "licenseKey",
+  "dbPath",
+]);
 const ARRAY_VALUE_PROPS = new Set(["socialProviders"]);
 
 function parseFeatureEnv(env: Record<string, string | undefined>): RawOverrides {

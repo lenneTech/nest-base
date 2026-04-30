@@ -115,6 +115,49 @@ services:
       - '4317:4317' # OTLP gRPC
       - '4318:4318' # OTLP HTTP
 
+  # Oneshot service: downloads + extracts the GeoIP `.mmdb` on first
+  # `docker compose up`. Profile-gated so it doesn't run by default —
+  # opt in with `docker compose --profile geoip up geoip-init`.
+  # The api container can mount `./data/geoip:/data/geoip:ro` to read
+  # the database without owning the download lifecycle.
+  geoip-init:
+    profiles: ['geoip']
+    image: alpine:3.20
+    env_file:
+      - .env
+    volumes:
+      - ./data/geoip:/data/geoip
+    # Default to dbip-lite (no license key needed, CC-BY-4.0). Override
+    # with FEATURE_GEO_IP_PROVIDER=maxmind + FEATURE_GEO_IP_LICENSE_KEY.
+    command: |
+      sh -c '
+        set -eu
+        provider="${FEATURE_GEO_IP_PROVIDER:-dbip-lite}"
+        target=/data/geoip/city.mmdb
+        mkdir -p /data/geoip
+        apk add --no-cache curl gzip tar >/dev/null
+        if [ "$$provider" = "dbip-lite" ]; then
+          ym=$$(date -u +%Y-%m)
+          url="https://download.db-ip.com/free/dbip-city-lite-$${ym}.mmdb.gz"
+          echo "[geoip-init] downloading $$url"
+          curl -fsSL "$$url" | gunzip > "$$target"
+        elif [ "$$provider" = "maxmind" ]; then
+          if [ -z "${FEATURE_GEO_IP_LICENSE_KEY:-}" ]; then
+            echo "[geoip-init] FEATURE_GEO_IP_LICENSE_KEY required for maxmind"; exit 2
+          fi
+          url="https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=$${FEATURE_GEO_IP_LICENSE_KEY}&suffix=tar.gz"
+          echo "[geoip-init] downloading GeoLite2-City"
+          tmp=$$(mktemp -d)
+          curl -fsSL "$$url" -o "$$tmp/db.tar.gz"
+          tar -xzf "$$tmp/db.tar.gz" -C "$$tmp"
+          find "$$tmp" -name "*.mmdb" -exec cp {} "$$target" \;
+          rm -rf "$$tmp"
+        else
+          echo "[geoip-init] unknown provider $$provider"; exit 2
+        fi
+        echo "[geoip-init] wrote $$target ($$(stat -c%s $$target 2>/dev/null || stat -f%z $$target) bytes)"
+      '
+
 volumes:
   postgres_data:
   rustfs_data:

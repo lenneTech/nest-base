@@ -56,5 +56,13 @@ prisma/migrations/20260428000200_postgis_extension/
 prisma/migrations/20260428000250_geo_schema/
 prisma/migrations/20260428000300_geo_gist_indexes/
 
+# GeoIP database files — binary .mmdb downloads, never committed.
+# `bun run scripts/download-geoip.ts` (or the `geoip-init` compose
+# service) repopulates them from dbip-lite (CC-BY-4.0) or MaxMind
+# (EULA + license_key). Attribution lives in README.md.
+data/geoip/
+*.mmdb
+*.mmdb.gz
+
 # OS-specific
 Thumbs.db

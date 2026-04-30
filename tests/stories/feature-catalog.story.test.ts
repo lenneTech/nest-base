@@ -8,8 +8,8 @@ import {
 import { loadFeatures } from "../../src/core/features/features.js";
 
 describe("Story · Feature-Catalog", () => {
-  it("listet alle 14 toggleable Features mit Beschreibung + ENV-Key", () => {
-    expect(FEATURE_CATALOG).toHaveLength(14);
+  it("listet alle 15 toggleable Features mit Beschreibung + ENV-Key", () => {
+    expect(FEATURE_CATALOG).toHaveLength(15);
     for (const meta of FEATURE_CATALOG) {
       expect(meta.label).toBeTruthy();
       expect(meta.description).toBeTruthy();
@@ -48,8 +48,8 @@ describe("Story · Feature-Catalog", () => {
   it("summarizeFeatures zählt aktiv/total korrekt", () => {
     const def = loadFeatures({});
     const sum = summarizeFeatures(def);
-    expect(sum.total).toBe(14);
-    expect(sum.active + sum.available).toBe(14);
+    expect(sum.total).toBe(15);
+    expect(sum.active + sum.available).toBe(15);
     expect(sum.active).toBeGreaterThan(0);
     expect(sum.active).toBeLessThan(sum.total);
   });

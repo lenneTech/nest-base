@@ -16,6 +16,7 @@ import { FilesModule } from "../files/files.module.js";
 import { conditionalImport, loadFeatures } from "../features/features.js";
 import { GdprModule } from "../gdpr/gdpr.module.js";
 import { GeoModule } from "../geo/geo.module.js";
+import { GeoIpModule } from "../geoip/geoip.module.js";
 import { HealthModule } from "../health/health.module.js";
 import { IdempotencyModule } from "../idempotency/idempotency.module.js";
 import { JobsModule } from "../jobs/jobs.module.js";
@@ -72,6 +73,7 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     SearchModule,
     GdprModule,
     GeoModule,
+    GeoIpModule,
     PowerSyncModule,
     IdempotencyModule,
     EmailModule,
