@@ -36,7 +36,12 @@ export interface BetterAuthEmailUser {
   displayName?: string;
 }
 
-export type EmailHookKind = "email-verification" | "password-reset" | "welcome" | "invitation";
+export type EmailHookKind =
+  | "email-verification"
+  | "password-reset"
+  | "welcome"
+  | "invitation"
+  | "new-device";
 
 interface BaseHookInput {
   user: BetterAuthEmailUser;
@@ -64,11 +69,26 @@ interface InvitationHookInput extends BaseHookInput {
   senderName: string;
 }
 
+interface NewDeviceHookInput extends BaseHookInput {
+  kind: "new-device";
+  /** Composed UA label, e.g. "Chrome on macOS". Required. */
+  deviceLabel: string;
+  /** "City, Country" string from GeoIP. Empty → "Location unknown". */
+  location: string;
+  /** Raw IP — surfaced in the email body when GeoIP returned nothing. */
+  ipAddress: string;
+  /** ISO timestamp of the sign-in. */
+  signedInAt: string;
+  /** Link to /me/devices for the revoke flow. Required. */
+  revokeUrl: string;
+}
+
 export type EmailHookInput =
   | VerificationHookInput
   | PasswordResetHookInput
   | WelcomeHookInput
-  | InvitationHookInput;
+  | InvitationHookInput
+  | NewDeviceHookInput;
 
 export interface EmailHookPayload {
   template: string;
@@ -173,6 +193,34 @@ export function buildEmailHookPayload(input: EmailHookInput): EmailHookPayload {
         template: "invitation",
         to: recipient,
         vars: { recipientName, appName, acceptUrl: url, senderName },
+      };
+    }
+    case "new-device": {
+      const deviceLabel = trim(input.deviceLabel);
+      if (!deviceLabel) {
+        throw new Error(
+          "better-auth-email-hooks: new-device hook requires a non-empty deviceLabel",
+        );
+      }
+      const revokeUrl = trim(input.revokeUrl);
+      if (!revokeUrl) {
+        throw new Error("better-auth-email-hooks: new-device hook requires a non-empty revokeUrl");
+      }
+      const location = trim(input.location) || "Location unknown";
+      const ipAddress = trim(input.ipAddress);
+      const signedInAt = trim(input.signedInAt);
+      return {
+        template: "new-device",
+        to: recipient,
+        vars: {
+          recipientName,
+          appName,
+          deviceLabel,
+          location,
+          ipAddress,
+          signedInAt,
+          revokeUrl,
+        },
       };
     }
   }
