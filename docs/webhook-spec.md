@@ -76,14 +76,33 @@ recovers does not stay disabled.
 
 ## Inspecting deliveries
 
-The Webhook-Inspector at `/admin/webhooks` lists recent deliveries with:
+The Webhook-Inspector at `/admin/webhooks` is a three-column React
+SPA (issue #19):
 
-- timestamp + endpoint + event type
-- delivered / failed status with HTTP code
-- attempt count
-- error excerpt (first line of the failure)
-- per-row re-deliver button (re-uses the original body + signs with the
-  current secret)
+- **Endpoint sidebar** — per-endpoint counters (total / delivered /
+  failed / p95 latency) plus a 24-hour sparkline. Click an endpoint to
+  filter the delivery list.
+- **Delivery list** — virtual-scrolled (`@tanstack/react-virtual`)
+  list of deliveries newest-first with status / HTTP / attempt /
+  latency columns. Filter bar combines endpoint, status, event-type,
+  and ID-search.
+- **Detail drawer** — Request / Response / Curl tabs with
+  `X-Webhook-*` header highlighting, a CSRF-protected re-deliver
+  action, a copy-curl button, and a deep link to `/dev/traces` when a
+  `traceId` is recorded.
+
+JSON sidecars (all gated to `NODE_ENV=development`):
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /admin/webhooks.json` | Filtered + cursor-paged delivery list, ships a per-request CSRF token |
+| `GET /admin/webhooks/aggregates.json` | Per-endpoint aggregates + sparkline |
+| `GET /admin/webhooks/:id.json` | Delivery detail with reconstructed request headers / body and a copy-curl command |
+| `POST /admin/webhooks/:id/redeliver` | Manual re-deliver, requires the CSRF token from the list response |
+
+The CSRF token is an HMAC-signed nonce + issuance timestamp; the
+secret is `WEBHOOK_INSPECTOR_CSRF_SECRET` (auto-generated when unset
+in dev). 30-minute TTL.
 
 It's the page to send to a customer who reports "the webhook never
 arrived"; the answer is usually visible in two clicks.

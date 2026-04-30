@@ -6,21 +6,66 @@
  * delivery store.
  */
 
-export type DeliveryStatus = "DELIVERED" | "FAILED";
+import type { EndpointAggregate } from "../webhooks/inspector-aggregates.js";
+
+export type DeliveryStatus = "DELIVERED" | "FAILED" | "PENDING";
 
 export interface DeliveryListEntry {
   id: string;
   endpointId: string;
+  endpointUrl: string;
   eventType?: string;
   status: DeliveryStatus;
   statusCode?: number;
   attemptCount: number;
-  occurredAt?: string;
+  latencyMs?: number;
+  occurredAt: string;
   errorMessage?: string;
 }
 
+export interface InspectorListFilter {
+  status: DeliveryStatus | "ALL";
+  endpointId?: string;
+  eventType?: string;
+  from?: string;
+  to?: string;
+  search?: string;
+}
+
 export interface WebhookInspectorPageInput {
+  /** Up to `limit` deliveries matching the filter, newest-first. */
   deliveries: DeliveryListEntry[];
-  filter?: { status?: DeliveryStatus | "ALL" };
-  csrfToken?: string;
+  /** Echo of the active filter (so the React page can reflect URL params). */
+  filter: InspectorListFilter;
+  /** Cursor for the next page; absent when no more rows. */
+  nextCursor?: string;
+  /** Per-request CSRF token consumed by the redeliver POST. */
+  csrfToken: string;
+}
+
+export interface EndpointAggregateWithSparkline extends EndpointAggregate {
+  /** 24-bucket histogram (one per hour, oldest → newest). */
+  sparkline: number[];
+}
+
+export interface WebhookAggregatesResponse {
+  endpoints: EndpointAggregateWithSparkline[];
+}
+
+export interface WebhookDeliveryDetailResponse {
+  delivery: DeliveryListEntry & {
+    /** Outbound headers the dispatcher sent (HMAC sig + webhook-id + ts). */
+    requestHeaders: Record<string, string>;
+    /** Outbound JSON body. Empty string when no body was sent. */
+    requestBody: string;
+    /** Receiver's response headers (best-effort). */
+    responseHeaders?: Record<string, string>;
+    responseBody?: string;
+  };
+  /** Single-line shell-safe curl command reproducing the request. */
+  curl: string;
+}
+
+export interface WebhookRedeliverResponse {
+  delivery: DeliveryListEntry;
 }
