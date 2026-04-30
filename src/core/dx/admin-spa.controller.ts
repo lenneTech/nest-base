@@ -86,7 +86,7 @@ export class AdminSpaController {
   @Header("content-type", "text/html; charset=utf-8")
   permissionsTestPage(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Permission Tester" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Permission Tester", brand: "central" }));
   }
 
   /**
@@ -118,7 +118,7 @@ export class AdminSpaController {
   @Header("content-type", "text/html; charset=utf-8")
   webhookInspectorPage(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Webhook Inspector" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Webhook Inspector", brand: "central" }));
   }
 
   @Get("webhooks.json")
@@ -300,7 +300,7 @@ export class AdminSpaController {
   @Header("content-type", "text/html; charset=utf-8")
   realtimeInspectorPage(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Realtime Inspector" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Realtime Inspector", brand: "central" }));
   }
 
   @Get("realtime.json")
@@ -409,7 +409,7 @@ export class AdminSpaController {
   @Header("content-type", "text/html; charset=utf-8")
   auditBrowserPage(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Audit Browser" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Audit Browser", brand: "central" }));
   }
 
   @Get("audit.json")
@@ -437,7 +437,7 @@ export class AdminSpaController {
   @Header("content-type", "text/html; charset=utf-8")
   searchTesterPage(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Search Tester" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Search Tester", brand: "central" }));
   }
 
   @Get("search.json")

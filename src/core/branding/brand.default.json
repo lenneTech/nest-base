@@ -1,5 +1,5 @@
 {
-  "name": "nest-base",
+  "name": "nest-server",
   "shortName": "nest",
   "tagline": "Template-fähiger NestJS-Server",
   "primaryColor": "#c5fb45",
@@ -9,5 +9,5 @@
   "textColor": "#e4e4e7",
   "mutedTextColor": "#71717a",
   "fromEmail": "no-reply@example.com",
-  "legalEntity": "nest-base"
+  "legalEntity": "nest-server"
 }

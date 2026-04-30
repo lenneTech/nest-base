@@ -83,7 +83,7 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   index(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Dev Portal" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Dev Portal", brand: "central" }));
   }
 
   /**
@@ -94,7 +94,7 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   componentsPage(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Components" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Components", brand: "central" }));
   }
 
   /**
@@ -261,7 +261,7 @@ export class DevHubController {
     // legacy `renderFeaturesPage` produced. The legacy renderer
     // remains available at `/dev/features.html` as the pixel-fidelity
     // reference but is no longer the canonical surface.
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Features" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Features", brand: "central" }));
   }
 
   @Get("features.json")
@@ -352,14 +352,14 @@ export class DevHubController {
     // single owner of the dev-hub chrome.
     res
       .type("text/html; charset=utf-8")
-      .send(renderDevPortalShell(buildDevPortalShellInput({ title: "PostgREST Parser" })));
+      .send(renderDevPortalShell(buildDevPortalShellInput({ title: "PostgREST Parser", brand: "central" })));
   }
 
   @Get("coverage")
   @Header("content-type", "text/html; charset=utf-8")
   coverage(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Coverage" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Coverage", brand: "central" }));
   }
 
   /** JSON sibling for the React `/dev/coverage` page. */
@@ -373,7 +373,7 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   logsPage(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Logs" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Logs", brand: "central" }));
   }
 
   @Get("logs.json")
@@ -388,7 +388,7 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   tests(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Tests" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Tests", brand: "central" }));
   }
 
   /** JSON sibling for the React `/dev/tests` page. */
@@ -402,7 +402,7 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   diagnostics(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Diagnostics" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Diagnostics", brand: "central" }));
   }
 
   @Get("diagnostics.json")
@@ -415,7 +415,7 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   routesPage(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Routes" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Routes", brand: "central" }));
   }
 
   @Get("routes.json")
@@ -428,7 +428,7 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   erdPage(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "ERD" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "ERD", brand: "central" }));
   }
 
   @Get("erd.json")
@@ -441,7 +441,7 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   tracesPage(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Traces" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Traces", brand: "central" }));
   }
 
   @Get("traces.json")
@@ -467,7 +467,7 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   queriesPage(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Queries" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Queries", brand: "central" }));
   }
 
   @Get("queries.json")
@@ -500,7 +500,7 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   emailPreviewPage(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Email Preview" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Email Preview", brand: "central" }));
   }
 
   @Get("email-preview.json")
@@ -815,7 +815,7 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   spaCatchAll(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Dev Portal" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Dev Portal", brand: "central" }));
   }
 
   private assertDev(): void {
