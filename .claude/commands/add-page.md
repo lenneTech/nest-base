@@ -17,8 +17,8 @@ the shared dark-mode layout. Two flavours:
 - **JSON viewer wrap** — for endpoints that return structured data
   (errors catalog, OpenAPI spec, parsed PostgREST query). One-liner:
   the controller calls `renderJsonViewerPage()`.
-- **Custom layout** — for pages with their own UI (cockpit, coverage
-  report, log viewer). Write a renderer in `src/core/dx/<page>-ui.ts`.
+- **Custom layout** — for pages with their own UI (coverage report,
+  log viewer). Write a renderer in `src/core/dx/<page>-ui.ts`.
 
 Read `.claude/skills/extending-dev-hub.md` first — it has the full
 walkthrough. This command sequences the steps under TDD.

@@ -216,7 +216,7 @@ outside `NODE_ENV=development`.
 | Page chrome CSS | `src/core/dx/clients/styles/admin-layout.css` | 1:1 port of `admin-layout.ts`'s `ADMIN_LAYOUT_CSS` plus every per-page `<style>` block from the `*-ui.ts` renderers; React JSX re-uses the same classnames so the diff vs. the server HTML is zero |
 | Component styles | `src/core/dx/clients/styles/components.css` | `.dp-*` selectors targeting `react-aria` `data-*` states (input primitives only) |
 | Build script | `scripts/build-dev-portal.ts` | `Bun.build({ target: "browser", splitting: true, minify: true })` → `dist/dev-portal/` |
-| JSON aggregates | `dev-hub.controller.ts` | `/dev/dashboard.json` (cockpit aggregate), `/dev/feature-catalog.json`, `/dev/coverage.json`, `/dev/tests.json` plus the existing `*.json` siblings the React pages consume |
+| JSON aggregates | `dev-hub.controller.ts` | `/dev/dashboard.json` (landing-page aggregate), `/dev/feature-catalog.json`, `/dev/coverage.json`, `/dev/tests.json` plus the existing `*.json` siblings the React pages consume |
 | Static asset endpoint | `GET /dev/static/:filename` | 404 outside development; allow-list filename, MIME-detect, stream from `dist/dev-portal/` |
 | Catch-all | `GET /dev/*splat` | Returns the SPA shell so client-side routes work without a server change |
 | Legacy server pages | `GET /dev/<name>.html` | Each migrated `*-ui.ts` renderer is still reachable at its `.html` URL — useful for pixel-fidelity diffing during the React port |

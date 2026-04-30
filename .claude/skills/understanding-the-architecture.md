@@ -104,21 +104,29 @@ files.
 
 ## The dev hub layer
 
-`/dev` is a server-rendered cockpit. **No SPA, no build step**, no
-client framework. Each page is a pure renderer that returns an HTML
-string wrapped by `renderAdminLayout()`.
+`/dev` is a React 19 SPA bundled by `bun build` and served from
+`dist/dev-portal/`. The Nest controller (`dev-hub.controller.ts`)
+renders a thin HTML shell (`renderDevPortalShell`) and a JSON
+aggregate (`/dev/dashboard.json`); React handles the rest on the
+client. `/admin/*` pages stay server-rendered HTML wrapped by
+`renderAdminLayout()`.
 
 The composition:
 
 ```
-admin-layout.ts        ← shell (sidebar + header + theme tokens)
-├── dashboard-ui.ts    ← /dev cockpit (hero + stats + services + logs + features)
-├── features-ui.ts     ← /dev/features (toggle cards)
-├── coverage-ui.ts     ← /dev/coverage
-├── test-summary-ui.ts ← /dev/tests
-├── log-viewer-ui.ts   ← /dev/logs
-├── diagnostics-ui.ts  ← /dev/diagnostics
-├── json-viewer-ui.ts  ← reusable JSON viewer for /errors, /api/openapi, ...
+clients/                  ← React 19 SPA source (TypeScript + react-aria)
+├── main.tsx              ← bundle entry; mounted by the shell
+├── pages/                ← one tsx file per /dev/* surface
+└── styles/tokens.css     ← design tokens (served verbatim)
+
+dev-portal-shell.ts       ← server-side shell renderer (`<div id="root">`)
+admin-layout.ts           ← shell for legacy /admin/* pages
+├── features-ui.ts        ← /dev/features.html (legacy reference)
+├── coverage-ui.ts        ← /dev/coverage
+├── test-summary-ui.ts    ← /dev/tests
+├── log-viewer-ui.ts      ← /dev/logs
+├── diagnostics-ui.ts     ← /dev/diagnostics
+├── json-viewer-ui.ts     ← reusable JSON viewer for /errors, /api/openapi, ...
 └── (admin/*) — permission-tester-ui, audit-browser-ui, search-tester-ui, ...
 ```
 

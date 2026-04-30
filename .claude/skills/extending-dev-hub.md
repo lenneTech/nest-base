@@ -120,8 +120,7 @@ it("returns JSON when ?format=json overrides Accept", async () => {
 
 ### Reference implementations
 
-- `src/core/dx/dashboard-ui.ts` — the cockpit, mixes hero + stats grid + cards
-- `src/core/dx/features-ui.ts` — feature catalog with toggles + restart overlay
+- `src/core/dx/features-ui.ts` — feature catalog with toggles + restart overlay (canonical legacy renderer pattern)
 - `src/core/dx/coverage-ui.ts` — totals tiles + per-file table
 - `src/core/dx/test-summary-ui.ts` — pass/fail tiles + failure snippets
 

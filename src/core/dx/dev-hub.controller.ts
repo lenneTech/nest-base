@@ -24,7 +24,6 @@ import { serverConfigFromEnv } from "../server/server-config.js";
 import { APP_NAME, APP_VERSION } from "../app/app.metadata.js";
 import { buildCoverageReport, type RawCoverageSummary } from "./coverage-report.js";
 import { renderCoveragePage } from "./coverage-ui.js";
-import { renderDashboardPage } from "./dashboard-ui.js";
 import { buildDevPortalShellInput, renderDevPortalShell } from "./dev-portal-shell.js";
 import { renderDiagnosticsPage } from "./diagnostics-ui.js";
 import { resolveEffectiveBaseUrl } from "./effective-base-url.js";
@@ -95,65 +94,6 @@ export class DevHubController {
   }
 
   /**
-   * Legacy server-rendered cockpit. Kept available at `/dev/cockpit`
-   * so the live coverage / tests / log preview surface that the React
-   * SPA hasn't replaced yet stays one click away.
-   */
-  @Get("cockpit")
-  @Header("content-type", "text/html; charset=utf-8")
-  async cockpit(): Promise<string> {
-    this.assertDev();
-    const features = this.featuresOnly();
-    const cfg = serverConfigFromEnv(process.env);
-    const effective = resolveEffectiveBaseUrl({
-      baseUrl: cfg.baseUrl,
-      port: cfg.port,
-      env_vars: {
-        ...(process.env.DISABLE_PORTLESS ? { DISABLE_PORTLESS: process.env.DISABLE_PORTLESS } : {}),
-        ...(process.env.PORTLESS_ACTIVE ? { PORTLESS_ACTIVE: process.env.PORTLESS_ACTIVE } : {}),
-      },
-    });
-    const candidates = planServiceCandidates({
-      baseUrl: effective.publicUrl,
-      loopbackUrl: effective.loopbackUrl,
-      features,
-      env_vars: {
-        ...(process.env.DATABASE_URL ? { DATABASE_URL: process.env.DATABASE_URL } : {}),
-        ...(process.env.PRISMA_STUDIO ? { PRISMA_STUDIO: process.env.PRISMA_STUDIO } : {}),
-        ...(process.env.MAILPIT_WEB_URL ? { MAILPIT_WEB_URL: process.env.MAILPIT_WEB_URL } : {}),
-        ...(process.env.POWERSYNC_URL ? { POWERSYNC_URL: process.env.POWERSYNC_URL } : {}),
-      },
-    });
-    const repoRoot = process.cwd();
-
-    const [probes, coverage, tests] = await Promise.all([
-      probeServices(candidates, { timeoutMs: 600 }),
-      this.readCoverageSummary(repoRoot),
-      this.readTestSummary(repoRoot),
-    ]);
-
-    const buffer = getLogBuffer();
-    const mem = process.memoryUsage();
-    return renderDashboardPage({
-      baseUrl: effective.publicUrl,
-      uptimeMs: Math.round(process.uptime() * 1000),
-      memory: { heapUsed: mem.heapUsed, heapTotal: mem.heapTotal, rss: mem.rss },
-      process: {
-        node: process.versions.node,
-        ...(readBunVersion() ? { bun: readBunVersion()! } : {}),
-        platform: process.platform,
-      },
-      features,
-      probes,
-      coverage,
-      tests,
-      logs: buffer.recent(50),
-      logBufferCapacity: buffer.capacity(),
-      queries: getQueryBuffer().summary(),
-    });
-  }
-
-  /**
    * `/dev/static/:filename` — serves the bundled SPA assets from
    * `dist/dev-portal/`. `assertDev()` ensures the route 404s outside
    * development (no production-leak risk for the source-mapped bundle).
@@ -204,8 +144,7 @@ export class DevHubController {
   }
 
   /**
-   * `/dev/dashboard.json` — aggregate that the React `/dev` landing
-   * needs to mirror the server-rendered cockpit (`dashboard-ui.ts`).
+   * `/dev/dashboard.json` — aggregate the React `/dev` landing needs.
    * One request → all the data the hero / stats grid / services / log
    * preview / feature overview need, so the SPA never fans out into
    * 8 sibling fetches on the first paint.
@@ -295,9 +234,9 @@ export class DevHubController {
     this.assertDev();
     // SPA shell — the React `/dev/features` page fetches
     // `/dev/feature-catalog.json` and renders the same DOM the
-    // legacy `renderFeaturesPage` produced. The legacy renderer is
-    // still imported (for the `/dev/cockpit` regression escape) but
-    // is no longer the canonical surface.
+    // legacy `renderFeaturesPage` produced. The legacy renderer
+    // remains available at `/dev/features.html` as the pixel-fidelity
+    // reference but is no longer the canonical surface.
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Features" }));
   }
 

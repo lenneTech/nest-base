@@ -9,10 +9,12 @@
 // exported in the parent shell silently shadowed the workspace's
 // `.env`, sending migrations against the wrong database. `override:
 // true` forces the workspace `.env` to win, which is the only correct
-// answer for a per-workspace tool.
+// answer for a per-workspace tool — except in tests, where the Vitest
+// `globalSetup` deliberately injects a testcontainer URL that must
+// not be clobbered by the project's stationary `.env`.
 import { config as loadEnv } from 'dotenv';
 
-loadEnv({ override: true });
+loadEnv({ override: process.env.NODE_ENV !== 'test' });
 
 import { defineConfig } from 'prisma/config';
 

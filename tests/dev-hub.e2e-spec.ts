@@ -58,15 +58,6 @@ describe("Dev-Hub · GET /dev", () => {
       expect(opens).toBe(closes);
     });
 
-    it("legacy server-rendered cockpit is still reachable at /dev/cockpit", async () => {
-      const res = await request(app.getHttpServer()).get("/dev/cockpit");
-      expect(res.status).toBe(200);
-      expect(res.headers["content-type"]).toMatch(/text\/html/);
-      // The cockpit lists every server-rendered tool link.
-      expect(res.text).toContain("/admin/permissions/test");
-      expect(res.text).toContain("/dev/features");
-    });
-
     it("GET /dev/features serves the SPA shell with the correct title", async () => {
       const res = await request(app.getHttpServer()).get("/dev/features");
       expect(res.status).toBe(200);

@@ -89,6 +89,8 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Generate Prisma client
         run: bun run prepare:schema && bun run prisma:generate
+      - name: Build Dev-Portal SPA
+        run: bun run build:dev-portal
       - name: E2E + story tests (testcontainers spins up Postgres)
         run: bun run test:e2e
 
@@ -103,6 +105,8 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Generate Prisma client
         run: bun run prepare:schema && bun run prisma:generate
+      - name: Build Dev-Portal SPA
+        run: bun run build:dev-portal
       - name: Coverage report
         run: bun run test:coverage
       - name: Upload coverage report
