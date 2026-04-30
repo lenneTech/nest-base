@@ -11,7 +11,7 @@
  * loaded from `admin-layout.css`).
  *
  * No layout / page-shell styles here — those live in `admin-layout.css`
- * (1:1 port of `admin-layout.ts`'s `ADMIN_LAYOUT_CSS`) so the React
+ * (verbatim port of the legacy ADMIN_LAYOUT_CSS) so the React
  * Dev-Portal stays pixel-identical with the legacy server-rendered
  * `/admin/*` and `/dev/*` surfaces.
  */

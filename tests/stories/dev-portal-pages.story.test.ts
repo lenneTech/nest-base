@@ -211,7 +211,7 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
     }
   });
 
-  describe("tokens.css stays in sync with admin-layout.ts", () => {
+  describe("tokens.css carries the dev-portal design tokens", () => {
     const tokens = [
       "--bg",
       "--surface-1",
@@ -254,7 +254,7 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
     });
   });
 
-  describe("All 12 sidebar entries from admin-layout.ts mirror to nav.ts", () => {
+  describe("Sidebar nav.ts declares every section/page id", () => {
     const ids = [
       "dev-hub",
       "diagnostics",

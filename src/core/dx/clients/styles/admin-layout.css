@@ -1,9 +1,9 @@
 /**
- * Admin / Dev-Hub stylesheet — verbatim port of `admin-layout.ts`'s
+ * Admin / Dev-Hub stylesheet — verbatim port of the legacy
  * `ADMIN_LAYOUT_CSS` plus every per-page <style> block embedded in the
  * `*-ui.ts` server renderers.
  *
- * Source of truth: `src/core/dx/admin-layout.ts` (the embedded
+ * Originally derived from the now-deleted `admin-layout.ts` (its embedded
  * `ADMIN_LAYOUT_CSS` template literal). When the server CSS evolves,
  * mirror the change here so the React Dev-Portal stays pixel-identical
  * with the legacy server-rendered surface.

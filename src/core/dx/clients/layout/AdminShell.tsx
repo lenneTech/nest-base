@@ -1,8 +1,8 @@
 /**
- * AdminShell — the React equivalent of `renderAdminLayout()` from
- * `src/core/dx/admin-layout.ts`. Same DOM, same classnames, same
- * sidebar/header structure so a user can't tell whether the page is
- * server-rendered HTML or the React SPA.
+ * AdminShell — the React shell rendered for every dev-portal route.
+ * Same DOM and classnames the legacy server-side `renderAdminLayout()`
+ * produced (now deleted) so the visual diff vs. historical screenshots
+ * stays zero.
  *
  * Children are rendered into the `.admin-content` slot; pages assume
  * the surrounding `.admin-card` / `.admin-grid` chrome exists and

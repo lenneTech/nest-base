@@ -1,11 +1,11 @@
 /**
  * Inline SVG icon set — verbatim port of the icons declared at the
- * bottom of `src/core/dx/admin-layout.ts` (`ICON_HOME`, `ICON_HEART`,
+ * now-deleted `src/core/dx/admin-layout.ts` (`ICON_HOME`, `ICON_HEART`,
  * etc). The server emits raw SVG strings into a `<span>`; the React
  * tree returns identical SVG nodes so the rendered DOM matches.
  *
  * If you add a new sidebar entry, add the matching icon here and
- * mirror it in `admin-layout.ts`.
+ * document the source attribution at the call-site.
  */
 import type { ReactElement } from "react";
 
@@ -141,7 +141,7 @@ export const ICONS: Record<string, ReactElement> = {
 /**
  * Brand logo — the small shield that sits next to "nest-server" in
  * the sidebar. Verbatim port of the inline SVG in
- * `admin-layout.ts`'s `<a class="admin-brand">`.
+ * the legacy server `<a class="admin-brand">`.
  */
 export const BRAND_LOGO: ReactElement = (
   <svg viewBox="0 0 32 32" width="22" height="22" fill="none">

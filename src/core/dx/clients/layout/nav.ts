@@ -1,16 +1,14 @@
 /**
- * Sidebar navigation model — verbatim port of `defaultAdminNav()` in
- * `src/core/dx/admin-layout.ts`. The two surfaces share the same nav
- * order, same labels, same destination URLs so a user clicking "Dev
- * Hub" from a server-rendered admin page lands in the React SPA at
- * the same logical route.
+ * Sidebar navigation model — single source of truth for the dev-portal
+ * sidebar. All three sections (Übersicht / API & Docs / Admin) live
+ * here; `App.tsx` and `AdminShell.tsx` consume the same model.
  *
  * `id` matches `currentNav` on each page so the active-state highlight
- * works identically. Routes that the React SPA owns end up as
- * relative `/dev/*` paths (handled by react-router); routes still on
- * the server (`/admin/*`, `/api/*`, `/errors`, `http://localhost:5555`
- * for Prisma Studio) are emitted as plain `<a href>` so the browser
- * does a normal navigation.
+ * works identically. Routes that the SPA owns are listed in
+ * `SPA_ROUTES` and clicking them stays inside react-router; everything
+ * else (e.g. `http://localhost:5555` for Prisma Studio, `/api/docs`
+ * for Scalar UI, `/health/*`) does a real navigation via plain
+ * `<a href>`.
  */
 
 export interface AdminNavItem {
