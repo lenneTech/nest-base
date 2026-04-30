@@ -152,6 +152,10 @@ Live Mermaid `erDiagram` of the active Prisma schema (concat'd from `schema.pris
 
 Every registered email template rendered with a realistic sample payload. Subject + sandboxed HTML iframe + plain-text version side-by-side, plus the sample-payload JSON. Mailpit at `:8025` shows actually-sent emails; this page is for "did my edit to the welcome template break anything?".
 
+### Email Outbox — `/dev/outbox.json`
+
+JSON snapshot of the email-outbox subsystem (issue #11 — at-least-once delivery). Shows the lag classification (pending count, oldest age, threshold) plus the 100 most-recent dispatchable rows. Better-Auth hooks (verify / reset / welcome / invitation) enqueue via the outbox by default with a deterministic idempotency-key (recipient + token), so a "click resend twice" collapses into one row and a server crash between trigger and SMTP-ACK never loses a verification mail. Worker tick is configurable via `EMAIL_OUTBOX_TICK_MS` (default 1s); records that fail transiently retry with exponential backoff (1m → 5m → 25m, 2h cap, 5 attempts) before graduating to `dead-letter`. The `/health/ready` probe trips to 503 when lag exceeds 30s.
+
 ### Migrations — `/dev/migrations`
 
 Five-tab handler for Prisma schema evolution: **Status** (rows from `_prisma_migrations` with retry on failed), **Pending** (preview SQL · apply one · apply all · dry-run in a transaction), **Diff** (`prisma migrate diff` between live DB and `schema.prisma`), **History** (timeline of applied migrations), **Create New** (kebab-case validated → `prisma migrate dev --create-only` → SQL preview → apply or discard). Drift banner above all tabs. Every mutating endpoint is gated by a Postgres advisory lock (409 on contention) and 404s outside `NODE_ENV=development`.

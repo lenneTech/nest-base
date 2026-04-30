@@ -5,8 +5,14 @@ Transactional-email subsystem. The current shape:
 ```
 email/
 ├── brand.ts                       ← BrandConfig + defaults + resolveBrandConfig()
-├── email.service.ts               ← EmailService (driver + renderer + rate-limit + whitelist)
+├── email.service.ts               ← EmailService (driver + renderer + rate-limit + whitelist + outbox)
 ├── email.module.ts                ← EmailService DI factory
+├── email-outbox.ts                ← Recorder + Worker (at-least-once delivery, #11)
+├── email-outbox-planner.ts        ← Pure backoff / dispatch-eligibility helpers
+├── email-outbox-health.ts         ← Lag classifier consumed by /health/ready
+├── email-outbox.prisma.ts         ← PrismaEmailOutboxStorage (production adapter)
+├── email-outbox.module.ts         ← EmailOutboxModule (Global) — recorder, worker tick
+├── email-outbox.token.ts          ← EMAIL_OUTBOX_RECORDER injection token
 ├── email-templates.ts             ← Legacy EJS-subset renderer (kept for back-compat)
 ├── email-templates.react.ts       ← React-Email loader + renderer (default)
 ├── layouts/
@@ -25,6 +31,15 @@ email/
     ├── welcome.tsx
     └── invitation.tsx
 ```
+
+## Delivery modes
+
+`EmailService.send / sendTemplate` accept an optional second arg:
+
+- **direct** (default): synchronous driver call; the result carries the real provider message-id. Used by ad-hoc sends from project code.
+- **outbox**: `EmailService.send(opts, { mode: "outbox", idempotencyKey })` writes to the `email_outbox` table and returns immediately with `outbox:<uuid>`. The worker (`EmailOutboxWorker`, ticking on `EMAIL_OUTBOX_TICK_MS`) claims due rows, dispatches via the same driver, and graduates them to `sent` / `dead-letter`. Retry policy: 1m → 5m → 25m, 2h cap, 5 attempts.
+
+Better-Auth hooks default to outbox-mode with a deterministic idempotency-key (recipient + token / user-id / url) so duplicate triggers (Resend click) collapse to one row but a fresh request (new token) re-enqueues. `/dev/outbox.json` returns a JSON snapshot for inspection; `/health/ready` flips to 503 when oldest-pending age exceeds 30s.
 
 ## How rendering works
 
