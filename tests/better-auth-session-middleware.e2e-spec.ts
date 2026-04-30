@@ -5,11 +5,8 @@ import type { Request } from "express";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { bootstrap } from "../src/core/app/bootstrap.js";
 import { Can } from "../src/core/permissions/can.guard.js";
 import { PrismaService } from "../src/core/prisma/prisma.service.js";
-
-const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 
 interface AuthenticatedRequest extends Request {
   user?: { id: string; tenantId: string | null };
@@ -83,12 +80,20 @@ describe("Better-Auth · Session middleware (req.user)", () => {
   // middleware doesn't read it, only the interceptor does.
   const TENANT_HEADER = "00000000-0000-7000-8000-000000000000";
 
-  it("anonymous request → req.user is undefined on a public route", async () => {
+  it("anonymous request to a protected route → 401 (auth required) — not 403 / not 200", async () => {
     const res = await request(app.getHttpServer())
       .get("/test-session/me")
       .set("x-tenant-id", TENANT_HEADER);
-    expect(res.status, JSON.stringify(res.body)).toBe(200);
-    expect(res.body.user).toBeUndefined();
+    expect(res.status).toBe(401);
+  });
+
+  it("anonymous request to a public route (`/health/ready`) → req.user undefined, request passes", async () => {
+    // `/health/ready` is in `isPathProtected`'s allowlist; the
+    // middleware skips the lookup and lets the request through.
+    const res = await request(app.getHttpServer()).get("/health/ready");
+    // Either 200 (if Postgres ready) or 503 — both prove the auth
+    // middleware did not 401 the public path.
+    expect([200, 503]).toContain(res.status);
   });
 
   it("authenticated request → req.user is populated from the Better-Auth session", async () => {
@@ -114,10 +119,24 @@ describe("Better-Auth · Session middleware (req.user)", () => {
     expect(me.body.user.id).toBe(persisted!.id);
   });
 
-  it("@Can() denies anonymous with 403 (Forbidden), not 404 (NotFound) — the route IS reachable", async () => {
-    const res = await request(app.getHttpServer())
+  it("authenticated user without policy → @Can() denies with 403 (anonymous on the same route is 401)", async () => {
+    // First confirm the anonymous case still 401s (auth-required
+    // before guard).
+    const anon = await request(app.getHttpServer())
       .get("/test-session/can-restricted")
       .set("x-tenant-id", TENANT_HEADER);
+    expect(anon.status).toBe(401);
+
+    // Now sign in with the user we created earlier and hit the
+    // guarded route — no policy matches, so CASL denies with 403.
+    const agent = request.agent(app.getHttpServer());
+    const signIn = await agent
+      .post("/api/auth/sign-in/email")
+      .set("content-type", "application/json")
+      .send({ email, password });
+    expect(signIn.status, JSON.stringify(signIn.body)).toBe(200);
+
+    const res = await agent.get("/test-session/can-restricted").set("x-tenant-id", TENANT_HEADER);
     expect(res.status).toBe(403);
   });
 });

@@ -6,6 +6,7 @@ import { AuditLogModule } from "../audit/audit-log.module.js";
 import { ApiKeyModule } from "../auth/api-keys/api-key.module.js";
 import { BetterAuthModule } from "../auth/better-auth.module.js";
 import { PowerSyncModule } from "../auth/powersync.module.js";
+import { BetterAuthSessionMiddleware } from "../auth/session-middleware.js";
 import { ConfigModule } from "../config/config.module.js";
 import { DevHubModule } from "../dx/dev-hub.module.js";
 import { EmailModule } from "../email/email.module.js";
@@ -106,6 +107,7 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
   controllers: [AppController],
   providers: [
     RequestContextMiddleware,
+    BetterAuthSessionMiddleware,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_INTERCEPTOR, useClass: OutputPipelineInterceptor },
     ...(features.multiTenancy.enabled
@@ -115,6 +117,11 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
+    // Order matters: RequestContext first (request id / trace id /
+    // tenant context populates the AsyncLocalStorage); then the
+    // session middleware sets `req.user` so `PermissionInterceptor`
+    // and downstream guards see a populated identity.
     consumer.apply(RequestContextMiddleware).forRoutes("*");
+    consumer.apply(BetterAuthSessionMiddleware).forRoutes("*");
   }
 }
