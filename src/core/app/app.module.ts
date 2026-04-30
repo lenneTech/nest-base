@@ -33,6 +33,7 @@ import { SearchModule } from "../search/search.module.js";
 import { RequestContextMiddleware } from "../request-context/request-context.middleware.js";
 import { SystemSetupModule } from "../setup/system-setup.module.js";
 import { ExampleModule } from "../../modules/example/example.module.js";
+import { UserProfileModule } from "../../modules/user-profile/user-profile.module.js";
 import { AppController } from "./app.controller.js";
 
 const features = loadFeatures(process.env as Record<string, string | undefined>);
@@ -97,6 +98,10 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     // to scaffold a new resource. Drop the import once you have your
     // own modules. Or use `/add-module <name>` for the guided path.
     ExampleModule,
+    // UserProfile reference — the "extend the framework-managed User
+    // with project-specific fields" pattern. Drop alongside Example
+    // once you've internalised the structure.
+    UserProfileModule,
   ],
   controllers: [AppController],
   providers: [

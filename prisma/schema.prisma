@@ -281,3 +281,26 @@ model Example {
   @@index([tenantId])
   @@map("examples")
 }
+
+// ---------- UserProfile (extend-existing-entity reference) ----------
+
+// Backs `src/modules/user-profile/` — the reference for projects
+// that need to add fields to the framework-managed User without
+// touching the User model itself. 1:1 relation via the unique
+// `user_id` foreign key; `tenant_id` is denormalised so RLS
+// policies fire without joining `users`.
+model UserProfile {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @unique @map("user_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  displayName String?  @map("display_name")
+  avatarUrl   String?  @map("avatar_url")
+  bio         String?
+  phoneNumber String?  @map("phone_number")
+  preferences Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId])
+  @@map("user_profiles")
+}
