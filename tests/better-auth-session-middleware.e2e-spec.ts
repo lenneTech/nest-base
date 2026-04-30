@@ -1,0 +1,123 @@
+import { Controller, Get, Req } from "@nestjs/common";
+import type { INestApplication } from "@nestjs/common";
+import { Test } from "@nestjs/testing";
+import type { Request } from "express";
+import request from "supertest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+import { bootstrap } from "../src/core/app/bootstrap.js";
+import { Can } from "../src/core/permissions/can.guard.js";
+import { PrismaService } from "../src/core/prisma/prisma.service.js";
+
+const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
+
+interface AuthenticatedRequest extends Request {
+  user?: { id: string; tenantId: string | null };
+}
+
+@Controller("test-session")
+class WhoAmIController {
+  @Get("me")
+  me(@Req() req: AuthenticatedRequest): { user: AuthenticatedRequest["user"] } {
+    return { user: req.user };
+  }
+
+  @Get("can-restricted")
+  @Can("read", "Project")
+  restricted(): { ok: true } {
+    return { ok: true };
+  }
+}
+
+/**
+ * Closes finding #3: there is now middleware that resolves a
+ * Better-Auth session from the request cookies / headers, looks up
+ * the matching Prisma user, and assigns `req.user`. Three properties
+ * are pinned:
+ *   1. Anonymous request to a public route → `req.user` undefined.
+ *   2. Authenticated request → `req.user.id` matches the signed-up
+ *      user.
+ *   3. The pre-existing `@Can(...)` flow now denies anonymous (no
+ *      ability) with 403, but with a session and a matching policy
+ *      the request would pass.
+ */
+describe("Better-Auth · Session middleware (req.user)", () => {
+  let app: INestApplication;
+  let prisma: PrismaService;
+  const originalSecret = process.env.BETTER_AUTH_SECRET;
+  const originalBaseUrl = process.env.APP_BASE_URL;
+  const email = `session-${Date.now()}@example.com`;
+  const password = "password-12345";
+
+  beforeAll(async () => {
+    process.env.BETTER_AUTH_SECRET = "test-secret-32-chars-minimum-aaaaaaaa";
+    process.env.APP_BASE_URL = "http://localhost:3000";
+    // Build a slim test module that pulls the full AppModule (so the
+    // session middleware is wired globally) and adds the WhoAmI
+    // controller as a probe surface.
+    const { AppModule } = await import("../src/core/app/app.module.js");
+    const moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+      controllers: [WhoAmIController],
+    }).compile();
+    app = moduleRef.createNestApplication({ logger: false });
+    await app.init();
+    prisma = app.get(PrismaService);
+  });
+
+  afterAll(async () => {
+    try {
+      await prisma.user.deleteMany({ where: { email } });
+    } catch {
+      // ignore — cleanup is best-effort
+    }
+    await app.close();
+    if (originalSecret === undefined) delete process.env.BETTER_AUTH_SECRET;
+    else process.env.BETTER_AUTH_SECRET = originalSecret;
+    if (originalBaseUrl === undefined) delete process.env.APP_BASE_URL;
+    else process.env.APP_BASE_URL = originalBaseUrl;
+  });
+
+  // The tenant interceptor still requires `x-tenant-id` on
+  // non-exempt paths. Any UUID works for these probe routes — the
+  // middleware doesn't read it, only the interceptor does.
+  const TENANT_HEADER = "00000000-0000-7000-8000-000000000000";
+
+  it("anonymous request → req.user is undefined on a public route", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/test-session/me")
+      .set("x-tenant-id", TENANT_HEADER);
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(res.body.user).toBeUndefined();
+  });
+
+  it("authenticated request → req.user is populated from the Better-Auth session", async () => {
+    // 1. sign up. The response sets a Better-Auth cookie; supertest's
+    //    agent keeps it for the next call.
+    const agent = request.agent(app.getHttpServer());
+    const signUp = await agent
+      .post("/api/auth/sign-up/email")
+      .set("content-type", "application/json")
+      .send({ email, password, name: "Session User" });
+    expect(signUp.status, JSON.stringify(signUp.body)).toBe(200);
+
+    // 2. probe `/test-session/me` with the same agent — the cookie
+    //    rides on the request.
+    const me = await agent.get("/test-session/me").set("x-tenant-id", TENANT_HEADER);
+    expect(me.status, JSON.stringify(me.body)).toBe(200);
+    expect(me.body.user).toBeDefined();
+    expect(me.body.user.id).toBeTruthy();
+
+    // 3. The user lookup matches the persisted Prisma row.
+    const persisted = await prisma.user.findUnique({ where: { email } });
+    expect(persisted).not.toBeNull();
+    expect(me.body.user.id).toBe(persisted!.id);
+  });
+
+  it("@Can() denies anonymous with 403 (Forbidden), not 404 (NotFound) — the route IS reachable", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/test-session/can-restricted")
+      .set("x-tenant-id", TENANT_HEADER);
+    expect(res.status).toBe(403);
+  });
+});
