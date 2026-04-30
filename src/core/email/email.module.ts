@@ -1,5 +1,6 @@
 import { Logger, Module } from "@nestjs/common";
 
+import { resolveBrandConfig } from "./brand.js";
 import {
   type EmailDriver,
   type EmailMessage,
@@ -7,7 +8,7 @@ import {
   type EmailTemplateRenderer,
   EmailService,
 } from "./email.service.js";
-import { EjsEmailTemplateRenderer, buildBuiltInEmailTemplateRegistry } from "./email-templates.js";
+import { ReactEmailTemplateRenderer } from "./email-templates.react.js";
 
 /**
  * Logs the message to stdout instead of sending.  Default driver
@@ -44,14 +45,20 @@ class LogOnlyEmailDriver implements EmailDriver {
  * those dependencies are installed. Until then the log-only driver
  * lets verify-email / reset-password flows complete in dev without
  * a real outbound mail server.
+ *
+ * The template renderer is the file-based React-Email loader from
+ * issue #6 — templates live as `.tsx` under
+ * `src/core/email/templates/` (built-ins) and
+ * `src/modules/email/templates/` (project overrides).
  */
 @Module({
   providers: [
     {
       provide: EmailService,
       useFactory: (): EmailService => {
-        const registry = buildBuiltInEmailTemplateRegistry();
-        const renderer: EmailTemplateRenderer = new EjsEmailTemplateRenderer(registry);
+        const renderer: EmailTemplateRenderer = new ReactEmailTemplateRenderer({
+          brand: resolveBrandConfig(),
+        });
         return new EmailService({
           primary: new LogOnlyEmailDriver(),
           renderer,
