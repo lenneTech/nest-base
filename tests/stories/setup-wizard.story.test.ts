@@ -222,7 +222,7 @@ describe("Story · Setup-Wizard planner", () => {
       it("lists files fields (enabled, storage default, tus, transformations)", () => {
         const env = planSetup(answers()).envExample;
         expect(env).toMatch(/^#\s*FEATURE_FILES_ENABLED=true$/m);
-        expect(env).toMatch(/^#\s*FEATURE_FILES_STORAGE_DEFAULT=s3$/m);
+        expect(env).toMatch(/^#\s*FEATURE_FILES_STORAGE_DEFAULT=local$/m);
         expect(env).toMatch(/^#\s*FEATURE_FILES_TUS=true$/m);
         expect(env).toMatch(/^#\s*FEATURE_FILES_TRANSFORMATIONS=true$/m);
       });

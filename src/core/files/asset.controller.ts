@@ -1,23 +1,35 @@
-import { BadRequestException, Controller, Get, Param, Query, Res } from "@nestjs/common";
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Query,
+  Res,
+} from "@nestjs/common";
 import type { Response } from "express";
-import sharp from "sharp";
 
 import { Can } from "../permissions/can.guard.js";
-import { type TransformOptions, computeCacheKey } from "./asset.service.js";
+import { AssetService, type TransformOptions, computeCacheKey } from "./asset.service.js";
+import { StorageObjectNotFoundError } from "./storage-adapter.js";
 
 /**
- * `/assets/:key` HTTP surface for image-transform downloads
- *.
+ * `/assets/:key` HTTP surface for image-transform downloads.
  *
- * Today: synthesizes a tiny placeholder PNG via sharp + applies the
- * requested transforms. Real implementation: fetch the original from
- * the configured `StorageAdapter` (s3/local/postgres-FileBlob), pipe
- * it through `sharp`, cache the transformed buffer keyed by
- * `computeCacheKey()`. The pipeline is in place; storage retrieval
- * is the swap-out.
+ * Pipes bytes from the configured `StorageAdapter` (S3 / Local /
+ * Postgres-FileBlob) through `AssetService` (sharp transformer +
+ * read-through cache) and back to the client. The placeholder PNG
+ * synthesis the previous slice shipped is gone — see issue #16.
+ *
+ * Cache headers:
+ *   `x-cache: HIT|MISS` — debugging probe for cache effectiveness
+ *   `etag` — deterministic per (key, options); enables 304 by clients
+ *   `cache-control: public, max-age=86400` — 24h browser cache
  */
 @Controller("assets")
 export class AssetController {
+  constructor(private readonly asset: AssetService) {}
+
   @Can("read", "Asset")
   @Get(":key")
   async get(
@@ -32,23 +44,35 @@ export class AssetController {
     if (query.format && ["webp", "avif", "jpeg", "png"].includes(query.format)) {
       transforms.format = query.format as TransformOptions["format"];
     }
-
-    // Placeholder image: 32x32 colored square. Real impl reads
-    // `key` from the StorageAdapter and pipes those bytes here.
-    const baseImage = sharp({
-      create: { width: 32, height: 32, channels: 3, background: "#0a58ca" },
-    });
-    let pipeline = baseImage;
-    if (transforms.width || transforms.height) {
-      pipeline = pipeline.resize(transforms.width, transforms.height);
+    if (query.quality) transforms.quality = Number(query.quality);
+    if (query.fit && ["cover", "contain", "inside", "outside"].includes(query.fit)) {
+      transforms.fit = query.fit as TransformOptions["fit"];
     }
-    const format = transforms.format ?? "png";
-    const buffer = await pipeline.toFormat(format).toBuffer();
+
+    // Probe the cache before delivery so the response can advertise
+    // whether the transform was already cached. Only meaningful when
+    // a transform was requested — passthrough always reads from origin.
+    let cacheStatus: "HIT" | "MISS" | "BYPASS" = "BYPASS";
+    if (Object.values(transforms).some((v) => v !== undefined)) {
+      const cacheKey = computeCacheKey(key, transforms);
+      cacheStatus = (await this.asset.cache.exists(cacheKey)) ? "HIT" : "MISS";
+    }
+
+    let result;
+    try {
+      result = await this.asset.deliver(key, transforms);
+    } catch (err) {
+      if (err instanceof StorageObjectNotFoundError) {
+        throw new NotFoundException(`asset not found: ${key}`);
+      }
+      throw err;
+    }
 
     const cacheKey = computeCacheKey(key, transforms);
-    res.setHeader("content-type", `image/${format}`);
+    res.setHeader("content-type", result.mimeType);
     res.setHeader("cache-control", "public, max-age=86400");
     res.setHeader("etag", `"${cacheKey}"`);
-    res.send(buffer);
+    res.setHeader("x-cache", cacheStatus);
+    res.send(Buffer.from(result.bytes));
   }
 }

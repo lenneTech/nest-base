@@ -72,13 +72,21 @@ function isPassthrough(options: TransformOptions): boolean {
 
 export class AssetService {
   private readonly origin: StorageAdapter;
-  private readonly cache: StorageAdapter;
+  private readonly _cache: StorageAdapter;
   private readonly transformer: AssetTransformer;
 
   constructor(options: AssetServiceOptions) {
     this.origin = options.origin;
-    this.cache = options.cache;
+    this._cache = options.cache;
     this.transformer = options.transformer;
+  }
+
+  /**
+   * Read-only access to the cache adapter so the controller can probe
+   * `x-cache: HIT|MISS` headers without going through `deliver()`.
+   */
+  get cache(): StorageAdapter {
+    return this._cache;
   }
 
   async deliver(key: string, options: TransformOptions): Promise<AssetDeliveryResult> {
