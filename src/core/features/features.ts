@@ -41,7 +41,7 @@ const MultiTenancySchema = z.object({
 });
 const FilesSchema = z.object({
   enabled: z.boolean().default(true),
-  storageDefault: z.enum(STORAGE_DRIVERS).default("s3"),
+  storageDefault: z.enum(STORAGE_DRIVERS).default("local"),
   tus: z.boolean().default(true),
   transformations: z.boolean().default(true),
 });
