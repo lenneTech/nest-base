@@ -82,7 +82,9 @@ export interface PlanEmailRetryResult {
 export function planEmailRetry(input: PlanEmailRetryInput): PlanEmailRetryResult {
   const { attemptCount, errorKind, now, config } = input;
   if (attemptCount < 1 || !Number.isInteger(attemptCount)) {
-    throw new Error(`planEmailRetry: attemptCount must be a positive integer (got ${attemptCount})`);
+    throw new Error(
+      `planEmailRetry: attemptCount must be a positive integer (got ${attemptCount})`,
+    );
   }
   if (errorKind === "permanent") return { terminal: true };
   if (attemptCount >= config.maxAttempts) return { terminal: true };

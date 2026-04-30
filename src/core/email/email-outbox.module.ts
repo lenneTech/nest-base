@@ -16,10 +16,7 @@ import {
   createSmtpTransporter,
   readSmtpConfigFromEnv,
 } from "./drivers/smtp.driver.js";
-import {
-  selectEmailDriver,
-  type EmailDriverName,
-} from "./email.module.js";
+import { selectEmailDriver, type EmailDriverName } from "./email.module.js";
 import { ReactEmailTemplateRenderer } from "./email-templates.react.js";
 import {
   EmailOutboxRecorder,

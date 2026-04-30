@@ -6,11 +6,7 @@ import {
   type EmailOutboxStatus,
   planEmailRetry,
 } from "./email-outbox-planner.js";
-import type {
-  EmailSendResult,
-  SendOptions,
-  SendTemplateOptions,
-} from "./email.service.js";
+import type { EmailSendResult, SendOptions, SendTemplateOptions } from "./email.service.js";
 
 /**
  * Email-Outbox subsystem.

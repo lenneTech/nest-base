@@ -1,8 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 
-import {
-  STALE_CLAIM_THRESHOLD_MS,
-} from "./email-outbox-planner.js";
+import { STALE_CLAIM_THRESHOLD_MS } from "./email-outbox-planner.js";
 import type {
   AppendInput,
   EmailOutboxKind,
