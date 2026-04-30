@@ -82,6 +82,12 @@ If you later see `Property '<resource>' does not exist on type
 
 Path: `tests/stories/<resource>-module.story.test.ts`
 
+> **Prerequisite:** before you write the story test, register the new
+> resource on `FakePrismaService` (`tests/lib/fake-prisma.ts`). The
+> fake is a hand-typed map of tables; without an entry your service
+> code will hit `undefined.create()` at runtime. See **Step 1.5**
+> below — do it before you let the story file import.
+
 Use the in-memory fake — fast, no Postgres needed:
 
 ```typescript
@@ -136,6 +142,68 @@ Commit:
 
 ```bash
 git add -A && git commit -m "test(<resource>): add red tests for module skeleton"
+```
+
+## Step 1.5 — Extend `FakePrisma` with the new table
+
+`tests/lib/fake-prisma.ts` is a hand-typed in-memory stand-in for
+`PrismaService` used by every slim-module story test. It is **not**
+auto-derived from `schema.prisma` — adding a new resource means
+appending a single table entry by hand, in three places.
+
+Edit `tests/lib/fake-prisma.ts`:
+
+```typescript
+// 1. Field on the FakePrismaService interface (~ line 136):
+export interface FakePrismaService {
+  example: TableMock<Row>;
+  userProfile: TableMock<Row>;
+  <resource>: TableMock<Row>;          // ← add
+  runWithRlsTenant<T>(fn: (tx: FakePrismaService) => Promise<T>, tenantId?: string): Promise<T>;
+  __resetAll(): void;
+}
+
+// 2. Table instance + assembly inside createFakePrisma():
+export function createFakePrisma(): FakePrismaService {
+  const example = makeTable();
+  const userProfile = makeTable();
+  const <resource> = makeTable();      // ← add
+  const fake: FakePrismaService = {
+    example,
+    userProfile,
+    <resource>,                         // ← add
+    // …
+    __resetAll() {
+      example.__reset();
+      userProfile.__reset();
+      <resource>.__reset();             // ← add
+    },
+  };
+  return fake;
+}
+```
+
+Three lines per resource, mechanical. After this is in, the story
+test from Step 1 can mount your service and run.
+
+> **Why hand-typed?** `FakePrismaService` is intentionally narrow —
+> it's the smallest contract that lets a slim-module service run
+> against a `Map<id, row>` instead of a Postgres testcontainer. A
+> Proxy-based auto-derived alternative would lose per-resource type
+> safety for marginal gain at this scale; the explicit list is the
+> deliberate trade-off.
+
+> **Important:** `FakePrisma` does NOT enforce RLS. Tenant isolation
+> is the SERVICE'S job (always pass `where: { tenantId }`). For real
+> RLS coverage write an e2e spec — the testcontainer Postgres in
+> `global-setup.ts` runs the actual `tenant_isolation_<table>`
+> policies.
+
+Commit:
+
+```bash
+git add tests/lib/fake-prisma.ts && \
+  git commit -m "test(<resource>): wire <resource> into fake-prisma"
 ```
 
 ## Step 2 — Prisma model
