@@ -12,6 +12,7 @@ import helmet from "helmet";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { apiReference } from "@scalar/nestjs-api-reference";
 
+import { readTunnelState } from "../dev/tunnel-state-runner.js";
 import { type BrowserOpenPlatform, planBrowserOpen } from "../dx/browser-open.js";
 import { transitionDevSession } from "../dx/dev-session-runner.js";
 import { resolveEffectiveBaseUrl } from "../dx/effective-base-url.js";
@@ -191,6 +192,12 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
       // (open browser + hero banner) or a respawn (compact "♻
       // restarted" banner, no browser open).
       const session = transitionDevSession(process.cwd());
+      // Surface the active Cloudflare-Tunnel URL when `bun run dev
+      // --tunnel` is running. The runner writes the state file once
+      // `cloudflared` reports a URL; the API reads it on each banner
+      // render so a tunnel that comes up after the server boots still
+      // appears on the next watch-restart.
+      const tunnelState = readTunnelState(process.cwd());
       const banner = planStartupBanner({
         env: cfg.env,
         baseUrl: effective.publicUrl,
@@ -201,6 +208,7 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
           ...(studioUrl ? { prismaStudioUrl: studioUrl } : {}),
           ...(process.env.MAILPIT_WEB_URL ? { mailpitUrl: process.env.MAILPIT_WEB_URL } : {}),
           ...(process.env.POWERSYNC_URL ? { powerSyncUrl: process.env.POWERSYNC_URL } : {}),
+          ...(tunnelState ? { tunnelUrl: tunnelState.url } : {}),
         },
       });
       // pino-pretty runs in a worker thread (async); a short tick lets

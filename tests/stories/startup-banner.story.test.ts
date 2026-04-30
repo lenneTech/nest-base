@@ -115,4 +115,51 @@ describe("Story · Startup-Banner", () => {
       expect(plan.text).toContain(".env change");
     });
   });
+
+  describe("Tunnel-URL — surfacing den Cloudflare-Tunnel im Banner", () => {
+    it("zeigt die Tunnel-URL als eigene Section bei aktivem --tunnel im Hero-Banner", () => {
+      const plan = planStartupBanner({
+        env: "development",
+        baseUrl: "http://localhost:3000",
+        port: 3000,
+        features: {
+          scalarEnabled: true,
+          tunnelUrl: "https://example-cute-name-123.trycloudflare.com",
+        },
+      });
+
+      const tunnel = plan.sections.find((s) => s.title === "Tunnel");
+      expect(tunnel).toBeDefined();
+      expect(tunnel?.entries[0]?.url).toBe("https://example-cute-name-123.trycloudflare.com");
+      // The text output also includes the URL so users can copy it.
+      expect(plan.text).toContain("https://example-cute-name-123.trycloudflare.com");
+    });
+
+    it("blendet Tunnel-Section aus, wenn keine URL übergeben wurde", () => {
+      const plan = planStartupBanner({
+        env: "development",
+        baseUrl: "http://localhost:3000",
+        port: 3000,
+        features: { scalarEnabled: true },
+      });
+
+      expect(plan.sections.find((s) => s.title === "Tunnel")).toBeUndefined();
+    });
+
+    it("zeigt die Tunnel-URL im kompakten Restart-Banner", () => {
+      const plan = planStartupBanner({
+        env: "development",
+        baseUrl: "http://localhost:3000",
+        port: 3000,
+        variant: "restart-env",
+        timestamp: "12:34:56",
+        features: {
+          scalarEnabled: true,
+          tunnelUrl: "https://orange-coast-42.trycloudflare.com",
+        },
+      });
+
+      expect(plan.text).toContain("https://orange-coast-42.trycloudflare.com");
+    });
+  });
 });

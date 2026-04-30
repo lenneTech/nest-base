@@ -27,15 +27,26 @@ import { config as loadEnv } from 'dotenv';
 loadEnv({ override: true });
 
 import { spawn, type ChildProcess } from 'node:child_process';
-import { existsSync, readFileSync, watch } from 'node:fs';
+import { existsSync, readFileSync, watch, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+import {
+  formatMissingCloudflaredHint,
+  parseCloudflaredOutput,
+  parseTunnelArgs,
+  planCloudflaredCommand,
+  planTunnelEnvWrite,
+} from '../src/core/dev/cloudflare-tunnel.js';
 import {
   buildPortlessRunCommand,
   isPortlessProxyRunning,
   resolveDevPort,
   shouldUsePortless,
 } from '../src/core/dev/portless.js';
+import {
+  clearTunnelState,
+  writeTunnelState,
+} from '../src/core/dev/tunnel-state-runner.js';
 import {
   clearDevSessionState,
   markDevSessionRefresh,
@@ -145,6 +156,122 @@ interface SpawnPlan {
 // Dev Hub opens once per `bun run dev`, not once per file save.
 startDevSession(process.cwd());
 
+// Lifted-up state — both the tunnel block and the .env-watch /
+// shutdown handlers below read these.
+const envPath = resolve(process.cwd(), '.env');
+let shuttingDown = false;
+
+// --tunnel flag: spawn `cloudflared` so localhost:<port> is reachable
+// from the public internet (webhook receivers etc.). The cloudflared
+// child lives in the dev runner — the URL it reports is persisted to
+// `node_modules/.cache/nest-base/tunnel.json` so the API child can
+// surface it via `/dev/tunnel.json` and the startup banner.
+const tunnelArgs = parseTunnelArgs(process.argv.slice(2));
+let tunnelChild: ChildProcess | undefined;
+let tunnelUrlSeen = false;
+if (tunnelArgs.tunnelEnabled) {
+  const cloudflaredPath = which('cloudflared');
+  if (!cloudflaredPath) {
+    console.error(formatMissingCloudflaredHint());
+    process.exit(1);
+  }
+  // Always start with a clean state file so a stale URL from a
+  // previous session is never surfaced.
+  clearTunnelState(process.cwd());
+  const tunnelPort = resolveDevPort({
+    env: process.env as { PORT?: string },
+    portlessAvailable: usePortless,
+  });
+  // 0 means "let bun pick a free port at bind time", which we cannot
+  // forward through cloudflared. Ask the user to set PORT explicitly
+  // in that case rather than racing with the API.
+  const cloudflaredTargetPort = tunnelPort > 0 ? tunnelPort : 3000;
+  const tunnelCommand = planCloudflaredCommand({
+    port: cloudflaredTargetPort,
+    ...(process.env.CLOUDFLARE_TUNNEL_NAME
+      ? { tunnelName: process.env.CLOUDFLARE_TUNNEL_NAME }
+      : {}),
+  });
+  console.log(
+    `[dev] starting Cloudflare-Tunnel: ${tunnelCommand.command} ${tunnelCommand.args.join(' ')}`,
+  );
+  tunnelChild = spawn(tunnelCommand.command, tunnelCommand.args, {
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+  const onTunnelLine = (line: string): void => {
+    const parsed = parseCloudflaredOutput(line);
+    if (parsed.url && !tunnelUrlSeen) {
+      tunnelUrlSeen = true;
+      writeTunnelState(process.cwd(), {
+        url: parsed.url,
+        startedAt: new Date().toISOString(),
+      });
+      console.log('');
+      console.log(`[dev] ✓ Cloudflare-Tunnel ready: ${parsed.url}`);
+      console.log('[dev]   wire this URL into Stripe / GitHub / Slack webhook configs');
+      console.log('');
+      if (tunnelArgs.writeEnv) {
+        // --tunnel-write-env: persist as TUNNEL_PUBLIC_URL so callers
+        // (auth flows, webhook configs reading process.env) can pick
+        // it up. Triggers the .env-watch handler below, which respawns
+        // the API so the new env var is in scope.
+        try {
+          const current = existsSync(envPath) ? readFileSync(envPath, 'utf8') : '';
+          const update = planTunnelEnvWrite({ current, url: parsed.url });
+          writeFileSync(envPath, update.next, 'utf8');
+          console.log('[dev]   TUNNEL_PUBLIC_URL written to .env');
+        } catch (err) {
+          console.warn(`[dev]   (failed to write TUNNEL_PUBLIC_URL: ${(err as Error).message})`);
+        }
+      }
+    }
+    if (parsed.error && !tunnelUrlSeen) {
+      console.log(`[cloudflared] ${parsed.error}`);
+    }
+  };
+
+  const wireStream = (
+    stream: NodeJS.ReadableStream | null,
+  ): void => {
+    if (!stream) return;
+    let buffer = '';
+    stream.on('data', (chunk: Buffer | string) => {
+      buffer += typeof chunk === 'string' ? chunk : chunk.toString('utf8');
+      let nlIdx = buffer.indexOf('\n');
+      while (nlIdx !== -1) {
+        const line = buffer.slice(0, nlIdx);
+        buffer = buffer.slice(nlIdx + 1);
+        onTunnelLine(line);
+        nlIdx = buffer.indexOf('\n');
+      }
+    });
+    stream.on('end', () => {
+      if (buffer.length > 0) onTunnelLine(buffer);
+    });
+  };
+  wireStream(tunnelChild.stdout);
+  wireStream(tunnelChild.stderr);
+
+  tunnelChild.on('exit', (code, signal) => {
+    if (!shuttingDown && code !== 0 && code !== null) {
+      console.warn(`[dev] cloudflared exited with code ${code} (signal: ${signal ?? 'none'})`);
+    }
+    clearTunnelState(process.cwd());
+  });
+
+  // Belt + suspenders: warn the user if no URL appears within 30s
+  // so a misconfigured cloudflared (auth issue, edge unreachable)
+  // doesn't silently waste their time.
+  setTimeout(() => {
+    if (!tunnelUrlSeen && !shuttingDown) {
+      console.warn(
+        '[dev] cloudflared has not reported a public URL after 30s — check the cloudflared logs above.',
+      );
+    }
+  }, 30_000).unref();
+}
+
 function buildSpawnPlan(): SpawnPlan {
   if (usePortless && proxyAlive) {
     const args = buildPortlessRunCommand({
@@ -180,7 +307,6 @@ if (usePortless && proxyAlive) {
 
 let child: ChildProcess | undefined;
 let respawning = false;
-let shuttingDown = false;
 
 function spawnChild(): ChildProcess {
   const plan = buildSpawnPlan();
@@ -200,7 +326,6 @@ child = spawnChild();
 
 // Watch .env so feature toggles in /dev/features force a full process
 // restart (not just a `bun --watch` reload, which keeps the cached env).
-const envPath = resolve(process.cwd(), '.env');
 let respawnTimer: ReturnType<typeof setTimeout> | undefined;
 try {
   watch(envPath, { persistent: false }, () => {
@@ -231,7 +356,11 @@ const shutdown = (signal: NodeJS.Signals): void => {
   // Stale lock from this session must not bleed into the next `bun
   // run dev` — that would skip the browser open on cold-start.
   clearDevSessionState(process.cwd());
+  // Same for the tunnel state — `/dev/tunnel.json` must not report a
+  // dead URL after Ctrl-C.
+  clearTunnelState(process.cwd());
   if (child) child.kill(signal);
+  if (tunnelChild) tunnelChild.kill(signal);
   if (portalWatcher) portalWatcher.kill(signal);
 };
 process.on('SIGINT', () => shutdown('SIGINT'));

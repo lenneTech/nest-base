@@ -67,6 +67,8 @@ The Dev Hub opens automatically at the URL the dev runner prints — `https://ap
 
 > **What `bun run dev` does for you**: starts Postgres via `docker compose up -d postgres` if the container isn't running, spawns Prisma Studio on `:5555`, watches `.env` for changes (so feature toggles take effect without a manual restart), and opens the Dev Hub in your browser. Set `NO_OPEN=1` to skip the auto-open, `SKIP_DB_BOOT=1` to skip the Postgres boot.
 >
+> **Need a public URL?** `bun run dev --tunnel` exposes `localhost:<port>` to the internet via Cloudflare Tunnel — handy for testing webhook receivers (Stripe, GitHub, Slack, OAuth callbacks) without deploying. Requires `cloudflared` (`brew install cloudflared`). See [`docs/dev-tunnel.md`](./docs/dev-tunnel.md).
+>
 > **`bun run onboard`** is the lightweight first-run check (Bun version, `.env` presence, Postgres TCP reachability, Prisma client). **`bun run doctor`** goes deeper: container statuses, env-var entropy, disk space, configurable services. JSON output via `bun run doctor --json` for CI consumption.
 
 ---
@@ -252,6 +254,7 @@ Currently **1712 tests** across 194 files. Coverage 95.48% lines (well above the
 ```bash
 # Development
 bun run dev                   # Dev server + Prisma Studio + auto-open Dev Hub
+bun run dev --tunnel          # …same, plus a public Cloudflare-Tunnel URL
 bun run lint                  # oxlint (95 rules, 30ms)
 bun run format                # oxfmt --check
 bun run format:fix            # oxfmt
