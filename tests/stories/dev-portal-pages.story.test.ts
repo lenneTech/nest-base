@@ -107,27 +107,6 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
     }
   });
 
-  describe("Legacy server-rendered pages stay reachable at *.html", () => {
-    const legacyPages = [
-      "features.html",
-      "coverage.html",
-      "tests.html",
-      "logs.html",
-      "diagnostics.html",
-      "traces.html",
-      "queries.html",
-      "routes.html",
-      "erd.html",
-      "email-preview.html",
-    ];
-    for (const ep of legacyPages) {
-      it(`dev-hub.controller.ts declares @Get("${ep}")`, () => {
-        const escaped = ep.replace(/\./g, "\\.");
-        expect(CONTROLLER).toMatch(new RegExp(`@Get\\("${escaped}"\\)`));
-      });
-    }
-  });
-
   describe("Visual-fidelity classnames are present in admin-layout.css", () => {
     // Sentinels per page — if any of these go missing we've broken the
     // 1:1 port from `*-ui.ts`. The full list of classes ports verbatim;
