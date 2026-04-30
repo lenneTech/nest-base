@@ -12,6 +12,8 @@ import {
   Put,
 } from "@nestjs/common";
 
+import { PrismaService } from "../prisma/prisma.service.js";
+import { PrismaTenantMemberStorage } from "./prisma-tenant-member-storage.js";
 import {
   type AddMemberInput,
   type TenantMemberRecord,
@@ -24,7 +26,15 @@ import {
 
 const TENANT_MEMBER_STORAGE = Symbol.for("lt:TenantMemberStorage");
 
-class InMemoryTenantMemberStorage implements TenantMemberStorage {
+/**
+ * In-memory fallback used by tests that exercise `TenantMemberService`
+ * without a Postgres testcontainer. Production wiring uses
+ * `PrismaTenantMemberStorage` — see the providers block below.
+ *
+ * Exported so tests can opt into the legacy behaviour without
+ * re-defining the storage shape.
+ */
+export class InMemoryTenantMemberStorage implements TenantMemberStorage {
   private readonly map = new Map<string, TenantMemberRecord>();
 
   async findByUserAndTenant(userId: string, tenantId: string): Promise<TenantMemberRecord | null> {
@@ -108,14 +118,21 @@ class TenantMemberController {
 }
 
 /**
- * TenantMemberModule — `/tenant-members` CRUD over an in-memory
- * `TenantMemberStorage`. Prisma-backed adapter lands once Better-Auth
- * + the membership join migration are hooked up.
+ * TenantMemberModule — `/tenant-members` CRUD over a Postgres-backed
+ * `TenantMemberStorage`. The `PrismaTenantMemberStorage` adapter
+ * writes through to the `tenant_members` table declared in
+ * `prisma/schema.prisma`; the previous in-memory storage is exported
+ * for tests that don't need a live DB but stays out of the production
+ * graph.
  */
 @Module({
   controllers: [TenantMemberController],
   providers: [
-    { provide: TENANT_MEMBER_STORAGE, useClass: InMemoryTenantMemberStorage },
+    {
+      provide: TENANT_MEMBER_STORAGE,
+      useFactory: (prisma: PrismaService) => new PrismaTenantMemberStorage(prisma),
+      inject: [PrismaService],
+    },
     {
       provide: TenantMemberService,
       useFactory: (storage: TenantMemberStorage) => new TenantMemberService(storage),

@@ -144,6 +144,36 @@ describe("Story · TenantMember Prisma persistence", () => {
     expect(await storage.remove(id)).toBe(false);
   });
 
+  it("updateStatus returns null when the row is missing (Prisma P2025 → soft miss)", async () => {
+    const storage = new PrismaTenantMemberStorage(prisma);
+    expect(await storage.updateStatus(uuidV7(), "ACTIVE")).toBeNull();
+  });
+
+  it("updateStatus and remove rethrow non-P2025 errors (e.g. wrong column name) instead of swallowing", async () => {
+    // We construct a stub Prisma whose `update` throws something
+    // that is not P2025 — the storage must NOT swallow it.
+    class ExplodingPrisma {
+      tenantMember = {
+        update: () => {
+          throw new Error("kaboom");
+        },
+        delete: () => {
+          throw new Error("kaboom");
+        },
+        // unused in this assertion
+        findFirst: async () => null,
+        findMany: async () => [],
+        findUnique: async () => null,
+        create: async (input: { data: TenantMemberRecord }) => input.data,
+      };
+    }
+    const storage = new PrismaTenantMemberStorage(
+      new ExplodingPrisma() as unknown as Parameters<typeof PrismaTenantMemberStorage>[0],
+    );
+    await expect(storage.updateStatus("any", "ACTIVE")).rejects.toThrow("kaboom");
+    await expect(storage.remove("any")).rejects.toThrow("kaboom");
+  });
+
   it("works as the storage backend for the TenantMemberService", async () => {
     const storage = new PrismaTenantMemberStorage(prisma);
     const svc = new TenantMemberService(storage);
