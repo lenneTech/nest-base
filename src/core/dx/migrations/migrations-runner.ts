@@ -91,9 +91,7 @@ export function discardMigrationDirectory(projectRoot: string, name: string): bo
  * table on every `migrate deploy`; reading it lets us avoid shelling
  * out to `prisma migrate status` for the read path.
  */
-export async function listAppliedMigrations(
-  prisma: PrismaService,
-): Promise<AppliedMigrationRow[]> {
+export async function listAppliedMigrations(prisma: PrismaService): Promise<AppliedMigrationRow[]> {
   // The table is owned by Prisma; the columns below have been stable
   // since v3.x. Using $queryRawUnsafe keeps us decoupled from generated
   // model types we don't otherwise use.
@@ -260,7 +258,9 @@ export async function runPrismaCommand(
  * timestamp order. Idempotent — already-applied migrations are
  * skipped by the CLI itself.
  */
-export function runMigrateDeploy(projectRoot: string = process.cwd()): Promise<PrismaCommandResult> {
+export function runMigrateDeploy(
+  projectRoot: string = process.cwd(),
+): Promise<PrismaCommandResult> {
   return runPrismaCommand(["migrate", "deploy"], { projectRoot, timeoutMs: 120_000 });
 }
 

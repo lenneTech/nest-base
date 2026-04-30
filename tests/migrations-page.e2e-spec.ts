@@ -86,9 +86,7 @@ describe("Dev-Hub · /dev/migrations", () => {
     });
 
     it("POST /dev/migrations/apply-one requires body.name", async () => {
-      const res = await request(app.getHttpServer())
-        .post("/dev/migrations/apply-one")
-        .send({});
+      const res = await request(app.getHttpServer()).post("/dev/migrations/apply-one").send({});
       expect(res.status).toBe(400);
     });
 

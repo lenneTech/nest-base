@@ -182,9 +182,7 @@ export class MigrationsService {
    * Create a draft migration via `prisma migrate dev --create-only`.
    * Returns the generated SQL preview without applying anything.
    */
-  async createDraft(
-    name: string,
-  ): Promise<{
+  async createDraft(name: string): Promise<{
     acquired: boolean;
     result?: { name: string; folder?: string; sql?: string; success: boolean; stderr: string };
   }> {
