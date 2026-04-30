@@ -148,9 +148,7 @@ export function buildEmailHookPayload(input: EmailHookInput): EmailHookPayload {
     case "password-reset": {
       const url = trim(input.url);
       if (!url) {
-        throw new Error(
-          "better-auth-email-hooks: password-reset hook requires a non-empty url",
-        );
+        throw new Error("better-auth-email-hooks: password-reset hook requires a non-empty url");
       }
       return {
         template: "password-reset",
@@ -168,9 +166,7 @@ export function buildEmailHookPayload(input: EmailHookInput): EmailHookPayload {
     case "invitation": {
       const url = trim(input.url);
       if (!url) {
-        throw new Error(
-          "better-auth-email-hooks: invitation hook requires a non-empty url",
-        );
+        throw new Error("better-auth-email-hooks: invitation hook requires a non-empty url");
       }
       const senderName = trim(input.senderName) || DEFAULT_SENDER_NAME;
       return {

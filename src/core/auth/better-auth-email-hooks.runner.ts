@@ -83,9 +83,7 @@ export interface BetterAuthEmailHookRunner {
   sendInvitation(data: InvitationHookData): Promise<void>;
 }
 
-export function createEmailHookRunner(
-  options: EmailHookRunnerOptions,
-): BetterAuthEmailHookRunner {
+export function createEmailHookRunner(options: EmailHookRunnerOptions): BetterAuthEmailHookRunner {
   const logger = new Logger("BetterAuthEmailHooks");
   const onError =
     options.onError ??

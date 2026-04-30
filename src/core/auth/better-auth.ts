@@ -142,7 +142,9 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
 
   if (input.emailHooks) {
     if (!input.emailHooks.sender) {
-      throw new Error("Better-Auth emailHooks.sender must be a non-null EmailService-shaped object");
+      throw new Error(
+        "Better-Auth emailHooks.sender must be a non-null EmailService-shaped object",
+      );
     }
     if (!input.emailHooks.appName) {
       throw new Error("Better-Auth emailHooks.appName must be a non-empty string");
