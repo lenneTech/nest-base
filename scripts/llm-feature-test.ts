@@ -16,7 +16,17 @@
  * Claude subprocess cleanly and still emits the partial summary.
  */
 
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  appendFileSync,
+  closeSync,
+  cpSync,
+  existsSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 
@@ -93,8 +103,13 @@ Stop when one of these is true:
 
 Begin now.`;
 
+// Ensure the transcript file exists from second 0, even before any
+// stream-json events have been emitted. `appendFileSync` per event
+// keeps each line durable on disk so a hard SIGKILL of this script
+// (or its parent shell) never loses more than the line currently
+// being written. Buffering would lose the tail.
 const transcriptPath = resolve(workspace, 'transcript.jsonl');
-const transcriptStream = Bun.file(transcriptPath).writer();
+closeSync(openSync(transcriptPath, 'a'));
 const startedAt = Date.now();
 
 const proc = Bun.spawn(
@@ -124,16 +139,21 @@ const killTimer = setTimeout(
   args.timeoutMinutes * 60_000,
 );
 
-// Ctrl-C handler.
+// Ctrl-C / TERM handlers — kill the child cleanly, let the main
+// loop drain, run the archive step. Hard SIGKILL of this process is
+// the only path that skips archiving; in that case the workspace
+// dir is left intact at ~/.cache/lt-llm-test/run-<ts>/ so the user
+// can still recover friction.md + transcript.jsonl manually.
 let aborted = false;
-const onSigint = () => {
+const abort = (signal: string) => {
   if (aborted) return;
   aborted = true;
   console.log('');
-  console.log('[llm-test] Ctrl-C received — terminating Claude session.');
+  console.log(`[llm-test] ${signal} received — terminating Claude session.`);
   proc.kill('SIGTERM');
 };
-process.on('SIGINT', onSigint);
+process.on('SIGINT', () => abort('SIGINT'));
+process.on('SIGTERM', () => abort('SIGTERM'));
 
 // Stream parser.
 let turn = 0;
@@ -151,7 +171,9 @@ while (true) {
     const line = buffer.slice(0, nl);
     buffer = buffer.slice(nl + 1);
     if (!line.trim()) continue;
-    transcriptStream.write(`${line}\n`);
+    // Synchronous append: the transcript stays durable line-by-line
+    // even if a hard kill cuts us off mid-stream.
+    appendFileSync(transcriptPath, `${line}\n`);
 
     let event: { type?: string; message?: { content?: unknown[] }; subtype?: string };
     try {
@@ -177,8 +199,6 @@ while (true) {
 }
 
 clearTimeout(killTimer);
-process.off('SIGINT', onSigint);
-await transcriptStream.end();
 
 const exitCode = await proc.exited;
 const wallclockSec = Math.round((Date.now() - startedAt) / 1000);
