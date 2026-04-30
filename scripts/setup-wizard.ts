@@ -28,3 +28,8 @@ console.log('  1. Review and adjust values in .env');
 console.log('  2. Start dependencies: docker compose up -d');
 console.log('  3. Run migrations:     bun run prisma:migrate');
 console.log('  4. Boot the server:    bun run dev');
+console.log('');
+console.log('Re-running setup after a previous boot? Postgres remembers the old');
+console.log("password in its volume — if `bun run prisma:migrate` later fails with");
+console.log('P1000 auth error, run `docker compose down -v` first to wipe the');
+console.log('volume, then `docker compose up -d` again.');

@@ -9,21 +9,23 @@ const ROOT = resolve(import.meta.dirname, "..", "..");
  * Story · PostGIS extension migration.
  *
  * The Geo feature needs PostGIS available before the geo schema can
- * declare `Unsupported("geometry(...)")` columns. A dedicated raw-SQL
- * migration enables the extension; downstream feature schemas
- * (`prisma/features/geo.prisma`) assume it.
+ * declare `Unsupported("geometry(...)")` columns. The raw-SQL
+ * migration is feature-gated and lives under
+ * `prisma/features/geo/migrations/<dir>/migration.sql` — it is only
+ * materialised into `prisma/migrations/` by `bun run prepare:schema`
+ * when `features.geo.enabled === true`.
  *
- * The test pins the migration's existence + the load-bearing SQL so
- * a future cleanup can't drop it (consumers turning Geo on must hit
- * an idempotent CREATE EXTENSION).
+ * The test pins the source location + the load-bearing SQL so a
+ * future cleanup can't drop it (consumers turning Geo on must hit an
+ * idempotent CREATE EXTENSION).
  */
 describe("Story · PostGIS extension migration", () => {
   function findPostGisMigration(): { dir: string; sql: string } {
-    const migrationsDir = resolve(ROOT, "prisma/migrations");
-    expect(existsSync(migrationsDir), "prisma/migrations must exist").toBe(true);
-    const candidates = readdirSync(migrationsDir).filter((entry) => /postgis/i.test(entry));
+    const featureMigrations = resolve(ROOT, "prisma/features/geo/migrations");
+    expect(existsSync(featureMigrations), `${featureMigrations} must exist`).toBe(true);
+    const candidates = readdirSync(featureMigrations).filter((entry) => /postgis/i.test(entry));
     expect(candidates.length, "a postgis migration must exist").toBeGreaterThan(0);
-    const dir = resolve(migrationsDir, candidates[0]!);
+    const dir = resolve(featureMigrations, candidates[0]!);
     const sqlPath = resolve(dir, "migration.sql");
     expect(existsSync(sqlPath), `${sqlPath} must exist`).toBe(true);
     return { dir, sql: readFileSync(sqlPath, "utf8") };
@@ -34,7 +36,7 @@ describe("Story · PostGIS extension migration", () => {
     expect(sql).toMatch(/CREATE\s+EXTENSION\s+IF\s+NOT\s+EXISTS\s+postgis/i);
   });
 
-  it("runs after the foundational pg_uuidv7 migration (alphabetical ordering)", () => {
+  it("runs after the foundational pg_uuidv7 migration (timestamp ordering)", () => {
     const { dir } = findPostGisMigration();
     const dirName = dir.split("/").pop()!;
     expect(dirName.localeCompare("20260428000000_pg_uuidv7")).toBeGreaterThan(0);
@@ -44,5 +46,11 @@ describe("Story · PostGIS extension migration", () => {
     const { sql } = findPostGisMigration();
     expect(sql).not.toMatch(/DROP\s+EXTENSION/i);
     expect(sql).not.toMatch(/ALTER\s+EXTENSION/i);
+  });
+
+  it("is NOT in the always-on prisma/migrations directory (feature-gated)", () => {
+    const alwaysOn = resolve(ROOT, "prisma/migrations");
+    const candidates = readdirSync(alwaysOn).filter((entry) => /postgis/i.test(entry));
+    expect(candidates.length, "postgis migration must stay feature-gated, not always-on").toBe(0);
   });
 });

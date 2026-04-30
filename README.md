@@ -60,6 +60,8 @@ bun run dev
 > **`bun run rename <name>`** patches `package.json`, `README.md`, `portless.yml`, and `docker-compose.yml` in one shot. Idempotent — safe to run repeatedly.
 >
 > **`bun run reset`** wipes the DB, replays every migration, and re-seeds — one command for "give me a clean slate". Refuses on production and non-local DATABASE_URL hosts as defense-in-depth.
+>
+> **Re-running `bun run setup` after a prior boot?** Delete `.env` first, then re-run setup, then run `docker compose down -v && docker compose up -d` to discard the old Postgres volume — otherwise `bun run prisma:migrate` fails with `P1000` because the volume still holds the previous password.
 
 The Dev Hub opens automatically at **http://localhost:3000/dev** (or `https://api.<project>.localhost/dev` if you use [portless](https://github.com/portless/portless)).
 

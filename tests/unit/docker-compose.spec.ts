@@ -34,9 +34,11 @@ describe("docker-compose.yml (dev dependencies only)", () => {
     expect(yaml).not.toMatch(/^\s{2}(?:api|server|app|web|backend):/m);
   });
 
-  it("uses Postgres 18 (per RALPH_DIRECTIVES.md user override)", () => {
-    expect(yaml).toMatch(/postgres:18/);
-    expect(yaml).not.toMatch(/postgres:1[3-7]/);
+  it("builds a custom Postgres image (postgis + pg_uuidv7 baked in)", () => {
+    // We ship docker/postgres/Dockerfile that bundles both extensions; vanilla
+    // `postgres:*-alpine` lacks pg_uuidv7 and PostGIS doesn't support PG18 yet.
+    expect(yaml).toMatch(/build:\s*[\s\S]*?context:\s*\.\/docker\/postgres/);
+    expect(yaml).toMatch(/image:\s*nest-base-postgres:local/);
   });
 
   it("uses RustFS as the S3 backend", () => {
@@ -65,10 +67,12 @@ describe("docker-compose.yml (dev dependencies only)", () => {
     expect(yaml).toMatch(/['"]?4318/);
   });
 
-  it('declares an explicit `name:` matching package.json["name"]', () => {
-    const pkgName = (JSON.parse(readFileSync(PACKAGE, "utf8")) as { name: string }).name;
-    const escaped = pkgName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    expect(yaml).toMatch(new RegExp(`^name:\\s*${escaped}\\b`, "m"));
+  it("does NOT hard-code a project `name:` (each workspace inherits its parent dir)", () => {
+    // Hard-coding `name: nest-base` would make every `--next` workspace share
+    // the same compose project namespace and therefore the same volumes —
+    // re-running `bun run setup` in a new workspace re-uses the previous
+    // workspace's POSTGRES_PASSWORD and migrations fail with P1000 auth.
+    expect(yaml).not.toMatch(/^name:\s*\S+/m);
   });
 
   it("puts dependency services on a shared private network", () => {

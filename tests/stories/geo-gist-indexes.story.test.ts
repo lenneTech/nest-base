@@ -14,10 +14,9 @@ const ROOT = resolve(import.meta.dirname, "..", "..");
  */
 describe("Story · Geo GIST indexes", () => {
   function readGistMigration(): string {
-    const migrationsDir = resolve(ROOT, "prisma/migrations");
-    const candidates = readdirSync(migrationsDir).filter(
-      (entry) => /gist|geo/i.test(entry) && !/postgis_extension/.test(entry),
-    );
+    const migrationsDir = resolve(ROOT, "prisma/features/geo/migrations");
+    expect(existsSync(migrationsDir), `${migrationsDir} must exist`).toBe(true);
+    const candidates = readdirSync(migrationsDir).filter((entry) => /gist/i.test(entry));
     expect(candidates.length, "a geo-gist migration must exist").toBeGreaterThan(0);
     const sqlPath = resolve(migrationsDir, candidates[0]!, "migration.sql");
     expect(existsSync(sqlPath), `${sqlPath} must exist`).toBe(true);

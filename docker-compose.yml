@@ -1,12 +1,22 @@
 # Docker Compose for local dev dependencies only.
 # The server itself runs natively via `bun --watch` (NOT in Docker).
 # See docs/architecture.md for the dev-vs-prod split.
-
-name: nest-base
+#
+# No `name:` is set on purpose. Compose then derives the project namespace
+# (and therefore the volume names) from the parent directory — i.e. the
+# consumer's workspace. Hard-coding e.g. `name: nest-base` would make every
+# `--next` workspace share `nest-base_postgres_data` and inherit each
+# other's POSTGRES_PASSWORD on first boot, producing P1000 auth errors
+# whenever the wizard regenerates secrets.
 
 services:
   postgres:
-    image: postgres:18-alpine
+    # Custom image: postgres:17 + postgis + pg_uuidv7. See docker/postgres/Dockerfile.
+    # `pull_policy: build` would force a rebuild on every up; we leave it default so
+    # the image is built once on first `up` and re-used until `docker compose build postgres`.
+    build:
+      context: ./docker/postgres
+    image: nest-base-postgres:local
     container_name: nest-base-postgres
     restart: unless-stopped
     environment:

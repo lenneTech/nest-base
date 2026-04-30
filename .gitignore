@@ -49,5 +49,12 @@ bun-debug.log*
 # Claude / Ralph local files
 .claude/ralph-loop.local.md
 
+# Feature-gated Prisma migrations are materialised by `bun run prepare:schema`
+# from `prisma/features/<feature>/migrations/` when the feature is enabled.
+# The source location is tracked; the materialised copies are not.
+prisma/migrations/20260428000200_postgis_extension/
+prisma/migrations/20260428000250_geo_schema/
+prisma/migrations/20260428000300_geo_gist_indexes/
+
 # OS-specific
 Thumbs.db
