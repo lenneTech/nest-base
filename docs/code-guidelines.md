@@ -291,6 +291,13 @@ Test layering and TDD discipline live in
 Coverage thresholds: `src/core/` ≥ 90 %, `src/modules/` ≥ 80 %. Failing
 the gate means *more tests*, not more exclusions.
 
+**Exception — `src/core/dx/clients/**`** (the React Dev-Portal SPA) is
+exempt from the threshold. It is browser code bundled by `bun run
+build:dev-portal` and exercised manually in development; the **shell
+renderer** (`src/core/dx/dev-portal-shell.ts`) keeps a story test
+because it crosses the trust boundary (server → browser). See
+[`architecture.md` § Dev-Portal-Frontend](./architecture.md#dev-portal-frontend).
+
 **Forbidden**: `it.skip`, `xit`, `--no-verify`, `--force`, coverage
 drops, implementation without a prior failing test.
 

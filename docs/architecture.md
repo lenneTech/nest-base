@@ -197,6 +197,59 @@ These live in `src/core/` and are activated via `features.ts`:
 All are **opt-in via `features.ts`** — disabled features have zero
 footprint (no module load, no migration, no env-var requirement).
 
+## Dev-Portal-Frontend
+
+`/dev/*` is served by a React 19 single-page app. The legacy
+server-rendered `/admin/*` pages stay HTML-only; this section is about
+the developer-only Dev-Portal at `/dev/*` (404 outside
+`NODE_ENV=development`).
+
+| Aspect | Path | Purpose |
+|---|---|---|
+| Shell renderer (planner) | `src/core/dx/dev-portal-shell.ts` | Pure function: title + script URL + token CSS URL → static HTML5 skeleton with `<div id="root">` |
+| SPA source tree | `src/core/dx/clients/` | Browser-only: `main.tsx` (entry), `App.tsx` (router), `pages/`, `components/`, `styles/` |
+| Component library | `src/core/dx/clients/components/` | `react-aria-components` wrappers — Button, TextField, NumberField, Switch, Checkbox, RadioGroup, Select, Combobox, DialogModal, Tabs, Menu, Tooltip, FileTrigger, Toast |
+| Design tokens | `src/core/dx/clients/styles/tokens.css` | `:root` custom properties, mirror of `admin-layout.ts` (Z. 184-262) |
+| Component styles | `src/core/dx/clients/styles/components.css` | `.dp-*` selectors targeting `react-aria` `data-*` states |
+| Build script | `scripts/build-dev-portal.ts` | `Bun.build({ target: "browser", splitting: true, minify: true })` → `dist/dev-portal/` |
+| Static asset endpoint | `GET /dev/static/:filename` | 404 outside development; allow-list filename, MIME-detect, stream from `dist/dev-portal/` |
+| Catch-all | `GET /dev/*splat` | Returns the SPA shell so client-side routes work without a server change |
+| Server tsconfig | `tsconfig.json` (excludes `src/core/dx/clients/**`) | Server build never sees browser code |
+| Client tsconfig | `tsconfig.client.json` | `jsx: "react-jsx"`, `lib: ["ES2022","DOM","DOM.Iterable"]`, `types: []` |
+
+### Build & dev-loop
+
+- `bun run build:dev-portal` produces `dist/dev-portal/main.js` (+
+  code-split chunks + `main.css` + `tokens.css`). Bundle budget: ≤ 400
+  KB gzipped for the Base-SPA (no Monaco, no TipTap).
+- `bun run dev` spawns `bun run build:dev-portal --watch` in parallel
+  with the API; an edit to `src/core/dx/clients/` triggers an
+  incremental rebuild within ~80ms.
+- `bun run setup` builds the SPA once after `bun install` so
+  `/dev/static/main.js` exists before the first dev start.
+
+### Coverage
+
+`src/core/dx/clients/**` is **excluded** from the ≥ 70 % core
+coverage threshold (see `vitest.config.ts`). UI glue is exercised
+manually in development and by future Chrome-DevTools-MCP smoke
+tests; the **shell renderer** keeps a story test
+(`tests/stories/dev-portal-shell.story.test.ts`) because it crosses
+the trust boundary (server → browser).
+
+### Conventions
+
+- **Native HTML inputs (`<button>`, `<input>`, `<select>`, …) are
+  forbidden in `clients/`.** Every interactive primitive goes through
+  `react-aria-components` via the wrappers in `components/`. Focus
+  rings, ARIA roles, and keyboard navigation stay correct without
+  per-call boilerplate.
+- **No `process.env.*` / Node imports.** This tree is browser-only;
+  `tsconfig.client.json` excludes Node types so this fails at compile
+  time.
+- **`/admin/*` stays server-rendered** — out of scope for the
+  Dev-Portal migration.
+
 ## Security mechanisms (overview)
 
 | Layer | Mechanism |
