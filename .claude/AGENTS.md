@@ -99,6 +99,7 @@ appear as `/<name>` in the chat.
 | `/add-feature <key> "<description>"`               | Add a new toggleable feature flag end-to-end. Sequences the workflow under TDD discipline.                                                                                                                        |
 | `/add-page <slug> "<title>" [json-viewer\|custom]` | Add a new dev-hub or admin page using the shared dark-mode shell.                                                                                                                                                 |
 | `/upstream-pr [<commit-range>]`                    | Cherry-pick recent `src/core/` changes onto a fresh upstream-template branch, run upstream's six gates, push to your fork, and open a PR. Reads `.claude/upstream.json`.                                          |
+| `/llm-test [<minutes>\|pilot\|full]`               | Run the LLM-driven feature smoke (`bun run llm-test`), wait for the autonomous Claude session to finish, classify the friction log, and report concrete fix recommendations. Default 90 min; `pilot` = 15 min.    |
 
 ---
 
