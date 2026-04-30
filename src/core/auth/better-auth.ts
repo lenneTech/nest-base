@@ -5,6 +5,10 @@ import { jwt } from "better-auth/plugins/jwt";
 import { twoFactor } from "better-auth/plugins/two-factor";
 
 import { resolveBetterAuthMountPath } from "./better-auth-config.js";
+import {
+  createEmailHookRunner,
+  type EmailSenderForHooks,
+} from "./better-auth-email-hooks.runner.js";
 
 /**
  * Better-Auth instance factory.
@@ -85,6 +89,21 @@ export interface BuildBetterAuthInput {
   passkey?: PasskeyOptions;
   /** Wire OAuth providers. */
   socialProviders?: SocialProviderConfig;
+  /**
+   * Wire Better-Auth's email hooks (verification, reset, welcome) to a
+   * caller-supplied `EmailService`. When omitted, Better-Auth falls
+   * back to its built-in default — currently a no-op stub.
+   */
+  emailHooks?: EmailHooksOptions;
+}
+
+export interface EmailHooksOptions {
+  /** `EmailService`-shaped sender — accepts `sendTemplate(args)`. */
+  sender: EmailSenderForHooks;
+  /** Display name interpolated into subjects + bodies. */
+  appName: string;
+  /** Optional locale override; defaults to "en" until issue #011 lands. */
+  locale?: string;
 }
 
 export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof betterAuth> {
@@ -121,6 +140,17 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
     }
   }
 
+  if (input.emailHooks) {
+    if (!input.emailHooks.sender) {
+      throw new Error(
+        "Better-Auth emailHooks.sender must be a non-null EmailService-shaped object",
+      );
+    }
+    if (!input.emailHooks.appName) {
+      throw new Error("Better-Auth emailHooks.appName must be a non-empty string");
+    }
+  }
+
   const basePath = resolveBetterAuthMountPath(input.basePath);
   const plugins: BetterAuthPlugin[] = [];
   if (input.twoFactor) plugins.push(twoFactor({ issuer: input.twoFactor.issuer }));
@@ -131,11 +161,70 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
     const rpID = input.passkey.rpID ?? new URL(input.baseUrl).hostname;
     plugins.push(passkey({ rpName: input.passkey.rpName, rpID, origin: input.baseUrl }));
   }
+
+  // Build the email hook runner up front so both `emailVerification` and
+  // `emailAndPassword` blocks reference the same configured runner —
+  // any future addition (locale resolver, error sink) lands in one place.
+  const hookRunner = input.emailHooks
+    ? createEmailHookRunner({
+        sender: input.emailHooks.sender,
+        appName: input.emailHooks.appName,
+        ...(input.emailHooks.locale ? { locale: input.emailHooks.locale } : {}),
+      })
+    : undefined;
+
+  const emailAndPasswordOptions: NonNullable<BetterAuthOptions["emailAndPassword"]> = {
+    enabled: true,
+    ...(hookRunner
+      ? {
+          sendResetPassword: async (data: {
+            user: { id: string; email: string; name?: string };
+            url: string;
+            token: string;
+          }): Promise<void> => {
+            await hookRunner.sendResetPassword({
+              user: data.user,
+              url: data.url,
+              token: data.token,
+            });
+          },
+        }
+      : {}),
+  };
+
+  const emailVerificationOptions: NonNullable<BetterAuthOptions["emailVerification"]> | undefined =
+    hookRunner
+      ? {
+          sendVerificationEmail: async (data: {
+            user: { id: string; email: string; name?: string };
+            url: string;
+            token: string;
+          }): Promise<void> => {
+            await hookRunner.sendVerificationEmail({
+              user: data.user,
+              url: data.url,
+              token: data.token,
+            });
+          },
+          // Welcome mail closes the onboarding loop — Better-Auth fires
+          // `afterEmailVerification` once the user verifies, which is the
+          // last guaranteed touch-point before they're "live".
+          afterEmailVerification: async (user: {
+            id: string;
+            email: string;
+            name?: string;
+          }): Promise<void> => {
+            await hookRunner.sendWelcome({ user });
+          },
+        }
+      : undefined;
+
   const options: BetterAuthOptions = {
     secret: input.secret,
     baseURL: input.baseUrl,
     basePath,
-    emailAndPassword: { enabled: true },
+    emailAndPassword: emailAndPasswordOptions,
+    ...(emailVerificationOptions ? { emailVerification: emailVerificationOptions } : {}),
     session: {
       expiresIn: input.sessionExpiresInSeconds,
     },
