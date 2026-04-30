@@ -1,0 +1,139 @@
+# Setup-smoke — exercises the bring-up path that consumers actually run
+# from a fresh clone: docker-compose Postgres → setup wizard → schema
+# concat → migrations → build → boot. Catches the class of regression
+# that the unit + e2e suites cannot, because those run against
+# testcontainers that bypass the actual `docker-compose.yml` and skip
+# the wizard-generated `.env`.
+#
+# Three friction-log driven test runs against `lt fullstack init --next`
+# surfaced bugs that this smoke would have caught on PR:
+#
+#   - Missing `pg_uuidv7` extension on stock `postgres:*-alpine`
+#   - Missing init-migration → first migration ran ALTER on tables
+#     that didn't exist
+#   - `prisma.config.ts` not loading `.env` → empty `datasource.url`
+#   - Hard-coded `container_name:` causing global Docker name clashes
+#
+# This workflow is required (joins the `ci-success` aggregator).
+
+name: Setup Smoke
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ["**"]
+
+concurrency:
+  group: setup-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # The setup wizard generates `.env` non-interactively from `.env.example`,
+      # substituting random secrets. Idempotent (refuses to overwrite an
+      # existing `.env`), so a clean checkout is the precondition.
+      - name: Run setup wizard
+        run: bun run setup
+
+      # Build + boot the custom Postgres image (postgres:17-bookworm + postgis +
+      # pg_uuidv7). The build compiles pg_uuidv7 from source, ~2–3 min on
+      # first run; subsequent runs hit the layer cache via setup-buildx.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Boot Postgres (custom image)
+        run: |
+          # Source the wizard-generated POSTGRES_* so docker-compose
+          # interpolates the same values the runtime uses.
+          set -a; . ./.env; set +a
+          docker compose up -d --build postgres
+
+      - name: Wait for Postgres healthy
+        run: |
+          for i in {1..60}; do
+            status=$(docker inspect --format='{{.State.Health.Status}}' \
+              "$(docker compose ps -q postgres)" 2>/dev/null || echo "starting")
+            if [ "$status" = "healthy" ]; then
+              echo "Postgres healthy after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::Postgres did not become healthy within 60s"
+          docker compose logs postgres
+          exit 1
+
+      - name: Generate Prisma client
+        run: |
+          bun run prepare:schema
+          bun run prisma:generate
+
+      # The migration sequence is the friction-log canary:
+      #   pg_uuidv7 → init_schema → rls_tenant_isolation → powersync_replication
+      # Plus the geo feature-gated migrations when FEATURE_GEO_ENABLED=true.
+      - name: Apply migrations
+        run: bun run prisma:migrate
+
+      - name: Build
+        run: bun run build
+
+      # Boot test: start the server directly via Bun (the bundled
+      # `dist/main.js` ships a host-arch-specific argon2 .node binding
+      # next to it; running it on a different runner arch fails to load),
+      # poll readiness, hit a couple of public endpoints, then kill it.
+      # `bun --watch` would never exit cleanly — use a plain `bun src`.
+      - name: Boot test
+        run: |
+          set -a; . ./.env; set +a
+          bun src/main.ts > /tmp/server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          # Poll readiness.
+          for i in {1..30}; do
+            if curl -fsS "http://127.0.0.1:${PORT:-3000}/health/ready" >/dev/null 2>&1; then
+              echo "Server ready after ${i}s"
+              break
+            fi
+            if ! kill -0 $SERVER_PID 2>/dev/null; then
+              echo "::error::Server crashed before becoming ready"
+              cat /tmp/server.log
+              exit 1
+            fi
+            sleep 1
+          done
+          # Final readiness check (fail loud if still not up).
+          curl -fsS "http://127.0.0.1:${PORT:-3000}/health/ready" | head -c 200
+          echo
+          # OpenAPI spec must be valid JSON with an info.title.
+          title=$(curl -fsS "http://127.0.0.1:${PORT:-3000}/api/openapi.json" | jq -r .info.title)
+          if [ -z "$title" ] || [ "$title" = "null" ]; then
+            echo "::error::OpenAPI spec missing info.title"
+            cat /tmp/server.log
+            exit 1
+          fi
+          echo "OpenAPI title: $title"
+
+      - name: Server log on failure
+        if: failure()
+        run: |
+          echo "=== /tmp/server.log ==="
+          cat /tmp/server.log 2>/dev/null || echo "(no log)"
+          echo "=== docker compose logs postgres ==="
+          docker compose logs postgres
+
+      - name: Tear down docker-compose
+        if: always()
+        run: docker compose down -v

@@ -154,8 +154,11 @@ jobs:
 
   # Aggregator gate — depends on every required job. Add THIS job to
   # GitHub branch protection's "required status checks" list and you
-  # get one switch that flips green only when all six gates pass.
+  # get one switch that flips green only when all required gates pass.
   # `audit` is intentionally excluded (continue-on-error: true).
+  # `setup-smoke` runs from its own workflow file (`setup-smoke.yml`)
+  # and registers as its own required check; it is NOT included here
+  # because workflows can't depend on jobs in other workflows.
   ci-success:
     runs-on: ubuntu-latest
     needs:
