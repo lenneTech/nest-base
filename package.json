@@ -34,7 +34,8 @@
     "setup": "bun run scripts/setup-wizard.ts",
     "sync:from-template": "bun run scripts/sync-from-template.ts",
     "sync:to-template": "bun run scripts/sync-to-template.ts",
-    "sdk:generate": "kubb generate -c kubb.config.ts"
+    "sdk:generate": "kubb generate -c kubb.config.ts",
+    "llm-test": "bun run scripts/llm-feature-test.ts"
   },
   "devDependencies": {
     "@kubb/cli": "^4.37.4",
