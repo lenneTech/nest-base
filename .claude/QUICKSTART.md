@@ -34,8 +34,12 @@ docker compose up -d postgres   # boot Postgres only (others optional)
 bun run dev                     # auto-spawns Prisma Studio + opens /dev
 ```
 
-Server is at `http://localhost:3000` (or `https://api.nest-base.localhost`
-if you have portless installed). Dev cockpit at `/dev`.
+Server is at the URL the dev runner prints — `https://api.nest-base.localhost`
+if you have [portless](https://github.com/portless/portless) installed,
+otherwise the bare `http://localhost:<port>` it announces (`:3000` when
+free, a dynamic fallback like `:4266` when it isn't). Always trust the
+printed URL over a hard-coded `localhost:3000` — concurrent runs and
+test suites can shift the port. Dev cockpit at `/dev`.
 
 If `bun install` hasn't run: `bun install && bun run prisma:generate`.
 

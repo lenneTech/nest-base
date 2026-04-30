@@ -1,5 +1,6 @@
 import { passkey } from "@better-auth/passkey";
 import { type BetterAuthOptions, type BetterAuthPlugin, betterAuth } from "better-auth";
+import { prismaAdapter } from "better-auth/adapters/prisma";
 import { jwt } from "better-auth/plugins/jwt";
 import { twoFactor } from "better-auth/plugins/two-factor";
 
@@ -12,10 +13,12 @@ import { resolveBetterAuthMountPath } from "./better-auth-config.js";
  * `handler` function is what the NestJS adapter mounts under
  * `/api/auth/*` (Phase 2 / "Better-Auth Integration" slice).
  *
- * Storage adapter: in this iteration we use Better-Auth's built-in
- * memory adapter so factory + tests stay DB-free. The Prisma adapter
- * gets wired in once Better-Auth's schema migrations land alongside the
- * existing User / Tenant / Role tables.
+ * Storage adapter: when a `prisma` client is supplied, the factory
+ * wires Better-Auth's `prismaAdapter` so users / sessions / accounts
+ * / verifications persist to the Postgres tables declared in
+ * `prisma/schema.prisma`. Without `prisma`, we fall back to
+ * Better-Auth's built-in memory adapter — useful for the SDK / mount
+ * / plugin story tests that just need a callable handler.
  */
 
 const MIN_SECRET_LEN = 32;
@@ -41,12 +44,34 @@ export type SocialProviderId = "google" | "github" | "apple" | "discord";
 
 export type SocialProviderConfig = Partial<Record<SocialProviderId, SocialProviderCredentials>>;
 
+/**
+ * Minimal Prisma surface the Better-Auth Prisma adapter requires. We
+ * keep the contract structurally permissive (an opaque object) so the
+ * factory stays free of a hard dependency on `@prisma/client`'s
+ * generated types — `BetterAuthModule` passes its `PrismaService`
+ * instance and the adapter validates the shape at call time.
+ *
+ * The runtime requirement is a Prisma-shaped object exposing the
+ * `user / session / account / verification` model accessors plus
+ * `$transaction`; documenting that here without enforcing the full
+ * generic `PrismaClient<…>` type keeps the public API stable across
+ * generator regenerations.
+ */
+export type BuildBetterAuthPrisma = object;
+
 export interface BuildBetterAuthInput {
   secret: string;
   baseUrl: string;
   sessionExpiresInSeconds: number;
   /** Optional override; defaults to /api/auth via `resolveBetterAuthMountPath()`. */
   basePath?: string;
+  /**
+   * Optional Prisma client. When supplied, Better-Auth persists
+   * users / sessions / accounts / verifications via
+   * `better-auth/adapters/prisma`. When omitted, the built-in
+   * memory adapter is used (story / SDK tests).
+   */
+  prisma?: BuildBetterAuthPrisma;
   /** Switch on the TOTP plugin. */
   twoFactor?: TwoFactorOptions;
   /**
@@ -114,6 +139,31 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
     session: {
       expiresIn: input.sessionExpiresInSeconds,
     },
+    // `tenantId` is the project-specific extension on Better-Auth's
+    // user table. Marked non-required so the default sign-up flow
+    // works without forcing the caller to pre-pick a tenant; the
+    // canonical "which tenants does this user belong to" answer is
+    // the `TenantMember` join-table.
+    user: {
+      additionalFields: {
+        tenantId: { type: "string", required: false, input: true },
+      },
+    },
+    ...(input.prisma
+      ? {
+          // `provider: 'postgresql'` matches what `PrismaService` opens
+          // via `@prisma/adapter-pg`. The adapter's `transaction: false`
+          // default is fine — Better-Auth handles its own retry / unique
+          // collision flows at the API layer.
+          database: prismaAdapter(input.prisma as object, { provider: "postgresql" }),
+          // The Prisma `User.id` column is declared `@db.Uuid`. Without
+          // this override, Better-Auth's default ID generator emits a
+          // base32 nanoid that Postgres rejects with
+          // "invalid input syntax for type uuid". Switching to UUIDs
+          // keeps schema and adapter aligned.
+          advanced: { database: { generateId: "uuid" as const } },
+        }
+      : {}),
     ...(plugins.length > 0 ? { plugins } : {}),
     ...(input.socialProviders && Object.keys(input.socialProviders).length > 0
       ? { socialProviders: input.socialProviders as BetterAuthOptions["socialProviders"] }

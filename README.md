@@ -63,7 +63,7 @@ bun run dev
 >
 > **Re-running `bun run setup` after a prior boot?** Delete `.env` first, then re-run setup, then run `docker compose down -v && docker compose up -d` to discard the old Postgres volume — otherwise `bun run prisma:migrate` fails with `P1000` because the volume still holds the previous password.
 
-The Dev Hub opens automatically at **http://localhost:3000/dev** (or `https://api.<project>.localhost/dev` if you use [portless](https://github.com/portless/portless)).
+The Dev Hub opens automatically at the URL the dev runner prints — `https://api.<project>.localhost/dev` if you use [portless](https://github.com/portless/portless), otherwise the bare `http://localhost:<port>/dev`. The runner picks `:3000` when free and falls back to a dynamic port (e.g. `:4266`) when it isn't, so always trust the printed URL over a hard-coded `:3000`.
 
 > **What `bun run dev` does for you**: starts Postgres via `docker compose up -d postgres` if the container isn't running, spawns Prisma Studio on `:5555`, watches `.env` for changes (so feature toggles take effect without a manual restart), and opens the Dev Hub in your browser. Set `NO_OPEN=1` to skip the auto-open, `SKIP_DB_BOOT=1` to skip the Postgres boot.
 >

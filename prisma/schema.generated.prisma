@@ -69,18 +69,144 @@ model TenantMember {
   @@map("tenant_members")
 }
 
+// `User` is owned by Better-Auth (per the project rule "Reuse
+// Better-Auth's user. Don't shadow it"). The Prisma adapter
+// (`better-auth/adapters/prisma`) reads/writes this model directly.
+//
+// Required Better-Auth fields: id, email, name, emailVerified,
+// createdAt, updatedAt (all the model below). Optional: image,
+// twoFactorEnabled.
+//
+// Project-owned extension fields:
+//  - `tenantId` — nullable so a Better-Auth signup can create a user
+//    before the tenant pre-pick happens. The TenantMember join-table
+//    is the canonical source of truth for "which tenants does this
+//    user belong to"; `tenantId` here is the user's *primary* tenant
+//    (set on first membership-activate or by the system-setup admin
+//    bootstrap).
 model User {
+  id               String   @id @default(uuid()) @db.Uuid
+  email            String   @unique
+  name             String   @default("")
+  emailVerified    Boolean  @default(false) @map("email_verified")
+  image            String?
+  twoFactorEnabled Boolean? @map("two_factor_enabled")
+  tenantId         String?  @map("tenant_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  tenant      Tenant?        @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  memberships TenantMember[]
+  apiKeys     ApiKey[]
+  sessions    Session[]
+  accounts    Account[]
+  twoFactors  TwoFactor[]
+  passkeys    Passkey[]
+
+  @@map("users")
+}
+
+// ---------- Better-Auth managed tables ----------
+//
+// Mapped 1:1 to Better-Auth's logical schema (camelCase TS field
+// names are what the adapter queries; @map() projects them to
+// snake_case Postgres columns). Plugin tables (Jwks, TwoFactor,
+// Passkey) are always present in the schema regardless of which
+// authMethods are toggled — keeping a single migration tree is
+// cheaper than feature-gated plugin schemas, and the unused tables
+// stay empty.
+
+model Session {
   id        String   @id @default(uuid()) @db.Uuid
-  email     String   @unique
-  tenantId  String   @map("tenant_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  memberships TenantMember[]
-  apiKeys     ApiKey[]
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("users")
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @default(uuid()) @db.Uuid
+  userId                String    @map("user_id") @db.Uuid
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id @default(uuid()) @db.Uuid
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([identifier])
+  @@map("verifications")
+}
+
+model Jwks {
+  id         String    @id @default(uuid()) @db.Uuid
+  publicKey  String    @map("public_key")
+  privateKey String    @map("private_key")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  expiresAt  DateTime? @map("expires_at")
+
+  @@map("jwks")
+}
+
+model TwoFactor {
+  id          String  @id @default(uuid()) @db.Uuid
+  userId      String  @map("user_id") @db.Uuid
+  secret      String
+  backupCodes String  @map("backup_codes")
+  verified    Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([secret])
+  @@index([userId])
+  @@map("two_factors")
+}
+
+model Passkey {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  name         String?
+  publicKey    String    @map("public_key")
+  credentialID String    @map("credential_id")
+  counter      Int
+  deviceType   String    @map("device_type")
+  backedUp     Boolean   @map("backed_up")
+  transports   String?
+  createdAt    DateTime? @default(now()) @map("created_at")
+  aaguid       String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([credentialID])
+  @@map("passkeys")
 }
 
 model ApiKey {
