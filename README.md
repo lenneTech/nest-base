@@ -127,6 +127,15 @@ Every Prisma query event lands in a 500-entry ring buffer. The page surfaces:
 
 If a slice you just shipped lands in the slowest section, that's your next thing to fix.
 
+### Jobs Dashboard — `/dev/jobs`
+
+Two-tab view of the in-memory `JobQueueService` (the future pg-boss adapter exposes the same JSON contract):
+
+- **Queues** — per-queue counts, p95 latency, failure rate. Click a queue to filter the Jobs tab.
+- **Jobs** — paginated, queue + state filterable list. Inspect opens a drawer with the full payload (rendered in the JSON viewer), the captured error stack on failed jobs, and a Retry button that POSTs to `/dev/jobs/jobs/:id/retry` and re-enqueues a failed job with a bumped attempt counter.
+
+Pure planner (`buildJobAggregates()`) computes counts / p95 / failure-rate over a flat `JobRecord` list, so the same dashboard renders unchanged once a Postgres-backed adapter ships. Auto-refresh every 4 s. Schedules / Workers / Archive tabs are deferred to the pg-boss adapter slice.
+
 ### Routes Inventory — `/dev/routes`
 
 Live audit of every endpoint registered in NestJS, with its decorator-derived guard kind: `@Can(action, subject)` (guarded), `public` (allowlist), `dev-only` (404s in prod), or `unguarded` (red). 5-tile summary with per-kind counts so an auditor can spot gaps. JSON endpoint at `/dev/routes.json` for SDK / agent tooling.
