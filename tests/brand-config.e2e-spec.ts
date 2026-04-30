@@ -1,8 +1,13 @@
+import { existsSync } from "node:fs";
+import { rm } from "node:fs/promises";
+import { resolve } from "node:path";
+
 import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { bootstrap } from "../src/core/app/bootstrap.js";
+import { __clearBrandCache } from "../src/core/branding/brand-loader.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 
@@ -65,6 +70,62 @@ describe("Brand-Config · runtime surfaces", () => {
       const res = await request(app.getHttpServer()).get("/api/openapi.json");
       expect(res.status).toBe(200);
       expect(res.body.info?.title).toBe("nest-server");
+    });
+  });
+
+  describe("POST /dev/brand", () => {
+    const overlayPath = resolve(process.cwd(), "src/modules/branding/brand.json");
+
+    afterEach(async () => {
+      // Don't leave a project overlay around for the next test or for
+      // the developer's own local editing — every test starts from
+      // the template default.
+      if (existsSync(overlayPath)) {
+        await rm(overlayPath, { force: true });
+      }
+      __clearBrandCache();
+    });
+
+    it("rejects an invalid payload with HTTP 400", async () => {
+      const res = await request(app.getHttpServer())
+        .post("/dev/brand")
+        .send({ name: "", primaryColor: "not-a-color" });
+      expect(res.status).toBe(400);
+    });
+
+    it("writes the overlay and returns the parsed brand", async () => {
+      const res = await request(app.getHttpServer())
+        .post("/dev/brand")
+        .send({ name: "Acme", primaryColor: "#ff00aa" });
+      expect(res.status).toBe(200);
+      expect(res.body.ok).toBe(true);
+      expect(res.body.brand.name).toBe("Acme");
+      expect(res.body.brand.primaryColor).toBe("#ff00aa");
+      expect(existsSync(overlayPath)).toBe(true);
+    });
+
+    it("subsequent /dev/brand.json reads return the new value", async () => {
+      await request(app.getHttpServer())
+        .post("/dev/brand")
+        .send({ name: "Acme", primaryColor: "#ff00aa" });
+      const after = await request(app.getHttpServer()).get("/dev/brand.json");
+      expect(after.body.name).toBe("Acme");
+      expect(after.body.primaryColor).toBe("#ff00aa");
+    });
+
+    it("POST /dev/brand/reset removes the overlay (idempotent)", async () => {
+      await request(app.getHttpServer())
+        .post("/dev/brand")
+        .send({ name: "Acme" });
+      const reset1 = await request(app.getHttpServer()).post("/dev/brand/reset");
+      expect(reset1.status).toBe(200);
+      expect(reset1.body.ok).toBe(true);
+      expect(existsSync(overlayPath)).toBe(false);
+
+      // Idempotent — second reset is a no-op but still HTTP 200.
+      const reset2 = await request(app.getHttpServer()).post("/dev/brand/reset");
+      expect(reset2.status).toBe(200);
+      expect(reset2.body.ok).toBe(true);
     });
   });
 });
