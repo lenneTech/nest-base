@@ -50,6 +50,7 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       "/dev/email-preview",
       "/dev/email-builder",
       "/dev/postgrest-parse",
+      "/dev/files",
       "/admin/permissions/test",
       "/admin/webhooks",
       "/admin/realtime",
@@ -84,6 +85,7 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       "/dev/email-builder",
       "/dev/components",
       "/dev/postgrest-parse",
+      "/dev/files",
       "/admin/permissions/test",
       "/admin/webhooks",
       "/admin/realtime",
@@ -286,6 +288,7 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       "realtime",
       "audit",
       "search",
+      "files",
     ];
     for (const id of ids) {
       it(`nav.ts declares sidebar entry id="${id}"`, () => {

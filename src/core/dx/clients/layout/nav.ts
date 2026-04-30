@@ -39,6 +39,7 @@ export const NAV_SECTIONS: readonly AdminNavSection[] = [
       { id: "queries", label: "Queries", href: "/dev/queries", icon: "database" },
       { id: "migrations", label: "Migrations", href: "/dev/migrations", icon: "database" },
       { id: "jobs", label: "Jobs", href: "/dev/jobs", icon: "layers" },
+      { id: "files", label: "File Manager", href: "/dev/files", icon: "file" },
     ],
   },
   {
@@ -98,6 +99,7 @@ export const SPA_ROUTES = new Set<string>([
   "/dev/email-builder",
   "/dev/components",
   "/dev/postgrest-parse",
+  "/dev/files",
   "/admin/permissions/test",
   "/admin/webhooks",
   "/admin/realtime",

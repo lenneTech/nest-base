@@ -140,6 +140,20 @@ Two-tab view of the in-memory `JobQueueService` (the future pg-boss adapter expo
 
 Pure planner (`buildJobAggregates()`) computes counts / p95 / failure-rate over a flat `JobRecord` list, so the same dashboard renders unchanged once a Postgres-backed adapter ships. Auto-refresh every 4 s. Schedules / Workers / Archive tabs are deferred to the pg-boss adapter slice.
 
+### File Manager — `/dev/files`
+
+Two-column file browser over the Prisma file/folder metadata + storage adapter pipeline (issues #16 + #17 wired the foundations):
+
+- **Folder tree** on the left — recursive, sorted alphabetically, click to navigate; pure planner (`buildFolderTree()`) tolerates orphans and cycles.
+- **File grid** on the right — IPX thumbnails for `image/*` rows via `/_ipx/preset_thumbnail/...`, generic icon fallback for other MIME types.
+- **Breadcrumb** above the grid — root-to-active path, every segment clickable.
+- **Sort + filter** toolbar — name / size / createdAt / updatedAt / mimeType, asc/desc, free-text filename search.
+- **Folder create** + **file delete** — wired to the existing `/folders` and `/files` REST endpoints.
+
+Tenant id resolves from the `x-tenant-id` cookie or a manual UUID input (debug-only). The page 404s outside `NODE_ENV=development`, identical to every other dev-hub surface.
+
+Out of scope for this slice (deferred to follow-up issues): TUS upload UI, drag-and-drop move, multi-select bulk actions, lightbox, share-link creator, visibility toggle, server-side zip download.
+
 ### Routes Inventory — `/dev/routes`
 
 Live audit of every endpoint registered in NestJS, with its decorator-derived guard kind: `@Can(action, subject)` (guarded), `public` (allowlist), `dev-only` (404s in prod), or `unguarded` (red). 5-tile summary with per-kind counts so an auditor can spot gaps. JSON endpoint at `/dev/routes.json` for SDK / agent tooling.
