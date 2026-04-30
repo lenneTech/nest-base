@@ -1,0 +1,13 @@
+{
+  "name": "nest-server",
+  "shortName": "nest",
+  "tagline": "Template-fähiger NestJS-Server",
+  "primaryColor": "#c5fb45",
+  "primaryColorInk": "#0a0a0a",
+  "backgroundColor": "#020203",
+  "surfaceColor": "#06070a",
+  "textColor": "#e4e4e7",
+  "mutedTextColor": "#71717a",
+  "fromEmail": "no-reply@example.com",
+  "legalEntity": "nest-server"
+}

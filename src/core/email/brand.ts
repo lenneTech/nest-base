@@ -1,19 +1,27 @@
 /**
  * Brand configuration consumed by the React-Email layouts.
  *
- * The brand interface is the contract layouts use to interpolate
- * colors, brand text, the legal entity, and contact addresses into
- * every transactional email. A single source of truth means changing
- * `primaryColor` or `legalEntity` in one place propagates to every
- * template that renders through `Barebone` (or any other brand-aware
- * layout) — without editing four template files.
+ * The email subsystem owns its own brand-flavored interface (because
+ * email templates predate the project-wide brand-config from issue
+ * #5). This file is the *bridge* between the central
+ * `src/core/branding/` source-of-truth and the email shape:
  *
- * The actual brand-loader (read JSON from disk, env-overrides, etc.)
- * lands in issue #5. Until then we ship sensible defaults that match
- * the dark + electric-lime accent of the Dev-Hub so previews look
- * coherent out of the box. Consumers swap the values via
- * `resolveBrandConfig({ primaryColor: "..." })` from their bootstrap.
+ *   - `BrandConfig` here uses `appName` (templates read it via
+ *     `<%= appName %>` and `<Barebone>` JSX). The central
+ *     `BrandConfig` uses `name` because the dev-portal and OpenAPI
+ *     builder think in those terms.
+ *
+ *   - `defaultBrandConfig()` walks the central loader so a single
+ *     edit to `src/modules/branding/brand.json` propagates to every
+ *     transactional email.
+ *
+ *   - `resolveBrandConfig(overrides)` keeps the existing
+ *     "central → defaults → overrides" merge contract. EmailModule
+ *     calls it without arguments; downstream tests pass partial
+ *     overrides for fixture flexibility.
  */
+
+import { loadBrandSync, type BrandConfig as CentralBrandConfig } from "../branding/brand-loader.js";
 
 export interface BrandConfig {
   /** Display name of the application — appears in headers + subjects. */
@@ -45,30 +53,58 @@ export interface BrandConfig {
 }
 
 /**
- * Built-in brand defaults — match the dark + electric-lime theme of
- * the Dev-Hub. Consumers override per-field via `resolveBrandConfig`.
+ * Adapter — central `BrandConfig` → email-flavored `BrandConfig`.
+ *
+ * Pure function (no I/O), exported for callers that already hold a
+ * central brand and want the email view without re-walking the disk.
+ *
+ * Mapping rules:
+ *   - `name` → `appName` (templates expect the latter)
+ *   - `legalEntity` → falls back to `name` so footers always have a
+ *     non-empty value, even when the project hasn't set the field
+ *   - `supportEmail` → defaults to a placeholder so the "Need help?"
+ *     line in the footer renders coherently before the operator fills
+ *     the real address via `/dev/brand` (the placeholder is obvious
+ *     enough to flag in QA).
+ */
+export function brandConfigFromCentral(central: CentralBrandConfig): BrandConfig {
+  const out: BrandConfig = {
+    appName: central.name,
+    primaryColor: central.primaryColor,
+    primaryColorInk: central.primaryColorInk,
+    backgroundColor: central.backgroundColor,
+    surfaceColor: central.surfaceColor,
+    textColor: central.textColor,
+    mutedTextColor: central.mutedTextColor,
+    legalEntity: central.legalEntity ?? central.name,
+    supportEmail: central.supportEmail ?? "support@example.com",
+    fromEmail: central.fromEmail,
+  };
+  if (central.logoUrl) out.logoUrl = central.logoUrl;
+  if (central.logoSvgInline) out.logoSvgInline = central.logoSvgInline;
+  return out;
+}
+
+/**
+ * Email-flavored brand defaults — sourced from the central
+ * brand-loader (which reads project + template JSON) so a single
+ * edit to `brand.json` propagates everywhere.
+ *
+ * Why sync: the email layouts call this from React render functions
+ * that don't await; the loader is sync and cached so the cost is
+ * amortised to one disk read per process.
  */
 export function defaultBrandConfig(): BrandConfig {
-  return {
-    appName: "nest-base",
-    primaryColor: "#c5fb45",
-    primaryColorInk: "#0a0a0a",
-    backgroundColor: "#020203",
-    surfaceColor: "#06070a",
-    textColor: "#e4e4e7",
-    mutedTextColor: "#71717a",
-    legalEntity: "nest-base",
-    legalAddress: undefined,
-    supportEmail: "support@example.com",
-    fromEmail: "no-reply@example.com",
-  };
+  return brandConfigFromCentral(loadBrandSync());
 }
 
 /**
  * Apply a partial override on top of `defaultBrandConfig()`.
  *
- * Pure planner — no I/O, no env reads. The runtime loader (planned
- * for issue #5) parses `brand.json`/env and feeds the result here.
+ * The classic "deep brand merge" — used by EmailModule (no overrides),
+ * by the email-preview catalog (per-template tweaks), and by
+ * unit tests. Backwards-compatible signature — callers from before
+ * issue #5 keep working.
  */
 export function resolveBrandConfig(overrides: Partial<BrandConfig> = {}): BrandConfig {
   return { ...defaultBrandConfig(), ...overrides };

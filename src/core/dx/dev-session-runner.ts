@@ -77,7 +77,7 @@ export function markDevSessionRefresh(projectRoot: string, reason: DevSessionRea
  */
 export function transitionDevSession(projectRoot: string): {
   shouldOpenBrowser: boolean;
-  bannerVariant: "hero" | "restart-watch" | "restart-env";
+  bannerVariant: "hero" | "restart-watch" | "restart-env" | "restart-brand";
   state: DevSessionState;
 } {
   const existing = readDevSessionState(projectRoot);

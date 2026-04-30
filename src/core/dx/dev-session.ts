@@ -31,7 +31,7 @@
  * The runner half (file IO, lifetime) lives in `dev-session-runner.ts`.
  */
 
-export type DevSessionReason = "initial" | "watch" | "env-change";
+export type DevSessionReason = "initial" | "watch" | "env-change" | "brand-change";
 
 export interface DevSessionState {
   sessionId: string;
@@ -40,7 +40,7 @@ export interface DevSessionState {
   lastReason: DevSessionReason;
 }
 
-export type BannerVariant = "hero" | "restart-watch" | "restart-env";
+export type BannerVariant = "hero" | "restart-watch" | "restart-env" | "restart-brand";
 
 export interface DevSessionStartPlan {
   action: "write";
@@ -115,7 +115,11 @@ export function planDevSessionTransition(input: {
   }
   // Already opened in this session — this is a re-init.
   const variant: BannerVariant =
-    existing.lastReason === "env-change" ? "restart-env" : "restart-watch";
+    existing.lastReason === "env-change"
+      ? "restart-env"
+      : existing.lastReason === "brand-change"
+        ? "restart-brand"
+        : "restart-watch";
   return {
     shouldOpenBrowser: false,
     bannerVariant: variant,
@@ -155,7 +159,8 @@ export function parseDevSessionState(input: string): DevSessionState | null {
   if (
     obj.lastReason !== "initial" &&
     obj.lastReason !== "watch" &&
-    obj.lastReason !== "env-change"
+    obj.lastReason !== "env-change" &&
+    obj.lastReason !== "brand-change"
   ) {
     return null;
   }

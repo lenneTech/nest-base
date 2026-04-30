@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { Barebone } from "../layouts/Barebone.js";
 import { CTA, Footer, Greeting, Paragraph } from "../blocks/index.js";
-import type { BrandConfig } from "../brand.js";
+import { defaultBrandConfig, type BrandConfig } from "../brand.js";
 
 /**
  * Invitation template.
@@ -29,7 +29,7 @@ export interface InvitationProps extends InvitationVars {
 }
 
 export default function Invitation(props: InvitationProps): React.ReactElement {
-  const accentColor = props.brand?.primaryColor ?? "#c5fb45";
+  const accentColor = props.brand?.primaryColor ?? defaultBrandConfig().primaryColor;
   return (
     <Barebone brand={props.brand} preheader={`${props.senderName} invited you to ${props.appName}`}>
       <Greeting brand={props.brand}>Hello {props.recipientName},</Greeting>

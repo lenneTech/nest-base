@@ -64,6 +64,83 @@ audit-log helpers, and the realtime/webhook integrations — everything a
 typical resource needs. You shouldn't be reaching outside `src/modules/` for
 domain code.
 
+## Branding
+
+The look-and-feel of every Dev-Portal page, every transactional email, and
+the OpenAPI document title is driven by a **single brand config** — a JSON
+file under the source tree. Two files cooperate:
+
+| Path | Owner | Survives sync? |
+|------|-------|----------------|
+| `src/modules/branding/brand.json` | Project (committed) | Yes |
+| `src/core/branding/brand.default.json` | Template | No (synced upstream) |
+
+Lookup precedence: project overlay → template default → schema built-in.
+
+### Editing the brand
+
+Three options, in order of safety:
+
+1. **Through the UI** at `/dev/brand` — the page reads `/dev/brand.json`
+   and writes the project overlay via `POST /dev/brand`. The dev runner's
+   watcher detects the file change and restarts the API so OpenAPI title,
+   Better-Auth issuer, and email defaults pick up the new values.
+2. **Direct edit** of `src/modules/branding/brand.json`. The file is in
+   git — review-friendly diff, no surprise rollbacks.
+3. **Reset** with `POST /dev/brand/reset` (or delete the file manually).
+   Falls back to the template default.
+
+### Schema (subset)
+
+```json
+{
+  "name": "Acme",
+  "shortName": "acme",
+  "tagline": "Acme runs on this server",
+  "primaryColor": "#ff00aa",
+  "primaryColorInk": "#ffffff",
+  "backgroundColor": "#020203",
+  "surfaceColor": "#06070a",
+  "textColor": "#e4e4e7",
+  "mutedTextColor": "#71717a",
+  "fromEmail": "no-reply@acme.test",
+  "legalEntity": "Acme Holdings GmbH",
+  "supportEmail": "support@acme.test",
+  "supportUrl": "https://acme.test/support"
+}
+```
+
+Hex colors must be 6-digit (`#RRGGBB`); shorthand `#fff` is rejected for
+deterministic CSS-var generation. Email and URL fields are validated by
+the same Zod schema (`src/core/branding/brand-schema.ts`) on every load
+and on every `POST /dev/brand` write.
+
+### Where the brand surfaces
+
+- **Dev-Portal SPA** — `--accent`, `--bg`, `--surface-1`, `--fg`,
+  `--fg-dim` `:root` overrides injected by the shell HTML before the
+  static `tokens.css`. The brand name appears in `<title>` and in the
+  sidebar. `window.__BRAND__` is inlined for the SPA so the first paint
+  is correct.
+- **Transactional emails** — `Barebone` layout reads `brand.primaryColor`
+  for the dot logo + CTA buttons, `brand.legalEntity` + `brand.supportEmail`
+  for the footer. The legacy EJS templates take the same brand object.
+- **OpenAPI** — `info.title = brand.name`,
+  `info.description = brand.tagline`. Scalar UI and any kubb-generated
+  SDK pick this up automatically.
+- **Better-Auth** — TOTP `issuer` + Passkey `rpName` follow `brand.name`
+  so authenticator apps and WebAuthn prompts say "Acme" instead of the
+  template default.
+- **EmailService** — `defaultFrom` precedence is env (`SMTP_FROM`) →
+  `brand.fromEmail` → final placeholder.
+
+### Service credentials are NOT in `brand.json`
+
+`SMTP_*`, `BREVO_API_KEY`, `MAXMIND_LICENSE_KEY`, etc. live in `.env`
+(gitignored). The brand file is committed in git — putting secrets there
+would leak them on every push. Edit credentials in `.env` directly; the
+dev runner watches that file too and restarts on save.
+
 ## Project-specific environment variables
 
 Add them to `.env.example` and parse them via `src/core/config/env.ts` if you

@@ -1,3 +1,4 @@
+import { defaultBrandConfig, type BrandConfig } from "./brand.js";
 import type { EmailRenderedTemplate, EmailTemplateRenderer } from "./email.service.js";
 
 /**
@@ -134,31 +135,41 @@ interface MailBodyOptions {
   footer?: string;
 }
 
-function renderMailHtml(body: MailBodyOptions): string {
+function renderMailHtml(body: MailBodyOptions, brand: BrandConfig): string {
+  const accent = brand.primaryColor;
+  const accentInk = brand.primaryColorInk;
+  const bg = brand.backgroundColor;
+  const surface = brand.surfaceColor;
+  const text = brand.textColor;
+  const muted = brand.mutedTextColor;
+  // accent-glow rgba derived from the hex — matches the convention
+  // used by `renderBrandCss()` and the React-Email Barebone layout so
+  // both surfaces visually agree.
+  const accentGlow = hexToRgba(accent, 0.5);
   const cta = body.cta
     ? `<tr><td style="padding:12px 0 4px;">
-         <a href="${body.cta.href}" style="display:inline-block;padding:12px 24px;border-radius:8px;background:#c5fb45;color:#0a0a0a;text-decoration:none;font-weight:600;font-size:14px;letter-spacing:.01em;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">${body.cta.label}</a>
+         <a href="${body.cta.href}" style="display:inline-block;padding:12px 24px;border-radius:8px;background:${accent};color:${accentInk};text-decoration:none;font-weight:600;font-size:14px;letter-spacing:.01em;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">${body.cta.label}</a>
        </td></tr>
-       <tr><td style="padding:8px 0 4px;font-size:12px;color:#71717a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">If the button doesn't work, paste this URL into your browser:</td></tr>
-       <tr><td style="padding:0 0 12px;font-size:12px;color:#a1a1aa;word-break:break-all;font-family:'SFMono-Regular',Menlo,Consolas,monospace;"><a href="${body.cta.href}" style="color:#c5fb45;text-decoration:none;">${body.cta.href}</a></td></tr>`
+       <tr><td style="padding:8px 0 4px;font-size:12px;color:${muted};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">If the button doesn't work, paste this URL into your browser:</td></tr>
+       <tr><td style="padding:0 0 12px;font-size:12px;color:#a1a1aa;word-break:break-all;font-family:'SFMono-Regular',Menlo,Consolas,monospace;"><a href="${body.cta.href}" style="color:${accent};text-decoration:none;">${body.cta.href}</a></td></tr>`
     : "";
   const footer = body.footer
-    ? `<tr><td style="padding:24px 0 0;border-top:1px solid rgba(255,255,255,0.06);font-size:12px;color:#71717a;line-height:1.6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">${body.footer}</td></tr>`
+    ? `<tr><td style="padding:24px 0 0;border-top:1px solid rgba(255,255,255,0.06);font-size:12px;color:${muted};line-height:1.6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">${body.footer}</td></tr>`
     : "";
   const paragraphs = body.paragraphs
     .map(
       (p) =>
-        `<tr><td style="padding:0 0 14px;font-size:15px;line-height:1.65;color:#e4e4e7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">${p}</td></tr>`,
+        `<tr><td style="padding:0 0 14px;font-size:15px;line-height:1.65;color:${text};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">${p}</td></tr>`,
     )
     .join("");
   return `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:24px 16px;background:#020203;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#ffffff;">
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" width="100%" style="max-width:560px;margin:0 auto;background:#06070a;border:1px solid rgba(255,255,255,0.06);border-radius:14px;overflow:hidden;">
+<body style="margin:0;padding:24px 16px;background:${bg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#ffffff;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" width="100%" style="max-width:560px;margin:0 auto;background:${surface};border:1px solid rgba(255,255,255,0.06);border-radius:14px;overflow:hidden;">
     <tr><td style="padding:24px 28px;border-bottom:1px solid rgba(255,255,255,0.06);">
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
         <td style="vertical-align:middle;font-size:16px;font-weight:600;color:#ffffff;letter-spacing:-0.01em;">
-          <span style="display:inline-block;width:8px;height:8px;background:#c5fb45;border-radius:999px;box-shadow:0 0 12px rgba(197,251,69,0.5);margin-right:8px;vertical-align:middle;"></span>
+          <span style="display:inline-block;width:8px;height:8px;background:${accent};border-radius:999px;box-shadow:0 0 12px ${accentGlow};margin-right:8px;vertical-align:middle;"></span>
           <%= appName %>
         </td>
       </tr></table>
@@ -178,19 +189,36 @@ function renderMailHtml(body: MailBodyOptions): string {
 </body></html>`;
 }
 
-export function buildBuiltInEmailTemplateRegistry(): EmailTemplateRegistry {
+function hexToRgba(hex: string, alpha: number): string {
+  // Accepts the schema-validated #RRGGBB shape; falls back to the
+  // brand default if a caller sneaks in a malformed value.
+  const clean = hex.startsWith("#") ? hex.slice(1) : hex;
+  if (clean.length !== 6) return `rgba(197, 251, 69, ${alpha})`;
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+export function buildBuiltInEmailTemplateRegistry(
+  brand: BrandConfig = defaultBrandConfig(),
+): EmailTemplateRegistry {
   const reg = new InMemoryEmailTemplateRegistry();
+  const accent = brand.primaryColor;
 
   reg.register("email-verification", null, {
     subject: "Please verify your email",
-    html: renderMailHtml({
-      greeting: "Hello <%= recipientName %>,",
-      paragraphs: [
-        "Welcome to <%= appName %>! Please confirm this is your address so we know where to send important account updates.",
-        "The verification link is valid for 24 hours. If you didn't sign up, you can safely ignore this email.",
-      ],
-      cta: { label: "Verify email", href: "<%= verificationUrl %>" },
-    }),
+    html: renderMailHtml(
+      {
+        greeting: "Hello <%= recipientName %>,",
+        paragraphs: [
+          "Welcome to <%= appName %>! Please confirm this is your address so we know where to send important account updates.",
+          "The verification link is valid for 24 hours. If you didn't sign up, you can safely ignore this email.",
+        ],
+        cta: { label: "Verify email", href: "<%= verificationUrl %>" },
+      },
+      brand,
+    ),
     text:
       "Hello <%= recipientName %>,\n\n" +
       "Welcome to <%= appName %>! Please verify your email:\n<%= verificationUrl %>\n\n" +
@@ -199,15 +227,18 @@ export function buildBuiltInEmailTemplateRegistry(): EmailTemplateRegistry {
 
   reg.register("password-reset", null, {
     subject: "Reset your password",
-    html: renderMailHtml({
-      greeting: "Hello <%= recipientName %>,",
-      paragraphs: [
-        "We received a request to reset your password. Click the button below to choose a new one.",
-      ],
-      cta: { label: "Reset password", href: "<%= resetUrl %>" },
-      footer:
-        "If you did not request a password reset, you can safely ignore this email — your password stays unchanged.",
-    }),
+    html: renderMailHtml(
+      {
+        greeting: "Hello <%= recipientName %>,",
+        paragraphs: [
+          "We received a request to reset your password. Click the button below to choose a new one.",
+        ],
+        cta: { label: "Reset password", href: "<%= resetUrl %>" },
+        footer:
+          "If you did not request a password reset, you can safely ignore this email — your password stays unchanged.",
+      },
+      brand,
+    ),
     text:
       "Hello <%= recipientName %>,\n\n" +
       "Reset your password: <%= resetUrl %>\n\n" +
@@ -216,28 +247,34 @@ export function buildBuiltInEmailTemplateRegistry(): EmailTemplateRegistry {
 
   reg.register("welcome", null, {
     subject: "Welcome to <%= appName %>",
-    html: renderMailHtml({
-      greeting: "Hello <%= recipientName %>,",
-      paragraphs: [
-        "Welcome to <%= appName %>! Your account is ready to go.",
-        "Reach out any time — we're glad to have you.",
-      ],
-    }),
+    html: renderMailHtml(
+      {
+        greeting: "Hello <%= recipientName %>,",
+        paragraphs: [
+          "Welcome to <%= appName %>! Your account is ready to go.",
+          "Reach out any time — we're glad to have you.",
+        ],
+      },
+      brand,
+    ),
     text: "Hello <%= recipientName %>,\n\nWelcome to <%= appName %>!\n\nYour account is ready to go.",
   });
 
   reg.register("invitation", null, {
     subject: "You have been invited to <%= appName %>",
-    html: renderMailHtml({
-      greeting: "Hello <%= recipientName %>,",
-      paragraphs: [
-        '<strong style="color:#c5fb45;"><%= senderName %></strong> has invited you to join <%= appName %>.',
-        "Accept the invitation to set up your account and start collaborating.",
-      ],
-      cta: { label: "Accept invitation", href: "<%= acceptUrl %>" },
-      footer:
-        "Invitations expire after 7 days. If you weren't expecting this, you can ignore the email.",
-    }),
+    html: renderMailHtml(
+      {
+        greeting: "Hello <%= recipientName %>,",
+        paragraphs: [
+          `<strong style="color:${accent};"><%= senderName %></strong> has invited you to join <%= appName %>.`,
+          "Accept the invitation to set up your account and start collaborating.",
+        ],
+        cta: { label: "Accept invitation", href: "<%= acceptUrl %>" },
+        footer:
+          "Invitations expire after 7 days. If you weren't expecting this, you can ignore the email.",
+      },
+      brand,
+    ),
     text:
       "Hello <%= recipientName %>,\n\n" +
       "<%= senderName %> has invited you to join <%= appName %>.\n" +

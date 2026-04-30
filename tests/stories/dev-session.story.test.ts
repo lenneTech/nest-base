@@ -87,6 +87,21 @@ describe("Story · Dev-Session lock", () => {
       expect(plan.next.lastReason).toBe("watch");
     });
 
+    it("subsequent init after brand.json change ⇒ skip browser, brand-change banner", () => {
+      // Mirrors the env-change path — the dev runner watches
+      // src/modules/branding/brand.json (issue #5) and marks the
+      // session before it kills the API child for a clean restart.
+      const before = {
+        ...defaultDevSessionState(),
+        devHubOpened: true,
+        lastReason: "brand-change" as const,
+      };
+      const plan = planDevSessionTransition({ existing: before });
+      expect(plan.shouldOpenBrowser).toBe(false);
+      expect(plan.bannerVariant).toBe("restart-brand");
+      expect(plan.next.lastReason).toBe("watch");
+    });
+
     it("missing lock file ⇒ treated as initial boot (graceful: dev runner may have crashed)", () => {
       const plan = planDevSessionTransition({ existing: null });
       expect(plan.shouldOpenBrowser).toBe(true);

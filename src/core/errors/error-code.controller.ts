@@ -69,7 +69,11 @@ export class ErrorCodeController {
     // the single owner of the dev-hub chrome.
     res
       .type("text/html; charset=utf-8")
-      .send(renderDevPortalShell(buildDevPortalShellInput({ title: "Error Catalog" })));
+      .send(
+        renderDevPortalShell(
+          buildDevPortalShellInput({ title: "Error Catalog", brand: "central" }),
+        ),
+      );
   }
 
   private listData(

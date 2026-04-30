@@ -27,14 +27,31 @@ export interface EmailPreviewCatalog {
   entries: EmailPreviewEntry[];
 }
 
-export function buildEmailPreviewCatalog(extras: EmailPreviewEntry[] = []): EmailPreviewCatalog {
+export interface BuildEmailPreviewCatalogOptions {
+  /** Extra entries appended after the built-ins. */
+  extras?: EmailPreviewEntry[];
+  /** AppName used in every sample payload — defaults to "nest-base". */
+  appName?: string;
+}
+
+export function buildEmailPreviewCatalog(
+  extrasOrOptions: EmailPreviewEntry[] | BuildEmailPreviewCatalogOptions = [],
+): EmailPreviewCatalog {
+  // Backwards-compatible signature: callers may pass a plain array (the
+  // pre-issue-#5 shape) or an options bag. Inspect the input shape so
+  // existing call sites keep working without a touch-up.
+  const options: BuildEmailPreviewCatalogOptions = Array.isArray(extrasOrOptions)
+    ? { extras: extrasOrOptions }
+    : extrasOrOptions;
+  const appName = options.appName ?? "nest-base";
+  const extras = options.extras ?? [];
   const builtIns: EmailPreviewEntry[] = [
     {
       template: "email-verification",
       description: "Sent after sign-up, asks the user to confirm their address.",
       samplePayload: {
         recipientName: "Alice Example",
-        appName: "nest-base",
+        appName,
         verificationUrl: "https://app.example.test/verify?token=preview",
       },
     },
@@ -43,7 +60,7 @@ export function buildEmailPreviewCatalog(extras: EmailPreviewEntry[] = []): Emai
       description: "Sent when a user requests a password reset link.",
       samplePayload: {
         recipientName: "Alice Example",
-        appName: "nest-base",
+        appName,
         resetUrl: "https://app.example.test/reset?token=preview",
       },
     },
@@ -52,7 +69,7 @@ export function buildEmailPreviewCatalog(extras: EmailPreviewEntry[] = []): Emai
       description: "Optional onboarding email after the first verified login.",
       samplePayload: {
         recipientName: "Alice Example",
-        appName: "nest-base",
+        appName,
       },
     },
     {
@@ -61,7 +78,7 @@ export function buildEmailPreviewCatalog(extras: EmailPreviewEntry[] = []): Emai
       samplePayload: {
         recipientName: "Bob Newcomer",
         senderName: "Alice Example",
-        appName: "nest-base",
+        appName,
         acceptUrl: "https://app.example.test/invitations/preview/accept",
       },
     },

@@ -1,5 +1,6 @@
 import { Logger, Module } from "@nestjs/common";
 
+import { loadBrandSync } from "../branding/brand-loader.js";
 import { loadFeatures } from "../features/features.js";
 import { resolveBrandConfig } from "./brand.js";
 import { BrevoEmailDriver, createBrevoHttpClient } from "./drivers/brevo.driver.js";
@@ -115,10 +116,15 @@ export function selectEmailDriver(input: DriverSelectionInput): DriverSelection 
           brand: resolveBrandConfig(),
         });
         const primary = createDriver(selection.primary, env);
+        // Default From: precedence is env (SMTP_FROM) → brand.fromEmail
+        // → final placeholder. The env wins because operators rotate
+        // sending domains without committing brand.json; brand.fromEmail
+        // is the project-wide opinion when env is unset.
+        const brand = loadBrandSync();
         const options: ConstructorParameters<typeof EmailService>[0] = {
           primary,
           renderer,
-          defaultFrom: env.SMTP_FROM ?? "no-reply@example.com",
+          defaultFrom: env.SMTP_FROM ?? brand.fromEmail,
         };
         if (selection.transactional) {
           options.transactional = createDriver(selection.transactional, env);

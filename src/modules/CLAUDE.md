@@ -213,6 +213,20 @@ end-to-end zero-cost when off.
 - **Cross-resource utilities** — `src/shared/` for types that the
   generated SDK needs to see.
 
+## Reserved subfolders
+
+A few `src/modules/<name>/` subfolders are reserved with a special
+contract. They are **project-owned** (sync-immune) but the file shape
+inside is fixed by `src/core/`:
+
+- `src/modules/branding/brand.json` — the project brand config
+  (issue #5). Schema-validated via `BrandConfigSchema`. Edited via
+  `/dev/brand` (writes the file directly), reset via
+  `POST /dev/brand/reset`. Falls back to
+  `src/core/branding/brand.default.json` when missing.
+- `src/modules/email/templates/<name>.tsx` — project-owned email
+  templates that override the core templates of the same name.
+
 ## On naming
 
 Match what the project actually calls the resource. The template's

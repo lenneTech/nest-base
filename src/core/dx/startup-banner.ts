@@ -24,7 +24,7 @@ export interface BannerSection {
   entries: BannerEntry[];
 }
 
-export type BannerVariant = "hero" | "restart-watch" | "restart-env";
+export type BannerVariant = "hero" | "restart-watch" | "restart-env" | "restart-brand";
 
 export interface BannerInput {
   env: AppEnv | "test";
@@ -174,7 +174,12 @@ export function planStartupBanner(input: BannerInput): BannerPlan {
 }
 
 function planRestartBanner(input: BannerInput, variant: BannerVariant, base: string): BannerPlan {
-  const reason = variant === "restart-env" ? ".env change" : "code change";
+  const reason =
+    variant === "restart-env"
+      ? ".env change"
+      : variant === "restart-brand"
+        ? "brand.json change"
+        : "code change";
   const ts = input.timestamp ?? new Date().toLocaleTimeString();
   const lines = [
     "",

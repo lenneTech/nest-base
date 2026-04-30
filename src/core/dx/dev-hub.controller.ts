@@ -1,6 +1,6 @@
 import { createReadStream } from "node:fs";
-import { readFile, stat, utimes, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { mkdir, readFile, rm, stat, utimes, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 
 import {
   BadRequestException,
@@ -22,6 +22,13 @@ import {
 } from "@nestjs/common";
 import type { Response } from "express";
 
+import {
+  __clearBrandCache,
+  loadBrandSync,
+  resolveBrandPaths,
+  type BrandConfig,
+} from "../branding/brand-loader.js";
+import { decodeBrand } from "../branding/brand-schema.js";
 import { readTunnelState } from "../dev/tunnel-state-runner.js";
 import { MigrationsService } from "./migrations/migrations.service.js";
 
@@ -83,7 +90,9 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   index(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Dev Portal" }));
+    return renderDevPortalShell(
+      buildDevPortalShellInput({ title: "Dev Portal", brand: "central" }),
+    );
   }
 
   /**
@@ -94,7 +103,9 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   componentsPage(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Components" }));
+    return renderDevPortalShell(
+      buildDevPortalShellInput({ title: "Components", brand: "central" }),
+    );
   }
 
   /**
@@ -225,6 +236,87 @@ export class DevHubController {
     return { active: true, url: state.url, startedAt: state.startedAt };
   }
 
+  /**
+   * `/dev/brand.json` — returns the effective brand config (project
+   * overlay → template default → schema built-in). The dev-portal
+   * SPA fetches this lazily; the shell HTML inlines the same value
+   * as `window.__BRAND__` for first-paint correctness.
+   *
+   * 404 outside development like every other DX route.
+   */
+  @Get("brand.json")
+  brandJson(): BrandConfig {
+    this.assertDev();
+    return loadBrandSync(process.cwd());
+  }
+
+  /**
+   * `/dev/brand` — SPA shell for the brand editor page. The React
+   * route fetches `/dev/brand.json` to populate the form and posts
+   * back to `/dev/brand` to write `src/modules/branding/brand.json`.
+   */
+  @Get("brand")
+  @Header("content-type", "text/html; charset=utf-8")
+  brandPage(): string {
+    this.assertDev();
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Brand", brand: "central" }));
+  }
+
+  /**
+   * `POST /dev/brand` — writes the project overlay
+   * `src/modules/branding/brand.json`. The body must validate
+   * against `BrandConfigSchema`; on success the brand-loader cache
+   * is dropped so the next read reflects the new value.
+   *
+   * The dev runner's `brand.json` watcher (scripts/dev.ts) detects
+   * the file change and triggers a full process restart — this
+   * keeps modules that read the brand at provider init (Better-Auth,
+   * EmailModule, OpenAPI builder) in sync with the new values.
+   */
+  @Post("brand")
+  @HttpCode(200)
+  async saveBrand(@Body() body: unknown): Promise<{ ok: true; brand: BrandConfig }> {
+    this.assertDev();
+    let parsed: BrandConfig;
+    try {
+      parsed = decodeBrand(body);
+    } catch (err) {
+      throw new BadRequestException((err as Error).message);
+    }
+    const paths = resolveBrandPaths(process.cwd());
+    // First-write: the project may have never created
+    // src/modules/branding/. mkdir({ recursive: true }) is idempotent
+    // and avoids ENOENT on writeFile in fresh checkouts (CI containers,
+    // newly-cloned consumer projects).
+    await mkdir(dirname(paths.overlayPath), { recursive: true });
+    await writeFile(paths.overlayPath, JSON.stringify(parsed, null, 2) + "\n", "utf8");
+    __clearBrandCache();
+    return { ok: true, brand: parsed };
+  }
+
+  /**
+   * `POST /dev/brand/reset` — deletes the project overlay so the
+   * brand falls back to the template default. Idempotent: missing
+   * file is a no-op (HTTP 200 + acted: false).
+   */
+  @Post("brand/reset")
+  @HttpCode(200)
+  async resetBrand(): Promise<{ ok: true; acted: boolean }> {
+    this.assertDev();
+    const paths = resolveBrandPaths(process.cwd());
+    let acted = false;
+    try {
+      await rm(paths.overlayPath, { force: true });
+      acted = true;
+    } catch {
+      // File didn't exist — fall through with acted=false. The
+      // runner's force flag would normally swallow this anyway, but
+      // we keep the try/catch for clarity around the idempotent path.
+    }
+    __clearBrandCache();
+    return { ok: true, acted };
+  }
+
   @Get("status.json")
   async statusJson(): Promise<ServiceProbeResult[]> {
     this.assertDev();
@@ -261,7 +353,7 @@ export class DevHubController {
     // legacy `renderFeaturesPage` produced. The legacy renderer
     // remains available at `/dev/features.html` as the pixel-fidelity
     // reference but is no longer the canonical surface.
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Features" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Features", brand: "central" }));
   }
 
   @Get("features.json")
@@ -352,14 +444,18 @@ export class DevHubController {
     // single owner of the dev-hub chrome.
     res
       .type("text/html; charset=utf-8")
-      .send(renderDevPortalShell(buildDevPortalShellInput({ title: "PostgREST Parser" })));
+      .send(
+        renderDevPortalShell(
+          buildDevPortalShellInput({ title: "PostgREST Parser", brand: "central" }),
+        ),
+      );
   }
 
   @Get("coverage")
   @Header("content-type", "text/html; charset=utf-8")
   coverage(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Coverage" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Coverage", brand: "central" }));
   }
 
   /** JSON sibling for the React `/dev/coverage` page. */
@@ -373,7 +469,7 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   logsPage(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Logs" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Logs", brand: "central" }));
   }
 
   @Get("logs.json")
@@ -388,7 +484,7 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   tests(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Tests" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Tests", brand: "central" }));
   }
 
   /** JSON sibling for the React `/dev/tests` page. */
@@ -402,7 +498,9 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   diagnostics(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Diagnostics" }));
+    return renderDevPortalShell(
+      buildDevPortalShellInput({ title: "Diagnostics", brand: "central" }),
+    );
   }
 
   @Get("diagnostics.json")
@@ -415,7 +513,7 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   routesPage(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Routes" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Routes", brand: "central" }));
   }
 
   @Get("routes.json")
@@ -428,7 +526,7 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   erdPage(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "ERD" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "ERD", brand: "central" }));
   }
 
   @Get("erd.json")
@@ -441,7 +539,7 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   tracesPage(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Traces" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Traces", brand: "central" }));
   }
 
   @Get("traces.json")
@@ -467,7 +565,7 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   queriesPage(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Queries" }));
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Queries", brand: "central" }));
   }
 
   @Get("queries.json")
@@ -500,7 +598,9 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   emailPreviewPage(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Email Preview" }));
+    return renderDevPortalShell(
+      buildDevPortalShellInput({ title: "Email Preview", brand: "central" }),
+    );
   }
 
   @Get("email-preview.json")
@@ -815,7 +915,9 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   spaCatchAll(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Dev Portal" }));
+    return renderDevPortalShell(
+      buildDevPortalShellInput({ title: "Dev Portal", brand: "central" }),
+    );
   }
 
   private assertDev(): void {

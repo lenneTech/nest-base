@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 
+import { loadBrandSync } from "../branding/brand-loader.js";
 import { EmailModule } from "../email/email.module.js";
 import { EmailService } from "../email/email.service.js";
 import { type Features, loadFeatures } from "../features/features.js";
@@ -40,6 +41,11 @@ const MIN_SECRET_LEN = 32;
         const env = process.env as Record<string, string | undefined>;
         const features = loadFeatures(env);
         const appName = resolveAppName(env);
+        // Brand drives the TOTP issuer + Passkey RP-name so authenticator
+        // apps and WebAuthn prompts say "Acme" instead of the template
+        // default. Loaded once at provider init — env-watch restart picks
+        // up brand.json edits.
+        const brand = loadBrandSync();
 
         return buildBetterAuth({
           secret,
@@ -62,8 +68,8 @@ const MIN_SECRET_LEN = 32;
           // still completes (with a logged stdout line) instead of
           // silently no-op'ing inside Better-Auth's defaults.
           emailHooks: { sender: email, appName },
-          ...(features.authMethods.twoFactor ? { twoFactor: { issuer: "nest-server" } } : {}),
-          ...(features.authMethods.passkey ? { passkey: { rpName: "nest-server" } } : {}),
+          ...(features.authMethods.twoFactor ? { twoFactor: { issuer: brand.name } } : {}),
+          ...(features.authMethods.passkey ? { passkey: { rpName: brand.name } } : {}),
           ...(features.authMethods.socialProviders.length > 0
             ? { socialProviders: pickSocialProviders(features) }
             : {}),
