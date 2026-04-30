@@ -214,8 +214,8 @@ describe("Dev-Hub · /dev/email-builder", () => {
     });
 
     afterAll(async () => {
-      process.env.NODE_ENV = "development";
       await app.close();
+      process.env.NODE_ENV = "test";
     });
 
     it("GET /dev/email-builder/templates.json returns 404", async () => {

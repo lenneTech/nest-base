@@ -60,6 +60,20 @@ import {
   EjsEmailTemplateRenderer,
   buildBuiltInEmailTemplateRegistry,
 } from "../email/email-templates.js";
+import {
+  KNOWN_EMAIL_BLOCKS,
+  KNOWN_EMAIL_LAYOUTS,
+  composeEmailTemplateSource,
+  resolveEmailTemplateTarget,
+  validateEmailComposition,
+  type EmailComposition,
+} from "../email/email-builder.js";
+import { renderEmailComposition } from "../email/email-builder-runtime.js";
+import {
+  ReactEmailTemplateRenderer,
+  discoverReactEmailTemplates,
+} from "../email/email-templates.react.js";
+import { resolveBrandConfig } from "../email/brand.js";
 import { getLogBuffer } from "./log-buffer.js";
 import { RouteInventoryService } from "./route-inventory-runner.js";
 import type { RouteInventory } from "./route-inventory.js";
@@ -629,6 +643,158 @@ export class DevHubController {
     return { catalog, rendered };
   }
 
+  // -----------------------------------------------------------------
+  // /dev/email-builder · Issue #9 — Layout-Designer + Children-Composer
+  // -----------------------------------------------------------------
+
+  /** SPA shell for `/dev/email-builder`. */
+  @Get("email-builder")
+  @Header("content-type", "text/html; charset=utf-8")
+  emailBuilderPage(): string {
+    this.assertDev();
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Email Builder" }));
+  }
+
+  /**
+   * `/dev/email-builder/templates.json` — discovered templates with
+   * sample-rendered subjects so the Gallery can render thumbnails
+   * without a second round-trip.
+   */
+  @Get("email-builder/templates.json")
+  async emailBuilderTemplatesJson(): Promise<{
+    templates: Array<{
+      name: string;
+      locale: string | null;
+      file: string;
+      source: "core" | "module";
+      subject?: string;
+      error?: string;
+    }>;
+  }> {
+    this.assertDev();
+    const discovered = await discoverReactEmailTemplates();
+    const renderer = new ReactEmailTemplateRenderer({ brand: resolveBrandConfig() });
+    const catalog = buildEmailPreviewCatalog();
+    const sampleByName = new Map(catalog.entries.map((e) => [e.template, e.samplePayload]));
+    const out: Array<{
+      name: string;
+      locale: string | null;
+      file: string;
+      source: "core" | "module";
+      subject?: string;
+      error?: string;
+    }> = [];
+    for (const tpl of discovered) {
+      const sample = sampleByName.get(tpl.name) ?? {};
+      try {
+        const rendered = await renderer.render(tpl.name, tpl.locale ?? "en", sample);
+        out.push({ ...tpl, subject: rendered.subject });
+      } catch (err) {
+        out.push({ ...tpl, error: asMessage(err) });
+      }
+    }
+    return { templates: out };
+  }
+
+  /**
+   * `/dev/email-builder/blocks.json` — block library + props schema +
+   * available layouts. The composer reads this to render the
+   * properties panel without a per-block code change.
+   */
+  @Get("email-builder/blocks.json")
+  emailBuilderBlocksJson(): {
+    blocks: Array<{
+      type: string;
+      label: string;
+      description: string;
+      props: Array<{
+        name: string;
+        kind: "text" | "url";
+        required: boolean;
+        supportsVariables: boolean;
+      }>;
+    }>;
+    layouts: Array<{ name: string; description: string }>;
+  } {
+    this.assertDev();
+    return {
+      blocks: KNOWN_EMAIL_BLOCKS.map((type) => buildBlockDescriptor(type)),
+      layouts: KNOWN_EMAIL_LAYOUTS.map((name) => ({
+        name,
+        description:
+          name === "Barebone"
+            ? "Default frame: brand header, container, body, footer."
+            : "",
+      })),
+    };
+  }
+
+  /**
+   * `/dev/email-builder/preview.json` — render a draft composition to
+   * HTML+text+subject. No filesystem write; the saved-template path
+   * is `POST /dev/email-builder/save`.
+   */
+  @Post("email-builder/preview.json")
+  @HttpCode(200)
+  async emailBuilderPreview(@Body() body: unknown): Promise<{
+    subject: string;
+    html: string;
+    text: string;
+  }> {
+    this.assertDev();
+    const composition = pickComposition(body);
+    const validation = validateEmailComposition(composition);
+    if (!validation.ok) throw new BadRequestException(validation.error);
+    const vars = pickVars(body);
+    const result = await renderEmailComposition({
+      composition,
+      vars,
+      brand: resolveBrandConfig(),
+    });
+    return result;
+  }
+
+  /**
+   * `/dev/email-builder/save` — codegen a composition into a `.tsx`
+   * file under `src/modules/email/templates/`. Defense-in-depth path
+   * validation: `resolveEmailTemplateTarget` rejects bad slugs and
+   * traversal; the runner double-checks the resolved path is inside
+   * the module-templates root before writing.
+   */
+  @Post("email-builder/save")
+  @HttpCode(200)
+  async emailBuilderSave(@Body() body: unknown): Promise<{
+    relativePath: string;
+    bytesWritten: number;
+  }> {
+    this.assertDev();
+    const slug = pickSlug(body);
+    const locale = pickLocale(body);
+    const composition = pickComposition(body);
+    const validation = validateEmailComposition(composition);
+    if (!validation.ok) throw new BadRequestException(validation.error);
+    const target = resolveEmailTemplateTarget({
+      projectRoot: process.cwd(),
+      slug,
+      locale,
+    });
+    if (!target.ok) throw new BadRequestException(target.error);
+    // Belt-and-braces — runner-side anchor check. Catches anything that
+    // slipped past the planner (edge case: planner accepted, but the
+    // realpath of `process.cwd()` resolves elsewhere).
+    const expectedPrefix = resolve(process.cwd(), "src/modules/email/templates") + "/";
+    if (!target.absolutePath.startsWith(expectedPrefix)) {
+      throw new BadRequestException("resolved path escapes module-templates root");
+    }
+    const source = composeEmailTemplateSource({ slug, composition });
+    await mkdir(dirname(target.absolutePath), { recursive: true });
+    await writeFile(target.absolutePath, source, "utf8");
+    return {
+      relativePath: target.relativePath,
+      bytesWritten: Buffer.byteLength(source, "utf8"),
+    };
+  }
+
   private buildDiagnostics(): DiagnosticsReport {
     const features = this.featuresOnly();
     const cfg = serverConfigFromEnv(process.env);
@@ -1059,4 +1225,123 @@ function mimeForExtension(name: string): string {
   if (name.endsWith(".woff2")) return "font/woff2";
   if (name.endsWith(".woff")) return "font/woff";
   return "application/octet-stream";
+}
+
+/**
+ * Block-descriptor metadata for the `/dev/email-builder/blocks.json`
+ * endpoint. Hand-rolled — the typed JSX components (`Greeting`,
+ * `Paragraph`, etc.) accept `children`, but the composer needs
+ * named, scalar `props` so the editor can render text inputs without
+ * special-casing per block. The mapping doesn't change at runtime;
+ * keeping it in the controller keeps the dependency graph tight.
+ */
+function buildBlockDescriptor(type: string): {
+  type: string;
+  label: string;
+  description: string;
+  props: Array<{
+    name: string;
+    kind: "text" | "url";
+    required: boolean;
+    supportsVariables: boolean;
+  }>;
+} {
+  switch (type) {
+    case "greeting":
+      return {
+        type,
+        label: "Greeting",
+        description: "Bold opening line — Hello {{recipientName}},",
+        props: [{ name: "text", kind: "text", required: true, supportsVariables: true }],
+      };
+    case "paragraph":
+      return {
+        type,
+        label: "Paragraph",
+        description: "Body paragraph — supports {{var}} interpolation.",
+        props: [{ name: "text", kind: "text", required: true, supportsVariables: true }],
+      };
+    case "cta":
+      return {
+        type,
+        label: "Call-to-Action",
+        description: "Primary brand-colored button with a fallback URL paragraph.",
+        props: [
+          { name: "text", kind: "text", required: true, supportsVariables: true },
+          { name: "href", kind: "url", required: true, supportsVariables: true },
+        ],
+      };
+    case "footer":
+      return {
+        type,
+        label: "Footer",
+        description: "Body-level small print under a thin divider.",
+        props: [{ name: "text", kind: "text", required: true, supportsVariables: true }],
+      };
+    case "code":
+      return {
+        type,
+        label: "Code / OTP",
+        description: "Monospace, brand-tinted block for one-time codes.",
+        props: [{ name: "text", kind: "text", required: true, supportsVariables: true }],
+      };
+    case "divider":
+      return {
+        type,
+        label: "Divider",
+        description: "Thin horizontal rule between content sections.",
+        props: [],
+      };
+    default:
+      return { type, label: type, description: "", props: [] };
+  }
+}
+
+function pickComposition(body: unknown): EmailComposition {
+  if (!body || typeof body !== "object") {
+    throw new BadRequestException("body must be a JSON object");
+  }
+  const composition = (body as { composition?: unknown }).composition;
+  if (!composition || typeof composition !== "object") {
+    throw new BadRequestException("body.composition must be an object");
+  }
+  const c = composition as Record<string, unknown>;
+  if (typeof c.layout !== "string") {
+    throw new BadRequestException("body.composition.layout must be a string");
+  }
+  if (typeof c.subject !== "string") {
+    throw new BadRequestException("body.composition.subject must be a string");
+  }
+  if (!Array.isArray(c.children)) {
+    throw new BadRequestException("body.composition.children must be an array");
+  }
+  return composition as EmailComposition;
+}
+
+function pickVars(body: unknown): Record<string, string> {
+  if (!body || typeof body !== "object") return {};
+  const vars = (body as { vars?: unknown }).vars;
+  if (!vars || typeof vars !== "object") return {};
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(vars as Record<string, unknown>)) {
+    out[key] = typeof value === "string" ? value : String(value ?? "");
+  }
+  return out;
+}
+
+function pickSlug(body: unknown): string {
+  if (!body || typeof body !== "object") {
+    throw new BadRequestException("body must be a JSON object");
+  }
+  return assertNonEmptyString((body as { slug?: unknown }).slug, "slug");
+}
+
+function pickLocale(body: unknown): string | undefined {
+  if (!body || typeof body !== "object") return undefined;
+  const locale = (body as { locale?: unknown }).locale;
+  if (locale === undefined || locale === null || locale === "") return undefined;
+  if (typeof locale !== "string") {
+    throw new BadRequestException("body.locale must be a string");
+  }
+  return locale;
 }
