@@ -3,6 +3,7 @@ import { DiscoveryModule } from "@nestjs/core";
 
 import { JobsModule } from "../jobs/jobs.module.js";
 import { AdminSpaController } from "./admin-spa.controller.js";
+import { DevFilesController } from "./dev-files.controller.js";
 import { DevHubController } from "./dev-hub.controller.js";
 import { MigrationsService } from "./migrations/migrations.service.js";
 import { RouteInventoryService } from "./route-inventory-runner.js";
@@ -27,7 +28,10 @@ import { RealtimeModule } from "../realtime/realtime.module.js";
  */
 @Module({
   imports: [DiscoveryModule, JobsModule, RealtimeModule],
-  controllers: [DevHubController, AdminSpaController],
+  // Order matters: `DevFilesController` registers before `DevHubController`
+  // so its specific `/dev/files/*.json` routes win over the latter's
+  // `@Get('*splat')` SPA-shell catch-all.
+  controllers: [DevFilesController, AdminSpaController, DevHubController],
   providers: [RouteInventoryService, MigrationsService],
   exports: [RouteInventoryService],
 })
