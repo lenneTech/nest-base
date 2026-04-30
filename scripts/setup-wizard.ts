@@ -8,7 +8,20 @@
  * is just the thin CLI surface (cwd + stdout logging + exit code).
  */
 
+import { findFreePort } from '../src/core/setup/find-free-port.js';
 import { runSetupWizard } from '../src/core/setup/setup-wizard-runner.js';
+
+// Pick a free Postgres host-port at setup time so two `--next`
+// workspaces on the same machine never collide on `5432:5432`. The
+// wizard bakes the chosen port into both `POSTGRES_HOST_PORT` and
+// `DATABASE_URL` so the dev server, the Compose stack, and Prisma all
+// see the same number.
+const postgresHostPort = await findFreePort(5432);
+if (postgresHostPort !== 5432) {
+  console.log(
+    `[setup] port 5432 is busy — picking ${postgresHostPort} for this workspace's Postgres`,
+  );
+}
 
 const result = runSetupWizard({
   projectRoot: process.cwd(),
@@ -16,6 +29,7 @@ const result = runSetupWizard({
     info: (msg) => console.log(`[setup] ${msg}`),
     warn: (msg) => console.warn(`[setup] ${msg}`),
   },
+  postgresHostPort,
 });
 
 if (!result.created) {

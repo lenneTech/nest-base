@@ -34,6 +34,12 @@ export interface PlanEnvFromExampleOptions {
    * portless host (`https://api.<name>.localhost`).
    */
   projectName?: string;
+  /**
+   * Override `POSTGRES_HOST_PORT` (and the port inside `DATABASE_URL`)
+   * when present. Runner picks a free port via `findFreePort()`; pass
+   * undefined to leave whatever the example already had.
+   */
+  postgresHostPort?: number;
 }
 
 const TEMPLATE_NAME = "nest-base";
@@ -65,9 +71,17 @@ export function planEnvFromExample(
   // been renamed away from the template default.
   const projectName = options.projectName;
   const tailorProject = projectName !== undefined && projectName !== TEMPLATE_NAME;
-  const sourceText = tailorProject
+  let sourceText = tailorProject
     ? rewriteProjectScopedVars(exampleText, projectName!)
     : exampleText;
+
+  // Override POSTGRES_HOST_PORT + the port baked into DATABASE_URL.
+  // Default-generated `.env.example` ships `5432`; the runner shifts to
+  // a free port at setup time so two `--next` workspaces on the same
+  // host don't collide.
+  if (options.postgresHostPort !== undefined && options.postgresHostPort !== 5432) {
+    sourceText = rewritePostgresHostPort(sourceText, options.postgresHostPort);
+  }
 
   const generated: Record<string, string> = {};
   const lines = sourceText.split("\n");
@@ -107,6 +121,20 @@ export function planEnvFromExample(
  * project-specific values. Operates on raw text so it stays transparent
  * to the secret-substitution loop above.
  */
+/**
+ * Swap the host-port number used by Postgres in `.env.example`. Only
+ * touches the two lines that reference the default 5432: the
+ * `POSTGRES_HOST_PORT` declaration and the `DATABASE_URL` connection
+ * string. Everything else passes through untouched so we never
+ * accidentally rewrite a port number that happens to also be 5432
+ * (e.g. inside an unrelated comment).
+ */
+function rewritePostgresHostPort(text: string, port: number): string {
+  return text
+    .replace(/^POSTGRES_HOST_PORT=\d+$/m, `POSTGRES_HOST_PORT=${port}`)
+    .replace(/^(DATABASE_URL=postgresql:\/\/[^@]+@localhost):\d+(\/[^\n]+)$/m, `$1:${port}$2`);
+}
+
 function rewriteProjectScopedVars(text: string, projectName: string): string {
   // Replace every occurrence of the template name. POSTGRES_USER /
   // POSTGRES_DB / DATABASE_URL all carry it; nothing else in
@@ -138,6 +166,13 @@ export interface RunSetupWizardOptions {
   /** Override the RNG (tests). Defaults to `crypto.randomBytes`. */
   randomBytes?: RandomBytesFn;
   logger?: SetupWizardLogger;
+  /**
+   * Postgres host-port to bake into the generated `.env`. Pass the
+   * result of `findFreePort(5432)` from the runner script. Falls back
+   * to the example default (5432) when omitted, which is fine for
+   * tests but collides between two `--next` workspaces in real life.
+   */
+  postgresHostPort?: number;
 }
 
 export interface SetupWizardResult {
@@ -178,6 +213,7 @@ export function runSetupWizard(options: RunSetupWizardOptions): SetupWizardResul
   const rendered = planEnvFromExample(exampleText, {
     randomBytes: options.randomBytes ?? ((size) => nodeRandomBytes(size)),
     projectName,
+    postgresHostPort: options.postgresHostPort,
   });
   writeFileSync(envPath, rendered, "utf8");
   logger.info(`wrote ${envPath} with auto-generated secrets`);

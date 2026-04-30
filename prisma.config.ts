@@ -3,7 +3,16 @@
 // CLI is a Node-spawned subprocess that does not inherit Bun's env
 // loading — so without this side-effect import, `prisma migrate deploy`
 // fails with "Connection url is empty" even though `.env` exists.
-import 'dotenv/config';
+//
+// Override mode: dotenv's default behaviour leaves existing
+// `process.env` values intact. That meant a stale `DATABASE_URL`
+// exported in the parent shell silently shadowed the workspace's
+// `.env`, sending migrations against the wrong database. `override:
+// true` forces the workspace `.env` to win, which is the only correct
+// answer for a per-workspace tool.
+import { config as loadEnv } from 'dotenv';
+
+loadEnv({ override: true });
 
 import { defineConfig } from 'prisma/config';
 
@@ -15,12 +24,10 @@ import { defineConfig } from 'prisma/config';
  * `datasource.url`; the runtime `PrismaClient` receives its driver
  * adapter in `PrismaService`.
  *
- * `dotenv/config` above guarantees `.env` is loaded into `process.env`
- * before Prisma resolves the datasource. The empty-string fallback
- * keeps `prisma generate` and read-only commands working when `.env`
- * is missing — the DB-touching commands (`migrate deploy`, `migrate
- * reset`, `studio`) fail loudly with the usual P1000 / P1001 error
- * instead of silently bypassing the gate.
+ * The empty-string fallback keeps `prisma generate` and read-only
+ * commands working when `.env` is missing — the DB-touching commands
+ * (`migrate deploy`, `migrate reset`, `studio`) fail loudly with the
+ * usual P1000 / P1001 error instead of silently bypassing the gate.
  */
 export default defineConfig({
   schema: './prisma/schema.prisma',

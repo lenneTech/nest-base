@@ -37,8 +37,12 @@ services:
       - max_wal_senders=10
       - -c
       - max_replication_slots=10
+    # Host-port is configurable so two `--next` workspaces on the same
+    # box don't collide on 5432. `setup-wizard` writes a free port into
+    # `.env`; if you flip it manually, also flip the port in
+    # `DATABASE_URL` (Compose `.env` files don't expand vars by default).
     ports:
-      - '5432:5432'
+      - '${POSTGRES_HOST_PORT:-5432}:5432'
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:

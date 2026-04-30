@@ -16,6 +16,16 @@
  * process picks up the updated env. `bun --watch` alone only reloads
  * source — env-vars are read once at process start.
  */
+// Force the workspace `.env` to win over inherited shell env. Bun's
+// `bun run` loads `.env` but does NOT override existing `process.env`
+// values, which means a stale `DATABASE_URL` / `APP_BASE_URL` /
+// `POSTGRES_*` exported from a previous workspace silently leaks
+// into the dev server. `override: true` makes the workspace .env
+// authoritative, which is the only correct answer per-workspace.
+import { config as loadEnv } from 'dotenv';
+
+loadEnv({ override: true });
+
 import { spawn, type ChildProcess } from 'node:child_process';
 import { existsSync, readFileSync, watch } from 'node:fs';
 import { resolve } from 'node:path';

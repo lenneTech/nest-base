@@ -34,6 +34,16 @@ export interface WizardAnswers {
   realtime: boolean;
   emailEnabled: boolean;
   emailProvider: EmailProvider;
+  /**
+   * Host port that Compose will bind Postgres on. Two `--next`
+   * workspaces on the same machine cannot share the default `5432:5432`
+   * binding — the second `docker compose up` fails with EADDRINUSE.
+   * The runner detects a free port at setup time and passes it here;
+   * the resulting `.env` writes both `POSTGRES_HOST_PORT=<port>` and a
+   * `DATABASE_URL=…@localhost:<port>/…` baked with the same number.
+   * Defaults to 5432 when unset (e.g. the regression-test fixture).
+   */
+  postgresHostPort?: number;
 }
 
 export interface WizardOutcome {
@@ -102,12 +112,13 @@ function renderEnvExample(answers: WizardAnswers): string {
   lines.push("# Where your problem-details `type` URLs resolve to (RFC 7807).");
   lines.push("ERROR_DOC_BASE_URL=https://errors.example.com");
   lines.push("");
+  const port = answers.postgresHostPort ?? 5432;
   lines.push("# ── Database (Postgres + docker-compose interpolation) ────────");
   lines.push(`POSTGRES_USER=${answers.projectName}`);
   lines.push("POSTGRES_PASSWORD=change-me-strong-pass");
   lines.push(`POSTGRES_DB=${answers.projectName}`);
   lines.push(
-    `DATABASE_URL=postgresql://${answers.projectName}:change-me-strong-pass@localhost:5432/${answers.projectName}`,
+    `DATABASE_URL=postgresql://${answers.projectName}:change-me-strong-pass@localhost:${port}/${answers.projectName}`,
   );
   lines.push("");
   lines.push("# ── Docker Compose ────────────────────────────────────────────");
@@ -118,6 +129,11 @@ function renderEnvExample(answers: WizardAnswers): string {
   // workspaces then share the same volume and inherit each other's
   // POSTGRES_PASSWORD on first boot, surfacing as P1000 auth errors.
   lines.push(`COMPOSE_PROJECT_NAME=${answers.projectName}`);
+  // Host-port Postgres is bound on. Two workspaces on the same machine
+  // collide on 5432 unless one of them shifts. The runner picks the
+  // first free port via `findFreePostgresPort()`; flip manually here
+  // (and the port in DATABASE_URL above) if you need a specific value.
+  lines.push(`POSTGRES_HOST_PORT=${port}`);
   lines.push("");
   lines.push("# ── Auth (Better-Auth) ─────────────────────────────────────────");
   lines.push("BETTER_AUTH_SECRET=change-me-32-chars-minimum-XXXXXX");
