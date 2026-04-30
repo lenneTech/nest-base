@@ -54,6 +54,9 @@ const ErdPage = lazy(() => import("./pages/ErdPage.js").then((m) => ({ default: 
 const EmailPreviewPage = lazy(() =>
   import("./pages/EmailPreviewPage.js").then((m) => ({ default: m.EmailPreviewPage })),
 );
+const EmailBuilderPage = lazy(() =>
+  import("./pages/EmailBuilderPage.js").then((m) => ({ default: m.EmailBuilderPage })),
+);
 const PostgrestParsePage = lazy(() =>
   import("./pages/PostgrestParsePage.js").then((m) => ({ default: m.PostgrestParsePage })),
 );
@@ -106,6 +109,7 @@ export function App(): ReactNode {
         <Route path="/dev/routes" element={<RoutesPage />} />
         <Route path="/dev/erd" element={<ErdPage />} />
         <Route path="/dev/email-preview" element={<EmailPreviewPage />} />
+        <Route path="/dev/email-builder" element={<EmailBuilderPage />} />
         <Route path="/dev/postgrest-parse" element={<PostgrestParsePage />} />
         <Route path="/admin/permissions/test" element={<PermissionTesterPage />} />
         <Route path="/admin/webhooks" element={<WebhookInspectorPage />} />

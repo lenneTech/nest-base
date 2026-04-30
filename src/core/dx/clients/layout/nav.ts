@@ -50,6 +50,7 @@ export const NAV_SECTIONS: readonly AdminNavSection[] = [
       { id: "errors", label: "Error Codes", href: "/errors", icon: "bug" },
       { id: "erd", label: "ERD", href: "/dev/erd", icon: "network" },
       { id: "email-preview", label: "Email Preview", href: "/dev/email-preview", icon: "mail" },
+      { id: "email-builder", label: "Email Builder", href: "/dev/email-builder", icon: "mail" },
       {
         id: "prisma-studio",
         label: "Prisma Studio",
@@ -94,6 +95,7 @@ export const SPA_ROUTES = new Set<string>([
   "/dev/routes",
   "/dev/erd",
   "/dev/email-preview",
+  "/dev/email-builder",
   "/dev/components",
   "/dev/postgrest-parse",
   "/admin/permissions/test",

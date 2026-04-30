@@ -15,6 +15,8 @@ email/
 ├── email-outbox.token.ts          ← EMAIL_OUTBOX_RECORDER injection token
 ├── email-templates.ts             ← Legacy EJS-subset renderer (kept for back-compat)
 ├── email-templates.react.ts       ← React-Email loader + renderer (default)
+├── email-builder.ts               ← Email-Builder planners (codegen + path validation)
+├── email-builder-runtime.tsx      ← Live-preview runtime (composition → HTML)
 ├── layouts/
 │   └── Barebone.tsx               ← Default frame (header / body / footer)
 ├── blocks/
@@ -40,6 +42,39 @@ email/
 - **outbox**: `EmailService.send(opts, { mode: "outbox", idempotencyKey })` writes to the `email_outbox` table and returns immediately with `outbox:<uuid>`. The worker (`EmailOutboxWorker`, ticking on `EMAIL_OUTBOX_TICK_MS`) claims due rows, dispatches via the same driver, and graduates them to `sent` / `dead-letter`. Retry policy: 1m → 5m → 25m, 2h cap, 5 attempts.
 
 Better-Auth hooks default to outbox-mode with a deterministic idempotency-key (recipient + token / user-id / url) so duplicate triggers (Resend click) collapse to one row but a fresh request (new token) re-enqueues. `/dev/outbox.json` returns a JSON snapshot for inspection; `/health/ready` flips to 503 when oldest-pending age exceeds 30s.
+
+## Email Builder UI (`/dev/email-builder`, Issue #9)
+
+A Dev-Portal page lets devs:
+
+- Browse discovered templates (gallery view)
+- Compose a new template by picking a layout + dropping blocks
+- Live-preview the rendered HTML
+- Save as `.tsx` under `src/modules/email/templates/`
+
+Planners (`email-builder.ts`):
+
+- `composeEmailTemplateSource()` — JSON composition → deterministic
+  `.tsx` source string (no prettier dependency at planner time)
+- `resolveEmailTemplateTarget()` — defense-in-depth path validation;
+  every save resolves through here before the runner writes
+- `validateEmailComposition()` — shape + per-block prop checks
+- `isValidEmailTemplateSlug()` / `isValidEmailTemplateLocale()` —
+  allow-list anti-traversal patterns
+
+Runtime (`email-builder-runtime.tsx`):
+
+- `renderEmailComposition()` — turns a JSON composition + vars into
+  HTML+text+subject via `@react-email/render`. Used by
+  `POST /dev/email-builder/preview.json` so the live preview always
+  reflects the current draft, not the last save.
+
+Controller endpoints (in `dev-hub.controller.ts`):
+
+- `GET /dev/email-builder/templates.json` — discovered + sample-rendered
+- `GET /dev/email-builder/blocks.json` — block library + props
+- `POST /dev/email-builder/preview.json` — render draft live
+- `POST /dev/email-builder/save` — codegen + write `.tsx`
 
 ## How rendering works
 
