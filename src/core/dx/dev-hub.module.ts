@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { DiscoveryModule } from "@nestjs/core";
 
+import { JobsModule } from "../jobs/jobs.module.js";
 import { AdminSpaController } from "./admin-spa.controller.js";
 import { DevHubController } from "./dev-hub.controller.js";
 import { MigrationsService } from "./migrations/migrations.service.js";
@@ -17,10 +18,11 @@ import { RouteInventoryService } from "./route-inventory-runner.js";
  * the registered controllers for `/dev/routes`. `MigrationsService` is
  * a dev-only orchestrator for the `/dev/migrations` page; it depends on
  * the global `PrismaService` for advisory locks + `_prisma_migrations`
- * reads.
+ * reads. `JobsModule` is imported so the controller can read the
+ * in-memory queue history for the `/dev/jobs/*` dashboard.
  */
 @Module({
-  imports: [DiscoveryModule],
+  imports: [DiscoveryModule, JobsModule],
   controllers: [DevHubController, AdminSpaController],
   providers: [RouteInventoryService, MigrationsService],
   exports: [RouteInventoryService],

@@ -44,6 +44,7 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       "/dev/logs",
       "/dev/traces",
       "/dev/queries",
+      "/dev/jobs",
       "/dev/routes",
       "/dev/erd",
       "/dev/email-preview",
@@ -75,6 +76,7 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       "/dev/logs",
       "/dev/traces",
       "/dev/queries",
+      "/dev/jobs",
       "/dev/routes",
       "/dev/erd",
       "/dev/email-preview",
@@ -126,6 +128,8 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       "email-preview.json",
       "coverage.json",
       "tests.json",
+      "jobs/queues.json",
+      "jobs/jobs.json",
     ];
     for (const ep of jsonEndpoints) {
       it(`dev-hub.controller.ts declares @Get("${ep}")`, () => {
@@ -264,6 +268,7 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       "logs",
       "traces",
       "queries",
+      "jobs",
       "scalar",
       "openapi",
       "routes",

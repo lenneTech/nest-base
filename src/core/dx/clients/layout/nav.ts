@@ -37,6 +37,7 @@ export const NAV_SECTIONS: readonly AdminNavSection[] = [
       { id: "traces", label: "Traces", href: "/dev/traces", icon: "pulse" },
       { id: "queries", label: "Queries", href: "/dev/queries", icon: "database" },
       { id: "migrations", label: "Migrations", href: "/dev/migrations", icon: "database" },
+      { id: "jobs", label: "Jobs", href: "/dev/jobs", icon: "layers" },
     ],
   },
   {
@@ -87,6 +88,7 @@ export const SPA_ROUTES = new Set<string>([
   "/dev/traces",
   "/dev/queries",
   "/dev/migrations",
+  "/dev/jobs",
   "/dev/routes",
   "/dev/erd",
   "/dev/email-preview",
