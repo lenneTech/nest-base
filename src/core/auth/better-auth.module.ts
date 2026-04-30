@@ -1,12 +1,25 @@
 import { Module } from "@nestjs/common";
 
 import { loadBrandSync } from "../branding/brand-loader.js";
+import {
+  createDeviceHandlingRunner,
+  type DeviceEmailDispatcher,
+  type DeviceHandlingSessionStore,
+  type DeviceHandlingUserLookup,
+} from "../devices/device-handling.runner.js";
+import { createNewDeviceThrottle } from "../devices/new-device-throttle.js";
 import { EmailModule } from "../email/email.module.js";
 import { EmailService } from "../email/email.service.js";
 import { type Features, loadFeatures } from "../features/features.js";
+import { GeoIpModule } from "../geoip/geoip.module.js";
+import { GeoIpService } from "../geoip/geoip.service.js";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { serverConfigFromEnv } from "../server/server-config.js";
 import { BetterAuthController } from "./better-auth.controller.js";
+import {
+  createEmailHookRunner,
+  type EmailSenderForHooks,
+} from "./better-auth-email-hooks.runner.js";
 import { resolveAppName } from "./better-auth-email-hooks.js";
 import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from "./better-auth.token.js";
 import { type SocialProviderConfig, buildBetterAuth } from "./better-auth.js";
@@ -28,12 +41,16 @@ const MIN_SECRET_LEN = 32;
  * effectively disabled.
  */
 @Module({
-  imports: [EmailModule],
+  imports: [EmailModule, GeoIpModule],
   controllers: [BetterAuthController],
   providers: [
     {
       provide: BETTER_AUTH_INSTANCE,
-      useFactory: (prisma: PrismaService, email: EmailService): BetterAuthInstance | null => {
+      useFactory: (
+        prisma: PrismaService,
+        email: EmailService,
+        geoIp: GeoIpService,
+      ): BetterAuthInstance | null => {
         const secret = process.env.BETTER_AUTH_SECRET ?? "";
         if (secret.length < MIN_SECRET_LEN) return null;
 
@@ -46,6 +63,41 @@ const MIN_SECRET_LEN = 32;
         // default. Loaded once at provider init — env-watch restart picks
         // up brand.json edits.
         const brand = loadBrandSync();
+
+        // Device-handling (issue #13). Wired only when the feature is
+        // on — the runner short-circuits internally too, but skipping
+        // the wiring keeps the auth path strictly equivalent to pre-#13
+        // behaviour for projects that left the toggle off.
+        const deviceCfg = features.deviceManagement;
+        const newDeviceThrottle = deviceCfg.enabled ? createNewDeviceThrottle() : undefined;
+
+        const hookRunner = deviceCfg.enabled
+          ? createEmailHookRunner({
+              sender: email as unknown as EmailSenderForHooks,
+              appName,
+              useOutbox: true,
+              ...(newDeviceThrottle ? { newDeviceThrottle } : {}),
+            })
+          : undefined;
+
+        const deviceHandling =
+          deviceCfg.enabled && hookRunner
+            ? {
+                runner: createDeviceHandlingRunner({
+                  store: buildPrismaSessionStore(prisma),
+                  email: buildHookEmailDispatcher(hookRunner),
+                  userLookup: buildPrismaUserLookup(prisma),
+                  geoIp,
+                  config: {
+                    enabled: deviceCfg.enabled,
+                    notifyOnNewDevice: deviceCfg.notifyOnNewDevice,
+                    maxDevicesPerUser: deviceCfg.maxDevicesPerUser,
+                    fingerprintMode: deviceCfg.sessionFingerprint,
+                    appBaseUrl: cfg.baseUrl,
+                  },
+                }),
+              }
+            : undefined;
 
         return buildBetterAuth({
           secret,
@@ -67,7 +119,12 @@ const MIN_SECRET_LEN = 32;
           // the EmailModule provides a `log-only` driver, so the hook
           // still completes (with a logged stdout line) instead of
           // silently no-op'ing inside Better-Auth's defaults.
-          emailHooks: { sender: email, appName },
+          emailHooks: {
+            sender: email,
+            appName,
+            ...(newDeviceThrottle ? { newDeviceThrottle } : {}),
+          },
+          ...(deviceHandling ? { deviceHandling } : {}),
           ...(features.authMethods.twoFactor ? { twoFactor: { issuer: brand.name } } : {}),
           ...(features.authMethods.passkey ? { passkey: { rpName: brand.name } } : {}),
           ...(features.authMethods.socialProviders.length > 0
@@ -78,12 +135,73 @@ const MIN_SECRET_LEN = 32;
           ...(features.powerSync.enabled ? { jwtPlugin: { audience: "powersync" } } : {}),
         });
       },
-      inject: [PrismaService, EmailService],
+      inject: [PrismaService, EmailService, GeoIpService],
     },
   ],
   exports: [BETTER_AUTH_INSTANCE],
 })
 export class BetterAuthModule {}
+
+function buildPrismaSessionStore(prisma: PrismaService): DeviceHandlingSessionStore {
+  return {
+    async setFingerprint(sessionId, fingerprint) {
+      await prisma.session.update({
+        where: { id: sessionId },
+        data: { fingerprint },
+      });
+    },
+    async listForUser(userId) {
+      const rows = await prisma.session.findMany({
+        where: { userId },
+        // Drop expired sessions — they're functionally revoked, no
+        // point comparing against a hash that the user can't actually
+        // sign in with anymore.
+        // (Better-Auth's adapter doesn't auto-prune; we filter on read.)
+      });
+      const now = Date.now();
+      return rows
+        .filter((r) => r.expiresAt.getTime() > now)
+        .map((r) => ({
+          id: r.id,
+          fingerprintHash: r.fingerprint ?? "",
+          lastSeenAt: r.updatedAt,
+          createdAt: r.createdAt,
+        }));
+    },
+    async revoke(sessionId) {
+      try {
+        await prisma.session.delete({ where: { id: sessionId } });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+  };
+}
+
+function buildPrismaUserLookup(prisma: PrismaService): DeviceHandlingUserLookup {
+  return {
+    async findById(userId) {
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user) return null;
+      return {
+        id: user.id,
+        email: user.email,
+        ...(user.name ? { name: user.name } : {}),
+      };
+    },
+  };
+}
+
+function buildHookEmailDispatcher(
+  runner: ReturnType<typeof createEmailHookRunner>,
+): DeviceEmailDispatcher {
+  return {
+    async sendNewDevice(input): Promise<void> {
+      await runner.sendNewDevice(input);
+    },
+  };
+}
 
 function pickSocialProviders(features: Features): SocialProviderConfig {
   const providers: SocialProviderConfig = {};

@@ -44,6 +44,36 @@ describe("Story · Feature-Flag-System", () => {
       const result = FeaturesSchema.safeParse({ files: { storageDefault: "unknown-driver" } });
       expect(result.success).toBe(false);
     });
+
+    it("includes the deviceManagement schema with privacy-friendly defaults", () => {
+      // Issue #13: device-handling is opt-in (default off) so a fresh
+      // project doesn't accumulate device fingerprints unless the
+      // operator deliberately turns it on.
+      const features = FeaturesSchema.parse({});
+      expect(features.deviceManagement.enabled).toBe(false);
+      expect(features.deviceManagement.maxDevicesPerUser).toBe(10);
+      expect(features.deviceManagement.notifyOnNewDevice).toBe(true);
+      expect(features.deviceManagement.sessionFingerprint).toBe("userAgent+ipSubnet");
+    });
+
+    it("rejects an invalid sessionFingerprint mode", () => {
+      const result = FeaturesSchema.safeParse({
+        deviceManagement: { sessionFingerprint: "fingerprint-everything" },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects a non-positive maxDevicesPerUser", () => {
+      // 0 / negative → schema must fail. The hook would otherwise
+      // never let a sign-in through (every session immediately
+      // exceeds the cap).
+      expect(FeaturesSchema.safeParse({ deviceManagement: { maxDevicesPerUser: 0 } }).success).toBe(
+        false,
+      );
+      expect(
+        FeaturesSchema.safeParse({ deviceManagement: { maxDevicesPerUser: -1 } }).success,
+      ).toBe(false);
+    });
   });
 
   describe("loadFeatures(env) — FEATURE_* ENV-Overrides", () => {

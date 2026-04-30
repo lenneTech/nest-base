@@ -61,6 +61,22 @@ const GeoIpSchema = z.object({
   /** Where the unpacked `.mmdb` lives. `download-geoip` writes here. */
   dbPath: z.string().default("./data/geoip/city.mmdb"),
 });
+const DEVICE_FINGERPRINT_MODES = ["userAgent+ipSubnet", "userAgent"] as const;
+const DeviceManagementSchema = z.object({
+  /** Master switch — when off, the sign-in hook short-circuits. */
+  enabled: z.boolean().default(false),
+  /** Hard cap; the oldest session is auto-revoked when the limit is exceeded. */
+  maxDevicesPerUser: z.number().int().positive().default(10),
+  /** Email the user when a sign-in lands a previously-unseen fingerprint. */
+  notifyOnNewDevice: z.boolean().default(true),
+  /**
+   * Fingerprint composition. `userAgent+ipSubnet` is the privacy /
+   * mobility compromise the planner explains; `userAgent`-only is
+   * the strict-privacy mode for jurisdictions that don't allow
+   * IP-based tracking. See `src/core/devices/fingerprint.ts`.
+   */
+  sessionFingerprint: z.enum(DEVICE_FINGERPRINT_MODES).default("userAgent+ipSubnet"),
+});
 const togglableDefault = (on: boolean) => z.object({ enabled: z.boolean().default(on) });
 
 const Webhooks = togglableDefault(false);
@@ -87,6 +103,7 @@ export const FeaturesSchema = z.object({
   fieldEncryption: FieldEncryption.default(() => FieldEncryption.parse({})),
   geo: GeoSchema.default(() => GeoSchema.parse({})),
   geoIp: GeoIpSchema.default(() => GeoIpSchema.parse({})),
+  deviceManagement: DeviceManagementSchema.default(() => DeviceManagementSchema.parse({})),
   rateLimit: RateLimit.default(() => RateLimit.parse({})),
   idempotency: Idempotency.default(() => Idempotency.parse({})),
   observability: Observability.default(() => Observability.parse({})),
@@ -108,6 +125,7 @@ export type ToggleableFeatureKey =
   | "fieldEncryption"
   | "geo"
   | "geoIp"
+  | "deviceManagement"
   | "rateLimit"
   | "idempotency"
   | "observability"
@@ -151,6 +169,8 @@ const SECTION_KEYS = new Set([
   "FIELD_ENCRYPTION",
   "GEO",
   "GEO_IP",
+  "DEVICEMANAGEMENT",
+  "DEVICE_MANAGEMENT",
   "RATELIMIT",
   "RATE_LIMIT",
   "IDEMPOTENCY",
@@ -172,6 +192,8 @@ const SECTION_TO_KEY: Record<string, FeatureKey> = {
   FIELD_ENCRYPTION: "fieldEncryption",
   GEO: "geo",
   GEO_IP: "geoIp",
+  DEVICEMANAGEMENT: "deviceManagement",
+  DEVICE_MANAGEMENT: "deviceManagement",
   RATELIMIT: "rateLimit",
   RATE_LIMIT: "rateLimit",
   IDEMPOTENCY: "idempotency",
@@ -200,6 +222,12 @@ const FIELD_TO_PROP: Record<string, string> = {
   LICENSE_KEY: "licenseKey",
   DBPATH: "dbPath",
   DB_PATH: "dbPath",
+  MAXDEVICESPERUSER: "maxDevicesPerUser",
+  MAX_DEVICES_PER_USER: "maxDevicesPerUser",
+  NOTIFYONNEWDEVICE: "notifyOnNewDevice",
+  NOTIFY_ON_NEW_DEVICE: "notifyOnNewDevice",
+  SESSIONFINGERPRINT: "sessionFingerprint",
+  SESSION_FINGERPRINT: "sessionFingerprint",
 };
 
 const STRING_VALUE_PROPS = new Set([
@@ -208,7 +236,9 @@ const STRING_VALUE_PROPS = new Set([
   "provider",
   "licenseKey",
   "dbPath",
+  "sessionFingerprint",
 ]);
+const NUMBER_VALUE_PROPS = new Set(["maxDevicesPerUser"]);
 const ARRAY_VALUE_PROPS = new Set(["socialProviders"]);
 
 function parseFeatureEnv(env: Record<string, string | undefined>): RawOverrides {
@@ -243,6 +273,13 @@ function splitSectionField(remainder: string): { section: string; field: string 
 
 function coerceValue(prop: string, raw: string): unknown {
   if (STRING_VALUE_PROPS.has(prop)) return raw;
+  if (NUMBER_VALUE_PROPS.has(prop)) {
+    const n = Number(raw);
+    if (!Number.isFinite(n)) {
+      throw new Error(`expected number, got "${raw}"`);
+    }
+    return n;
+  }
   if (ARRAY_VALUE_PROPS.has(prop)) {
     return raw
       .split(",")

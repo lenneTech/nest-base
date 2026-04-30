@@ -31,7 +31,8 @@ email/
     ├── email-verification.tsx
     ├── password-reset.tsx
     ├── welcome.tsx
-    └── invitation.tsx
+    ├── invitation.tsx
+    └── new-device.tsx                ← issue #13 — device-handling notice
 ```
 
 ## Delivery modes

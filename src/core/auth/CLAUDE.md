@@ -28,12 +28,13 @@ auth/
 attaches three hook closures driven by a shared
 `createEmailHookRunner()`:
 
-| Better-Auth hook                           | Template             | Vars                                                  |
-| ------------------------------------------ | -------------------- | ----------------------------------------------------- |
-| `emailVerification.sendVerificationEmail`  | `email-verification` | `recipientName`, `appName`, `verificationUrl`         |
-| `emailAndPassword.sendResetPassword`       | `password-reset`     | `recipientName`, `appName`, `resetUrl`                |
-| `emailVerification.afterEmailVerification` | `welcome`            | `recipientName`, `appName`                            |
-| (manual call) `runner.sendInvitation()`    | `invitation`         | `recipientName`, `appName`, `acceptUrl`, `senderName` |
+| Better-Auth hook                           | Template             | Vars                                                                                          |
+| ------------------------------------------ | -------------------- | --------------------------------------------------------------------------------------------- |
+| `emailVerification.sendVerificationEmail`  | `email-verification` | `recipientName`, `appName`, `verificationUrl`                                                 |
+| `emailAndPassword.sendResetPassword`       | `password-reset`     | `recipientName`, `appName`, `resetUrl`                                                        |
+| `emailVerification.afterEmailVerification` | `welcome`            | `recipientName`, `appName`                                                                    |
+| (manual call) `runner.sendInvitation()`    | `invitation`         | `recipientName`, `appName`, `acceptUrl`, `senderName`                                         |
+| `databaseHooks.session.create.after` (#13) | `new-device`         | `recipientName`, `appName`, `deviceLabel`, `location`, `ipAddress`, `signedInAt`, `revokeUrl` |
 
 The `invitation` template fires when project code calls the runner
 directly — the framework-managed Better-Auth instance does not own
@@ -74,6 +75,27 @@ queues up for retry instead of just logging.
 | Thin runner (error handling) | `tests/stories/better-auth-email-hook-runner.story.test.ts`  |
 | Factory wiring (in-memory)   | `tests/stories/better-auth-email-hooks-wiring.story.test.ts` |
 | Full e2e (boots app + DB)    | `tests/better-auth-email-hooks.e2e-spec.ts`                  |
+
+## Device-handling (issue #13)
+
+`buildBetterAuth({ deviceHandling: { runner } })` registers a
+`databaseHooks.session.create.after` hook that fires on every
+session-create. The runner (`src/core/devices/device-handling
+.runner.ts`) computes a fingerprint from the session's UA + IP,
+persists it on the row, looks up the user's other sessions, and
+either:
+
+- skips silently (first sign-in / known fingerprint),
+- enqueues the new-device email through this same EmailHookRunner,
+- and/or revokes the oldest session when the per-user cap is
+  exceeded.
+
+`BetterAuthModule` wires the runner only when
+`features.deviceManagement.enabled === true`; with the feature off
+the hook isn't registered at all and the auth path is byte-for-byte
+identical to pre-#13 behaviour. See
+[`src/core/devices/CLAUDE.md`](../devices/CLAUDE.md) for the
+fingerprint strategy + privacy contract.
 
 ## Adding a new hook (template)
 

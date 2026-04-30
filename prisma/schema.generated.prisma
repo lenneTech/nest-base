@@ -123,12 +123,18 @@ model Session {
   expiresAt DateTime @map("expires_at")
   ipAddress String?  @map("ip_address")
   userAgent String?  @map("user_agent")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  // Device-handling (#13). sha256 hex of (mode, ua, masked-ip).
+  // Project-extension column (NOT a Better-Auth core field) — kept
+  // optional so older sessions / non-feature deployments continue
+  // to work without a backfill.
+  fingerprint String?  @db.VarChar(64)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([userId, fingerprint])
   @@map("sessions")
 }
 

@@ -1,5 +1,6 @@
 import { Logger } from "@nestjs/common";
 
+import type { NewDeviceThrottle } from "../devices/new-device-throttle.js";
 import { buildEmailHookPayload, type BetterAuthEmailUser } from "./better-auth-email-hooks.js";
 
 /**
@@ -45,7 +46,7 @@ export interface EmailSenderForHooks {
 export interface EmailHookErrorContext {
   template: string;
   to?: string;
-  kind: "email-verification" | "password-reset" | "welcome" | "invitation";
+  kind: "email-verification" | "password-reset" | "welcome" | "invitation" | "new-device";
 }
 
 export interface EmailHookRunnerOptions {
@@ -66,6 +67,13 @@ export interface EmailHookRunnerOptions {
    * trigger (Resend / retry click) collapses to one outbox row.
    */
   useOutbox?: boolean;
+  /**
+   * Optional throttle for the `new-device` mail (issue #13). Caps
+   * notifications at 1 per user per hour by default — a roaming
+   * mobile would otherwise produce a stream of fingerprints and
+   * matching mails. When omitted the dispatch is unthrottled.
+   */
+  newDeviceThrottle?: NewDeviceThrottle;
 }
 
 export interface VerificationHookData {
@@ -91,11 +99,23 @@ export interface InvitationHookData {
   senderName?: string;
 }
 
+export interface NewDeviceHookData {
+  user: BetterAuthEmailUser;
+  /** sha256 fingerprint of the new device — feeds the dedup key. */
+  fingerprint: string;
+  deviceLabel: string;
+  location: string;
+  ipAddress: string;
+  signedInAt: string;
+  revokeUrl: string;
+}
+
 export interface BetterAuthEmailHookRunner {
   sendVerificationEmail(data: VerificationHookData): Promise<void>;
   sendResetPassword(data: ResetPasswordHookData): Promise<void>;
   sendWelcome(data: WelcomeHookData): Promise<void>;
   sendInvitation(data: InvitationHookData): Promise<void>;
+  sendNewDevice(data: NewDeviceHookData): Promise<void>;
 }
 
 export function createEmailHookRunner(options: EmailHookRunnerOptions): BetterAuthEmailHookRunner {
@@ -113,6 +133,7 @@ export function createEmailHookRunner(options: EmailHookRunnerOptions): BetterAu
     kind: EmailHookErrorContext["kind"],
     builder: () => { template: string; to: string; vars: Record<string, string> },
     idempotencyToken?: string,
+    onSuccess?: () => void,
   ): Promise<void> {
     let plan: { template: string; to: string; vars: Record<string, string> };
     try {
@@ -140,6 +161,7 @@ export function createEmailHookRunner(options: EmailHookRunnerOptions): BetterAu
         },
         dispatch,
       );
+      onSuccess?.();
     } catch (raw) {
       onError(toError(raw), { kind, template: plan.template, to: plan.to });
     }
@@ -206,6 +228,42 @@ export function createEmailHookRunner(options: EmailHookRunnerOptions): BetterAu
         // resends with a new URL re-enqueue.
         data.url,
       );
+    },
+    async sendNewDevice(data) {
+      // Throttle: deny → silently drop. The action that triggered
+      // this (a sign-in) succeeded; we just decline to spam the
+      // user. Logged at debug-level by the throttle owner if needed.
+      if (options.newDeviceThrottle) {
+        const decision = options.newDeviceThrottle.check(data.user.id);
+        if (!decision.allowed) return;
+      }
+      let dispatched = false;
+      await send(
+        "new-device",
+        () =>
+          buildEmailHookPayload({
+            kind: "new-device",
+            user: data.user,
+            appName: options.appName,
+            deviceLabel: data.deviceLabel,
+            location: data.location,
+            ipAddress: data.ipAddress,
+            signedInAt: data.signedInAt,
+            revokeUrl: data.revokeUrl,
+          }),
+        // Fingerprint as the dedup-key segment: a sign-in retried
+        // on the same device produces the same hash → outbox dedups.
+        data.fingerprint,
+        () => {
+          dispatched = true;
+        },
+      );
+      // Record the throttle slot only on a real dispatch — a planner
+      // throw or send failure leaves the user able to retry within
+      // the window without losing a slot.
+      if (dispatched && options.newDeviceThrottle) {
+        options.newDeviceThrottle.record(data.user.id);
+      }
     },
   };
 }
