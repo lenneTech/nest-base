@@ -24,14 +24,22 @@ import { buildEmailHookPayload, type BetterAuthEmailUser } from "./better-auth-e
  * tests pass a fake without modelling the rate-limiter, whitelist,
  * or driver wiring.
  */
+export interface EmailHookSendDispatchOptions {
+  mode?: "direct" | "outbox";
+  idempotencyKey?: string;
+}
+
 export interface EmailSenderForHooks {
-  sendTemplate(args: {
-    to: string;
-    template: string;
-    vars?: object;
-    locale?: string;
-    from?: string;
-  }): Promise<{ messageId: string; driver: string }>;
+  sendTemplate(
+    args: {
+      to: string;
+      template: string;
+      vars?: object;
+      locale?: string;
+      from?: string;
+    },
+    dispatch?: EmailHookSendDispatchOptions,
+  ): Promise<{ messageId: string; driver: string }>;
 }
 
 export interface EmailHookErrorContext {
@@ -51,6 +59,13 @@ export interface EmailHookRunnerOptions {
   locale?: string;
   /** Optional sink for transport failures. Defaults to a NestJS Logger. */
   onError?: (error: Error, ctx: EmailHookErrorContext) => void;
+  /**
+   * When true the runner asks the EmailService to enqueue mails into
+   * the email-outbox (issue #11) instead of sending synchronously.
+   * Each call carries a deterministic idempotencyKey so a duplicate
+   * trigger (Resend / retry click) collapses to one outbox row.
+   */
+  useOutbox?: boolean;
 }
 
 export interface VerificationHookData {
@@ -97,6 +112,7 @@ export function createEmailHookRunner(options: EmailHookRunnerOptions): BetterAu
   async function send(
     kind: EmailHookErrorContext["kind"],
     builder: () => { template: string; to: string; vars: Record<string, string> },
+    idempotencyToken?: string,
   ): Promise<void> {
     let plan: { template: string; to: string; vars: Record<string, string> };
     try {
@@ -109,12 +125,21 @@ export function createEmailHookRunner(options: EmailHookRunnerOptions): BetterAu
       return;
     }
     try {
-      await options.sender.sendTemplate({
-        to: plan.to,
-        template: plan.template,
-        vars: plan.vars,
-        locale: options.locale ?? "en",
-      });
+      const dispatch = options.useOutbox
+        ? {
+            mode: "outbox" as const,
+            idempotencyKey: buildIdempotencyKey(kind, plan.to, idempotencyToken),
+          }
+        : undefined;
+      await options.sender.sendTemplate(
+        {
+          to: plan.to,
+          template: plan.template,
+          vars: plan.vars,
+          locale: options.locale ?? "en",
+        },
+        dispatch,
+      );
     } catch (raw) {
       onError(toError(raw), { kind, template: plan.template, to: plan.to });
     }
@@ -122,46 +147,80 @@ export function createEmailHookRunner(options: EmailHookRunnerOptions): BetterAu
 
   return {
     async sendVerificationEmail(data) {
-      await send("email-verification", () =>
-        buildEmailHookPayload({
-          kind: "email-verification",
-          user: data.user,
-          url: data.url,
-          appName: options.appName,
-        }),
+      await send(
+        "email-verification",
+        () =>
+          buildEmailHookPayload({
+            kind: "email-verification",
+            user: data.user,
+            url: data.url,
+            appName: options.appName,
+          }),
+        // Token is the unique handle Better-Auth issued for this verification
+        // flow — using it as the dedup-key means a "click resend twice" never
+        // produces two outbox rows for the same token, while a fresh request
+        // (new token) gets a new mail.
+        data.token,
       );
     },
     async sendResetPassword(data) {
-      await send("password-reset", () =>
-        buildEmailHookPayload({
-          kind: "password-reset",
-          user: data.user,
-          url: data.url,
-          appName: options.appName,
-        }),
+      await send(
+        "password-reset",
+        () =>
+          buildEmailHookPayload({
+            kind: "password-reset",
+            user: data.user,
+            url: data.url,
+            appName: options.appName,
+          }),
+        data.token,
       );
     },
     async sendWelcome(data) {
-      await send("welcome", () =>
-        buildEmailHookPayload({
-          kind: "welcome",
-          user: data.user,
-          appName: options.appName,
-        }),
+      await send(
+        "welcome",
+        () =>
+          buildEmailHookPayload({
+            kind: "welcome",
+            user: data.user,
+            appName: options.appName,
+          }),
+        // No flow-token for welcome mails — the user-id is the natural
+        // dedup key (we only ever want to send one welcome per signup).
+        data.user.id,
       );
     },
     async sendInvitation(data) {
-      await send("invitation", () =>
-        buildEmailHookPayload({
-          kind: "invitation",
-          user: data.user,
-          url: data.url,
-          appName: options.appName,
-          senderName: data.senderName ?? "",
-        }),
+      await send(
+        "invitation",
+        () =>
+          buildEmailHookPayload({
+            kind: "invitation",
+            user: data.user,
+            url: data.url,
+            appName: options.appName,
+            senderName: data.senderName ?? "",
+          }),
+        // Invitations don't carry an explicit token; the URL is the
+        // closest stable identifier — duplicate URLs dedup, fresh
+        // resends with a new URL re-enqueue.
+        data.url,
       );
     },
   };
+}
+
+function buildIdempotencyKey(
+  kind: EmailHookErrorContext["kind"],
+  to: string,
+  token: string | undefined,
+): string {
+  // The kind segments the namespace so a verification + welcome to the
+  // same recipient never collide. The recipient + token (if any) are
+  // the natural per-flow uniqueness anchor. Falls back to recipient
+  // alone when no token is available — caller passes user.id for
+  // welcome, url for invitation.
+  return token ? `${kind}:${to}:${token}` : `${kind}:${to}`;
 }
 
 function toError(raw: unknown): Error {

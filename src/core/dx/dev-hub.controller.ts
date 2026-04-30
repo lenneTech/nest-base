@@ -14,7 +14,9 @@ import {
   HttpCode,
   HttpException,
   HttpStatus,
+  Inject,
   NotFoundException,
+  Optional,
   Param,
   Post,
   Query,
@@ -33,6 +35,9 @@ import { readTunnelState } from "../dev/tunnel-state-runner.js";
 import { MigrationsService } from "./migrations/migrations.service.js";
 
 import { type Features, loadFeatures } from "../features/features.js";
+import { EMAIL_OUTBOX_STORAGE } from "../email/email-outbox.module.js";
+import type { EmailOutboxStorage } from "../email/email-outbox.js";
+import { classifyEmailOutboxLag } from "../email/email-outbox-health.js";
 import { JobNotFoundError, JobNotRetryableError, type ListJobsOptions } from "../jobs/job-queue.js";
 import type { JobState } from "../jobs/dev-jobs-aggregations.js";
 import { JobQueueService } from "../jobs/jobs.module.js";
@@ -84,6 +89,7 @@ export class DevHubController {
     private readonly routes: RouteInventoryService,
     private readonly migrations: MigrationsService,
     private readonly jobs: JobQueueService,
+    @Optional() @Inject(EMAIL_OUTBOX_STORAGE) private readonly emailOutbox?: EmailOutboxStorage,
   ) {}
 
   @Get()
@@ -899,6 +905,45 @@ export class DevHubController {
       if (error instanceof JobNotRetryableError) throw new ConflictException(error.message);
       throw error;
     }
+  }
+
+  /**
+   * `/dev/outbox.json` — snapshot of the email-outbox subsystem
+   * (issue #11). Returns lag classification + the most recent
+   * records (capped at 100) so operators can spot stuck mails. The
+   * JSON is the only surface; visibility happens via the existing
+   * Jobs Dashboard (the worker tick aggregates as a job entry).
+   */
+  @Get("outbox.json")
+  async outboxJson() {
+    this.assertDev();
+    if (!this.emailOutbox) {
+      return {
+        enabled: false,
+        message: "email-outbox storage not wired (EmailOutboxModule absent)",
+      };
+    }
+    const now = new Date();
+    const [pendingCount, oldestAgeMs] = await Promise.all([
+      this.emailOutbox.countPending(),
+      this.emailOutbox.oldestPendingAge(now),
+    ]);
+    const lag = classifyEmailOutboxLag({ pendingCount, oldestAgeMs });
+    const dispatchable = await this.emailOutbox.listDispatchable(now, 100);
+    return {
+      enabled: true,
+      health: lag,
+      dispatchable: dispatchable.map((r) => ({
+        id: r.id,
+        kind: r.kind,
+        status: r.status,
+        attemptCount: r.attemptCount,
+        nextAttemptAt: r.nextAttemptAt,
+        lastError: r.lastError,
+        idempotencyKey: r.idempotencyKey,
+        createdAt: r.createdAt,
+      })),
+    };
   }
 
   /**

@@ -10,6 +10,7 @@ import { BetterAuthSessionMiddleware } from "../auth/session-middleware.js";
 import { ConfigModule } from "../config/config.module.js";
 import { DevHubModule } from "../dx/dev-hub.module.js";
 import { EmailModule } from "../email/email.module.js";
+import { EmailOutboxModule } from "../email/email-outbox.module.js";
 import { EncryptionModule } from "../encryption/encryption.module.js";
 import { ErrorCodesModule } from "../errors/error-codes.module.js";
 import { FilesModule } from "../files/files.module.js";
@@ -76,6 +77,10 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     GeoIpModule,
     PowerSyncModule,
     IdempotencyModule,
+    // EmailOutboxModule must come BEFORE EmailModule so the
+    // EMAIL_OUTBOX_RECORDER token is registered before EmailModule's
+    // factory runs (it picks the recorder up via optional inject).
+    EmailOutboxModule,
     EmailModule,
     AuditLogModule,
     TenantMemberModule,

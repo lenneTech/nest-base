@@ -104,6 +104,14 @@ export interface EmailHooksOptions {
   appName: string;
   /** Optional locale override; defaults to "en" until issue #011 lands. */
   locale?: string;
+  /**
+   * When true, Better-Auth's email hooks enqueue mails via the
+   * email-outbox (issue #11) so a server crash between trigger and
+   * SMTP-ACK doesn't lose the verification / reset / welcome mail.
+   * Defaults to true — wired by BetterAuthModule when EmailService
+   * has the recorder injected.
+   */
+  useOutbox?: boolean;
 }
 
 export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof betterAuth> {
@@ -170,6 +178,10 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
         sender: input.emailHooks.sender,
         appName: input.emailHooks.appName,
         ...(input.emailHooks.locale ? { locale: input.emailHooks.locale } : {}),
+        // Default to outbox-mode delivery for at-least-once durability
+        // (issue #11). Tests / call-sites that want the legacy direct
+        // path can opt out by passing `useOutbox: false`.
+        useOutbox: input.emailHooks.useOutbox ?? true,
       })
     : undefined;
 
