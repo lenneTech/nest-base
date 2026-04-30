@@ -2,14 +2,17 @@
  * Dev-Portal design tokens.
  *
  * Single source of truth for the dark, near-black + electric-lime
- * surface used by both the server-rendered `/admin/*` pages (via
- * `admin-layout.ts`) and the React Dev-Portal SPA. Keep these values
- * in sync with `src/core/dx/admin-layout.ts` (Z. 184-262); deviation
- * means the two surfaces drift visually.
+ * surface used by both the server-rendered `/admin/*` / `/dev/*` pages
+ * (via `src/core/dx/admin-layout.ts`) and the React Dev-Portal SPA.
+ * Keep these values in sync with `admin-layout.ts` (Z. 184-262);
+ * deviation means the two surfaces drift visually.
  *
- * No selectors here beyond `:root`, `*`, `html`, `body`, and the
- * top-level `::selection` highlight — component styles live next to
- * the React component that owns them.
+ * The full chrome (resets, sidebar, header, cards, tables, …) lives
+ * in `admin-layout.css` next to this file — a 1:1 port of the embedded
+ * `ADMIN_LAYOUT_CSS` block in `admin-layout.ts`. Both stylesheets are
+ * loaded from the SPA shell; the React tree re-uses the *same* class
+ * names the server emitted so the diff between the React surface and
+ * the legacy `*-ui.ts` renderers is zero.
  */
 
 :root {
@@ -57,47 +60,4 @@
   --font-sans:
     "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", "Fira Code", Consolas, monospace;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-html,
-body {
-  margin: 0;
-  padding: 0;
-  background: var(--bg);
-  color: var(--fg);
-  font-family: var(--font-sans);
-  font-size: 14px;
-  line-height: 1.5;
-  font-feature-settings: "ss01", "cv11";
-  letter-spacing: -0.005em;
-}
-
-::selection {
-  background: var(--accent);
-  color: var(--accent-ink);
-}
-
-a {
-  color: var(--accent);
-  text-decoration: none;
-  transition: color 0.15s;
-}
-
-a:hover {
-  color: var(--fg);
-}
-
-code,
-pre {
-  font-family: var(--font-mono);
-  font-size: 0.85em;
 }

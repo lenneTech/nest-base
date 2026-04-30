@@ -1,5 +1,5 @@
 /**
- * Dev-Portal component styles.
+ * Dev-Portal `react-aria-components` primitive styles.
  *
  * Targets `react-aria-components` data attributes (`[data-pressed]`,
  * `[data-focused]`, `[data-hovered]`, `[data-selected]`,
@@ -7,191 +7,14 @@
  * every component manually.
  *
  * All component classes are prefixed with `dp-` (Dev Portal) to keep
- * the namespace separate from `admin-*` (server-rendered surface).
+ * the namespace separate from `admin-*` (the shared dark-mode shell
+ * loaded from `admin-layout.css`).
  *
- * No tailwind, no preprocessor — just vanilla CSS + custom properties
- * from `tokens.css`.
+ * No layout / page-shell styles here — those live in `admin-layout.css`
+ * (1:1 port of `admin-layout.ts`'s `ADMIN_LAYOUT_CSS`) so the React
+ * Dev-Portal stays pixel-identical with the legacy server-rendered
+ * `/admin/*` and `/dev/*` surfaces.
  */
-
-/* ── Layout shell ───────────────────────────────────────────── */
-.dp-shell {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: 256px 1fr;
-  min-height: 100vh;
-}
-.dp-shell::before {
-  content: "";
-  position: fixed;
-  pointer-events: none;
-  top: -300px;
-  right: -300px;
-  width: 800px;
-  height: 800px;
-  background: radial-gradient(circle, var(--accent-soft) 0%, transparent 60%);
-  opacity: 0.5;
-  z-index: 0;
-}
-
-.dp-sidebar {
-  background: var(--surface-1);
-  border-right: 1px solid var(--line);
-  padding: 1.5rem 0 1rem;
-  display: flex;
-  flex-direction: column;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow-y: auto;
-}
-
-.dp-brand {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0 1.5rem 1.25rem;
-  margin: 0 0 1rem;
-  border-bottom: 1px solid var(--line);
-  color: var(--fg);
-}
-.dp-brand__logo {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-sm);
-  background: var(--accent);
-  color: var(--accent-ink);
-  flex-shrink: 0;
-  box-shadow: 0 0 20px var(--accent-glow);
-  font-weight: 700;
-  font-size: 1rem;
-}
-.dp-brand__text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-.dp-brand__name {
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-.dp-brand__env {
-  font-size: 0.68rem;
-  color: var(--fg-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-}
-
-.dp-nav {
-  flex: 1;
-  padding: 0 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-.dp-nav__link {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  padding: 0.55rem 0.85rem;
-  border-radius: var(--radius-sm);
-  color: var(--fg-muted);
-  font-weight: 500;
-  font-size: 0.875rem;
-  text-decoration: none;
-  transition:
-    background 0.15s,
-    color 0.15s;
-}
-.dp-nav__link:hover {
-  background: var(--surface-2);
-  color: var(--fg);
-}
-.dp-nav__link--active {
-  color: var(--fg);
-  background: var(--surface-2);
-}
-.dp-nav__link--active::before {
-  content: "";
-  position: absolute;
-  /* purely visual — left-anchored accent strip */
-}
-
-.dp-main {
-  padding: 2rem 2.5rem 4rem;
-  max-width: 1320px;
-  width: 100%;
-}
-.dp-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 2rem;
-}
-.dp-header__title {
-  font-size: 1.85rem;
-  font-weight: 600;
-  margin: 0;
-  letter-spacing: -0.025em;
-  color: var(--fg);
-}
-.dp-header__subtitle {
-  color: var(--fg-muted);
-  margin: 0.5rem 0 0;
-  font-size: 0.92rem;
-  max-width: 60ch;
-}
-
-.dp-card {
-  background: var(--surface-1);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 1.75rem 2rem;
-  margin-bottom: 1.25rem;
-  transition: border-color 0.25s var(--ease);
-}
-.dp-card:hover {
-  border-color: var(--line-strong);
-}
-.dp-card__title {
-  font-size: 0.98rem;
-  font-weight: 600;
-  margin: 0 0 1.15rem;
-  color: var(--fg);
-}
-
-.dp-grid {
-  display: grid;
-  gap: 1.25rem;
-}
-.dp-grid--2 {
-  grid-template-columns: repeat(2, 1fr);
-}
-.dp-grid--3 {
-  grid-template-columns: repeat(3, 1fr);
-}
-@media (max-width: 900px) {
-  .dp-shell {
-    grid-template-columns: 1fr;
-  }
-  .dp-sidebar {
-    position: static;
-    height: auto;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-  }
-  .dp-main {
-    padding: 1.5rem 1.25rem 3rem;
-  }
-  .dp-grid--2,
-  .dp-grid--3 {
-    grid-template-columns: 1fr;
-  }
-}
 
 /* ── Button ─────────────────────────────────────────────────── */
 .dp-button {
@@ -537,6 +360,7 @@
   outline: none;
 }
 
+/* ── Showcase helpers ─────────────────────────────────────── */
 .dp-section-title {
   font-size: 0.92rem;
   font-weight: 600;
@@ -551,34 +375,7 @@
   padding: 0.75rem 0;
 }
 
-.dp-link-list {
-  display: grid;
-  gap: 0.35rem;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.dp-link-list a {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.7rem 0.9rem;
-  border-radius: var(--radius-sm);
-  color: var(--fg);
-  background: transparent;
-  border: 1px solid var(--line);
-  transition:
-    background 0.15s,
-    border-color 0.15s;
-  font-weight: 500;
-  font-size: 0.88rem;
-  text-decoration: none;
-}
-.dp-link-list a:hover {
-  background: var(--surface-2);
-  border-color: var(--line-accent);
-}
-
+/* ── Loading + pre helpers ─────────────────────────────────── */
 .dp-loading {
   padding: 3rem;
   text-align: center;
@@ -594,4 +391,12 @@
   color: var(--fg-muted);
   font-size: 0.82rem;
   line-height: 1.5;
+}
+
+/* ── Lazy-loaded page suspense fallback ────────────────────── */
+.dp-page-suspense {
+  padding: 2.5rem 0;
+  text-align: center;
+  color: var(--fg-muted);
+  font-size: 0.85rem;
 }

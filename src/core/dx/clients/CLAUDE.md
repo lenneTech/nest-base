@@ -1,10 +1,9 @@
 # `src/core/dx/clients/` — Dev-Portal SPA source
 
-This is the React 19 single-page-app served at `/dev/*`. The
-server-rendered cockpit (`src/core/dx/*-ui.ts`, `dashboard-ui.ts`,
-`admin-layout.ts`) still exists for legacy `/dev/*` and every
-`/admin/*` page; this tree is the migration target for one-page-at-a-time
-React replacements.
+Every `/dev/*` HTML page is now served by this React 19 SPA. The
+legacy `*-ui.ts` server renderers stay reachable at `/dev/<name>.html`
+for pixel-fidelity diffing — they are no longer the canonical URL.
+`/admin/*` is **out of scope** and stays server-rendered.
 
 ## Hard rules
 
@@ -16,8 +15,12 @@ React replacements.
   TypeScript `tsconfig.client.json` excludes Node types so this fails
   at compile time.
 - **No CSS-in-JS / Tailwind / preprocessors.** Vanilla CSS + custom
-  properties from `styles/tokens.css`. Add component-specific selectors
-  to `styles/components.css` next to the component declaration.
+  properties from `styles/tokens.css`. Page chrome lives in
+  `styles/admin-layout.css` (1:1 port of the server `ADMIN_LAYOUT_CSS`
+  plus every per-page `<style>` block from the `*-ui.ts` renderers).
+- **Re-use the server classnames.** A React tree for `/dev/foo`
+  emits the same `.foo-tile`, `.foo-section`, `.admin-card`, … markup
+  that `foo-ui.ts` produced. This is what keeps the visual diff zero.
 - **`.js` import suffix everywhere** (ESM convention; see
   `src/core/CLAUDE.md`).
 
@@ -25,25 +28,56 @@ React replacements.
 
 ```
 clients/
-├── main.tsx                ← entry point — boots React + Router + Query
-├── App.tsx                 ← layout shell + route table
-├── components/             ← react-aria-components wrappers (Button, Select, …)
-│   └── index.ts            ← barrel export
+├── main.tsx                       ← entry — boots React + Router + Query
+├── App.tsx                        ← route table (every page lazy-loaded)
+├── layout/
+│   ├── AdminShell.tsx             ← React port of admin-layout.ts (sidebar + header + content)
+│   ├── nav.ts                     ← sidebar nav model — mirrors defaultAdminNav() server-side
+│   └── icons.tsx                  ← SVG icons mirroring admin-layout.ts ICON_* exports
 ├── pages/
-│   ├── DevHubLandingPage.tsx
-│   └── ComponentShowcasePage.tsx
+│   ├── DevHubLandingPage.tsx      ← /dev — port of dashboard-ui.ts
+│   ├── FeaturesPage.tsx           ← /dev/features — port of features-ui.ts
+│   ├── CoveragePage.tsx           ← /dev/coverage — port of coverage-ui.ts
+│   ├── TestsPage.tsx              ← /dev/tests — port of test-summary-ui.ts
+│   ├── DiagnosticsPage.tsx        ← /dev/diagnostics — port of diagnostics-ui.ts
+│   ├── LogsPage.tsx               ← /dev/logs — port of log-viewer-ui.ts
+│   ├── TracesPage.tsx             ← /dev/traces — port of trace-viewer-ui.ts
+│   ├── QueriesPage.tsx            ← /dev/queries — port of query-viewer-ui.ts
+│   ├── RoutesPage.tsx             ← /dev/routes — port of route-inventory-ui.ts
+│   ├── ErdPage.tsx                ← /dev/erd — port of erd-ui.ts (Mermaid via CDN)
+│   ├── EmailPreviewPage.tsx       ← /dev/email-preview — port of email-preview-ui.ts
+│   ├── PostgrestParsePage.tsx     ← /dev/postgrest-parse — wraps JsonViewer
+│   └── ComponentShowcasePage.tsx  ← /dev/components (living style guide)
+├── components/                    ← react-aria-components wrappers + JsonViewer
+│   └── index.ts                   ← barrel export
+├── lib/
+│   └── api.ts                     ← fetchJson + format helpers shared by every page
 └── styles/
-    ├── tokens.css          ← :root design-token vars (synced with admin-layout.ts)
-    └── components.css      ← .dp-* component classes
+    ├── tokens.css                 ← :root design-token vars (synced with admin-layout.ts)
+    ├── admin-layout.css           ← server-CSS port — page chrome + per-page styles
+    └── components.css             ← .dp-* react-aria primitive styles
 ```
+
+## Adding a new page
+
+1. Add a route to `App.tsx` with `React.lazy`.
+2. Add the corresponding sidebar entry to `layout/nav.ts` (and the
+   matching server-side entry in `admin-layout.ts`'s `defaultAdminNav()`
+   if it should also show on a server-rendered admin page).
+3. Add a `*.json` endpoint in `dev-hub.controller.ts` if the page needs
+   data the existing endpoints don't expose.
+4. Wrap the page body in `<AdminShell title=… subtitle=… currentNav=…>`.
+5. Re-use the server classnames from `admin-layout.css` so the visual
+   diff stays zero.
 
 ## Build
 
 `scripts/build-dev-portal.ts` invokes `Bun.build({ target: "browser",
 splitting: true, minify: true })` and writes the bundle to
-`dist/dev-portal/`. The output is gitignored. Hot reload in dev: the
-build script accepts a `--watch` flag and `scripts/dev.ts` starts it
-in parallel with the API.
+`dist/dev-portal/`. The output is gitignored. `bun run dev` awaits the
+initial build before spawning the API so `/dev/static/main.js` is never
+missing on first paint, then starts a watcher for incremental rebuilds
+(~80 ms warm).
 
 ## Coverage
 
@@ -55,7 +89,9 @@ contract because it crosses the trust boundary (server → browser).
 
 UI glue here is exercised manually in development and by future
 Playwright/Chrome-DevTools-MCP smoke tests; both are fine, neither is
-counted in `bun run test:coverage`.
+counted in `bun run test:coverage`. The cross-tier contract (route
+table ↔ sidebar nav ↔ JSON endpoints ↔ classname catalogue) is
+mechanically pinned by `tests/stories/dev-portal-pages.story.test.ts`.
 
 ## When you add a component
 

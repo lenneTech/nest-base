@@ -1,65 +1,82 @@
 /**
  * Top-level layout + route table for the Dev-Portal SPA.
  *
- * The route shape mirrors the existing server-rendered map: only the
- * landing (`/dev`) and the components showcase (`/dev/components`) are
- * implemented in React for v1. Every other `/dev/*` path is still
- * handled server-side; the controller's catch-all is what wires the
- * SPA shell up — for those routes the SPA is never reached.
+ * Every server-rendered `/dev/*` HTML page is now a React route that
+ * fetches its sibling `*.json` endpoint and renders the same DOM the
+ * legacy `*-ui.ts` renderer produced. The active route owns its own
+ * `AdminShell` (so each page can set its own title / subtitle / nav
+ * highlight, exactly like the server).
  *
- * `<RouterProvider/>` would be lighter weight but `BrowserRouter` keeps
- * the bundle and ergonomics simpler for v1.
+ * Pages are loaded with `React.lazy` so the initial bundle stays
+ * small (only the landing page + chrome + react-aria primitives the
+ * landing actually uses ship in `main.js`; the rest of the pages
+ * land as on-demand chunks).
  */
-import { NavLink, Route, Routes } from "react-router-dom";
+import { lazy, Suspense, type ReactNode } from "react";
+import { Route, Routes } from "react-router-dom";
 
-import { ComponentShowcasePage } from "./pages/ComponentShowcasePage.js";
-import { DevHubLandingPage } from "./pages/DevHubLandingPage.js";
+const DevHubLandingPage = lazy(() =>
+  import("./pages/DevHubLandingPage.js").then((m) => ({ default: m.DevHubLandingPage })),
+);
+const ComponentShowcasePage = lazy(() =>
+  import("./pages/ComponentShowcasePage.js").then((m) => ({ default: m.ComponentShowcasePage })),
+);
+const FeaturesPage = lazy(() =>
+  import("./pages/FeaturesPage.js").then((m) => ({ default: m.FeaturesPage })),
+);
+const CoveragePage = lazy(() =>
+  import("./pages/CoveragePage.js").then((m) => ({ default: m.CoveragePage })),
+);
+const TestsPage = lazy(() =>
+  import("./pages/TestsPage.js").then((m) => ({ default: m.TestsPage })),
+);
+const DiagnosticsPage = lazy(() =>
+  import("./pages/DiagnosticsPage.js").then((m) => ({ default: m.DiagnosticsPage })),
+);
+const LogsPage = lazy(() => import("./pages/LogsPage.js").then((m) => ({ default: m.LogsPage })));
+const TracesPage = lazy(() =>
+  import("./pages/TracesPage.js").then((m) => ({ default: m.TracesPage })),
+);
+const QueriesPage = lazy(() =>
+  import("./pages/QueriesPage.js").then((m) => ({ default: m.QueriesPage })),
+);
+const RoutesPage = lazy(() =>
+  import("./pages/RoutesPage.js").then((m) => ({ default: m.RoutesPage })),
+);
+const ErdPage = lazy(() => import("./pages/ErdPage.js").then((m) => ({ default: m.ErdPage })));
+const EmailPreviewPage = lazy(() =>
+  import("./pages/EmailPreviewPage.js").then((m) => ({ default: m.EmailPreviewPage })),
+);
+const PostgrestParsePage = lazy(() =>
+  import("./pages/PostgrestParsePage.js").then((m) => ({ default: m.PostgrestParsePage })),
+);
 
-interface NavItem {
-  to: string;
-  label: string;
-  end?: boolean;
+function PageFallback(): ReactNode {
+  return (
+    <div className="dp-page-suspense">
+      <span className="log-pulse" /> Loading page chunk…
+    </div>
+  );
 }
 
-const NAV: NavItem[] = [
-  { to: "/dev", label: "Dev Hub", end: true },
-  { to: "/dev/components", label: "Components" },
-];
-
-export function App() {
+export function App(): ReactNode {
   return (
-    <div className="dp-shell">
-      <aside className="dp-sidebar">
-        <div className="dp-brand">
-          <span className="dp-brand__logo" aria-hidden="true">
-            n
-          </span>
-          <div className="dp-brand__text">
-            <span className="dp-brand__name">nest-server</span>
-            <span className="dp-brand__env">development</span>
-          </div>
-        </div>
-        <nav className="dp-nav">
-          {NAV.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                isActive ? "dp-nav__link dp-nav__link--active" : "dp-nav__link"
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-      </aside>
-      <main className="dp-main">
-        <Routes>
-          <Route path="/dev" element={<DevHubLandingPage />} />
-          <Route path="/dev/components" element={<ComponentShowcasePage />} />
-        </Routes>
-      </main>
-    </div>
+    <Suspense fallback={<PageFallback />}>
+      <Routes>
+        <Route path="/dev" element={<DevHubLandingPage />} />
+        <Route path="/dev/components" element={<ComponentShowcasePage />} />
+        <Route path="/dev/features" element={<FeaturesPage />} />
+        <Route path="/dev/coverage" element={<CoveragePage />} />
+        <Route path="/dev/tests" element={<TestsPage />} />
+        <Route path="/dev/diagnostics" element={<DiagnosticsPage />} />
+        <Route path="/dev/logs" element={<LogsPage />} />
+        <Route path="/dev/traces" element={<TracesPage />} />
+        <Route path="/dev/queries" element={<QueriesPage />} />
+        <Route path="/dev/routes" element={<RoutesPage />} />
+        <Route path="/dev/erd" element={<ErdPage />} />
+        <Route path="/dev/email-preview" element={<EmailPreviewPage />} />
+        <Route path="/dev/postgrest-parse" element={<PostgrestParsePage />} />
+      </Routes>
+    </Suspense>
   );
 }

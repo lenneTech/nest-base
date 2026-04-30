@@ -6,10 +6,21 @@
  * (`dev-portal-shell.ts` on the server) loads this bundle as
  * `type="module"` from `/dev/static/main.js`.
  *
+ * Two stylesheets are imported here so Bun emits them as siblings of
+ * the bundle:
+ *  1. `tokens.css` — the design-token `:root` (also served standalone
+ *     so the shell HTML can preload it via `<link rel="stylesheet">`).
+ *  2. `admin-layout.css` — full server-CSS port (resets, sidebar, all
+ *     `*-ui.ts` page styles). The React tree re-uses every server
+ *     classname so the two surfaces stay pixel-identical.
+ *  3. `components.css` — the `dp-*` react-aria primitive styles only.
+ *
  * Splitting + minify: see `scripts/build-dev-portal.ts`. Coverage for
  * this tree is excluded by `vitest.config.ts` — Bun runs the bundle in
  * a real browser context, not v8.
  */
+import "./styles/tokens.css";
+import "./styles/admin-layout.css";
 import "./styles/components.css";
 
 import { StrictMode } from "react";

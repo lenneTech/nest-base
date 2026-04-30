@@ -31,7 +31,6 @@ import { resolveEffectiveBaseUrl } from "./effective-base-url.js";
 import { planEnvFileUpdate } from "./env-file-update.js";
 import { FEATURE_CATALOG } from "./feature-catalog.js";
 import { renderFeaturesPage } from "./features-ui.js";
-import { renderJsonViewerPage } from "./json-viewer-ui.js";
 import { buildDiagnosticsReport, type DiagnosticsReport } from "./diagnostics.js";
 import {
   buildEmailPreviewCatalog,
@@ -204,6 +203,65 @@ export class DevHubController {
     }
   }
 
+  /**
+   * `/dev/dashboard.json` — aggregate that the React `/dev` landing
+   * needs to mirror the server-rendered cockpit (`dashboard-ui.ts`).
+   * One request → all the data the hero / stats grid / services / log
+   * preview / feature overview need, so the SPA never fans out into
+   * 8 sibling fetches on the first paint.
+   */
+  @Get("dashboard.json")
+  async dashboardJson(): Promise<unknown> {
+    this.assertDev();
+    const features = this.featuresOnly();
+    const cfg = serverConfigFromEnv(process.env);
+    const effective = resolveEffectiveBaseUrl({
+      baseUrl: cfg.baseUrl,
+      port: cfg.port,
+      env_vars: {
+        ...(process.env.DISABLE_PORTLESS ? { DISABLE_PORTLESS: process.env.DISABLE_PORTLESS } : {}),
+        ...(process.env.PORTLESS_ACTIVE ? { PORTLESS_ACTIVE: process.env.PORTLESS_ACTIVE } : {}),
+      },
+    });
+    const candidates = planServiceCandidates({
+      baseUrl: effective.publicUrl,
+      loopbackUrl: effective.loopbackUrl,
+      features,
+      env_vars: {
+        ...(process.env.DATABASE_URL ? { DATABASE_URL: process.env.DATABASE_URL } : {}),
+        ...(process.env.PRISMA_STUDIO ? { PRISMA_STUDIO: process.env.PRISMA_STUDIO } : {}),
+        ...(process.env.MAILPIT_WEB_URL ? { MAILPIT_WEB_URL: process.env.MAILPIT_WEB_URL } : {}),
+        ...(process.env.POWERSYNC_URL ? { POWERSYNC_URL: process.env.POWERSYNC_URL } : {}),
+      },
+    });
+    const repoRoot = process.cwd();
+    const [probes, coverage, tests] = await Promise.all([
+      probeServices(candidates, { timeoutMs: 600 }),
+      this.readCoverageSummary(repoRoot),
+      this.readTestSummary(repoRoot),
+    ]);
+    const buffer = getLogBuffer();
+    const mem = process.memoryUsage();
+    return {
+      baseUrl: effective.publicUrl,
+      uptimeMs: Math.round(process.uptime() * 1000),
+      memory: { heapUsed: mem.heapUsed, heapTotal: mem.heapTotal, rss: mem.rss },
+      process: {
+        node: process.versions.node,
+        ...(readBunVersion() ? { bun: readBunVersion()! } : {}),
+        platform: process.platform,
+      },
+      features,
+      catalog: FEATURE_CATALOG,
+      probes,
+      coverage,
+      tests,
+      logs: buffer.recent(50),
+      logBufferCapacity: buffer.capacity(),
+      queries: getQueryBuffer().summary(),
+    };
+  }
+
   @Get("status.json")
   async statusJson(): Promise<ServiceProbeResult[]> {
     this.assertDev();
@@ -235,6 +293,24 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   features(): string {
     this.assertDev();
+    // SPA shell — the React `/dev/features` page fetches
+    // `/dev/feature-catalog.json` and renders the same DOM the
+    // legacy `renderFeaturesPage` produced. The legacy renderer is
+    // still imported (for the `/dev/cockpit` regression escape) but
+    // is no longer the canonical surface.
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Features" }));
+  }
+
+  /**
+   * Legacy server-rendered `/dev/features.html` — kept as the
+   * canonical reference for the React port. Useful when comparing
+   * pixel fidelity side-by-side. Always returns the legacy CSS-in-HTML
+   * page; never the SPA shell.
+   */
+  @Get("features.html")
+  @Header("content-type", "text/html; charset=utf-8")
+  featuresLegacyPage(): string {
+    this.assertDev();
     return renderFeaturesPage(this.featuresOnly());
   }
 
@@ -242,6 +318,19 @@ export class DevHubController {
   featuresJson(): Features {
     this.assertDev();
     return this.featuresOnly();
+  }
+
+  /**
+   * `/dev/feature-catalog.json` — feature roster + descriptions used
+   * by the React `/dev/features` page. Server-rendered HTML inlines
+   * `FEATURE_CATALOG`; the SPA needs an API for it. The shape mirrors
+   * `FEATURE_CATALOG` directly so a UI change requires no protocol
+   * negotiation — add a field there, surface it here.
+   */
+  @Get("feature-catalog.json")
+  featureCatalogJson(): { catalog: typeof FEATURE_CATALOG; features: Features } {
+    this.assertDev();
+    return { catalog: FEATURE_CATALOG, features: this.featuresOnly() };
   }
 
   @Post("features/:key/toggle")
@@ -305,53 +394,51 @@ export class DevHubController {
       res.type("application/json").send(JSON.stringify(data));
       return;
     }
-    const rawJsonHref =
-      Object.keys(filterQuery).length === 0
-        ? "/dev/postgrest-parse?format=json"
-        : `/dev/postgrest-parse?${new URLSearchParams({ ...filterQuery, format: "json" }).toString()}`;
-    const prelude =
-      Object.keys(filterQuery).length === 0
-        ? '<p class="admin-meta">Try <a href="/dev/postgrest-parse?status=eq.draft&age=gte.18">?status=eq.draft&age=gte.18</a> to see how PostgREST-style filters map to a Prisma WHERE clause.</p>'
-        : "";
-    res.type("text/html; charset=utf-8").send(
-      renderJsonViewerPage({
-        title: "PostgREST Parser",
-        subtitle: "Mapping of `?key=op.value` query strings to a Prisma `where` clause.",
-        currentNav: "postgrest-parse",
-        prelude,
-        value: data,
-        rawJsonHref,
-      }),
-    );
+    // The HTML branch is now served by the SPA shell — the React
+    // `/dev/postgrest-parse` page fetches the same handler with
+    // `?format=json` and renders the parsed where-clause through the
+    // JSON viewer component (still pixel-faithful to the legacy
+    // `renderJsonViewerPage`). This keeps the dev-portal SPA the
+    // single owner of the dev-hub chrome.
+    res
+      .type("text/html; charset=utf-8")
+      .send(renderDevPortalShell(buildDevPortalShellInput({ title: "PostgREST Parser" })));
   }
 
   @Get("coverage")
   @Header("content-type", "text/html; charset=utf-8")
-  async coverage(): Promise<string> {
+  coverage(): string {
     this.assertDev();
-    const repoRoot = process.cwd();
-    const path = resolve(repoRoot, "reports", "coverage", "coverage-summary.json");
-    let summary: RawCoverageSummary | undefined;
-    let generatedAt: string | undefined;
-    try {
-      const buf = await readFile(path, "utf8");
-      summary = JSON.parse(buf) as RawCoverageSummary;
-      const st = await stat(path);
-      generatedAt = st.mtime.toISOString();
-    } catch {
-      summary = undefined;
-    }
-    const report = buildCoverageReport({
-      repoRoot,
-      ...(summary ? { summary } : {}),
-      ...(generatedAt ? { generatedAt } : {}),
-    });
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Coverage" }));
+  }
+
+  /** Legacy server-rendered coverage page — see `featuresLegacyPage`. */
+  @Get("coverage.html")
+  @Header("content-type", "text/html; charset=utf-8")
+  async coverageLegacyPage(): Promise<string> {
+    this.assertDev();
+    const report = await this.readCoverageSummary(process.cwd());
     return renderCoveragePage(report);
+  }
+
+  /** JSON sibling for the React `/dev/coverage` page. */
+  @Get("coverage.json")
+  async coverageJson(): Promise<unknown> {
+    this.assertDev();
+    return this.readCoverageSummary(process.cwd());
   }
 
   @Get("logs")
   @Header("content-type", "text/html; charset=utf-8")
   logsPage(): string {
+    this.assertDev();
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Logs" }));
+  }
+
+  /** Legacy server-rendered logs page — see `featuresLegacyPage`. */
+  @Get("logs.html")
+  @Header("content-type", "text/html; charset=utf-8")
+  logsLegacyPage(): string {
     this.assertDev();
     const buffer = getLogBuffer();
     return renderLogViewerPage({
@@ -371,31 +458,38 @@ export class DevHubController {
 
   @Get("tests")
   @Header("content-type", "text/html; charset=utf-8")
-  async tests(): Promise<string> {
+  tests(): string {
     this.assertDev();
-    const repoRoot = process.cwd();
-    const path = resolve(repoRoot, "coverage", "test-summary.json");
-    let summary: RawTestSummary | undefined;
-    let generatedAt: string | undefined;
-    try {
-      const buf = await readFile(path, "utf8");
-      summary = JSON.parse(buf) as RawTestSummary;
-      const st = await stat(path);
-      generatedAt = st.mtime.toISOString();
-    } catch {
-      summary = undefined;
-    }
-    const report = buildTestSummary({
-      repoRoot,
-      ...(summary ? { summary } : {}),
-      ...(generatedAt ? { generatedAt } : {}),
-    });
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Tests" }));
+  }
+
+  /** Legacy server-rendered tests page — see `featuresLegacyPage`. */
+  @Get("tests.html")
+  @Header("content-type", "text/html; charset=utf-8")
+  async testsLegacyPage(): Promise<string> {
+    this.assertDev();
+    const report = await this.readTestSummary(process.cwd());
     return renderTestSummaryPage(report);
+  }
+
+  /** JSON sibling for the React `/dev/tests` page. */
+  @Get("tests.json")
+  async testsJson(): Promise<unknown> {
+    this.assertDev();
+    return this.readTestSummary(process.cwd());
   }
 
   @Get("diagnostics")
   @Header("content-type", "text/html; charset=utf-8")
   diagnostics(): string {
+    this.assertDev();
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Diagnostics" }));
+  }
+
+  /** Legacy server-rendered diagnostics page — see `featuresLegacyPage`. */
+  @Get("diagnostics.html")
+  @Header("content-type", "text/html; charset=utf-8")
+  diagnosticsLegacyPage(): string {
     this.assertDev();
     return renderDiagnosticsPage(this.buildDiagnostics());
   }
@@ -410,6 +504,14 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   routesPage(): string {
     this.assertDev();
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Routes" }));
+  }
+
+  /** Legacy server-rendered routes page — see `featuresLegacyPage`. */
+  @Get("routes.html")
+  @Header("content-type", "text/html; charset=utf-8")
+  routesLegacyPage(): string {
+    this.assertDev();
     return renderRouteInventoryPage(this.routes.build());
   }
 
@@ -423,6 +525,14 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   erdPage(): string {
     this.assertDev();
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "ERD" }));
+  }
+
+  /** Legacy server-rendered ERD page — see `featuresLegacyPage`. */
+  @Get("erd.html")
+  @Header("content-type", "text/html; charset=utf-8")
+  erdLegacyPage(): string {
+    this.assertDev();
     return renderErdPage(buildErdForProject());
   }
 
@@ -435,6 +545,14 @@ export class DevHubController {
   @Get("traces")
   @Header("content-type", "text/html; charset=utf-8")
   tracesPage(): string {
+    this.assertDev();
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Traces" }));
+  }
+
+  /** Legacy server-rendered traces page — see `featuresLegacyPage`. */
+  @Get("traces.html")
+  @Header("content-type", "text/html; charset=utf-8")
+  tracesLegacyPage(): string {
     this.assertDev();
     const buffer = getTraceBuffer();
     return renderTraceViewerPage({
@@ -465,6 +583,14 @@ export class DevHubController {
   @Get("queries")
   @Header("content-type", "text/html; charset=utf-8")
   queriesPage(): string {
+    this.assertDev();
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Queries" }));
+  }
+
+  /** Legacy server-rendered queries page — see `featuresLegacyPage`. */
+  @Get("queries.html")
+  @Header("content-type", "text/html; charset=utf-8")
+  queriesLegacyPage(): string {
     this.assertDev();
     const buffer = getQueryBuffer();
     return renderQueryViewerPage({
@@ -503,7 +629,15 @@ export class DevHubController {
 
   @Get("email-preview")
   @Header("content-type", "text/html; charset=utf-8")
-  async emailPreviewPage(): Promise<string> {
+  emailPreviewPage(): string {
+    this.assertDev();
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Email Preview" }));
+  }
+
+  /** Legacy server-rendered email-preview page — see `featuresLegacyPage`. */
+  @Get("email-preview.html")
+  @Header("content-type", "text/html; charset=utf-8")
+  async emailPreviewLegacyPage(): Promise<string> {
     this.assertDev();
     const renderer = new EjsEmailTemplateRenderer(buildBuiltInEmailTemplateRegistry());
     const catalog = buildEmailPreviewCatalog();

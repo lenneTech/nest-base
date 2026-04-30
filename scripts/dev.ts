@@ -45,12 +45,50 @@ import {
 // Start the Dev-Portal SPA build in watch mode alongside the API. Bun
 // rebuilds incrementally (~80ms warm) so an edit to `src/core/dx/clients/`
 // is reflected on the next browser refresh without a manual rebuild.
+//
+// IMPORTANT: we await the *initial* build before spawning the API child
+// so a request to `/dev/static/main.js` never hits a missing bundle on
+// first paint. The watcher then keeps the bundle fresh in the
+// background.
 const portalEntry = resolve(process.cwd(), 'src/core/dx/clients/main.tsx');
-const portalWatcher: ChildProcess | undefined = existsSync(portalEntry)
-  ? spawn('bun', ['run', 'scripts/build-dev-portal.ts', '--watch'], {
-      stdio: 'inherit',
-    })
-  : undefined;
+const portalDist = resolve(process.cwd(), 'dist/dev-portal');
+
+let portalWatcher: ChildProcess | undefined;
+
+async function ensureInitialPortalBuild(): Promise<void> {
+  if (!existsSync(portalEntry)) return;
+  // 1) Run a one-shot, non-watch build that we can `await`. This is
+  //    the bundle that the API will serve at `/dev/static/*.js` until
+  //    the watcher's first incremental build catches up.
+  console.log('[dev] building Dev-Portal SPA (initial)…');
+  const built = Bun.spawnSync(['bun', 'run', 'scripts/build-dev-portal.ts'], {
+    stdio: ['inherit', 'inherit', 'inherit'],
+  });
+  if (built.exitCode !== 0) {
+    console.error(
+      '[dev] Dev-Portal initial build failed — `/dev/*` will return the SPA shell but the bundle will be missing.',
+    );
+    return;
+  }
+  // 2) Now start the watcher to track subsequent edits.
+  portalWatcher = spawn('bun', ['run', 'scripts/build-dev-portal.ts', '--watch'], {
+    stdio: 'inherit',
+  });
+}
+
+await ensureInitialPortalBuild();
+
+// Sanity check: the controller serves the bundle from
+// `dist/dev-portal/`. If the dir is empty after the build attempt
+// (e.g. a previous build left a half-written state), warn loudly so
+// the user can spot it before they hit `/dev` and see a blank page.
+if (existsSync(portalEntry) && !existsSync(resolve(portalDist, 'main.js'))) {
+  console.warn(
+    '[dev] Dev-Portal bundle appears missing at',
+    portalDist,
+    '— `/dev/*` will return the shell but the SPA will not boot.',
+  );
+}
 
 function which(bin: string): string | undefined {
   const result = Bun.spawnSync(['which', bin]);
