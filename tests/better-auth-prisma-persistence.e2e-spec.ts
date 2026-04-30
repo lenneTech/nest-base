@@ -57,9 +57,10 @@ describe("Better-Auth · Prisma persistence", () => {
       });
 
     // Better-Auth 1.6 returns 200 on a successful email/password
-    // sign-up. Anything else is either a config error (4xx/5xx) or a
-    // validation rejection — we want the persistence path here.
-    expect(res.status).toBe(200);
+    // sign-up; if a future schema-mismatch regresses persistence,
+    // include the response body in the failure message so the cause
+    // (column missing, RLS rejection, etc.) is one log line away.
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
 
     // The user row exists with the email Better-Auth received.
     const persisted = await prisma.user.findUnique({ where: { email } });

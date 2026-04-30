@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 
 import { type Features, loadFeatures } from "../features/features.js";
+import { PrismaService } from "../prisma/prisma.service.js";
 import { serverConfigFromEnv } from "../server/server-config.js";
 import { BetterAuthController } from "./better-auth.controller.js";
 import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from "./better-auth.token.js";
@@ -27,7 +28,7 @@ const MIN_SECRET_LEN = 32;
   providers: [
     {
       provide: BETTER_AUTH_INSTANCE,
-      useFactory: (): BetterAuthInstance | null => {
+      useFactory: (prisma: PrismaService): BetterAuthInstance | null => {
         const secret = process.env.BETTER_AUTH_SECRET ?? "";
         if (secret.length < MIN_SECRET_LEN) return null;
 
@@ -38,6 +39,11 @@ const MIN_SECRET_LEN = 32;
           secret,
           baseUrl: cfg.baseUrl,
           sessionExpiresInSeconds: 60 * 60 * 24 * 7,
+          // `prisma` is the global PrismaService — passing it switches
+          // Better-Auth from the in-memory storage (which silently
+          // dropped registrations on every restart) to the real
+          // Postgres-backed Prisma adapter.
+          prisma,
           ...(features.authMethods.twoFactor ? { twoFactor: { issuer: "nest-server" } } : {}),
           ...(features.authMethods.passkey ? { passkey: { rpName: "nest-server" } } : {}),
           ...(features.authMethods.socialProviders.length > 0
@@ -48,6 +54,7 @@ const MIN_SECRET_LEN = 32;
           ...(features.powerSync.enabled ? { jwtPlugin: { audience: "powersync" } } : {}),
         });
       },
+      inject: [PrismaService],
     },
   ],
   exports: [BETTER_AUTH_INSTANCE],

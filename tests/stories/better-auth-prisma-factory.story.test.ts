@@ -43,7 +43,7 @@ describe("Story · Better-Auth factory · Prisma persistence", () => {
       secret: "a".repeat(32),
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 60,
-      prisma: stubPrisma as unknown as never,
+      prisma: stubPrisma,
     });
     // Better-Auth normalises `database` into a function once a real
     // adapter is supplied. Whatever the precise shape is, presence is
