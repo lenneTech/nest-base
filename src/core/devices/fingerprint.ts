@@ -108,7 +108,7 @@ function expandIpv6(ip: string): string[] | null {
   const tail = parts[1] ? parts[1].split(":") : [];
   const filled = parts.length === 2 ? 8 - head.length - tail.length : 8 - head.length;
   if (filled < 0) return null;
-  const middle = parts.length === 2 ? new Array<string>(filled).fill("0") : [];
+  const middle = parts.length === 2 ? Array.from<string>({ length: filled }).fill("0") : [];
   const groups = [...head, ...middle, ...tail];
   if (groups.length !== 8) return null;
   // Strip leading zeros so equivalent forms hash the same.

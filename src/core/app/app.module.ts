@@ -8,6 +8,7 @@ import { BetterAuthModule } from "../auth/better-auth.module.js";
 import { PowerSyncModule } from "../auth/powersync.module.js";
 import { BetterAuthSessionMiddleware } from "../auth/session-middleware.js";
 import { ConfigModule } from "../config/config.module.js";
+import { DeviceModule } from "../devices/device.module.js";
 import { DevHubModule } from "../dx/dev-hub.module.js";
 import { EmailModule } from "../email/email.module.js";
 import { EmailOutboxModule } from "../email/email-outbox.module.js";
@@ -75,6 +76,7 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     GdprModule,
     GeoModule,
     GeoIpModule,
+    DeviceModule,
     PowerSyncModule,
     IdempotencyModule,
     // EmailOutboxModule must come BEFORE EmailModule so the

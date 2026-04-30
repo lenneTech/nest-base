@@ -29,14 +29,12 @@ import {
 describe("Story · device-handling planner", () => {
   const now = new Date("2026-04-30T10:00:00Z");
 
-  function session(
-    overrides: Partial<KnownSession> & { fp: string; lastSeenAt: string; id?: string },
-  ): KnownSession {
+  function session(input: { fp: string; lastSeenAt: string; id?: string }): KnownSession {
     return {
-      id: overrides.id ?? `s-${overrides.fp.slice(0, 6)}`,
-      fingerprintHash: overrides.fp,
-      lastSeenAt: new Date(overrides.lastSeenAt),
-      createdAt: new Date(overrides.lastSeenAt),
+      id: input.id ?? `s-${input.fp.slice(0, 6)}`,
+      fingerprintHash: input.fp,
+      lastSeenAt: new Date(input.lastSeenAt),
+      createdAt: new Date(input.lastSeenAt),
     };
   }
 

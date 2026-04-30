@@ -4,11 +4,13 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { jwt } from "better-auth/plugins/jwt";
 import { twoFactor } from "better-auth/plugins/two-factor";
 
+import type { DeviceHandlingRunner } from "../devices/device-handling.runner.js";
 import { resolveBetterAuthMountPath } from "./better-auth-config.js";
 import {
   createEmailHookRunner,
   type EmailSenderForHooks,
 } from "./better-auth-email-hooks.runner.js";
+import type { NewDeviceThrottle } from "../devices/new-device-throttle.js";
 
 /**
  * Better-Auth instance factory.
@@ -95,6 +97,14 @@ export interface BuildBetterAuthInput {
    * back to its built-in default — currently a no-op stub.
    */
   emailHooks?: EmailHooksOptions;
+  /**
+   * Optional device-handling runner (issue #13). When wired, every
+   * session-create lands in `runner.handleSessionCreated(...)` so
+   * the system can fingerprint the device, look up the user's
+   * other sessions, send a "new device" email, and revoke the
+   * oldest session above the per-user cap.
+   */
+  deviceHandling?: { runner: DeviceHandlingRunner };
 }
 
 export interface EmailHooksOptions {
@@ -112,6 +122,12 @@ export interface EmailHooksOptions {
    * has the recorder injected.
    */
   useOutbox?: boolean;
+  /**
+   * Optional throttle for the new-device mail (issue #13). 1 mail
+   * per user per hour by default; provided here so the runner can
+   * use it.
+   */
+  newDeviceThrottle?: NewDeviceThrottle;
 }
 
 export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof betterAuth> {
@@ -182,6 +198,9 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
         // (issue #11). Tests / call-sites that want the legacy direct
         // path can opt out by passing `useOutbox: false`.
         useOutbox: input.emailHooks.useOutbox ?? true,
+        ...(input.emailHooks.newDeviceThrottle
+          ? { newDeviceThrottle: input.emailHooks.newDeviceThrottle }
+          : {}),
       })
     : undefined;
 
@@ -231,12 +250,47 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
         }
       : undefined;
 
+  // Device-handling (issue #13). The runner reads the just-created
+  // session row, computes a fingerprint, and decides whether to
+  // notify the user / revoke an old session. The hook is wired
+  // unconditionally when supplied — the runner itself short-circuits
+  // when the feature flag is off.
+  const deviceRunner = input.deviceHandling?.runner;
+  const databaseHooks = deviceRunner
+    ? {
+        session: {
+          create: {
+            async after(
+              session: {
+                id: string;
+                userId: string;
+                userAgent?: string | null;
+                ipAddress?: string | null;
+              } & Record<string, unknown>,
+            ): Promise<void> {
+              await deviceRunner.handleSessionCreated({
+                sessionId: session.id,
+                // Better-Auth's session payload doesn't carry the
+                // user's email/name — the runner resolves both via
+                // its injected `userLookup` adapter at email-send
+                // time. We forward only the id here.
+                user: { id: session.userId },
+                userAgent: session.userAgent ?? null,
+                ipAddress: session.ipAddress ?? null,
+              });
+            },
+          },
+        },
+      }
+    : undefined;
+
   const options: BetterAuthOptions = {
     secret: input.secret,
     baseURL: input.baseUrl,
     basePath,
     emailAndPassword: emailAndPasswordOptions,
     ...(emailVerificationOptions ? { emailVerification: emailVerificationOptions } : {}),
+    ...(databaseHooks ? { databaseHooks } : {}),
     session: {
       expiresIn: input.sessionExpiresInSeconds,
     },
