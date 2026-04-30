@@ -722,9 +722,7 @@ export class DevHubController {
       layouts: KNOWN_EMAIL_LAYOUTS.map((name) => ({
         name,
         description:
-          name === "Barebone"
-            ? "Default frame: brand header, container, body, footer."
-            : "",
+          name === "Barebone" ? "Default frame: brand header, container, body, footer." : "",
       })),
     };
   }

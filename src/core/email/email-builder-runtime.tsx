@@ -27,10 +27,7 @@ import { render, toPlainText } from "@react-email/render";
 import { Barebone } from "./layouts/Barebone.js";
 import { CTA, Code, Divider, Footer, Greeting, Paragraph } from "./blocks/index.js";
 import { defaultBrandConfig, type BrandConfig } from "./brand.js";
-import {
-  type EmailBlockSpec,
-  type EmailComposition,
-} from "./email-builder.js";
+import { type EmailBlockSpec, type EmailComposition } from "./email-builder.js";
 
 export interface RenderEmailCompositionInput {
   composition: EmailComposition;
@@ -69,15 +66,16 @@ export async function renderEmailComposition(
       ? interpolate(input.composition.preheader, vars)
       : undefined;
 
-  const children = input.composition.children.map((block, i) =>
-    renderBlock(block, vars, brand, i),
-  );
+  const children = input.composition.children.map((block, i) => renderBlock(block, vars, brand, i));
 
-  const tree = React.createElement(
-    Barebone,
-    preheader !== undefined ? { brand, preheader } : { brand },
-    ...children,
-  );
+  const tree =
+    preheader !== undefined ? (
+      <Barebone brand={brand} preheader={preheader}>
+        {children}
+      </Barebone>
+    ) : (
+      <Barebone brand={brand}>{children}</Barebone>
+    );
   const html = await render(tree);
   const text = toPlainText(html);
   return { subject, html, text };
@@ -90,28 +88,47 @@ function renderBlock(
   index: number,
 ): React.ReactElement {
   const key = `block-${index}`;
-  const text =
-    typeof block.props?.text === "string" ? interpolate(block.props.text, vars) : "";
+  const text = typeof block.props?.text === "string" ? interpolate(block.props.text, vars) : "";
   switch (block.type) {
     case "greeting":
-      return React.createElement(Greeting, { key, brand }, text);
+      return (
+        <Greeting key={key} brand={brand}>
+          {text}
+        </Greeting>
+      );
     case "paragraph":
-      return React.createElement(Paragraph, { key, brand }, text);
+      return (
+        <Paragraph key={key} brand={brand}>
+          {text}
+        </Paragraph>
+      );
     case "cta": {
       const href =
         typeof block.props?.href === "string" ? interpolate(block.props.href, vars) : "#";
-      return React.createElement(CTA, { key, brand, href }, text);
+      return (
+        <CTA key={key} brand={brand} href={href}>
+          {text}
+        </CTA>
+      );
     }
     case "footer":
-      return React.createElement(Footer, { key, brand }, text);
+      return (
+        <Footer key={key} brand={brand}>
+          {text}
+        </Footer>
+      );
     case "code":
-      return React.createElement(Code, { key, brand }, text);
+      return (
+        <Code key={key} brand={brand}>
+          {text}
+        </Code>
+      );
     case "divider":
-      return React.createElement(Divider, { key });
+      return <Divider key={key} />;
     default:
       // Unknown block: render an empty fragment so the surrounding
       // tree still renders. Validation upstream (validateEmailComposition)
       // catches this before it ever reaches us.
-      return React.createElement(React.Fragment, { key });
+      return <React.Fragment key={key} />;
   }
 }

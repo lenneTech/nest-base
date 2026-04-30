@@ -67,9 +67,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
       // Each entry exposes `source` (core/module), absolute file path,
       // and `subject` (rendered against the sample payload) so the
       // gallery can render thumbnails without a second round-trip.
-      const entry = res.body.templates.find(
-        (t: { name: string }) => t.name === "password-reset",
-      );
+      const entry = res.body.templates.find((t: { name: string }) => t.name === "password-reset");
       expect(entry.source).toBe("core");
       expect(typeof entry.file).toBe("string");
       expect(typeof entry.subject).toBe("string");

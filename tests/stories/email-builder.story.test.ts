@@ -20,12 +20,9 @@ import {
  */
 describe("Story · Email-Builder", () => {
   describe("isValidEmailTemplateSlug", () => {
-    it.each(["welcome", "password-reset", "abc123", "a", "x-y-z"])(
-      "accepts %s",
-      (slug) => {
-        expect(isValidEmailTemplateSlug(slug)).toBe(true);
-      },
-    );
+    it.each(["welcome", "password-reset", "abc123", "a", "x-y-z"])("accepts %s", (slug) => {
+      expect(isValidEmailTemplateSlug(slug)).toBe(true);
+    });
 
     it.each([
       "",
@@ -228,7 +225,7 @@ describe("Story · Email-Builder", () => {
       expect(source).toContain("preheader=");
       // Variable interpolation `{{recipientName}}` becomes `{props.recipientName}`
       expect(source).toContain("{props.recipientName}");
-      expect(source).toContain('href={props.verificationUrl}');
+      expect(source).toContain("href={props.verificationUrl}");
     });
 
     it("two calls with the same input produce the same output (deterministic)", () => {
@@ -266,9 +263,7 @@ describe("Story · Email-Builder", () => {
       const composition: EmailComposition = {
         layout: "Barebone",
         subject: "Hi",
-        children: [
-          { type: "paragraph", props: { text: 'She said "hello" and left.' } },
-        ],
+        children: [{ type: "paragraph", props: { text: 'She said "hello" and left.' } }],
       };
       const source = composeEmailTemplateSource({ slug: "quoted", composition });
       // Either escapes the inner quotes or uses JSX child text safely —

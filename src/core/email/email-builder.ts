@@ -230,9 +230,7 @@ export function composeEmailTemplateSource(input: ComposeEmailTemplateSourceInpu
       ? renderInterpolatedTemplateLiteral(composition.preheader)
       : null;
 
-  const childrenJsx = composition.children
-    .map((block) => renderBlockJsx(block))
-    .join("\n");
+  const childrenJsx = composition.children.map((block) => renderBlockJsx(block)).join("\n");
 
   const lines: string[] = [
     "/**",
@@ -259,7 +257,9 @@ export function composeEmailTemplateSource(input: ComposeEmailTemplateSourceInpu
   lines.push(`export interface ${pascalName}Props extends ${pascalName}Vars {`);
   lines.push("  brand?: BrandConfig;");
   lines.push("}", "");
-  lines.push(`export default function ${pascalName}(props: ${pascalName}Props): React.ReactElement {`);
+  lines.push(
+    `export default function ${pascalName}(props: ${pascalName}Props): React.ReactElement {`,
+  );
   const preheaderAttr = preheaderExpression ? ` preheader={${preheaderExpression}}` : "";
   lines.push("  return (");
   lines.push(`    <Barebone brand={props.brand}${preheaderAttr}>`);
@@ -398,11 +398,7 @@ function renderBlockJsx(block: EmailBlockSpec): string {
       const href = block.props?.href;
       const hrefAttr =
         typeof href === "string" ? ` href={${renderInterpolatedJsxChildren(href)}}` : "";
-      return wrapJsx(
-        "CTA",
-        `brand={props.brand}${hrefAttr}`,
-        textChild(block.props?.text),
-      );
+      return wrapJsx("CTA", `brand={props.brand}${hrefAttr}`, textChild(block.props?.text));
     }
     case "footer":
       return wrapJsx("Footer", "brand={props.brand}", textChild(block.props?.text));
