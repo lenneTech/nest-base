@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { IpxAssetTransformer } from "../../src/core/files/ipx-transformer.js";
-import { emerald8x8Png } from "../lib/png-fixture.js";
+import { emerald8x8Png, noisy64x64Png } from "../lib/png-fixture.js";
 
 /**
  * Story · IPX-backed AssetTransformer.
@@ -39,11 +39,14 @@ describe("Story · IpxAssetTransformer", () => {
 
   it("respects the quality option for jpeg (lower quality → smaller bytes)", async () => {
     const transformer = new IpxAssetTransformer();
-    const high = await transformer.transform(sourcePng(), {
+    // Use a noisy 64x64 fixture — JPEG quality differences only show
+    // up clearly once there are enough pixels to compress.
+    const source = noisy64x64Png();
+    const high = await transformer.transform(source, {
       format: "jpeg",
       quality: 90,
     });
-    const low = await transformer.transform(sourcePng(), {
+    const low = await transformer.transform(source, {
       format: "jpeg",
       quality: 10,
     });
