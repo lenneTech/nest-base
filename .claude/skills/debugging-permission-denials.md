@@ -10,7 +10,7 @@ sequence so you stop guessing and start verifying.
 - A user reports "I get 403 on POST /resources"
 - A test that should pass fails with `ForbiddenException`
 - A new endpoint with `@Can('action', 'Subject')` doesn't pass the
-  ability check for a user who *should* be allowed
+  ability check for a user who _should_ be allowed
 - You are auditing a permission setup and need to know: "for this
   user, what can they actually do?"
 
@@ -70,13 +70,13 @@ If the result is **denied** and you expected **allowed**:
   shadows a permissive one. Find it in the rule list, decide whether
   to remove it, narrow its conditions, or escalate the user's role.
 - A rule matched but `conditions` excluded the record → the user
-  has the `(action, subject)` but not on this *specific* record.
+  has the `(action, subject)` but not on this _specific_ record.
   E.g. `can('update', 'Project', { ownerId: '$userId' })` excludes
   projects the user doesn't own. Check the actual record's fields.
 
 If the result is **allowed** but the request still 403s:
 
-- The `CanGuard` runs *before* the handler; the rule may allow but
+- The `CanGuard` runs _before_ the handler; the rule may allow but
   the controller's `@Restricted()` (legacy) or `@Roles()` decorator
   may add a second gate. Check the route definition.
 - Field-level `fields: []` array on a rule = "no field restriction"
@@ -105,16 +105,16 @@ Once you've confirmed the cause, write a regression test in
 ```typescript
 describe("Story · <feature>", () => {
   it("denies <action> on <subject> when <condition>", async () => {
-    const ability = buildAbility([{ action: 'read', subject: 'Project' }]);
-    expect(ability.can('update', 'Project')).toBe(false);
+    const ability = buildAbility([{ action: "read", subject: "Project" }]);
+    expect(ability.can("update", "Project")).toBe(false);
   });
 
   it("allows <action> when <other condition>", async () => {
     const ability = buildAbility([
-      { action: 'read', subject: 'Project' },
-      { action: 'update', subject: 'Project', conditions: { ownerId: 'u-1' } },
+      { action: "read", subject: "Project" },
+      { action: "update", subject: "Project", conditions: { ownerId: "u-1" } },
     ]);
-    expect(ability.can('update', 'Project', { ownerId: 'u-1' })).toBe(true);
+    expect(ability.can("update", "Project", { ownerId: "u-1" })).toBe(true);
   });
 });
 ```
@@ -145,7 +145,7 @@ silently coming back.
 ## Don't
 
 - Don't just add a permission to make the test pass — first confirm
-  *why* the user should be allowed; the missing rule is a domain
+  _why_ the user should be allowed; the missing rule is a domain
   decision.
 - Don't echo `(action, subject)` back to the client to "give the user
   better errors". The generic message is intentional (information

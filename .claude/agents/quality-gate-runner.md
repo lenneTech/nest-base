@@ -36,29 +36,32 @@ unless a gate failed.
 ```markdown
 ## Quality Gate Report — <ISO-Timestamp>
 
-| Gate | Status | Detail |
-|------|--------|--------|
-| lint           | ✅ pass / ❌ fail | <one-line summary> |
-| test:unit      | ✅ pass / ❌ fail | <count> tests; <duration>s |
-| test:e2e       | ✅ pass / ❌ fail | <count> tests; <duration>s |
-| test:types     | ✅ pass / ❌ fail | <one-line summary> |
-| test:coverage  | ✅ pass / ❌ fail | core <%>/<%>/<%>/<%>, modules <…> |
-| build          | ✅ pass / ❌ fail | dist/ artifact size |
+| Gate          | Status            | Detail                            |
+| ------------- | ----------------- | --------------------------------- |
+| lint          | ✅ pass / ❌ fail | <one-line summary>                |
+| test:unit     | ✅ pass / ❌ fail | <count> tests; <duration>s        |
+| test:e2e      | ✅ pass / ❌ fail | <count> tests; <duration>s        |
+| test:types    | ✅ pass / ❌ fail | <one-line summary>                |
+| test:coverage | ✅ pass / ❌ fail | core <%>/<%>/<%>/<%>, modules <…> |
+| build         | ✅ pass / ❌ fail | dist/ artifact size               |
 
 ### Failures
 
 (Only present this section when at least one gate failed.)
 
 #### <gate name>
+
 - Exit code: <code>
 - First failing test / file:
 - Excerpt:
-  ```
-  <relevant 5-15 lines from the output>
-  ```
+```
+
+<relevant 5-15 lines from the output>
+
+```
 - Probable cause: <your one-sentence diagnosis>
 - Suggested fix: <one-sentence pointer at where to look — file path
-                  + symbol — NOT a multi-step plan>
+                + symbol — NOT a multi-step plan>
 ```
 
 # Hard rules

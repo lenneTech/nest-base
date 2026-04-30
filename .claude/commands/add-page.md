@@ -69,7 +69,9 @@ it("returns JSON when Accept: application/json", async () => {
 });
 
 it("returns JSON when ?format=json overrides Accept", async () => {
-  const res = await request(app.getHttpServer()).get("/<slug>?format=json").set("Accept", "text/html");
+  const res = await request(app.getHttpServer())
+    .get("/<slug>?format=json")
+    .set("Accept", "text/html");
   expect(res.headers["content-type"]).toMatch(/application\/json/);
 });
 ```
@@ -78,19 +80,34 @@ For **custom** flavour, write `tests/stories/<slug>-ui.story.test.ts`:
 
 ```typescript
 it("rendert vollständiges HTML mit Title und Body-Slot", () => {
-  const html = render<Slug>Page({ /* minimal input */ });
+  const html =
+    render <
+    Slug >
+    Page({
+      /* minimal input */
+    });
   expect(html).toMatch(/^<!doctype html>/i);
   expect(html).toContain("<title><Title> — nest-server</title>");
 });
 
 it("eskapiert XSS in User-Input", () => {
-  const html = render<Slug>Page({ /* input with <script> */ });
+  const html =
+    render <
+    Slug >
+    Page({
+      /* input with <script> */
+    });
   expect(html).not.toContain("<script>alert(1)</script>");
   expect(html).toContain("&lt;script&gt;");
 });
 
 it("hebt aktiven Sidebar-Link hervor", () => {
-  const html = render<Slug>Page({ /* ... */ });
+  const html =
+    render <
+    Slug >
+    Page({
+      /* ... */
+    });
   expect(html).toContain("admin-nav__link--active");
 });
 ```
@@ -134,6 +151,7 @@ If not, copy the helper from `dev-hub.controller.ts`.
 **Custom flavour** — three steps:
 
 1. Write `src/core/dx/<slug>-ui.ts`:
+
    ```typescript
    import { renderAdminLayout } from "./admin-layout.js";
 
@@ -153,6 +171,7 @@ If not, copy the helper from `dev-hub.controller.ts`.
    ```
 
 2. Wire the controller method:
+
    ```typescript
    @Get("<slug>")
    @Header("content-type", "text/html; charset=utf-8")
@@ -163,6 +182,7 @@ If not, copy the helper from `dev-hub.controller.ts`.
    ```
 
 3. Sidebar entry in `src/core/dx/admin-layout.ts:defaultAdminNav()`:
+
    ```typescript
    {
      id: "<slug>",
@@ -202,6 +222,7 @@ bun run build
 ```
 
 Common failures:
+
 - **Lint/format**: `bun run lint:fix && bun run format:fix`
 - **Coverage drops**: `*-ui.ts` files are pre-excluded — if your
   custom-flavour renderer is small, the story test should be enough.
@@ -217,6 +238,7 @@ State to the user:
 > active highlight. Tenant-exemption: yes/no.
 
 If it's the json-viewer flavour, also test:
+
 - `curl -H "Accept: application/json" http://localhost:3000/<slug>`
   → returns raw JSON
 - `curl http://localhost:3000/<slug>?format=json` → returns raw JSON

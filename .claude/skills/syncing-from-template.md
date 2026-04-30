@@ -29,12 +29,12 @@ The runner:
 
 ## What gets touched
 
-| Bucket | Meaning | Action |
-|--------|---------|--------|
-| **create** | File only in template | Written into your `src/core/` |
-| **update** | Both have it, content drifted | Overwrites your local copy |
-| **skip** | Both have it, content matches | No write |
-| **delete** | File only in your local `src/core/` | Removed from your tree |
+| Bucket     | Meaning                             | Action                        |
+| ---------- | ----------------------------------- | ----------------------------- |
+| **create** | File only in template               | Written into your `src/core/` |
+| **update** | Both have it, content drifted       | Overwrites your local copy    |
+| **skip**   | Both have it, content matches       | No write                      |
+| **delete** | File only in your local `src/core/` | Removed from your tree        |
 
 Output is byte-deterministic — re-running on the same trees gives the
 same plan, so commits stay clean.
@@ -47,7 +47,7 @@ same plan, so commits stay clean.
 - `prisma/` (always)
 - `package.json`, `tsconfig.json`, anything outside `src/core/`
 
-The planner refuses any *upstream* path outside `src/core/` with
+The planner refuses any _upstream_ path outside `src/core/` with
 `ProtectedPathTouchedError`. A misconfigured runner (or a maliciously-
 crafted template snapshot) cannot smuggle writes into `src/modules/`
 this way.

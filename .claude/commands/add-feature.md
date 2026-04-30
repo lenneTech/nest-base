@@ -13,8 +13,8 @@ allowed-tools:
 
 Adds a new toggleable feature flag to nest-base end-to-end. Read the
 companion skill `.claude/skills/adding-feature-flag.md` first — that
-file is the source of truth for *what* needs to change. This command
-sequences *how* you change it under the strict TDD discipline.
+file is the source of truth for _what_ needs to change. This command
+sequences _how_ you change it under the strict TDD discipline.
 
 ## Arguments
 
@@ -86,6 +86,7 @@ bun run build
 ```
 
 All six must pass. Coverage thresholds:
+
 - `src/core/` ≥ 90% lines
 - `src/modules/` ≥ 80% lines
 

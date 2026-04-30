@@ -26,9 +26,7 @@ or `?format=json`).
 example.
 
 ```typescript
-import {
-  Controller, Get, Headers, Inject, Query, Res
-} from "@nestjs/common";
+import { Controller, Get, Headers, Inject, Query, Res } from "@nestjs/common";
 import type { Response } from "express";
 import { renderJsonViewerPage } from "../dx/json-viewer-ui.js";
 
@@ -49,7 +47,7 @@ export class ThingsController {
       renderJsonViewerPage({
         title: "Things",
         subtitle: "Optional sub-text",
-        currentNav: "things",      // matches the sidebar entry id
+        currentNav: "things", // matches the sidebar entry id
         value: data,
         rawJsonHref: "/things?format=json",
       }),
@@ -109,7 +107,9 @@ it("returns JSON when Accept: application/json", async () => {
 });
 
 it("returns JSON when ?format=json overrides Accept", async () => {
-  const res = await request(app.getHttpServer()).get("/things?format=json").set("Accept", "text/html");
+  const res = await request(app.getHttpServer())
+    .get("/things?format=json")
+    .set("Accept", "text/html");
   expect(res.headers["content-type"]).toMatch(/application\/json/);
 });
 ```
@@ -169,31 +169,31 @@ function escapeHtml(input: string): string { /* ... five-char table */ }
 
 Always use these CSS variables — they auto-adapt to the theme:
 
-| Variable | Purpose |
-|---|---|
-| `--bg`, `--surface-1`, `--surface-2`, `--surface-3` | Background layers (near-black to elevated) |
-| `--fg`, `--fg-muted`, `--fg-dim`, `--fg-faint` | Text contrast tiers |
-| `--accent`, `--accent-soft`, `--accent-glow`, `--accent-ink` | Lime accent + ink for accent backgrounds |
-| `--ok`, `--warn`, `--err` | Status semantics |
-| `--line`, `--line-strong`, `--line-accent` | Border tiers |
-| `--radius`, `--radius-sm`, `--radius-lg` | Corner radii |
-| `--ease`, `--ease-out` | Premium easing curves (cubic-bezier(0.16,1,0.3,1)) |
-| `--font-sans`, `--font-mono` | Inter + JetBrains Mono |
+| Variable                                                     | Purpose                                            |
+| ------------------------------------------------------------ | -------------------------------------------------- |
+| `--bg`, `--surface-1`, `--surface-2`, `--surface-3`          | Background layers (near-black to elevated)         |
+| `--fg`, `--fg-muted`, `--fg-dim`, `--fg-faint`               | Text contrast tiers                                |
+| `--accent`, `--accent-soft`, `--accent-glow`, `--accent-ink` | Lime accent + ink for accent backgrounds           |
+| `--ok`, `--warn`, `--err`                                    | Status semantics                                   |
+| `--line`, `--line-strong`, `--line-accent`                   | Border tiers                                       |
+| `--radius`, `--radius-sm`, `--radius-lg`                     | Corner radii                                       |
+| `--ease`, `--ease-out`                                       | Premium easing curves (cubic-bezier(0.16,1,0.3,1)) |
+| `--font-sans`, `--font-mono`                                 | Inter + JetBrains Mono                             |
 
 ### Reusable component classes
 
-| Class | What it gives you |
-|---|---|
-| `.admin-card` | Padded surface with border, hover-lift on `:hover` |
-| `.admin-card--accent` | Card with lime border |
-| `.admin-card__title` | Semibold heading inside a card |
-| `.admin-empty` | Dashed-border empty state |
-| `.admin-meta` | Muted body text |
-| `.admin-table` | Styled table — pair with `tr[data-*]` selectors for row tints |
-| `.admin-grid.admin-grid--2/--3` | 2/3-column grid of cards |
-| `.admin-form` + `.row` | Inline form layout |
-| `.admin-link-list` | Vertical list of links with hover-lift |
-| `.admin-badge.--ok/.--warn/.--err` | Status pills with pulse on `--ok` |
+| Class                              | What it gives you                                             |
+| ---------------------------------- | ------------------------------------------------------------- |
+| `.admin-card`                      | Padded surface with border, hover-lift on `:hover`            |
+| `.admin-card--accent`              | Card with lime border                                         |
+| `.admin-card__title`               | Semibold heading inside a card                                |
+| `.admin-empty`                     | Dashed-border empty state                                     |
+| `.admin-meta`                      | Muted body text                                               |
+| `.admin-table`                     | Styled table — pair with `tr[data-*]` selectors for row tints |
+| `.admin-grid.admin-grid--2/--3`    | 2/3-column grid of cards                                      |
+| `.admin-form` + `.row`             | Inline form layout                                            |
+| `.admin-link-list`                 | Vertical list of links with hover-lift                        |
+| `.admin-badge.--ok/.--warn/.--err` | Status pills with pulse on `--ok`                             |
 
 ### Sidebar entry + currentNav id
 

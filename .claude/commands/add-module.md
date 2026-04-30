@@ -86,6 +86,7 @@ cp -r src/modules/example src/modules/<name>
 ```
 
 Then in the new folder, find-replace:
+
 - `Example` → `<Name>` (capitalised)
 - `example` → `<name>` (lowercase)
 - `EXAMPLE_STORAGE` → `<NAME>_STORAGE` (UPPER_SNAKE)
@@ -101,6 +102,7 @@ shape.
 `src/core/app/app.module.ts` — add the import:
 
 **Always-on**:
+
 ```typescript
 import { <Name>Module } from "../../modules/<name>/<name>.module.js";
 
@@ -113,10 +115,9 @@ import { <Name>Module } from "../../modules/<name>/<name>.module.js";
 ```
 
 **Feature-gated** (when `--feature-flag <key>` was used):
+
 ```typescript
-imports: [
-  ...conditionalImport(features, "<key>", <Name>Module),
-]
+imports: [...conditionalImport(features, "<key>", <Name>Module)];
 ```
 
 ### 4 · Permissions (optional but recommended)
@@ -139,6 +140,7 @@ If your module needs persistent storage (default is in-memory):
 
 1. Add the model to `prisma/schema.prisma` (always-on) or
    `prisma/features/<feature>.prisma` (gated):
+
    ```prisma
    model <Name> {
      id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
@@ -154,6 +156,7 @@ If your module needs persistent storage (default is in-memory):
    ```
 
 2. Generate + migrate:
+
    ```bash
    bun run prepare:schema
    bun run prisma:generate
@@ -191,6 +194,7 @@ feat(<name>): scaffold src/modules/<name>/ — controller / service / DTO / test
 ```
 
 In the body:
+
 - Storage adapter (in-memory by default; Prisma if you wired it)
 - Permission subject registered (yes/no)
 - Feature-flag gating (yes/no)

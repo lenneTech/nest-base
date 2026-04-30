@@ -20,13 +20,13 @@ when **any** of these hold:
    shared.
 2. **The diff touches `src/shared/`** (cross-tier types). Generic by
    construction.
-3. **The diff adds a *generic* capability in `src/modules/`** that
+3. **The diff adds a _generic_ capability in `src/modules/`** that
    has no project-specific assumptions. Examples that should usually
    PR upstream:
    - A new `BaseRepository` extension with no project-specific schema
    - A new HTTP middleware / interceptor that works for any API
    - A new test helper in `tests/lib/`
-   Examples that should usually stay project-local:
+     Examples that should usually stay project-local:
    - A `BillingService` that calls Stripe with the project's account ID
    - A `report-renderer.ts` shaped around the project's invoice format
 4. **The diff fixes a security issue** in template-shipped code.
@@ -55,9 +55,9 @@ The user has three responses:
   `OPEN_QUESTIONS.md` under `### project-local-divergence` so the
   next `sync:from-template` reviewer sees the override is intentional.
   Don't pester again about this change.
-- **"not sure"** — ask one clarifying question: *"Does this fix
+- **"not sure"** — ask one clarifying question: _"Does this fix
   depend on anything specific to your domain (a particular DB schema,
-  a particular auth provider, a particular vendor SDK)?"*. The answer
+  a particular auth provider, a particular vendor SDK)?"_. The answer
   routes back to "yes" or "no".
 
 ## Boundary rules
@@ -68,7 +68,7 @@ The user has three responses:
 - **Never push without confirmation.** Even after the user says yes,
   show the cherry-picked commit and the PR body draft before pushing.
 - **Refuse if `.claude/upstream.json` declares `isTemplate: true`**.
-  That file is the marker that this repo *is* the upstream — you
+  That file is the marker that this repo _is_ the upstream — you
   cannot PR a repo against itself.
 - **Don't smuggle project-specific code into the PR.** Pre-flight the
   cherry-pick: if the patch references symbols from `src/modules/`,
@@ -175,5 +175,5 @@ That's the goal. Quiet detection, explicit confirmation, no surprises.
 - Don't bypass the upstream's quality gates because "they passed
   locally" — the upstream tree may have drifted.
 - Don't open an upstream PR for changes that depend on `bun run
-  setup` or other project-bootstrap state. Generic ≠ guarded by
+setup` or other project-bootstrap state. Generic ≠ guarded by
   consumer config.

@@ -216,13 +216,32 @@ Implication: `bun run test:e2e` requires Docker. If it hangs at
 
 ## Common failure modes
 
-### "Module '@prisma/client' has no exported member 'PrismaClient'"
+### "Module '@prisma/client' has no exported member 'X'"
 
-You haven't generated the client. Run:
+### "Property 'X' does not exist on type 'TransactionClient'"
+
+### "Property 'X' does not exist on type 'PrismaClient'"
+
+All three are the **same root cause**: the generated client in
+`node_modules/.prisma/client/` is older than the current
+`schema.prisma`. The Prisma model was added (or renamed) but the
+generator hasn't run since.
+
+The fix is **never** `(tx as any).x` or `import type { X } from
+'somewhere-else'`. Regenerate:
 
 ```bash
-bun run prepare:schema && bun run prisma:generate
+bun run prepare:schema    # concat feature schemas → schema.generated.prisma
+bun run prisma:generate   # rewrite node_modules/.prisma/client
 ```
+
+After this, `import type { X } from '@prisma/client'` resolves and
+`tx.x.*` is fully typed. If TypeScript still complains, restart your
+language server / IDE — it can hold a stale snapshot of the d.ts.
+
+This trap is easy to fall into because Bun's runtime resolution can
+be more lenient than tsc's compile-time view: tests pass, the LSP
+shouts. Treat the LSP shout as "regenerate", not as "cast".
 
 ### "Could not resolve '.prisma/client/default'" in build
 

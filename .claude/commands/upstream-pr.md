@@ -14,8 +14,8 @@ allowed-tools:
 Opens a pull request against the upstream `nest-base` template with
 the user's recent `src/core/` (and other synced-path) changes. Read
 `.claude/skills/contributing-upstream.md` first — that file is the
-source of truth for *when* to offer this. This command sequences
-*how* to do it once the user has agreed.
+source of truth for _when_ to offer this. This command sequences
+_how_ to do it once the user has agreed.
 
 ## Arguments
 
@@ -23,7 +23,7 @@ source of truth for *when* to offer this. This command sequences
 /upstream-pr [<commit-range>]
 ```
 
-- **`<commit-range>`** *(optional)* — git revision range to cherry-pick
+- **`<commit-range>`** _(optional)_ — git revision range to cherry-pick
   (e.g. `HEAD~3..HEAD`). When omitted, defaults to "every commit on
   the current branch since it diverged from the upstream sync point",
   filtered to paths under `syncedPaths`.
@@ -38,12 +38,12 @@ cat .claude/upstream.json
 
 Refuse with an explanatory message if any of these:
 
-- File is missing → tell the user: *"No `.claude/upstream.json`. This
+- File is missing → tell the user: _"No `.claude/upstream.json`. This
   command needs an upstream config. Want me to write one pointing at
-  `lenneTech/nest-base`?"* Wait for confirmation.
-- `isTemplate: true` → *"This repo IS the upstream template. Opening
+  `lenneTech/nest-base`?"_ Wait for confirmation.
+- `isTemplate: true` → _"This repo IS the upstream template. Opening
   a PR against itself isn't meaningful — close out the change here
-  directly."*
+  directly."_
 - `upstream` is null or missing `repo` → ask which repo to target.
 
 ### 1 · Confirm with the user before any network call

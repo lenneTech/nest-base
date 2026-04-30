@@ -7,10 +7,11 @@ This card gets you productive in 60 seconds. Read it top-to-bottom
 ## What this repo is
 
 **nest-base** is a production-grade NestJS template on Bun + Prisma 7
-+ Postgres + Better-Auth. It ships with a developer cockpit at `/dev`
-(dark theme + electric-lime accent, 14 toggleable features, live
-status / coverage / tests / logs / feature toggles). The repo is the
-sync source for `src/core/` — many projects fork off this template.
+
+- Postgres + Better-Auth. It ships with a developer cockpit at `/dev`
+  (dark theme + electric-lime accent, 14 toggleable features, live
+  status / coverage / tests / logs / feature toggles). The repo is the
+  sync source for `src/core/` — many projects fork off this template.
 
 ## The 5 things that shape every decision
 
@@ -24,7 +25,7 @@ sync source for `src/core/` — many projects fork off this template.
 4. **TDD-discipline + 6 quality gates** every commit. Red → green →
    refactor, no `it.skip`, no `--no-verify`.
 5. **ESM with `.js` import suffix** in TypeScript source. `import
-   { x } from "./foo.js"` even when the file is `foo.ts`.
+{ x } from "./foo.js"` even when the file is `foo.ts`.
 
 ## Boot the project (2 commands)
 
@@ -40,26 +41,26 @@ If `bun install` hasn't run: `bun install && bun run prisma:generate`.
 
 ## Where to look first
 
-| Question | File |
-|---|---|
-| What's the spec? | `PLAN.md` (3000+ lines, search the table of contents) |
-| What's already built? | `RALPH_LOG.md` |
-| What's known to diverge? | `OPEN_QUESTIONS.md` |
-| What tools are available? | [`.claude/AGENTS.md`](AGENTS.md) — master index |
-| Per-folder conventions | `src/core/CLAUDE.md`, `tests/CLAUDE.md`, `prisma/CLAUDE.md` |
+| Question                  | File                                                        |
+| ------------------------- | ----------------------------------------------------------- |
+| What's the spec?          | `PLAN.md` (3000+ lines, search the table of contents)       |
+| What's already built?     | `RALPH_LOG.md`                                              |
+| What's known to diverge?  | `OPEN_QUESTIONS.md`                                         |
+| What tools are available? | [`.claude/AGENTS.md`](AGENTS.md) — master index             |
+| Per-folder conventions    | `src/core/CLAUDE.md`, `tests/CLAUDE.md`, `prisma/CLAUDE.md` |
 
 ## When the user says X, reach for Y
 
-| User intent | Primitive |
-|---|---|
-| "Add a feature flag" | `/add-feature` command + `feature-toggle-implementer` agent |
-| "Add an admin/dev page" | `/add-page` command + skill `extending-dev-hub` |
-| "Implement the next slice" | `slice-implementer` agent (reads PLAN.md §32) |
-| "Run all gates" | `quality-gate-runner` agent |
-| "Why does X work this way?" | skill `understanding-the-architecture` |
-| "I keep hitting Y error" | skill `avoiding-common-pitfalls` |
-| "How do I write a story test?" | skill `writing-story-tests` |
-| "How does Prisma 7 work here?" | skill `working-with-prisma` |
+| User intent                    | Primitive                                                   |
+| ------------------------------ | ----------------------------------------------------------- |
+| "Add a feature flag"           | `/add-feature` command + `feature-toggle-implementer` agent |
+| "Add an admin/dev page"        | `/add-page` command + skill `extending-dev-hub`             |
+| "Implement the next slice"     | `slice-implementer` agent (reads PLAN.md §32)               |
+| "Run all gates"                | `quality-gate-runner` agent                                 |
+| "Why does X work this way?"    | skill `understanding-the-architecture`                      |
+| "I keep hitting Y error"       | skill `avoiding-common-pitfalls`                            |
+| "How do I write a story test?" | skill `writing-story-tests`                                 |
+| "How does Prisma 7 work here?" | skill `working-with-prisma`                                 |
 
 The full lookup table is in [`.claude/AGENTS.md`](AGENTS.md).
 

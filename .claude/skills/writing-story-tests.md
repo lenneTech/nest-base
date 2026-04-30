@@ -1,6 +1,6 @@
 # Writing Story Tests
 
-Story tests are *the* TDD vehicle for nest-base. One file per behaviour
+Story tests are _the_ TDD vehicle for nest-base. One file per behaviour
 surface; the test exists **before** the source. This skill is the
 practical pattern reference — copy from here when you start a new
 story.
@@ -97,7 +97,7 @@ describe("Story · Widgets", () => {
 ### For controllers (e2e specs)
 
 - **Status code + content type** — `expect(res.status).toBe(200)`
-  + `expect(res.headers["content-type"]).toMatch(/application\/json/)`
+  - `expect(res.headers["content-type"]).toMatch(/application\/json/)`
 - **Body shape** — `toMatchObject({...})` so extra fields don't break the test
 - **Error paths** — at least one 4xx case per endpoint
 - **Content negotiation** — if the route has both HTML and JSON,
@@ -278,7 +278,9 @@ describe("GET /widgets", () => {
     await app.init();
   });
 
-  afterAll(async () => { await app.close(); });
+  afterAll(async () => {
+    await app.close();
+  });
 
   it("returns 200 with JSON", async () => {
     const res = await request(app.getHttpServer()).get("/widgets");

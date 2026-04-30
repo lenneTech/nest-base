@@ -32,6 +32,7 @@ Every helper that touches I/O is split:
   passes the result to the planner, applies the output.
 
 **Examples**:
+
 - `src/core/setup/sync-from-template.ts` (planner) +
   `scripts/sync-from-template.ts` (runner)
 - `src/core/throttler/throttler.ts` (planner; takes `now: () => number`) +
@@ -83,15 +84,15 @@ explicitly opt out).
 
 ### 5. Six quality gates per commit
 
-| Gate | Command | What it checks |
-|---|---|---|
-| Lint | `bun run lint` | oxlint with 95 rules |
-| Format | `bun run format` | oxfmt — double-quotes default |
-| Types | `bun run test:types` | tsc compile-check on tests/types |
-| Unit | `bun run test:unit` | pure-function tests |
-| E2E | `bun run test:e2e` | story tests + HTTP e2e |
-| Coverage | `bun run test:coverage` | ≥ 90% core, ≥ 80% modules |
-| Build | `bun run build` | bundle to dist/ |
+| Gate     | Command                 | What it checks                   |
+| -------- | ----------------------- | -------------------------------- |
+| Lint     | `bun run lint`          | oxlint with 95 rules             |
+| Format   | `bun run format`        | oxfmt — double-quotes default    |
+| Types    | `bun run test:types`    | tsc compile-check on tests/types |
+| Unit     | `bun run test:unit`     | pure-function tests              |
+| E2E      | `bun run test:e2e`      | story tests + HTTP e2e           |
+| Coverage | `bun run test:coverage` | ≥ 90% core, ≥ 80% modules        |
+| Build    | `bun run build`         | bundle to dist/                  |
 
 Failing any gate blocks the commit. `*:fix` siblings exist for lint
 and format. Coverage drops force you to write more tests, not exclude
@@ -226,7 +227,7 @@ edit a source file: the lock remembers it's already open.
 
 ## What `src/core/dx/` is for
 
-`dx/` = developer experience. Everything that helps devs work *on*
+`dx/` = developer experience. Everything that helps devs work _on_
 this server (not features the server delivers to end users) lives
 here:
 
@@ -256,7 +257,7 @@ Match these conventions:
 3. **HTML-escape every user-controlled value** in renderers. Five-char table: `&` `<` `>` `"` `'`.
 4. **Tabular figures** (`font-variant-numeric: tabular-nums`) for any number that updates.
 5. **Lime accent only for "good / active / primary"** — errors stay red, warnings amber.
-6. **Comments explain WHY, not WHAT.** Well-named code carries the *what*. If you write a comment that paraphrases the next line, delete it.
+6. **Comments explain WHY, not WHAT.** Well-named code carries the _what_. If you write a comment that paraphrases the next line, delete it.
 
 When in doubt: read the closest existing example. The codebase is
 internally consistent — copy the pattern, don't reinvent it.

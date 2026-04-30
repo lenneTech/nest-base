@@ -27,8 +27,8 @@ project needs the `.js` extension.
 For cycles and tree-shaking:
 
 ```typescript
-import { type SomeType } from "./foo.js";          // type-only at the import
-import type { SomeType } from "./foo.js";          // file-level type-only
+import { type SomeType } from "./foo.js"; // type-only at the import
+import type { SomeType } from "./foo.js"; // file-level type-only
 ```
 
 ---
@@ -251,10 +251,10 @@ fire.
 
 ```typescript
 // ✅ zero runtime cost when off
-imports: [...conditionalImport(features, "webhooks", WebhooksModule)]
+imports: [...conditionalImport(features, "webhooks", WebhooksModule)];
 
 // ❌ module pulled in unconditionally even if disabled
-imports: [WebhooksModule]
+imports: [WebhooksModule];
 ```
 
 ---

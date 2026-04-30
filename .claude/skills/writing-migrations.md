@@ -21,11 +21,11 @@ is not the right answer.
 
 Two options:
 
-| Question | Where the model goes |
-|---|---|
-| Does every consumer of this template need it? | `prisma/schema.prisma` (template-owned) |
-| Is it gated by a feature flag? | `prisma/features/<feature>.prisma` |
-| Is it project-specific (only your downstream project)? | `prisma/schema.prisma` *in your project* — but DO NOT commit changes to the template's `prisma/schema.prisma` from the consumer side |
+| Question                                               | Where the model goes                                                                                                                 |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Does every consumer of this template need it?          | `prisma/schema.prisma` (template-owned)                                                                                              |
+| Is it gated by a feature flag?                         | `prisma/features/<feature>.prisma`                                                                                                   |
+| Is it project-specific (only your downstream project)? | `prisma/schema.prisma` _in your project_ — but DO NOT commit changes to the template's `prisma/schema.prisma` from the consumer side |
 
 **Why this matters:** `prisma/features/*.prisma` files are concatenated
 into `schema.generated.prisma` only when the matching feature is
@@ -111,7 +111,9 @@ describe("Story · Invoice model", () => {
   it("persists tenantId, number, status", async () => {
     const repo = new InvoiceRepository(prisma);
     const created = await repo.create({
-      tenantId: 't-1', number: 'INV-001', status: 'open',
+      tenantId: "t-1",
+      number: "INV-001",
+      status: "open",
     });
     expect(created.id).toMatch(/^[0-9a-f-]{36}$/);
   });

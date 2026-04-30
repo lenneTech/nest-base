@@ -6,10 +6,10 @@ endpoint, the OpenAPI doc, and the Audit-Browser.
 
 ## The two namespaces
 
-| Prefix | Owner | Lives in |
-|---|---|---|
-| `CORE_*` | Template | `src/core/errors/error-code.ts` |
-| `APP_*` | Project | `src/modules/<resource>/<resource>.errors.ts` (or wherever fits) |
+| Prefix   | Owner    | Lives in                                                         |
+| -------- | -------- | ---------------------------------------------------------------- |
+| `CORE_*` | Template | `src/core/errors/error-code.ts`                                  |
+| `APP_*`  | Project  | `src/modules/<resource>/<resource>.errors.ts` (or wherever fits) |
 
 Don't add `CORE_*` codes from a project — those ship with the
 template. If you need a new core code, send a PR upstream.
@@ -22,19 +22,19 @@ Project-local — typically next to the service that throws it:
 
 ```typescript
 // src/modules/projects/projects.errors.ts
-import type { ErrorCodeDefinition } from '../../core/errors/error-code-registry.js';
+import type { ErrorCodeDefinition } from "../../core/errors/error-code-registry.js";
 
 export const APP_PROJECT_LIMIT_REACHED: ErrorCodeDefinition = {
-  code: 'APP_PROJECT_LIMIT_REACHED',
+  code: "APP_PROJECT_LIMIT_REACHED",
   status: 409,
   messages: {
     en: {
-      title: 'Project limit reached',
-      detail: 'This tenant has reached its project quota of {{limit}}.',
+      title: "Project limit reached",
+      detail: "This tenant has reached its project quota of {{limit}}.",
     },
     de: {
-      title: 'Projekt-Limit erreicht',
-      detail: 'Dieser Tenant hat sein Projekt-Limit von {{limit}} erreicht.',
+      title: "Projekt-Limit erreicht",
+      detail: "Dieser Tenant hat sein Projekt-Limit von {{limit}} erreicht.",
     },
   },
 };
@@ -53,8 +53,8 @@ In your project's bootstrap (e.g. `src/main.ts` or wherever the
 template's `ErrorCodeRegistry` is instantiated):
 
 ```typescript
-import { ErrorCodeRegistry } from '@/core/errors/error-code-registry.js';
-import { APP_PROJECT_LIMIT_REACHED } from '@/modules/projects/projects.errors.js';
+import { ErrorCodeRegistry } from "@/core/errors/error-code-registry.js";
+import { APP_PROJECT_LIMIT_REACHED } from "@/modules/projects/projects.errors.js";
 
 const registry = new ErrorCodeRegistry();
 registry.register(APP_PROJECT_LIMIT_REACHED);
@@ -69,8 +69,8 @@ The registry throws `ErrorCodeAlreadyRegisteredError` on a duplicate
 The OpenAPI components builder reads `coreCodes` + `appCodes`:
 
 ```typescript
-import { CORE_ERROR_CODES } from '@/core/errors/error-code.js';
-import { buildProblemDetailsOpenApiComponents } from '@/core/errors/openapi-problem-schemas.js';
+import { CORE_ERROR_CODES } from "@/core/errors/error-code.js";
+import { buildProblemDetailsOpenApiComponents } from "@/core/errors/openapi-problem-schemas.js";
 
 const components = buildProblemDetailsOpenApiComponents({
   coreCodes: Object.values(CORE_ERROR_CODES),
@@ -88,14 +88,14 @@ your `APP_*` code — the generated SDK + Scalar UI both surface it.
 In the service:
 
 ```typescript
-import { ProblemDetailsException } from '@/core/errors/problem-details.exception.js';
-import { APP_PROJECT_LIMIT_REACHED } from './projects.errors.js';
+import { ProblemDetailsException } from "@/core/errors/problem-details.exception.js";
+import { APP_PROJECT_LIMIT_REACHED } from "./projects.errors.js";
 
 if (count >= LIMIT) {
   throw new ProblemDetailsException(
     APP_PROJECT_LIMIT_REACHED.code,
     APP_PROJECT_LIMIT_REACHED.status,
-    { limit: String(LIMIT) },   // ← interpolated into the detail message
+    { limit: String(LIMIT) }, // ← interpolated into the detail message
   );
 }
 ```
@@ -109,15 +109,15 @@ and emits the RFC 7807 response.
 Story tests for the registration:
 
 ```typescript
-import { ErrorCodeRegistry } from '@/core/errors/error-code-registry.js';
-import { APP_PROJECT_LIMIT_REACHED } from '@/modules/projects/projects.errors.js';
+import { ErrorCodeRegistry } from "@/core/errors/error-code-registry.js";
+import { APP_PROJECT_LIMIT_REACHED } from "@/modules/projects/projects.errors.js";
 
-it('the registry resolves the code in en', () => {
+it("the registry resolves the code in en", () => {
   const reg = new ErrorCodeRegistry();
   reg.register(APP_PROJECT_LIMIT_REACHED);
-  const resolved = reg.resolve('APP_PROJECT_LIMIT_REACHED', 'en', { limit: '10' });
-  expect(resolved.title).toBe('Project limit reached');
-  expect(resolved.detail).toContain('10');
+  const resolved = reg.resolve("APP_PROJECT_LIMIT_REACHED", "en", { limit: "10" });
+  expect(resolved.title).toBe("Project limit reached");
+  expect(resolved.detail).toContain("10");
 });
 ```
 
@@ -125,17 +125,17 @@ E2E tests for the throw path:
 
 ```typescript
 const res = await request(app)
-  .post('/projects')
-  .set('Authorization', `Bearer ${token}`)
-  .set('Accept-Language', 'de')
-  .send({ name: 'over the limit' });
+  .post("/projects")
+  .set("Authorization", `Bearer ${token}`)
+  .set("Accept-Language", "de")
+  .send({ name: "over the limit" });
 
 expect(res.status).toBe(409);
 expect(res.body).toMatchObject({
-  type: expect.stringContaining('APP_PROJECT_LIMIT_REACHED'),
-  code: 'APP_PROJECT_LIMIT_REACHED',
-  title: 'Projekt-Limit erreicht',
-  detail: expect.stringContaining('10'),
+  type: expect.stringContaining("APP_PROJECT_LIMIT_REACHED"),
+  code: "APP_PROJECT_LIMIT_REACHED",
+  title: "Projekt-Limit erreicht",
+  detail: expect.stringContaining("10"),
 });
 ```
 
@@ -150,13 +150,13 @@ rendering an empty slot.
 
 ## Common patterns
 
-| Symptom | Code | Status |
-|---|---|---|
-| Resource not found | `APP_<RESOURCE>_NOT_FOUND` | 404 |
-| Permission denied (post-CASL) | `APP_<RESOURCE>_FORBIDDEN` | 403 |
-| Quota exceeded | `APP_<RESOURCE>_LIMIT_REACHED` | 409 |
-| Invalid state transition | `APP_<RESOURCE>_INVALID_TRANSITION` | 422 |
-| External integration failure | `APP_<INTEGRATION>_UPSTREAM_ERROR` | 502 |
+| Symptom                       | Code                                | Status |
+| ----------------------------- | ----------------------------------- | ------ |
+| Resource not found            | `APP_<RESOURCE>_NOT_FOUND`          | 404    |
+| Permission denied (post-CASL) | `APP_<RESOURCE>_FORBIDDEN`          | 403    |
+| Quota exceeded                | `APP_<RESOURCE>_LIMIT_REACHED`      | 409    |
+| Invalid state transition      | `APP_<RESOURCE>_INVALID_TRANSITION` | 422    |
+| External integration failure  | `APP_<INTEGRATION>_UPSTREAM_ERROR`  | 502    |
 
 Use `CORE_*` codes for cross-cutting concerns (`CORE_VALIDATION`,
 `CORE_UNAUTHORIZED`, `CORE_RATE_LIMITED`). Use `APP_*` for resource-

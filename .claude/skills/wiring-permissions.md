@@ -8,10 +8,10 @@ or debugging an `@Can()` decorator.
 
 Three persisted concepts in Postgres:
 
-| Entity | Purpose |
-|---|---|
-| **Role** | Named bundle of policies (`admin`, `editor`, `viewer`, ...) |
-| **Policy** | A reusable group of permissions (`projects:reader`, `billing:full`) |
+| Entity         | Purpose                                                                                                             |
+| -------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **Role**       | Named bundle of policies (`admin`, `editor`, `viewer`, ...)                                                         |
+| **Policy**     | A reusable group of permissions (`projects:reader`, `billing:full`)                                                 |
 | **Permission** | One row per `(role/policy → resource → action)` tuple, with optional `itemFilter` (Directus DSL) and `fields` array |
 
 A user gets policies through their roles. The
@@ -102,20 +102,20 @@ Then:
 Story-level — assert the metadata + ability builder behaviour:
 
 ```typescript
-import { buildAbility } from '../../src/core/permissions/casl-ability.js';
-import { Can, CAN_METADATA_KEY } from '../../src/core/permissions/can.guard.js';
+import { buildAbility } from "../../src/core/permissions/casl-ability.js";
+import { Can, CAN_METADATA_KEY } from "../../src/core/permissions/can.guard.js";
 
 it('the controller has @Can("create", "Project") on POST /', () => {
   class C {
-    @Can('create', 'Project') create() {}
+    @Can("create", "Project") create() {}
   }
   const meta = Reflect.getMetadata(CAN_METADATA_KEY, C.prototype.create);
-  expect(meta).toEqual({ action: 'create', subject: 'Project' });
+  expect(meta).toEqual({ action: "create", subject: "Project" });
 });
 
-it('a viewer ability rejects create', () => {
-  const ability = buildAbility([{ action: 'read', subject: 'Project' }]);
-  expect(ability.can('create', 'Project')).toBe(false);
+it("a viewer ability rejects create", () => {
+  const ability = buildAbility([{ action: "read", subject: "Project" }]);
+  expect(ability.can("create", "Project")).toBe(false);
 });
 ```
 
@@ -124,9 +124,9 @@ wrong policies:
 
 ```typescript
 const res = await request(app)
-  .post('/projects')
-  .set('Authorization', `Bearer ${viewerToken}`)
-  .send({ name: 'x' });
+  .post("/projects")
+  .set("Authorization", `Bearer ${viewerToken}`)
+  .send({ name: "x" });
 expect(res.status).toBe(403);
 ```
 

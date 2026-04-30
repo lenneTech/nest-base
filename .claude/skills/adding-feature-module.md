@@ -8,55 +8,134 @@ you want to do it by hand or understand what the agent does.
 
 - Adding a new domain entity (Project, Order, Invoice, ...)
 - Carving out a new sub-API (e.g. `/widgets`, `/integrations`)
-- Anything that's *project-specific* and doesn't belong in `src/core/`
+- Anything that's _project-specific_ and doesn't belong in `src/core/`
 
 If the capability is generic enough to benefit every project on the
 template → skip this skill, send a PR upstream via
 `bun run sync:to-template`.
 
-## The shape
+## Reference modules to copy from
+
+Two reference implementations live in `src/modules/`. Pick the one
+that matches your scenario, then copy + rename + adjust.
+
+| Pattern                       | Reference                   | Use when                                                                               |
+| ----------------------------- | --------------------------- | -------------------------------------------------------------------------------------- |
+| **Blank-slate CRUD**          | `src/modules/example/`      | New resource the project owns end-to-end (e.g. `Project`, `Order`).                    |
+| **Extend an existing entity** | `src/modules/user-profile/` | Adding fields to something the core already manages (e.g. extending `User`, `Tenant`). |
+
+Both follow the **slim 5-file default** described below. Read the
+`README.md` inside each for the full set of patterns demonstrated.
+
+## The shape — slim default (5 files)
 
 ```
 src/modules/<resource>/
-├── <resource>.module.ts        ← @Module() declaration
-├── <resource>.controller.ts    ← REST endpoints, @Can() gates
-├── <resource>.service.ts       ← business logic
-├── <resource>.dto.ts           ← Zod schemas + createZodDto()
-└── <resource>.repository.ts    ← optional; only if BaseRepository isn't enough
+├── README.md                  ← what this module demonstrates (1-2 pages)
+├── <resource>.module.ts       ← @Module() declaration
+├── <resource>.controller.ts   ← REST endpoints + @Can() gates
+├── <resource>.service.ts      ← business logic + Prisma calls + types + errors
+└── <resource>.dto.ts          ← Zod schemas + inferred types
 
 prisma/schema.prisma             ← model added here (always-on)
    OR
 prisma/features/<feature>.prisma ← model here (feature-gated)
 
-tests/stories/<resource>.story.test.ts  ← red-first
+tests/stories/<resource>-module.story.test.ts  ← red-first, runs against FakePrisma
 ```
 
-## Step 1 — Story tests
+This fits ~95 % of modules. The service uses `PrismaService` directly
+(no repository abstraction, no DI token, no in-memory variant in
+production code). Tests run against the in-memory `FakePrismaService`
+helper from `tests/lib/fake-prisma.ts`.
 
-Path: `tests/stories/<resource>.story.test.ts`
+If you genuinely need mock-swappable storage (multiple backends,
+non-Prisma persistence, paranoid security-test isolation) → see
+[Layered pattern (opt-in)](#layered-pattern-opt-in) at the bottom.
+
+## Step 0 — Schema first, then `prisma:generate` (CRITICAL)
+
+Before you write a single line of service code that calls
+`tx.<resource>.*`, the Prisma client has to know your new model.
+Otherwise `tx.<resource>` is `undefined` at the type level and you'll
+be tempted to write `(tx as any).<resource>.*` — which we don't do in
+this repo.
+
+```bash
+# 1) Edit prisma/schema.prisma (or prisma/features/<feature>.prisma)
+#    — add the model.
+
+# 2) Concat + generate. Both steps are required:
+bun run prepare:schema    # rewrites prisma/schema.generated.prisma
+bun run prisma:generate   # rewrites node_modules/.prisma/client
+```
+
+After this, `import type { <Resource> } from '@prisma/client'` resolves
+and `tx.<resource>.create(...)` is fully typed. **No casts.**
+
+If you later see `Property '<resource>' does not exist on type
+'TransactionClient'` or `Module '@prisma/client' has no exported member
+'<Resource>'` — the generator is stale, regenerate. Don't reach for
+`as any`.
+
+## Step 1 — Story tests (RED first)
+
+Path: `tests/stories/<resource>-module.story.test.ts`
+
+Use the in-memory fake — fast, no Postgres needed:
+
+```typescript
+import { beforeEach, describe, expect, it } from "vitest";
+
+import { <Resource>Service } from "../../src/modules/<resource>/<resource>.service.js";
+import { asPrismaService, createFakePrisma } from "../lib/fake-prisma.js";
+
+const TENANT_A = "00000000-0000-7000-8000-00000000000a";
+const TENANT_B = "00000000-0000-7000-8000-00000000000b";
+
+function makeService(): <Resource>Service {
+  return new <Resource>Service(asPrismaService(createFakePrisma()));
+}
+
+describe("Story · <Resource> module", () => {
+  let service: <Resource>Service;
+  beforeEach(() => { service = makeService(); });
+
+  it("creates a record scoped to the tenant", async () => {
+    const out = await service.create(TENANT_A, { name: "x" });
+    expect(out.name).toBe("x");
+  });
+
+  it("isolates tenants in list", async () => {
+    await service.create(TENANT_A, { name: "A" });
+    await service.create(TENANT_B, { name: "B" });
+    const page = await service.list(TENANT_A, { limit: 20 });
+    expect(page.items.map((r) => r.name)).toEqual(["A"]);
+  });
+
+  // ... update, delete, not-found, DTO validation
+});
+```
 
 Cover at minimum:
 
-- `service.create()` happy path + invalid-input rejection
-- `service.list()` filtered by tenant
+- `service.create()` happy path
+- `service.list()` filtered by tenant — proves tenant isolation
+- `service.findById()` not-found and wrong-tenant cases
 - `service.update()` happy + not-found
-- `service.delete()` happy + not-found
-- Permission gates: each handler has the right `@Can(action, subject)`
-  metadata (mirror the pattern in
-  `tests/stories/can-guard.story.test.ts`)
+- `service.remove()` happy + not-found
 - DTO validation: malformed input rejected with the right Zod issue
 
 Verify red:
 
 ```bash
-bun run test:e2e tests/stories/<resource>.story.test.ts
+bun run test:e2e tests/stories/<resource>-module.story.test.ts
 ```
 
 Commit:
 
 ```bash
-git add -A
-git commit -m "test(<resource>): add red tests for module skeleton"
+git add -A && git commit -m "test(<resource>): add red tests for module skeleton"
 ```
 
 ## Step 2 — Prisma model
@@ -67,160 +146,266 @@ Append to `prisma/schema.prisma`:
 
 ```prisma
 model <Resource> {
-  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-  tenantId  String   @db.Uuid
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  name      String
   // ... your fields
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([tenantId])
   @@map("<plural_snake_case>")
 }
 ```
 
-Run:
+Then **always**:
 
 ```bash
-bunx prisma migrate dev --name add-<resource>
+bun run prepare:schema
+bun run prisma:generate
+bunx prisma migrate dev --name add_<resource>
 ```
 
-### Feature-gated resource
+The `prisma:generate` step is what makes `tx.<resource>.*` typed.
+Skip it and you'll fight the type system instead of using it.
 
-Add to a new (or existing) feature schema:
+### Feature-gated resource
 
 ```prisma
 // prisma/features/<feature>.prisma
 model <Resource> { ... }
 ```
 
-Then concat + migrate:
+Same three commands. The feature key must already exist in
+`FeaturesSchema` — otherwise schema-concat won't know to include the
+file.
 
-```bash
-bun run prepare:schema
-bunx prisma migrate dev --name add-<resource>
+### RLS migration
+
+For tenant-scoped tables, the SQL migration must enable RLS and
+install the `tenant_isolation` policy. Copy from
+`prisma/migrations/20260430000000_example_module/migration.sql`:
+
+```sql
+ALTER TABLE "<plural_snake_case>" ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "tenant_isolation" ON "<plural_snake_case>"
+  FOR ALL
+  USING (tenant_id::text = current_setting('app.tenant_id', true));
 ```
 
-The feature key must exist in `FeaturesSchema` — otherwise the
-schema-concat planner won't know to include the file.
+`PrismaService.runWithRlsTenant(fn, tenantId)` (used by every service
+method below) does the `SET LOCAL` so the policy fires.
 
-## Step 3 — DTO
+## Step 3 — DTOs
+
+Zod schemas as the single source of truth — runtime validation, type
+inference, and OpenAPI schema all derive from one definition:
 
 ```typescript
 // src/modules/<resource>/<resource>.dto.ts
-import { z } from 'zod';
-import { createZodDto } from 'nestjs-zod';
+import { z } from "zod";
+
+export const <Resource>StatusSchema = z.enum(["draft", "published", "archived"]);
+export type <Resource>Status = z.infer<typeof <Resource>StatusSchema>;
 
 export const Create<Resource>Schema = z.object({
   name: z.string().min(1).max(255),
-  // ... other fields
+  description: z.string().max(2000).optional(),
+  status: <Resource>StatusSchema.default("draft"),
 });
-export class Create<Resource>Dto extends createZodDto(Create<Resource>Schema) {}
+export type Create<Resource>Dto = z.infer<typeof Create<Resource>Schema>;
 
 export const Update<Resource>Schema = Create<Resource>Schema.partial();
-export class Update<Resource>Dto extends createZodDto(Update<Resource>Schema) {}
+export type Update<Resource>Dto = z.infer<typeof Update<Resource>Schema>;
+
+export const List<Resource>QuerySchema = z.object({
+  cursor: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  status: <Resource>StatusSchema.optional(),
+});
+export type List<Resource>Query = z.infer<typeof List<Resource>QuerySchema>;
+
+export const <Resource>ResponseSchema = z.object({
+  id: z.uuid(),
+  name: z.string(),
+  description: z.string().nullable(),
+  status: <Resource>StatusSchema,
+  createdAt: z.string(),  // ISO string in the DTO; mapper converts Date → string
+  updatedAt: z.string(),
+});
+export type <Resource>Response = z.infer<typeof <Resource>ResponseSchema>;
 ```
 
-The schema is the SoT — DTO class generation, OpenAPI schema, and
-runtime validation all derive from it.
+## Step 4 — Service (slim)
 
-## Step 4 — Service
+Inline the types, errors, mapper, and Prisma calls in **one** file:
 
 ```typescript
 // src/modules/<resource>/<resource>.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../core/prisma/prisma.service.js';
+import { Injectable } from "@nestjs/common";
+import type { <Resource> } from "@prisma/client";
+
+import { PrismaService } from "../../core/prisma/prisma.service.js";
+
+import type {
+  Create<Resource>Dto,
+  <Resource>Response,
+  <Resource>Status,
+  Update<Resource>Dto,
+} from "./<resource>.dto.js";
+
+// ── Errors ─────────────────────────────────────────────────────────
+
+export class <Resource>NotFoundError extends Error {
+  constructor(id: string) {
+    super(`<Resource> not found: ${id}`);
+    this.name = "<Resource>NotFoundError";
+  }
+}
+
+// ── Service ────────────────────────────────────────────────────────
 
 @Injectable()
 export class <Resource>Service {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(tenantId: string) {
-    return this.prisma.<resource>.findMany({ where: { tenantId } });
+  async create(tenantId: string, dto: Create<Resource>Dto): Promise<<Resource>Response> {
+    const record = await this.prisma.runWithRlsTenant(
+      (tx) => tx.<resource>.create({
+        data: {
+          id: crypto.randomUUID(),
+          tenantId,
+          name: dto.name,
+          description: dto.description ?? null,
+          status: dto.status,
+        },
+      }),
+      tenantId,
+    );
+    return toResponse(record);
   }
 
-  async create(input: Create<Resource>Input, user: { id: string; tenantId: string }) {
-    return this.prisma.<resource>.create({
-      data: { ...input, tenantId: user.tenantId },
-    });
+  async findById(tenantId: string, id: string): Promise<<Resource>Response> {
+    const record = await this.prisma.runWithRlsTenant(
+      (tx) => tx.<resource>.findUnique({ where: { id } }),
+      tenantId,
+    );
+    if (!record || record.tenantId !== tenantId) throw new <Resource>NotFoundError(id);
+    return toResponse(record);
   }
 
-  async getById(id: string, tenantId: string) {
-    const found = await this.prisma.<resource>.findFirst({
-      where: { id, tenantId },
-    });
-    if (!found) throw new NotFoundException();
-    return found;
-  }
+  // ... list, update, remove — see src/modules/example/example.service.ts
+}
 
-  // ... update, delete
+// ── Mapping ────────────────────────────────────────────────────────
+
+function toResponse(record: <Resource>): <Resource>Response {
+  return {
+    id: record.id,
+    name: record.name,
+    description: record.description,
+    status: record.status as <Resource>Status,
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
+  };
 }
 ```
 
-For generic CRUD, extend `BaseRepository` from
-`src/core/repository/base-repository.ts` instead of writing the same
-pattern by hand.
+Pattern notes:
+
+- **Imports**: `import type { <Resource> } from '@prisma/client'` —
+  fully typed once `prisma:generate` ran.
+- **No casts**: `tx.<resource>.create(...)` is typed; the return is
+  `Promise<<Resource>>`. If TypeScript disagrees, regenerate, don't
+  cast.
+- **Tenant scope**: every query is wrapped in
+  `prisma.runWithRlsTenant(fn, tenantId)` so RLS sees the right
+  `app.tenant_id` setting. The service still passes `tenantId` in
+  `where` as defense-in-depth — RLS catches forgotten clauses, the
+  explicit filter catches forgotten RLS policies.
+- **Don't hand-write `createdAt` / `updatedAt`**: Prisma fills them
+  via `@default(now())` / `@updatedAt`. The mapper converts the
+  resulting `Date` to ISO string for the DTO.
+- **Mapper guards optional fields with `?? null`**: real Prisma
+  returns `null` for nullable columns; the in-memory test fake can
+  return `undefined`. The `?? null` collapses both to one shape.
+- **Errors are named sentinels**: the global RFC 7807 filter maps
+  `<Resource>NotFoundError` → 404 by class name match. No
+  controller-side try/catch needed.
 
 ## Step 5 — Controller
 
 ```typescript
 // src/modules/<resource>/<resource>.controller.ts
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req } from '@nestjs/common';
-import { Can } from '../../core/permissions/can.guard.js';
-import { Create<Resource>Dto, Update<Resource>Dto } from './<resource>.dto.js';
-import { <Resource>Service } from './<resource>.service.js';
+import {
+  Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query,
+} from "@nestjs/common";
 
-interface AuthedRequest { user: { id: string; tenantId: string } }
+import { getCurrentTenantId } from "../../core/multi-tenancy/tenant.interceptor.js";
+import { Can } from "../../core/permissions/can.guard.js";
+import { ZodValidationPipe } from "../../core/validation/zod-validation.pipe.js";
 
-@Controller('<plural>')
+import {
+  type Create<Resource>Dto, Create<Resource>Schema,
+  type <Resource>Response,
+  type List<Resource>Query, List<Resource>QuerySchema,
+  type Update<Resource>Dto, Update<Resource>Schema,
+} from "./<resource>.dto.js";
+import { <Resource>Service } from "./<resource>.service.js";
+
+@Controller("<plural>")
 export class <Resource>Controller {
   constructor(private readonly service: <Resource>Service) {}
 
-  @Get()
-  @Can('read', '<Resource>')
-  list(@Req() req: AuthedRequest) {
-    return this.service.list(req.user.tenantId);
-  }
-
+  @Can("create", "<Resource>")
   @Post()
-  @Can('create', '<Resource>')
-  create(@Body() dto: Create<Resource>Dto, @Req() req: AuthedRequest) {
-    return this.service.create(dto, req.user);
+  @HttpCode(201)
+  async create(
+    @Body(new ZodValidationPipe(Create<Resource>Schema)) dto: Create<Resource>Dto,
+  ): Promise<<Resource>Response> {
+    return this.service.create(requireTenant(), dto);
   }
 
-  @Get(':id')
-  @Can('read', '<Resource>')
-  get(@Param('id') id: string, @Req() req: AuthedRequest) {
-    return this.service.getById(id, req.user.tenantId);
+  @Can("read", "<Resource>")
+  @Get()
+  async list(@Query(new ZodValidationPipe(List<Resource>QuerySchema)) query: List<Resource>Query) {
+    return this.service.list(requireTenant(), query);
   }
 
-  @Patch(':id')
-  @Can('update', '<Resource>')
-  update(@Param('id') id: string, @Body() dto: Update<Resource>Dto, @Req() req: AuthedRequest) {
-    return this.service.update(id, dto, req.user);
-  }
+  // ... findOne, update, remove
+}
 
-  @Delete(':id')
-  @Can('delete', '<Resource>')
-  remove(@Param('id') id: string, @Req() req: AuthedRequest) {
-    return this.service.delete(id, req.user);
+function requireTenant(): string {
+  const tenantId = getCurrentTenantId();
+  if (!tenantId) {
+    throw new Error("<resource>: no tenant id in request context (route is exempt?)");
   }
+  return tenantId;
 }
 ```
 
-Read methods use `@Can('read', '<Resource>')` so the Output-Pipeline's
-record-level filter applies. The `subject` string MUST match the
-Prisma model name capitalised — that's how CASL conditions wire to the
-record's tenantId / ownerId.
+The `@Can()` subject string MUST be the capitalised model name —
+that's how CASL conditions wire to the record's tenantId / ownerId.
+Mismatch silently denies all access.
+
+For `/me/*`-style routes (extending the current user), look at
+`src/modules/user-profile/user-profile.controller.ts` — it pulls
+`req.user.id` instead of using a URL param.
 
 ## Step 6 — Module
 
 ```typescript
 // src/modules/<resource>/<resource>.module.ts
-import { Module } from '@nestjs/common';
-import { <Resource>Controller } from './<resource>.controller.js';
-import { <Resource>Service } from './<resource>.service.js';
+import { Module } from "@nestjs/common";
+
+import { PrismaModule } from "../../core/prisma/prisma.module.js";
+
+import { <Resource>Controller } from "./<resource>.controller.js";
+import { <Resource>Service } from "./<resource>.service.js";
 
 @Module({
+  imports: [PrismaModule],
   controllers: [<Resource>Controller],
   providers: [<Resource>Service],
   exports: [<Resource>Service],
@@ -230,16 +415,29 @@ export class <Resource>Module {}
 
 ## Step 7 — Wire into AppModule
 
-Find the project's root module and add the import. For feature-gated
-resources, gate the import:
+For always-on resources, add the import:
 
 ```typescript
-import { features } from '../config/features.js';
+import { <Resource>Module } from "./modules/<resource>/<resource>.module.js";
+
+@Module({
+  imports: [
+    // ... existing imports
+    <Resource>Module,
+  ],
+})
+export class AppModule {}
+```
+
+For feature-gated resources:
+
+```typescript
+import { features } from "../config/features.js";
 
 @Module({
   imports: [
     ...(features.<feature_key>.enabled ? [<Resource>Module] : []),
-    // … other modules
+    // ...
   ],
 })
 export class AppModule {}
@@ -248,8 +446,9 @@ export class AppModule {}
 ## Step 8 — Quality gates
 
 ```bash
-bun run lint && bun run test:unit && bun run test:e2e \
-  && bun run test:types && bun run test:coverage && bun run build
+bun run lint && bun run format && bun run test:types \
+  && bun run test:unit && bun run test:e2e \
+  && bun run test:coverage && bun run build
 ```
 
 Coverage on `src/modules/` is gated at **≥ 80 %**. New code without a
@@ -259,23 +458,75 @@ story drags the average — write more story tests.
 
 ```bash
 git add -A
-git commit -m "feat(<resource>): scaffold module" -m "$(cat <<'EOF'
-<short paragraph describing the resource purpose + permission model>
+git commit -m "feat(<resource>): add module" -m "$(cat <<'EOF'
+<short paragraph: what the resource is, who can do what>
 
-<load-bearing fields, indexes, edge cases>
+<load-bearing fields, indexes, edge cases — what a future reader needs>
 EOF
 )"
 ```
 
 ## Common gotchas
 
+- **`(tx as any)` is wrong**. If TypeScript says `tx.<resource>`
+  doesn't exist, your generator is stale — `bun run prepare:schema &&
+bun run prisma:generate`. Cast = bug hidden, not bug fixed.
+- **`?? null` in the mapper**. Real Prisma returns `null` for nullable
+  columns; `FakePrisma` can return `undefined`. The mapper collapses
+  both with `?? null` so tests and production produce identical
+  responses.
+- **Don't hand-write timestamps**. `@default(now())` / `@updatedAt` in
+  the schema do this; manual `new Date().toISOString()` overrides
+  that. The mapper does the `Date → ISO` conversion at the DTO
+  boundary.
 - **Subject naming**: `@Can('read', 'Project')` — the subject MUST be
   the capitalised model name. Mismatch silently denies all access.
-- **Tenant scope**: every service method that touches multi-tenant
-  data filters by `tenantId`. CASL conditions enforce this at the
-  Output-Pipeline; do it in the query too as defense-in-depth.
-- **DTO vs Zod schema**: tests use the Zod schema (`Create<Resource>Schema.parse(...)`),
-  controllers use the DTO class (`Create<Resource>Dto`). They're the
-  same thing — Zod parses through the class.
+- **Tenant scope**: every multi-tenant query is wrapped in
+  `runWithRlsTenant`. RLS is the safety net for forgotten WHERE
+  tenant_id clauses.
 - **`.js` extensions on imports**: even though source is `.ts`. ESM
-  resolution.
+  `nodenext` resolution.
+- **DTO `createdAt: string` vs Prisma `createdAt: Date`**: that's
+  intentional. The Date → ISO string conversion happens once in the
+  service mapper at the boundary.
+
+---
+
+## Layered pattern (opt-in)
+
+The slim default fits 95 % of cases. Reach for layered when you have
+a **specific** reason:
+
+- Multiple storage backends (e.g. Prisma + Redis cache, or a Postgres
+  → S3 archival path) where the call site shouldn't care which one
+  serves a request.
+- Non-Prisma persistence (HTTP API, message queue, in-memory cache as
+  primary store).
+- A security-test scenario that needs to swap in a paranoid in-memory
+  store to assert that no SQL is ever touched.
+
+Layout:
+
+```
+src/modules/<resource>/
+├── README.md
+├── <resource>.module.ts
+├── <resource>.controller.ts
+├── <resource>.service.ts                ← talks to interface, not Prisma
+├── <resource>.dto.ts
+├── <resource>.repository.ts             ← interface
+├── <resource>.repository.prisma.ts      ← Prisma implementation
+├── <resource>.repository.in-memory.ts   ← test/dev implementation
+├── <resource>.tokens.ts                 ← DI token (Symbol.for(...))
+├── <resource>.types.ts                  ← shared record + status types
+├── <resource>.errors.ts                 ← named error sentinels
+└── <resource>.mapper.ts                 ← record ↔ DTO transforms
+```
+
+The module wires the Prisma implementation via the DI token; tests
+can override the provider with the in-memory implementation. The
+contract is the interface, not the implementation.
+
+Don't reach for this preemptively. The slim default is faster to
+read, faster to change, and the FakePrismaService gives you the same
+test ergonomics without the indirection.

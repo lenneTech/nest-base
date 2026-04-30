@@ -32,20 +32,19 @@ Path: `tests/stories/<feature>.story.test.ts` (or
 Skeleton:
 
 ```typescript
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 
-import {
-  // … the symbols you're about to create
-} from '../../src/core/<area>/<feature>.js';
+import {} from // … the symbols you're about to create
+"../../src/core/<area>/<feature>.js";
 
 /**
  * Story · <Feature> (PLAN.md §<n> + §32 Phase <p>).
  *
  * <One paragraph: what the slice promises, what surfaces it touches.>
  */
-describe('Story · <Feature>', () => {
-  describe('<aspect>', () => {
-    it('<assertion>', () => {
+describe("Story · <Feature>", () => {
+  describe("<aspect>", () => {
+    it("<assertion>", () => {
       // …
     });
   });
@@ -53,6 +52,7 @@ describe('Story · <Feature>', () => {
 ```
 
 Cover:
+
 - Happy path
 - Edge cases (empty input, boundary values)
 - Validation / error paths (each named error sentinel)
@@ -83,7 +83,7 @@ EOF
 
 ## 3. Make it green
 
-Write the *minimal* code in `src/core/<area>/<feature>.ts` (or
+Write the _minimal_ code in `src/core/<area>/<feature>.ts` (or
 `src/modules/`) until the red turns green. Conventions:
 
 - Pure planner / thin runner split — see `src/core/CLAUDE.md`
@@ -102,6 +102,7 @@ bun run test:e2e tests/stories/<feature>.story.test.ts
 ## 4. Refactor
 
 Tighten the code. Tests stay green. Common cleanups:
+
 - Extract repeated literals to constants
 - Pull a small helper out of the main function for clarity
 - Tighten type signatures (replace `unknown` with the actual type)
@@ -123,6 +124,7 @@ bun run build
 ```
 
 Coverage thresholds (PLAN.md mandates):
+
 - `src/core/` ≥ **90 %** lines
 - `src/modules/` ≥ **80 %** lines
 
@@ -165,6 +167,7 @@ Append to `RALPH_LOG.md`:
 
 ```markdown
 ## Iteration <n> · <ISO-Timestamp>
+
 - Phase: <p>
 - Slice: <slice text>
 - Tests: `tests/stories/<feature>.story.test.ts` rot (Modul fehlt) → grün (<n> Tests; <surface summary>)

@@ -64,7 +64,7 @@ git commit -m "test(<scope>): add red tests for <slice>" -m "<details>"
 
 ## 3. Green
 
-Write the *minimal* code in `src/core/` (or `src/modules/`, depending
+Write the _minimal_ code in `src/core/` (or `src/modules/`, depending
 on the slice) that makes the test pass. Conventions:
 
 - Pure planner / thin runner split (see `src/core/CLAUDE.md`)
@@ -120,6 +120,7 @@ Append to `RALPH_LOG.md`:
 
 ```markdown
 ## Iteration <n> · <ISO-Timestamp>
+
 - Phase: <X>
 - Slice: <Bullet-Text>
 - Tests: <pfade> rot → grün (<count> Tests)

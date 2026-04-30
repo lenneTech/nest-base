@@ -15,13 +15,13 @@ server respawns, the new providers light up.
 
 Before you touch code, decide:
 
-| Question | Why |
-|---|---|
-| Default ON or OFF? | Cross-cutting infra → ON. Opt-in workflow → OFF. |
-| Single ENV section name? | Must be ALL-CAPS, no hyphens. Becomes `FEATURE_<NAME>_ENABLED`. |
-| External services involved? | If yes, add to `service-status.ts` after the catalog entry. |
-| Custom sub-fields beyond `enabled`? | Define a Zod sub-schema; otherwise `togglableDefault(false)` suffices. |
-| New /admin or /dev page? | Plan the URL up-front so the catalog entry can list it under `exposes`. |
+| Question                            | Why                                                                     |
+| ----------------------------------- | ----------------------------------------------------------------------- |
+| Default ON or OFF?                  | Cross-cutting infra → ON. Opt-in workflow → OFF.                        |
+| Single ENV section name?            | Must be ALL-CAPS, no hyphens. Becomes `FEATURE_<NAME>_ENABLED`.         |
+| External services involved?         | If yes, add to `service-status.ts` after the catalog entry.             |
+| Custom sub-fields beyond `enabled`? | Define a Zod sub-schema; otherwise `togglableDefault(false)` suffices.  |
+| New /admin or /dev page?            | Plan the URL up-front so the catalog entry can list it under `exposes`. |
 
 ---
 
@@ -30,7 +30,7 @@ Before you touch code, decide:
 ### 1. Schema entry — `src/core/features/features.ts`
 
 ```typescript
-const Notifications = togglableDefault(false);   // default off
+const Notifications = togglableDefault(false); // default off
 
 export const FeaturesSchema = z.object({
   // ... existing fields
@@ -64,7 +64,7 @@ map `FEATURE_NOTIFICATIONS_ENABLED` → `notifications`:
 ```typescript
 const SECTION_KEYS = new Set([
   // ... existing
-  "NOTIFICATIONS",        // ← add
+  "NOTIFICATIONS", // ← add
 ]);
 
 const SECTION_TO_KEY: Record<string, FeatureKey> = {
@@ -90,7 +90,7 @@ export const FEATURE_CATALOG: readonly FeatureMeta[] = [
     label: "Notifications",
     description: "Multi-channel transactional notifications (email + webhook).",
     envKey: "FEATURE_NOTIFICATIONS_ENABLED",
-    category: "communication",      // infrastructure | data | communication | integration | observability
+    category: "communication", // infrastructure | data | communication | integration | observability
     exposes: ["NotificationService", "/admin/notifications", "@OnNotification()"],
   },
 ];
@@ -214,13 +214,13 @@ bun run scripts/regen-env-example.ts   # if that script exists
 
 ### 10. Story tests
 
-| Test file | Add what |
-|---|---|
-| `tests/stories/features.story.test.ts` | Default value + ENV override case |
+| Test file                                     | Add what                                         |
+| --------------------------------------------- | ------------------------------------------------ |
+| `tests/stories/features.story.test.ts`        | Default value + ENV override case                |
 | `tests/stories/feature-catalog.story.test.ts` | Already covers the envKey roundtrip — just rerun |
-| `tests/stories/diagnostics.story.test.ts` | New field in the features-section assertion |
-| `tests/stories/dev-hub.story.test.ts` | If you added a navigation link |
-| `tests/stories/schema-concat.story.test.ts` | If you added a Prisma model |
+| `tests/stories/diagnostics.story.test.ts`     | New field in the features-section assertion      |
+| `tests/stories/dev-hub.story.test.ts`         | If you added a navigation link                   |
+| `tests/stories/schema-concat.story.test.ts`   | If you added a Prisma model                      |
 
 ### 11. Quality gates
 
@@ -253,11 +253,11 @@ All six must pass before commit.
 
 ## Defaults playbook
 
-| Pattern | Default | Why |
-|---|---|---|
-| Cross-cutting infrastructure | ON | Multi-Tenancy, Files, Email, Observability, Jobs, Rate-Limit, Idempotency. Most apps want them. |
-| External integration | OFF | Webhooks, PowerSync, MCP, Realtime, Geo. Costs runtime + extra config. |
-| Optional security hardening | OFF | Field Encryption — needs KEK setup, opt-in. |
+| Pattern                      | Default | Why                                                                                             |
+| ---------------------------- | ------- | ----------------------------------------------------------------------------------------------- |
+| Cross-cutting infrastructure | ON      | Multi-Tenancy, Files, Email, Observability, Jobs, Rate-Limit, Idempotency. Most apps want them. |
+| External integration         | OFF     | Webhooks, PowerSync, MCP, Realtime, Geo. Costs runtime + extra config.                          |
+| Optional security hardening  | OFF     | Field Encryption — needs KEK setup, opt-in.                                                     |
 
 ---
 
