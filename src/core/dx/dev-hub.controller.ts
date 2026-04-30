@@ -5,11 +5,15 @@ import { resolve } from "node:path";
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
+  Delete,
   Get,
   Header,
   Headers,
   HttpCode,
+  HttpException,
+  HttpStatus,
   NotFoundException,
   Param,
   Post,
@@ -19,6 +23,8 @@ import {
 import type { Response } from "express";
 
 import { readTunnelState } from "../dev/tunnel-state-runner.js";
+import { MigrationsService } from "./migrations/migrations.service.js";
+
 import { type Features, loadFeatures } from "../features/features.js";
 import { parsePostgrestQuery } from "../permissions/postgrest-query.js";
 import { serverConfigFromEnv } from "../server/server-config.js";
@@ -64,7 +70,10 @@ import { planServiceCandidates, probeServices, type ServiceProbeResult } from ".
  */
 @Controller("dev")
 export class DevHubController {
-  constructor(private readonly routes: RouteInventoryService) {}
+  constructor(
+    private readonly routes: RouteInventoryService,
+    private readonly migrations: MigrationsService,
+  ) {}
 
   @Get()
   @Header("content-type", "text/html; charset=utf-8")
@@ -542,6 +551,152 @@ export class DevHubController {
     });
   }
 
+  // -----------------------------------------------------------------
+  // /dev/migrations · Issue #10 — Migration Handler
+  // -----------------------------------------------------------------
+
+  /** SPA shell for `/dev/migrations` — React decides which tab to show. */
+  @Get("migrations")
+  @Header("content-type", "text/html; charset=utf-8")
+  migrationsPage(): string {
+    this.assertDev();
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Migrations" }));
+  }
+
+  /** JSON snapshot of applied + pending + failed migrations + drift signal. */
+  @Get("migrations.json")
+  async migrationsJson(): Promise<unknown> {
+    this.assertDev();
+    return this.migrations.getStatus();
+  }
+
+  /** Read-only SQL preview of a single migration folder. */
+  @Get("migrations/preview/:name")
+  migrationsPreview(@Param("name") name: string): { name: string; sql: string } {
+    this.assertDev();
+    try {
+      return this.migrations.previewSql(name);
+    } catch (err) {
+      throw new BadRequestException(asMessage(err));
+    }
+  }
+
+  /** Schema diff between live DB and `prisma/schema.prisma`. */
+  @Get("migrations/diff")
+  async migrationsDiff(): Promise<{ sql: string; success: boolean; stderr: string }> {
+    this.assertDev();
+    return this.migrations.getDiff();
+  }
+
+  /** Apply every pending migration. Lock-gated; 409 on contention. */
+  @Post("migrations/deploy")
+  @HttpCode(200)
+  async migrationsDeploy(): Promise<unknown> {
+    this.assertDev();
+    const r = await this.migrations.deployPending();
+    return this.unwrapLock(r);
+  }
+
+  /** Apply a single pending migration. */
+  @Post("migrations/apply-one")
+  @HttpCode(200)
+  async migrationsApplyOne(@Body() body: { name?: unknown }): Promise<unknown> {
+    this.assertDev();
+    const name = assertNonEmptyString(body?.name, "name");
+    try {
+      const r = await this.migrations.applyOne(name);
+      return this.unwrapLock(r);
+    } catch (err) {
+      if (err instanceof HttpException) throw err;
+      throw new BadRequestException(asMessage(err));
+    }
+  }
+
+  /** Run a migration in a transaction + rollback. Non-destructive. */
+  @Post("migrations/dry-run")
+  @HttpCode(200)
+  async migrationsDryRun(@Body() body: { name?: unknown }): Promise<unknown> {
+    this.assertDev();
+    const name = assertNonEmptyString(body?.name, "name");
+    try {
+      const r = await this.migrations.dryRun(name);
+      return this.unwrapLock(r);
+    } catch (err) {
+      if (err instanceof HttpException) throw err;
+      throw new BadRequestException(asMessage(err));
+    }
+  }
+
+  /** Resolve a failed migration as rolled-back, then retry. */
+  @Post("migrations/retry")
+  @HttpCode(200)
+  async migrationsRetry(@Body() body: { name?: unknown }): Promise<unknown> {
+    this.assertDev();
+    const name = assertNonEmptyString(body?.name, "name");
+    try {
+      const r = await this.migrations.retryFailed(name);
+      return this.unwrapLock(r);
+    } catch (err) {
+      if (err instanceof HttpException) throw err;
+      throw new BadRequestException(asMessage(err));
+    }
+  }
+
+  /** Generate a new draft migration (does not apply). */
+  @Post("migrations/create")
+  @HttpCode(200)
+  async migrationsCreate(@Body() body: { name?: unknown }): Promise<unknown> {
+    this.assertDev();
+    const name = assertNonEmptyString(body?.name, "name");
+    try {
+      const r = await this.migrations.createDraft(name);
+      return this.unwrapLock(r);
+    } catch (err) {
+      if (err instanceof HttpException) throw err;
+      throw new BadRequestException(asMessage(err));
+    }
+  }
+
+  /** Apply a previously-created draft migration. */
+  @Post("migrations/apply-draft")
+  @HttpCode(200)
+  async migrationsApplyDraft(@Body() body: { name?: unknown }): Promise<unknown> {
+    this.assertDev();
+    const name = assertNonEmptyString(body?.name, "name");
+    try {
+      const r = await this.migrations.applyDraft(name);
+      return this.unwrapLock(r);
+    } catch (err) {
+      if (err instanceof HttpException) throw err;
+      throw new BadRequestException(asMessage(err));
+    }
+  }
+
+  /** Discard a draft migration directory. */
+  @Delete("migrations/draft/:name")
+  @HttpCode(200)
+  async migrationsDiscardDraft(
+    @Param("name") name: string,
+  ): Promise<{ name: string; deleted: boolean }> {
+    this.assertDev();
+    try {
+      return this.migrations.discardDraft(name);
+    } catch (err) {
+      throw new BadRequestException(asMessage(err));
+    }
+  }
+
+  private unwrapLock<T>(r: { acquired: boolean; result?: T }): T {
+    if (!r.acquired) {
+      throw new ConflictException({
+        statusCode: HttpStatus.CONFLICT,
+        error: "Conflict",
+        message: "another migration is running",
+      });
+    }
+    return r.result as T;
+  }
+
   /**
    * Catch-all for `/dev/*` paths that don't match a more specific
    * handler. Always returns the SPA shell — react-router on the client
@@ -600,6 +755,17 @@ function isSafeStaticName(name: string): boolean {
   if (name.includes("/") || name.includes("\\")) return false;
   if (name.startsWith(".")) return false;
   return /^[a-zA-Z0-9._-]+\.(js|css|map|svg|woff2?)$/.test(name);
+}
+
+function assertNonEmptyString(value: unknown, fieldName: string): string {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new BadRequestException(`body.${fieldName} must be a non-empty string`);
+  }
+  return value;
+}
+
+function asMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
 }
 
 function mimeForExtension(name: string): string {

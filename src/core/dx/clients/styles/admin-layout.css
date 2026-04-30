@@ -2654,3 +2654,175 @@ ul.channels li {
 pre.payload {
   margin: 0;
 }
+
+/*
+ * Migrations page (`/dev/migrations`, Issue #10).
+ *
+ * Pure additive styling. Mirrors the look-and-feel of the existing
+ * audit / webhook tables so the page slots into the dark portal
+ * theme without bespoke colour tokens.
+ */
+.mig-timeline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding-top: 0.4rem;
+}
+
+.mig-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: var(--code-bg);
+  font: 11px var(--font-mono, monospace);
+  color: var(--text);
+  border: 1px solid transparent;
+}
+.mig-pill__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.7;
+}
+.mig-pill--applied {
+  border-color: rgba(34, 197, 94, 0.45);
+}
+.mig-pill--applied .mig-pill__dot {
+  background: #22c55e;
+}
+.mig-pill--pending {
+  border-color: rgba(250, 204, 21, 0.45);
+}
+.mig-pill--pending .mig-pill__dot {
+  background: #facc15;
+}
+.mig-pill--failed {
+  border-color: rgba(239, 68, 68, 0.55);
+  color: #fecaca;
+}
+.mig-pill--failed .mig-pill__dot {
+  background: #ef4444;
+}
+
+.mig-drift {
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.07);
+}
+.mig-drift__list {
+  margin: 0.4rem 0;
+  padding-left: 1.1rem;
+}
+.mig-drift__list li {
+  margin: 0.15rem 0;
+}
+
+.mig-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+.mig-actions-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.mig-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.mig-table th,
+.mig-table td {
+  padding: 0.4rem 0.55rem;
+  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
+  text-align: left;
+  vertical-align: middle;
+}
+.mig-table th {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-size: 10.5px;
+}
+.mig-table tr[data-state="failed"] {
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.mig-badge {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.mig-badge--ok {
+  background: rgba(34, 197, 94, 0.18);
+  color: #86efac;
+}
+.mig-badge--err {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+}
+
+.mig-pre {
+  background: var(--code-bg);
+  padding: 0.6rem 0.8rem;
+  border-radius: 4px;
+  margin: 0.4rem 0;
+  font: 12px var(--font-mono, monospace);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 65dvh;
+  min-height: 14rem;
+  overflow: auto;
+}
+.mig-pre--err {
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  color: #fecaca;
+}
+
+.mig-history {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+.mig-history li {
+  margin: 0.25rem 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.mig-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: flex-start;
+  max-width: 28rem;
+}
+
+.mig-draft {
+  margin-top: 1rem;
+  border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
+  padding-top: 0.8rem;
+}
+
+.mig-modal-body {
+  margin: 0.5rem 0;
+}
+.mig-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+.mig-modal--wide {
+  max-width: 80vw;
+  width: 60rem;
+}

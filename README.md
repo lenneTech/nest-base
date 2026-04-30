@@ -139,6 +139,10 @@ Live Mermaid `erDiagram` of the active Prisma schema (concat'd from `schema.pris
 
 Every registered email template rendered with a realistic sample payload. Subject + sandboxed HTML iframe + plain-text version side-by-side, plus the sample-payload JSON. Mailpit at `:8025` shows actually-sent emails; this page is for "did my edit to the welcome template break anything?".
 
+### Migrations — `/dev/migrations`
+
+Five-tab handler for Prisma schema evolution: **Status** (rows from `_prisma_migrations` with retry on failed), **Pending** (preview SQL · apply one · apply all · dry-run in a transaction), **Diff** (`prisma migrate diff` between live DB and `schema.prisma`), **History** (timeline of applied migrations), **Create New** (kebab-case validated → `prisma migrate dev --create-only` → SQL preview → apply or discard). Drift banner above all tabs. Every mutating endpoint is gated by a Postgres advisory lock (409 on contention) and 404s outside `NODE_ENV=development`.
+
 ### JSON Endpoints — `/errors`, `/api/openapi`, `/dev/postgrest-parse`
 
 Every JSON endpoint has a sister HTML page that mounts the React SPA's shared **JSON viewer** — syntax-highlighted, collapsible tree, copy button, key-filter search. Browser default → viewer; `Accept: application/json` or `?format=json` → raw JSON for SDKs.
