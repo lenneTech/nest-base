@@ -7,26 +7,29 @@ layers, all swap-out-able:
 ```
                   HTTP
                     │
-   ┌────────────────┼────────────────────────┐
-   │                │                        │
-   FileController   AssetController          /api/files/upload
-   POST /files/upload     GET /assets/:key   (TUS @PATCH/HEAD/POST/DELETE)
-   GET  /files/:id        Sharp transformer
-   DELETE …               + cache adapter
-   │                                         │
-   FileService      AssetService             TUS Server (lazy)
-   FolderService    │  │  │                  │
-   │   │            │  │  └─→ Cache adapter ─┤
-   │   │            │  └─→ Origin adapter ───┤
-   │   │            └─→ Sharp transformer    │
-   │   │                                     │
-   PrismaFileStorage  ←———————————————————→  StorageAdapterDataStore
-   PrismaFolderStorage                        │
-   │                                          │
-   PrismaService                              StorageAdapter (origin)
-   prisma.file / .folder                      LocalStorageAdapter |
-                                              S3StorageAdapter |
-                                              PostgresStorageAdapter
+   ┌────────────────┼─────────────────────────────────────┐
+   │                │                                     │
+   FileController   AssetController     /_ipx/* (Nuxt-Image)
+   POST /files/upload     GET /assets/:key   /api/files/upload
+   GET  /files/:id        + cache adapter   (TUS @PATCH/HEAD/POST/DELETE)
+   DELETE …               IpxCacheController
+   │                      DELETE /_ipx/cache/:key         │
+   FileService      AssetService                         TUS Server (lazy)
+   FolderService    │  │  │                              │
+   │   │            │  │  └─→ Cache adapter ─────────────┤
+   │   │            │  └─→ Origin adapter ───────────────┤
+   │   │            └─→ IpxAssetTransformer (createIPX)  │
+   │   │                                                 │
+   │   │            IpxAssetServer ─→ createIPXNodeServer
+   │   │            (mounted on Express by bootstrap.ts)
+   │   │                                                 │
+   PrismaFileStorage  ←——————————————————————————————→ StorageAdapterDataStore
+   PrismaFolderStorage                                    │
+   │                                                      │
+   PrismaService                                          StorageAdapter (origin)
+   prisma.file / .folder                                  LocalStorageAdapter |
+                                                          S3StorageAdapter |
+                                                          PostgresStorageAdapter
 ```
 
 ## Driver matrix
@@ -80,20 +83,25 @@ large files. Switch to `local` or `s3` when uploads exceed a few MB.
 
 ## Asset pipeline
 
-`AssetController.GET /assets/:key`:
+Two URL surfaces share the same engine:
 
-1. probe the cache adapter for `computeCacheKey(key, options)`,
-2. emit `x-cache: HIT|MISS|BYPASS` (`BYPASS` when no transform was
-   requested),
-3. delegate to `AssetService.deliver(key, options)`,
-4. AssetService either reads cached bytes or runs the original
-   through `SharpTransformer` and stores the result in the cache,
-5. controller streams the bytes back with `content-type` set from
-   the adapter and `cache-control: public, max-age=86400` for the
-   browser.
+1. `/_ipx/<modifiers>/<source>` — Nuxt-Image-compatible. Mounted by
+   `bootstrap.ts` as a raw Node listener (h3 → Node) wrapping
+   `createIPX({ storage: storageAdapterSource(adapter) })`. The
+   `ipx-server.ts` middleware also rewrites a leading
+   `/preset_<name>/<source>` segment to the preset's full IPX
+   modifier string before delegating. Frontend setup guide:
+   [`docs/integrations/nuxt-image.md`](../../../docs/integrations/nuxt-image.md).
+2. `/assets/:key?width=…&format=…` — legacy URL contract preserved
+   for backward compat. The controller still probes the cache
+   adapter, emits `x-cache: HIT|MISS|BYPASS`, then delegates to
+   `AssetService.deliver(key, options)` which routes through the
+   `IpxAssetTransformer` (a thin `createIPX()` wrapper sharing the
+   same engine as the URL endpoint).
 
-Issue #17 swaps `SharpTransformer` for IPX. The `AssetTransformer`
-interface stays.
+`DELETE /_ipx/cache/:sourcePath` drops the asset-service cache.
+RBAC: `delete` on `Asset`. IPX itself uses `Cache-Control` + ETag
+revalidation; the asset cache sits one layer below.
 
 ## Pure planners
 
@@ -114,8 +122,15 @@ interface stays.
   optional-dep loading of the AWS SDK.
 - `tests/stories/storage-adapter-data-store.story.test.ts` — TUS
   DataStore wrapper.
-- `tests/stories/sharp-transformer.story.test.ts` — `sharp` smoke
-  test.
+- `tests/stories/ipx-transformer.story.test.ts` — IPX-routed inline
+  transform smoke test (PNG / WebP / AVIF / JPEG-quality).
+- `tests/stories/ipx-source.story.test.ts` — StorageAdapter ↔ IPXStorage
+  bridge.
+- `tests/stories/ipx-url-planner.story.test.ts` — legacy query →
+  IPX modifier translation, preset resolver, modifier-string builder,
+  preset-URL rewriter.
+- `tests/asset-ipx.e2e-spec.ts` — `/_ipx/*` endpoint, preset path,
+  404, legacy URL backward-compat, cache-invalidation.
 - `tests/files-persistence.e2e-spec.ts` — closing-the-loop e2e:
   upload, get-by-id, asset stream + cache HIT/MISS, restart-survives.
 

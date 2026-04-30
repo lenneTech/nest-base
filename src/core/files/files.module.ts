@@ -15,7 +15,7 @@ import {
 
 import { loadFeatures } from "../features/features.js";
 import { uuidV7 } from "../uuid/uuid-v7.js";
-import { AssetController } from "./asset.controller.js";
+import { AssetController, IpxCacheController } from "./asset.controller.js";
 import { AssetService, type AssetTransformer } from "./asset.service.js";
 import {
   PrismaFolderStorage,
@@ -35,11 +35,13 @@ import {
   FolderNotFoundError,
   FolderService,
 } from "./folder.service.js";
+import { AssetPresetRegistry } from "./asset-presets.js";
+import { createIpxAssetServer, type IpxAssetServer } from "./ipx-server.js";
+import { IpxAssetTransformer } from "./ipx-transformer.js";
 import { LocalStorageAdapter } from "./local-storage-adapter.js";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { PostgresStorageAdapter } from "./postgres-storage-adapter.js";
 import { PrismaFileBlobOperations } from "./postgres-file-blob-operations.js";
-import { SharpTransformer } from "./sharp-transformer.js";
 import { StorageAdapterDataStore } from "./storage-adapter-data-store.js";
 import { resolveStoragePath } from "./storage-path.js";
 import {
@@ -57,6 +59,8 @@ const FOLDER_STORAGE = Symbol.for("lt:FolderStorage");
 const STORAGE_ORIGIN = Symbol.for("lt:StorageOrigin");
 const STORAGE_CACHE = Symbol.for("lt:StorageCache");
 const ASSET_TRANSFORMER = Symbol.for("lt:AssetTransformer");
+const ASSET_PRESETS = Symbol.for("lt:AssetPresets");
+const IPX_SERVER = Symbol.for("lt:IpxServer");
 const TUS_SERVER = Symbol.for("lt:TusServer");
 const TUS_CONFIG = Symbol.for("lt:TusConfig");
 
@@ -68,6 +72,8 @@ export const FOLDER_STORAGE_TOKEN = FOLDER_STORAGE;
 export const STORAGE_ORIGIN_TOKEN = STORAGE_ORIGIN;
 export const STORAGE_CACHE_TOKEN = STORAGE_CACHE;
 export const ASSET_TRANSFORMER_TOKEN = ASSET_TRANSFORMER;
+export const ASSET_PRESETS_TOKEN = ASSET_PRESETS;
+export const IPX_SERVER_TOKEN = IPX_SERVER;
 export const TUS_SERVER_TOKEN = TUS_SERVER;
 export const TUS_CONFIG_TOKEN = TUS_CONFIG;
 
@@ -250,7 +256,7 @@ function buildCacheAdapter(
  * migration between backends.
  */
 @Module({
-  controllers: [FileController, FolderController, AssetController],
+  controllers: [FileController, FolderController, AssetController, IpxCacheController],
   providers: [
     // ── Metadata storage (Prisma) ─────────────────────────────────
     {
@@ -289,10 +295,22 @@ function buildCacheAdapter(
       },
       inject: [STORAGE_ORIGIN],
     },
-    // ── Asset transformer (sharp) ─────────────────────────────────
+    // ── Asset transformer (IPX) ───────────────────────────────────
     {
       provide: ASSET_TRANSFORMER,
-      useFactory: (): AssetTransformer => new SharpTransformer(),
+      useFactory: (): AssetTransformer => new IpxAssetTransformer(),
+    },
+    // ── Asset preset registry ─────────────────────────────────────
+    {
+      provide: ASSET_PRESETS,
+      useFactory: (): AssetPresetRegistry => AssetPresetRegistry.fromDefaults(),
+    },
+    // ── IPX asset server (mounted at /_ipx/* in bootstrap) ────────
+    {
+      provide: IPX_SERVER,
+      useFactory: (origin: StorageAdapter, presets: AssetPresetRegistry): IpxAssetServer =>
+        createIpxAssetServer({ origin, presets }),
+      inject: [STORAGE_ORIGIN, ASSET_PRESETS],
     },
     // ── Asset service ─────────────────────────────────────────────
     {
@@ -374,6 +392,8 @@ function buildCacheAdapter(
     AssetService,
     STORAGE_ORIGIN,
     STORAGE_CACHE,
+    ASSET_PRESETS,
+    IPX_SERVER,
     TUS_SERVER,
     TUS_CONFIG,
   ],
