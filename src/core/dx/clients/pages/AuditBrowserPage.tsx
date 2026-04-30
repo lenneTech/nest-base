@@ -80,11 +80,7 @@ export function AuditBrowserPage(): ReactNode {
             </label>
             <label>
               Resource
-              <input
-                name="resource"
-                defaultValue={filter.resource ?? ""}
-                placeholder="Project"
-              />
+              <input name="resource" defaultValue={filter.resource ?? ""} placeholder="Project" />
             </label>
             <label>
               Actor
@@ -176,7 +172,10 @@ function DiffCell({
         <span key={`b-${i}`} className="del">{`- ${l}\n`}</span>
       ))}
       {afterLines.map((l, i) => (
-        <span key={`a-${i}`} className="add">{`+ ${l}${i < afterLines.length - 1 ? "\n" : ""}`}</span>
+        <span
+          key={`a-${i}`}
+          className="add"
+        >{`+ ${l}${i < afterLines.length - 1 ? "\n" : ""}`}</span>
       ))}
     </pre>
   );
