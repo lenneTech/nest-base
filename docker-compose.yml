@@ -94,6 +94,12 @@ services:
     ports:
       - '1025:1025' # SMTP
       - '8025:8025' # Web UI
+    # `--smtp-disable-rdns` skips Mailpit's reverse-DNS lookup of the
+    # connecting client IP. Inside Docker bridge networks the host has
+    # no PTR record, so the lookup blocks for ~5 s before Mailpit sends
+    # the SMTP greeting — long enough to time out modern SMTP clients
+    # (Nodemailer ≥ 7 has a 10 s greeting timeout by default).
+    command: ['--smtp-disable-rdns']
     environment:
       MP_MAX_MESSAGES: 5000
       MP_SMTP_AUTH_ACCEPT_ANY: 1

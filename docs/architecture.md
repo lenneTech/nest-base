@@ -197,6 +197,56 @@ These live in `src/core/` and are activated via `features.ts`:
 All are **opt-in via `features.ts`** — disabled features have zero
 footprint (no module load, no migration, no env-var requirement).
 
+## Email subsystem
+
+`src/core/email/` ships three drivers behind the `EmailDriver`
+interface:
+
+| Driver | Path | Used when |
+|---|---|---|
+| `SmtpEmailDriver` | `src/core/email/drivers/smtp.driver.ts` | `features.email.provider === "smtp"` and `SMTP_HOST` is set. Wraps Nodemailer with a connection pool + 10 s timeouts. |
+| `BrevoEmailDriver` | `src/core/email/drivers/brevo.driver.ts` | `features.email.provider === "brevo"` and `BREVO_API_KEY` is set. Pure-`fetch` HTTP client against `https://api.brevo.com/v3/smtp/email`. Also exposes `listTemplates()` / `getTemplate()` for the Issue #9 read-only Dev-Hub tab. |
+| `LogOnlyEmailDriver` | `src/core/email/email.module.ts` | `features.email.enabled === false` or no relay configured at all (offline dev). Mails go to Pino log lines instead of out the wire. |
+
+The driver-selection planner `selectEmailDriver()` picks `primary` +
+optional `transactional` from features + env. With `provider="smtp"`
+and `BREVO_API_KEY` set, Brevo is wired *only* as the transactional
+driver — `EmailService.sendTemplate({ brevoTemplateId })` then reaches
+Brevo while plain `EmailService.send(...)` keeps using SMTP.
+
+### Local-dev loop
+
+`docker compose up -d mailpit` starts a Mailpit container on
+`localhost:1025` (SMTP) and `localhost:8025` (web inbox). The default
+`.env.example` already points `SMTP_HOST/PORT` at it, so the very
+first `EmailService.send(...)` lands visibly in
+[`http://localhost:8025`](http://localhost:8025) without any extra
+configuration.
+
+Two compatibility flags matter:
+
+- `SmtpEmailDriver` sets `allowInternalNetworkInterfaces: true` because
+  Nodemailer ≥ 7 blocks loopback / private addresses by default
+  (SSRF guard).
+- The Mailpit container is started with `--smtp-disable-rdns` because
+  Mailpit's reverse-DNS lookup of the connecting client IP blocks the
+  greeting for ~5 s on Docker bridge networks (no PTR records).
+
+### Brevo setup
+
+1. Create an API key at <https://app.brevo.com/settings/keys/api>.
+2. Set `BREVO_API_KEY=xkeysib-...` in `.env`.
+3. Either flip `FEATURE_EMAIL_PROVIDER=brevo` to make Brevo the
+   primary, or keep `provider=smtp` and use Brevo only for templates
+   via `sendTemplate({ brevoTemplateId })`.
+4. Templates created in the Brevo UI become callable by ID; the
+   read-only Dev-Hub tab (Issue #9) lists them via
+   `BrevoEmailDriver.listTemplates()`.
+
+Outbox-style retry / DLQ / bounce handling is a separate slice
+(Issue #11) — the drivers themselves return success/failure for a
+single attempt and let the outbox decide what to do next.
+
 ## Dev-Portal-Frontend
 
 Every developer-facing HTML surface — `/dev/*`, `/admin/*`, `/errors`,

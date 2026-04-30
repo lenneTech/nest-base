@@ -1,6 +1,13 @@
 import { Logger, Module } from "@nestjs/common";
 
+import { loadFeatures } from "../features/features.js";
 import { resolveBrandConfig } from "./brand.js";
+import { BrevoEmailDriver, createBrevoHttpClient } from "./drivers/brevo.driver.js";
+import {
+  SmtpEmailDriver,
+  createSmtpTransporter,
+  readSmtpConfigFromEnv,
+} from "./drivers/smtp.driver.js";
 import {
   type EmailDriver,
   type EmailMessage,
@@ -11,10 +18,10 @@ import {
 import { ReactEmailTemplateRenderer } from "./email-templates.react.js";
 
 /**
- * Logs the message to stdout instead of sending.  Default driver
- * until SMTP (`nodemailer`) or Brevo are installed and configured —
- * keeps the EmailService end-to-end testable in DI without external
- * deps.
+ * Logs the message to stdout instead of sending. Default driver when
+ * the email feature is disabled or no relay is configured — keeps
+ * verify-email / reset-password flows completing in offline dev
+ * without touching a real outbound mail server.
  */
 class LogOnlyEmailDriver implements EmailDriver {
   readonly name = "log-only";
@@ -38,13 +45,54 @@ class LogOnlyEmailDriver implements EmailDriver {
 }
 
 /**
- * EmailModule — provides `EmailService` + a default `LogOnlyEmailDriver`.
- *
- * Real drivers (`@nestjs/mailer` w/ Nodemailer for SMTP, custom Brevo
- * adapter for the Brevo API) plug in via `features.email.provider` once
- * those dependencies are installed. Until then the log-only driver
- * lets verify-email / reset-password flows complete in dev without
- * a real outbound mail server.
+ * Pure planner — picks which driver names should be wired up given the
+ * active features + env. Selection rules are documented in the story
+ * tests (`email-driver-selection.story.test.ts`). Splitting this out
+ * lets us unit-test the decision without booting a NestJS module.
+ */
+export type EmailDriverName = "log-only" | "smtp" | "brevo";
+
+export interface DriverSelectionInput {
+  enabled: boolean;
+  provider: "smtp" | "brevo";
+  env: Record<string, string | undefined>;
+}
+
+export interface DriverSelection {
+  primary: EmailDriverName;
+  transactional?: EmailDriverName;
+}
+
+export function selectEmailDriver(input: DriverSelectionInput): DriverSelection {
+  if (!input.enabled) return { primary: "log-only" };
+  const hasBrevo = Boolean(input.env.BREVO_API_KEY?.trim());
+  const hasSmtpHost = Boolean(input.env.SMTP_HOST?.trim());
+
+  if (input.provider === "brevo") {
+    // Brevo is the chosen primary, but if no key is configured we fall
+    // back to the SMTP relay (Mailpit in dev, real SMTP in prod) — that
+    // way an operator who fat-fingers the env still sees mail in their
+    // dev inbox instead of silent log-only routing.
+    if (hasBrevo) return { primary: "brevo", transactional: "brevo" };
+    if (hasSmtpHost) return { primary: "smtp" };
+    return { primary: "log-only" };
+  }
+
+  // provider === "smtp"
+  if (!hasSmtpHost) return { primary: "log-only" };
+  const sel: DriverSelection = { primary: "smtp" };
+  // Brevo as a transactional add-on lets `sendTemplate({ brevoTemplateId })`
+  // route to Brevo even when the bulk of mail flows through SMTP.
+  if (hasBrevo) sel.transactional = "brevo";
+  return sel;
+}
+
+/**
+ * EmailModule — provides `EmailService` with the driver(s) selected by
+ * `selectEmailDriver`.  Drivers are instantiated lazily inside
+ * `useFactory` so env reads happen at provider init time, not module
+ * decoration time (matters for tests that mutate `process.env` in
+ * `beforeAll`).
  *
  * The template renderer is the file-based React-Email loader from
  * issue #6 — templates live as `.tsx` under
@@ -56,17 +104,41 @@ class LogOnlyEmailDriver implements EmailDriver {
     {
       provide: EmailService,
       useFactory: (): EmailService => {
+        const env = process.env as Record<string, string | undefined>;
+        const features = loadFeatures(env);
+        const selection = selectEmailDriver({
+          enabled: features.email.enabled,
+          provider: features.email.provider,
+          env,
+        });
         const renderer: EmailTemplateRenderer = new ReactEmailTemplateRenderer({
           brand: resolveBrandConfig(),
         });
-        return new EmailService({
-          primary: new LogOnlyEmailDriver(),
+        const primary = createDriver(selection.primary, env);
+        const options: ConstructorParameters<typeof EmailService>[0] = {
+          primary,
           renderer,
-          defaultFrom: process.env.SMTP_FROM ?? "no-reply@example.com",
-        });
+          defaultFrom: env.SMTP_FROM ?? "no-reply@example.com",
+        };
+        if (selection.transactional) {
+          options.transactional = createDriver(selection.transactional, env);
+        }
+        return new EmailService(options);
       },
     },
   ],
   exports: [EmailService],
 })
 export class EmailModule {}
+
+function createDriver(name: EmailDriverName, env: Record<string, string | undefined>): EmailDriver {
+  if (name === "log-only") return new LogOnlyEmailDriver();
+  if (name === "smtp") {
+    const cfg = readSmtpConfigFromEnv(env);
+    if (!cfg) return new LogOnlyEmailDriver();
+    return new SmtpEmailDriver({ transporter: createSmtpTransporter(cfg) });
+  }
+  // brevo
+  const apiKey = env.BREVO_API_KEY ?? "";
+  return new BrevoEmailDriver({ apiKey, http: createBrevoHttpClient({ apiKey }) });
+}
