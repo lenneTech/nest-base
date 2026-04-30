@@ -23,7 +23,8 @@ describe("Story · GeoIp Download Runner", () => {
     const fetcher = vi.fn(async () => ({
       ok: true,
       status: 200,
-      arrayBuffer: () => Promise.resolve(gz.buffer.slice(gz.byteOffset, gz.byteOffset + gz.byteLength)),
+      arrayBuffer: () =>
+        Promise.resolve(gz.buffer.slice(gz.byteOffset, gz.byteOffset + gz.byteLength)),
     }));
     const writes: { path: string; bytes: Uint8Array }[] = [];
     const fs = {
@@ -86,15 +87,13 @@ describe("Story · GeoIp Download Runner", () => {
   it("dekomprimiert tar.gz und extrahiert das *.mmdb-File", async () => {
     // Ein minimal-tar mit einer einzigen Datei `GeoLite2-City_20260401/GeoLite2-City.mmdb`.
     const mmdbBytes = Buffer.from("MMDB-PAYLOAD-EXAMPLE");
-    const tar = makeMinimalTar(
-      "GeoLite2-City_20260401/GeoLite2-City.mmdb",
-      mmdbBytes,
-    );
+    const tar = makeMinimalTar("GeoLite2-City_20260401/GeoLite2-City.mmdb", mmdbBytes);
     const gz = gzipSync(tar);
     const fetcher = vi.fn(async () => ({
       ok: true,
       status: 200,
-      arrayBuffer: () => Promise.resolve(gz.buffer.slice(gz.byteOffset, gz.byteOffset + gz.byteLength)),
+      arrayBuffer: () =>
+        Promise.resolve(gz.buffer.slice(gz.byteOffset, gz.byteOffset + gz.byteLength)),
     }));
     let writtenBytes: Uint8Array | undefined;
     const fs = {

@@ -169,6 +169,7 @@ Permission tester, audit browser, search tester, webhook inspector, realtime ins
 | | PowerSync (offline-first) | ✗ | `FEATURE_POWERSYNC_ENABLED` |
 | | Field Encryption (AES-256-GCM) | ✗ | `FEATURE_FIELD_ENCRYPTION_ENABLED` |
 | | Geo / Places (geocoding cache) | ✗ | `FEATURE_GEO_ENABLED` |
+| | GeoIP (offline IP→country/city via .mmdb) | ✗ | `FEATURE_GEO_IP_ENABLED` |
 | **Communication** | Email (Nodemailer + Brevo) | ✓ | `FEATURE_EMAIL_ENABLED` |
 | | Realtime (LISTEN/NOTIFY + Socket.IO) | ✗ | `FEATURE_REALTIME_ENABLED` |
 | **Integration** | Webhooks (HMAC-signed + retry) | ✗ | `FEATURE_WEBHOOKS_ENABLED` |
@@ -384,6 +385,25 @@ A fresh agent reads [`.claude/QUICKSTART.md`](./.claude/QUICKSTART.md) (60 sec) 
 ## 📜 License
 
 MIT — see [`LICENSE`](./LICENSE).
+
+### Third-party data attribution
+
+The GeoIP feature reads `.mmdb` files produced by the configured
+provider. The data is **not** redistributed with this template — each
+deployment downloads its own copy at install time — but using it
+imposes the provider's terms.
+
+- **dbip-lite** (default): IP-to-City Lite database © db-ip.com.
+  Distributed under the
+  [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/).
+  When you ship a product surface that exposes geo-derived data
+  (e.g. "login from Berlin" e-mails), credit "IP geolocation by
+  [db-ip.com](https://db-ip.com)" somewhere accessible to end users
+  (privacy notice or settings page is fine).
+- **MaxMind GeoLite2** (opt-in): subject to the
+  [MaxMind GeoLite2 EULA](https://www.maxmind.com/en/geolite2/eula).
+  Free signup + license key required; downloads track the requesting
+  IP. Pick `dbip-lite` for Schrems-II-strict deployments.
 
 ---
 

@@ -26,9 +26,7 @@ describe("Story · GeoIp Download Planner", () => {
         now: new Date("2026-04-15T00:00:00Z"),
       });
       expect(plan.provider).toBe("dbip-lite");
-      expect(plan.url).toBe(
-        "https://download.db-ip.com/free/dbip-city-lite-2026-04.mmdb.gz",
-      );
+      expect(plan.url).toBe("https://download.db-ip.com/free/dbip-city-lite-2026-04.mmdb.gz");
       expect(plan.archiveFormat).toBe("gz");
       expect(plan.savePath).toBe(GEOIP_DEFAULT_DB_PATH);
       expect(plan.cadence).toBe("monthly");

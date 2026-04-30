@@ -103,8 +103,7 @@ export const FEATURE_CATALOG: readonly FeatureMeta[] = [
   {
     key: "geoIp",
     label: "GeoIP",
-    description:
-      "IP→Country/City lookup via offline .mmdb (dbip-lite default, MaxMind opt-in).",
+    description: "IP→Country/City lookup via offline .mmdb (dbip-lite default, MaxMind opt-in).",
     envKey: "FEATURE_GEO_IP_ENABLED",
     category: "data",
     exposes: ["GeoIpService.lookup()", "scripts/download-geoip.ts", "geoip-init compose service"],

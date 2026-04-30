@@ -121,7 +121,21 @@ function readCString(buf: Buffer): string {
 
 function parseTarOctal(buf: Buffer): number {
   // tar octal fields are NUL- or space-terminated ASCII octal numbers.
-  const str = buf.toString("ascii").replace(/[\0 ]+$/, "").trim();
-  if (!str) return 0;
-  return Number.parseInt(str, 8);
+  // Trim manually rather than via a regex to avoid the no-control-regex
+  // lint warning (matching `\x00` directly in a character class is what
+  // triggers it).
+  let end = buf.length;
+  while (end > 0) {
+    const code = buf[end - 1]!;
+    if (code !== 0 && code !== 0x20) break;
+    end--;
+  }
+  let start = 0;
+  while (start < end) {
+    const code = buf[start]!;
+    if (code !== 0 && code !== 0x20) break;
+    start++;
+  }
+  if (start === end) return 0;
+  return Number.parseInt(buf.toString("ascii", start, end), 8);
 }
