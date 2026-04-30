@@ -10,7 +10,23 @@
  *     sendTemplate() → brevoTemplateId   → transactional driver
  *                       (no Id)          → renderer + primary
  *
- * Two cross-cutting concerns sit in front of every send:
+ * Delivery modes (per call, see SendDispatchOptions):
+ *   - `direct`  (default) — synchronous driver call; the returned
+ *                EmailSendResult carries the real provider
+ *                message-id.
+ *   - `outbox`            — write the request to the email-outbox
+ *                table and return immediately with a synthetic
+ *                `outbox:<uuid>` message-id and `driver: "outbox"`.
+ *                The actual transport happens on the worker
+ *                (EmailOutboxWorker) with exponential backoff and
+ *                dead-letter on persistent failure. Better-Auth
+ *                hooks (#8) opt into this mode so a crash between
+ *                trigger and SMTP-ACK doesn't lose verification
+ *                mails.
+ *
+ * Two cross-cutting concerns sit in front of every send (in BOTH
+ * modes — dev whitelist + rate-limit run before the outbox write
+ * so a denied recipient never reaches the worker):
  *   - dev whitelist (only allow specific recipient patterns)
  *   - per-recipient rate-limit
  *
@@ -64,6 +80,12 @@ export interface EmailServiceOptions {
   defaultFrom: string;
   devWhitelist?: string[];
   rateLimit?: EmailRateLimiter;
+  /**
+   * Optional outbox enqueuer — when set, callers may pass
+   * `mode: "outbox"` to defer transport to the worker. When unset,
+   * `mode: "outbox"` throws `EmailOutboxNotConfiguredError`.
+   */
+  outbox?: EmailOutboxEnqueuer;
 }
 
 export interface SendOptions {
@@ -81,6 +103,39 @@ export interface SendTemplateOptions {
   vars?: object;
   brevoTemplateId?: number;
   from?: string;
+}
+
+/**
+ * Per-call dispatch options.
+ *
+ * `mode` defaults to `"direct"` for backwards compatibility with
+ * pre-#11 callers. The Better-Auth hook layer is the canonical
+ * `"outbox"` consumer; project code may opt in case-by-case.
+ */
+export interface SendDispatchOptions {
+  mode?: "direct" | "outbox";
+  /**
+   * Idempotency token forwarded to the outbox enqueuer. Two
+   * `mode: "outbox"` calls with the same key dedupe to a single
+   * outbox row — the second call returns the same synthetic id.
+   * Ignored in `direct` mode.
+   */
+  idempotencyKey?: string;
+}
+
+/**
+ * Structural slice of `EmailOutboxRecorder` consumed by the service.
+ *
+ * Restricting the contract to `enqueue()` keeps the unit tests free
+ * of storage / driver / planner concerns — they pass a tiny fake
+ * that records the call.
+ */
+export interface EmailOutboxEnqueuer {
+  enqueue(input: {
+    kind: "send" | "sendTemplate";
+    payload: SendOptions | SendTemplateOptions;
+    idempotencyKey?: string;
+  }): Promise<{ id: string; kind: "send" | "sendTemplate"; payload: unknown; status: string }>;
 }
 
 export class EmailRecipientNotAllowedError extends Error {
@@ -106,21 +161,41 @@ export class TransactionalDriverMissingError extends Error {
   }
 }
 
+export class EmailOutboxNotConfiguredError extends Error {
+  constructor() {
+    super('email: mode "outbox" requested but no outbox enqueuer was configured');
+    this.name = "EmailOutboxNotConfiguredError";
+  }
+}
+
 export class EmailService {
   constructor(private readonly options: EmailServiceOptions) {}
 
-  async send(opts: SendOptions): Promise<EmailSendResult> {
+  async send(opts: SendOptions, dispatch?: SendDispatchOptions): Promise<EmailSendResult> {
     this.assertAllowed(opts.to);
     this.assertWithinRateLimit(opts.to);
+    if (dispatch?.mode === "outbox") {
+      const result = await this.enqueueViaOutbox("send", opts, dispatch.idempotencyKey);
+      this.options.rateLimit?.record(opts.to);
+      return result;
+    }
     const message = this.composeMessage(opts);
     const result = await this.options.primary.send(message);
     this.options.rateLimit?.record(opts.to);
     return result;
   }
 
-  async sendTemplate(opts: SendTemplateOptions): Promise<EmailSendResult> {
+  async sendTemplate(
+    opts: SendTemplateOptions,
+    dispatch?: SendDispatchOptions,
+  ): Promise<EmailSendResult> {
     this.assertAllowed(opts.to);
     this.assertWithinRateLimit(opts.to);
+    if (dispatch?.mode === "outbox") {
+      const result = await this.enqueueViaOutbox("sendTemplate", opts, dispatch.idempotencyKey);
+      this.options.rateLimit?.record(opts.to);
+      return result;
+    }
     const vars = opts.vars ?? {};
     let result: EmailSendResult;
     if (opts.brevoTemplateId !== undefined) {
@@ -149,6 +224,20 @@ export class EmailService {
     }
     this.options.rateLimit?.record(opts.to);
     return result;
+  }
+
+  private async enqueueViaOutbox(
+    kind: "send" | "sendTemplate",
+    payload: SendOptions | SendTemplateOptions,
+    idempotencyKey?: string,
+  ): Promise<EmailSendResult> {
+    if (!this.options.outbox) throw new EmailOutboxNotConfiguredError();
+    const record = await this.options.outbox.enqueue({
+      kind,
+      payload,
+      ...(idempotencyKey ? { idempotencyKey } : {}),
+    });
+    return { messageId: `outbox:${record.id}`, driver: "outbox" };
   }
 
   private composeMessage(opts: SendOptions): EmailMessage {
