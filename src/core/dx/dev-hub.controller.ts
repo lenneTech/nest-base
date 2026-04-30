@@ -1,3 +1,4 @@
+import { createReadStream } from "node:fs";
 import { readFile, stat, utimes, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
@@ -24,6 +25,7 @@ import { APP_NAME, APP_VERSION } from "../app/app.metadata.js";
 import { buildCoverageReport, type RawCoverageSummary } from "./coverage-report.js";
 import { renderCoveragePage } from "./coverage-ui.js";
 import { renderDashboardPage } from "./dashboard-ui.js";
+import { buildDevPortalShellInput, renderDevPortalShell } from "./dev-portal-shell.js";
 import { renderDiagnosticsPage } from "./diagnostics-ui.js";
 import { resolveEffectiveBaseUrl } from "./effective-base-url.js";
 import { planEnvFileUpdate } from "./env-file-update.js";
@@ -77,7 +79,30 @@ export class DevHubController {
 
   @Get()
   @Header("content-type", "text/html; charset=utf-8")
-  async index(): Promise<string> {
+  index(): string {
+    this.assertDev();
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Dev Portal" }));
+  }
+
+  /**
+   * `/dev/components` — react-aria-components living style guide. Same
+   * SPA shell as `/dev`; client-side router decides which page to render.
+   */
+  @Get("components")
+  @Header("content-type", "text/html; charset=utf-8")
+  componentsPage(): string {
+    this.assertDev();
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Components" }));
+  }
+
+  /**
+   * Legacy server-rendered cockpit. Kept available at `/dev/cockpit`
+   * so the live coverage / tests / log preview surface that the React
+   * SPA hasn't replaced yet stays one click away.
+   */
+  @Get("cockpit")
+  @Header("content-type", "text/html; charset=utf-8")
+  async cockpit(): Promise<string> {
     this.assertDev();
     const features = this.featuresOnly();
     const cfg = serverConfigFromEnv(process.env);
@@ -127,6 +152,32 @@ export class DevHubController {
       logBufferCapacity: buffer.capacity(),
       queries: getQueryBuffer().summary(),
     });
+  }
+
+  /**
+   * `/dev/static/:filename` — serves the bundled SPA assets from
+   * `dist/dev-portal/`. `assertDev()` ensures the route 404s outside
+   * development (no production-leak risk for the source-mapped bundle).
+   */
+  @Get("static/:filename")
+  serveStatic(@Param("filename") filename: string, @Res() res: Response): void {
+    this.assertDev();
+    if (!isSafeStaticName(filename)) {
+      throw new NotFoundException();
+    }
+    const filePath = resolve(process.cwd(), "dist/dev-portal", filename);
+    if (!filePath.startsWith(resolve(process.cwd(), "dist/dev-portal"))) {
+      throw new NotFoundException();
+    }
+    const mime = mimeForExtension(filename);
+    res.type(mime);
+    const stream = createReadStream(filePath);
+    stream.on("error", () => {
+      if (!res.headersSent) {
+        res.status(404).type("application/json").send({ error: "not_found" });
+      }
+    });
+    stream.pipe(res);
   }
 
   private async readCoverageSummary(repoRoot: string) {
@@ -520,6 +571,23 @@ export class DevHubController {
     });
   }
 
+  /**
+   * Catch-all for `/dev/*` paths that don't match a more specific
+   * handler. Always returns the SPA shell — react-router on the client
+   * decides what to render. NestJS dispatches to the most specific
+   * route first, so the explicit `@Get('features')`, `@Get('logs')`,
+   * `@Get('static/:filename')`, etc. always win over this fallback.
+   *
+   * 404s outside development just like every other route in the
+   * controller, so the SPA shell never leaks in production.
+   */
+  @Get("*splat")
+  @Header("content-type", "text/html; charset=utf-8")
+  spaCatchAll(): string {
+    this.assertDev();
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Dev Portal" }));
+  }
+
   private assertDev(): void {
     const cfg = serverConfigFromEnv(process.env);
     if (cfg.env !== "development") {
@@ -545,4 +613,30 @@ function devWantsJson(accept: string | undefined, format: string | undefined): b
   if (lower.includes("text/html")) return false;
   if (lower.includes("application/json")) return true;
   return false;
+}
+
+/**
+ * Whitelist filenames that the `/dev/static/*` handler is allowed to
+ * serve — bundle outputs (main.js, main.css, tokens.css, plus any
+ * `chunks/*.js` Bun emits with content-hashed names).
+ *
+ * The check is allow-list based: any path-traversal attempt
+ * (`../`, absolute paths, weird characters) is rejected before it
+ * reaches the filesystem.
+ */
+function isSafeStaticName(name: string): boolean {
+  if (!name || name.length > 256) return false;
+  if (name.includes("/") || name.includes("\\")) return false;
+  if (name.startsWith(".")) return false;
+  return /^[a-zA-Z0-9._-]+\.(js|css|map|svg|woff2?)$/.test(name);
+}
+
+function mimeForExtension(name: string): string {
+  if (name.endsWith(".js")) return "application/javascript; charset=utf-8";
+  if (name.endsWith(".css")) return "text/css; charset=utf-8";
+  if (name.endsWith(".map")) return "application/json; charset=utf-8";
+  if (name.endsWith(".svg")) return "image/svg+xml";
+  if (name.endsWith(".woff2")) return "font/woff2";
+  if (name.endsWith(".woff")) return "font/woff";
+  return "application/octet-stream";
 }

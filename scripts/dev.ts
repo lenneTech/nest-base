@@ -42,6 +42,16 @@ import {
   startDevSession,
 } from '../src/core/dx/dev-session-runner.js';
 
+// Start the Dev-Portal SPA build in watch mode alongside the API. Bun
+// rebuilds incrementally (~80ms warm) so an edit to `src/core/dx/clients/`
+// is reflected on the next browser refresh without a manual rebuild.
+const portalEntry = resolve(process.cwd(), 'src/core/dx/clients/main.tsx');
+const portalWatcher: ChildProcess | undefined = existsSync(portalEntry)
+  ? spawn('bun', ['run', 'scripts/build-dev-portal.ts', '--watch'], {
+      stdio: 'inherit',
+    })
+  : undefined;
+
 function which(bin: string): string | undefined {
   const result = Bun.spawnSync(['which', bin]);
   if (result.exitCode !== 0) return undefined;
@@ -184,6 +194,7 @@ const shutdown = (signal: NodeJS.Signals): void => {
   // run dev` — that would skip the browser open on cold-start.
   clearDevSessionState(process.cwd());
   if (child) child.kill(signal);
+  if (portalWatcher) portalWatcher.kill(signal);
 };
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
