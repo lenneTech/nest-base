@@ -22,6 +22,10 @@ import {
 } from "@nestjs/common";
 import type { Response } from "express";
 
+import {
+  loadBrandSync,
+  type BrandConfig,
+} from "../branding/brand-loader.js";
 import { readTunnelState } from "../dev/tunnel-state-runner.js";
 import { MigrationsService } from "./migrations/migrations.service.js";
 
@@ -223,6 +227,20 @@ export class DevHubController {
     const state = readTunnelState(process.cwd());
     if (state === null) return { active: false };
     return { active: true, url: state.url, startedAt: state.startedAt };
+  }
+
+  /**
+   * `/dev/brand.json` — returns the effective brand config (project
+   * overlay → template default → schema built-in). The dev-portal
+   * SPA fetches this lazily; the shell HTML inlines the same value
+   * as `window.__BRAND__` for first-paint correctness.
+   *
+   * 404 outside development like every other DX route.
+   */
+  @Get("brand.json")
+  brandJson(): BrandConfig {
+    this.assertDev();
+    return loadBrandSync(process.cwd());
   }
 
   @Get("status.json")
