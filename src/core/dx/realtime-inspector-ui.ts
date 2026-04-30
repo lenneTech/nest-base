@@ -16,27 +16,13 @@
  */
 
 import { renderAdminLayout } from "./admin-layout.js";
+import type {
+  ActiveSocketEntry,
+  RealtimeEventEntry,
+  RealtimeInspectorPageInput,
+} from "./realtime-inspector-types.js";
 
-export interface ActiveSocketEntry {
-  id: string;
-  userId: string;
-  tenantId: string;
-  channels: string[];
-  connectedAt: string;
-}
-
-export interface RealtimeEventEntry {
-  channel: string;
-  eventType: string;
-  payloadPreview: string;
-  occurredAt: string;
-}
-
-export interface RealtimeInspectorPageInput {
-  sockets: ActiveSocketEntry[];
-  events: RealtimeEventEntry[];
-  refreshSeconds?: number;
-}
+export type { ActiveSocketEntry, RealtimeEventEntry, RealtimeInspectorPageInput };
 
 export function renderRealtimeInspectorPage(input: RealtimeInspectorPageInput): string {
   const body = `

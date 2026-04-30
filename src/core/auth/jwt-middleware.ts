@@ -6,8 +6,17 @@
  * — it covers diagnostics, the Better-Auth handler, and the docs UI.
  */
 
-const PUBLIC_PREFIXES = ["/health/", "/api/auth/", "/docs/", "/dev/"];
-const PUBLIC_EXACT = new Set(["/"]);
+/**
+ * Public paths — no JWT required.
+ *
+ * `/errors` is the public error-code catalogue — frontends + SDK
+ * generators consume it without authenticating. `/api/openapi` and
+ * `/api/openapi.json` serve the OpenAPI spec the SDK generators read.
+ * Both are dev-friendly (they expose error codes / route shapes only,
+ * never user data) and intentionally outside the auth wall.
+ */
+const PUBLIC_PREFIXES = ["/health/", "/api/auth/", "/docs/", "/dev/", "/errors/", "/api/openapi"];
+const PUBLIC_EXACT = new Set(["/", "/errors", "/api/openapi"]);
 
 export function isPathProtected(path: string): boolean {
   if (!path) throw new Error("isPathProtected: path is required");

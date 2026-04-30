@@ -14,23 +14,9 @@
  */
 
 import { renderAdminLayout } from "./admin-layout.js";
+import type { SearchHit, SearchTesterPageInput } from "./search-tester-types.js";
 
-export interface SearchHit {
-  resource: string;
-  id: string;
-  title: string;
-  /** ts_headline output — trusted, contains `<b>` markers. */
-  snippet: string;
-  rank: number;
-}
-
-export interface SearchTesterPageInput {
-  /** What the admin typed (echoed back into the input). */
-  query?: string;
-  /** Postgres tsquery the FTS layer parsed (shown as a debug hint). */
-  tsquery?: string;
-  hits: SearchHit[];
-}
+export type { SearchHit, SearchTesterPageInput };
 
 export function renderSearchTesterPage(input: SearchTesterPageInput): string {
   const body = `

@@ -2576,3 +2576,81 @@ pre.test-snippet {
   opacity: 1;
   transform: translateY(0);
 }
+
+/* ── Admin pages — `/admin/*` page-specific styles ──────────────── */
+
+/*
+ * Audit Browser (`/admin/audit`) — verbatim port of the inline `<style>`
+ * block from `audit-browser-ui.ts`. The `--success` / `--danger` vars
+ * the legacy renderer named were never defined in the design tokens
+ * (typo); the fallback is the user-agent default for `color`, which is
+ * what the server-rendered page actually showed too.
+ */
+pre.diff {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+pre.diff .add {
+  color: var(--success);
+}
+pre.diff .del {
+  color: var(--danger);
+}
+tr[data-action="delete"] td {
+  background: rgba(248, 81, 73, 0.08);
+}
+tr[data-action="create"] td {
+  background: rgba(63, 185, 80, 0.08);
+}
+
+/*
+ * Search Tester (`/admin/search`) — verbatim port of the inline
+ * `<style>` block from `search-tester-ui.ts`. Same observation as the
+ * Audit Browser: the legacy `--warning`/`--text-muted`/`--code-bg`
+ * vars were undefined; the resolved appearance is what the live page
+ * already displays.
+ */
+td.snippet b {
+  background: rgba(210, 153, 34, 0.25);
+  color: var(--warning);
+  font-weight: 600;
+  padding: 0 0.15em;
+  border-radius: 2px;
+}
+td.rank {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+pre.tsquery {
+  background: var(--code-bg);
+  padding: 0.55rem 0.75rem;
+  border-radius: 4px;
+  margin: 0;
+}
+
+/*
+ * Realtime Inspector (`/admin/realtime`) — `ul.channels` styling. The
+ * legacy renderer didn't ship a CSS rule for `.channels` (it used the
+ * UA default), so this rule deliberately stays minimal: collapsed
+ * margins, in-list bullets, no decoration.
+ */
+ul.channels {
+  margin: 0;
+  padding-left: 1.1rem;
+  list-style: disc;
+}
+ul.channels li {
+  margin: 0;
+}
+
+/*
+ * Realtime Inspector — payload preview cells. The legacy renderer
+ * used a bare `<pre class="payload">` with no rule, so the resulting
+ * appearance was the global `pre` styling. Recreate that here so the
+ * specificity matches when added in a React tree where the global
+ * `pre` rule still applies via inheritance.
+ */
+pre.payload {
+  margin: 0;
+}

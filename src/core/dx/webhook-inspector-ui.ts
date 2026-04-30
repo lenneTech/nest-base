@@ -14,25 +14,13 @@
  */
 
 import { renderAdminLayout } from "./admin-layout.js";
+import type {
+  DeliveryListEntry,
+  DeliveryStatus,
+  WebhookInspectorPageInput,
+} from "./webhook-inspector-types.js";
 
-export type DeliveryStatus = "DELIVERED" | "FAILED";
-
-export interface DeliveryListEntry {
-  id: string;
-  endpointId: string;
-  eventType?: string;
-  status: DeliveryStatus;
-  statusCode?: number;
-  attemptCount: number;
-  occurredAt?: string;
-  errorMessage?: string;
-}
-
-export interface WebhookInspectorPageInput {
-  deliveries: DeliveryListEntry[];
-  filter?: { status?: DeliveryStatus | "ALL" };
-  csrfToken?: string;
-}
+export type { DeliveryListEntry, DeliveryStatus, WebhookInspectorPageInput };
 
 export function renderWebhookInspectorPage(input: WebhookInspectorPageInput): string {
   const filterStatus = input.filter?.status ?? "ALL";

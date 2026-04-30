@@ -44,12 +44,16 @@ describe("Error-Code registry endpoint", () => {
     }
   });
 
-  it("GET /errors with Accept: text/html (browser default) returns the JSON viewer", async () => {
+  it("GET /errors with Accept: text/html (browser default) returns the SPA shell", async () => {
     const res = await request(app.getHttpServer()).get("/errors").set("Accept", "text/html");
     expect(res.status).toBe(200);
     expect(res.headers["content-type"]).toMatch(/text\/html/);
-    expect(res.text).toContain("Error Catalog");
-    expect(res.text).toContain("jv__root");
+    // The HTML branch is now the dev-portal SPA shell — the React
+    // `/errors` page fetches `?format=json` and renders the catalogue
+    // through the shared `JsonViewer` component.
+    expect(res.text).toContain("Error Catalog — nest-server");
+    expect(res.text).toContain('<div id="root"></div>');
+    expect(res.text).toMatch(/<script\s+type="module"\s+src="\/dev\/static\/main\.js"/);
   });
 
   it("GET /errors?format=json overrides Accept and returns JSON", async () => {

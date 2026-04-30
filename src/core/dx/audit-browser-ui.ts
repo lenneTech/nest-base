@@ -14,33 +14,14 @@
  */
 
 import { renderAdminLayout } from "./admin-layout.js";
+import type {
+  AuditAction,
+  AuditBrowserFilter,
+  AuditBrowserPageInput,
+  AuditLogEntry,
+} from "./audit-browser-types.js";
 
-export type AuditAction = "create" | "update" | "delete" | string;
-
-export interface AuditLogEntry {
-  id: string;
-  action: AuditAction;
-  resource: string;
-  resourceId?: string;
-  actorUserId?: string;
-  tenantId?: string;
-  occurredAt: string;
-  before?: Record<string, unknown>;
-  after?: Record<string, unknown>;
-}
-
-export interface AuditBrowserFilter {
-  action?: string;
-  resource?: string;
-  actorUserId?: string;
-  from?: string;
-  to?: string;
-}
-
-export interface AuditBrowserPageInput {
-  entries: AuditLogEntry[];
-  filter: AuditBrowserFilter;
-}
+export type { AuditAction, AuditBrowserFilter, AuditBrowserPageInput, AuditLogEntry };
 
 export function renderAuditBrowserPage(input: AuditBrowserPageInput): string {
   const body = `

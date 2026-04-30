@@ -92,12 +92,18 @@ export const SPA_ROUTES = new Set<string>([
   "/dev/email-preview",
   "/dev/components",
   "/dev/postgrest-parse",
+  "/admin/permissions/test",
+  "/admin/webhooks",
+  "/admin/realtime",
+  "/admin/audit",
+  "/admin/search",
+  "/errors",
+  "/api/openapi",
 ]);
 
 export function isSpaRoute(href: string): boolean {
-  // Anchor URLs starting with `/dev/` that the SPA owns get react-router
-  // navigation; everything else (`/api/*`, `/admin/*`, `/errors`, full
-  // URLs to Prisma Studio etc.) bypasses the router.
-  if (!href.startsWith("/dev")) return false;
+  // Anchor URLs that the SPA owns get react-router navigation;
+  // everything else (Scalar UI at `/api/docs`, full URLs to Prisma
+  // Studio, etc.) bypasses the router and triggers a real navigation.
   return SPA_ROUTES.has(href);
 }

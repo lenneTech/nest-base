@@ -10,7 +10,7 @@ import {
 } from "@nestjs/common";
 import type { Response } from "express";
 
-import { renderJsonViewerPage } from "../dx/json-viewer-ui.js";
+import { buildDevPortalShellInput, renderDevPortalShell } from "../dx/dev-portal-shell.js";
 import {
   type CursorPage,
   type CursorRecord,
@@ -62,17 +62,14 @@ export class ErrorCodeController {
       res.type("application/json").send(JSON.stringify(data));
       return;
     }
-    res.type("text/html; charset=utf-8").send(
-      renderJsonViewerPage({
-        title: "Error Catalog",
-        subtitle: `Public catalogue of every CORE_* error code this API can emit.${
-          Array.isArray(data) ? ` ${data.length} entries.` : ""
-        }`,
-        currentNav: "errors",
-        value: data,
-        rawJsonHref: "/errors?format=json",
-      }),
-    );
+    // The HTML branch is now served by the Dev-Portal SPA shell — the
+    // React `/errors` page fetches `/errors?format=json` and renders
+    // the catalogue through the same `JsonViewer` component the legacy
+    // `renderJsonViewerPage` wrapped. This keeps the Dev-Portal SPA
+    // the single owner of the dev-hub chrome.
+    res
+      .type("text/html; charset=utf-8")
+      .send(renderDevPortalShell(buildDevPortalShellInput({ title: "Error Catalog" })));
   }
 
   private listData(

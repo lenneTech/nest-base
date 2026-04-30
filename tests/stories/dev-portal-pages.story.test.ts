@@ -28,6 +28,7 @@ function read(path: string): string {
 const APP_TSX = read("src/core/dx/clients/App.tsx");
 const NAV_TS = read("src/core/dx/clients/layout/nav.ts");
 const CONTROLLER = read("src/core/dx/dev-hub.controller.ts");
+const ADMIN_SPA_CONTROLLER = read("src/core/dx/admin-spa.controller.ts");
 const ADMIN_LAYOUT_CSS = read("src/core/dx/clients/styles/admin-layout.css");
 const TOKENS_CSS = read("src/core/dx/clients/styles/tokens.css");
 
@@ -47,6 +48,13 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       "/dev/erd",
       "/dev/email-preview",
       "/dev/postgrest-parse",
+      "/admin/permissions/test",
+      "/admin/webhooks",
+      "/admin/realtime",
+      "/admin/audit",
+      "/admin/search",
+      "/errors",
+      "/api/openapi",
     ];
 
     for (const path of expectedRoutes) {
@@ -72,10 +80,33 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       "/dev/email-preview",
       "/dev/components",
       "/dev/postgrest-parse",
+      "/admin/permissions/test",
+      "/admin/webhooks",
+      "/admin/realtime",
+      "/admin/audit",
+      "/admin/search",
+      "/errors",
+      "/api/openapi",
     ];
     for (const p of spaPaths) {
       it(`nav.ts SPA_ROUTES includes ${p}`, () => {
         expect(NAV_TS).toContain(`"${p}"`);
+      });
+    }
+  });
+
+  describe("Admin SPA controller exposes JSON sidecars for every page", () => {
+    const adminEndpoints = [
+      "permissions/test.json",
+      "webhooks.json",
+      "realtime.json",
+      "audit.json",
+      "search.json",
+    ];
+    for (const ep of adminEndpoints) {
+      it(`admin-spa.controller.ts declares @Get("${ep}")`, () => {
+        const escaped = ep.replace(/\./g, "\\.");
+        expect(ADMIN_SPA_CONTROLLER).toMatch(new RegExp(`@Get\\("${escaped}"\\)`));
       });
     }
   });
