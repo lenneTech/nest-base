@@ -4,12 +4,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import type { INestApplication } from "@nestjs/common";
-import sharp from "sharp";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { bootstrap } from "../src/core/app/bootstrap.js";
 import { PrismaService } from "../src/core/prisma/prisma.service.js";
+import { emerald8x8Png } from "./lib/png-fixture.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 
@@ -104,13 +104,10 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
     }
   });
 
+  // Uses the shared 8×8 PNG fixture so this spec doesn't pull in
+  // `sharp` directly (rule from issue #17).
   async function makePng(): Promise<Uint8Array> {
-    const buffer = await sharp({
-      create: { width: 16, height: 16, channels: 3, background: "#10b981" },
-    })
-      .png()
-      .toBuffer();
-    return new Uint8Array(buffer);
+    return emerald8x8Png();
   }
 
   it("POST /files/upload persists the bytes + metadata", async () => {
@@ -226,7 +223,7 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
 
     // First call: cache miss (bytes go through sharp).
     const first = await request(app.getHttpServer())
-      .get(`/assets/${encodeURIComponent(storageKey)}?width=8&format=webp`)
+      .get(`/assets/${encodeURIComponent(storageKey)}?width=4&format=webp`)
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
@@ -236,7 +233,7 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
 
     // Second call: cache hit (no transformer invocation).
     const second = await request(app.getHttpServer())
-      .get(`/assets/${encodeURIComponent(storageKey)}?width=8&format=webp`)
+      .get(`/assets/${encodeURIComponent(storageKey)}?width=4&format=webp`)
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
