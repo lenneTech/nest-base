@@ -35,6 +35,7 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": false,
     "allowSyntheticDefaultImports": true,
+    "jsx": "react-jsx",
     "ignoreDeprecations": "6.0"
   },
   "include": ["src/**/*", "tests/**/*", "scripts/**/*", "vitest.config.ts"],
