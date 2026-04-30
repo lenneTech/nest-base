@@ -125,7 +125,11 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
       // the dev-hub chrome.
       res
         .type("text/html; charset=utf-8")
-        .send(renderDevPortalShell(buildDevPortalShellInput({ title: "OpenAPI Spec", brand: "central" })));
+        .send(
+          renderDevPortalShell(
+            buildDevPortalShellInput({ title: "OpenAPI Spec", brand: "central" }),
+          ),
+        );
     });
   }
 

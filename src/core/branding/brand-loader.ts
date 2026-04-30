@@ -26,6 +26,11 @@ import {
   decodeBrand,
 } from "./brand-schema.js";
 
+// Re-export the BrandConfig type from the loader so consumers can
+// `import { loadBrandSync, type BrandConfig } from '.../brand-loader.js'`
+// without juggling two files for the common case.
+export type { BrandConfig };
+
 export interface BrandLoadInput {
   /** Parsed project overlay (or null when the file does not exist). */
   overlay: BrandConfigInput | null;

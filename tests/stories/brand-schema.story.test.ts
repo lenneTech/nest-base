@@ -78,9 +78,7 @@ describe("Story · BrandConfigSchema", () => {
     });
 
     it("rejects an invalid `supportEmail` when supplied", () => {
-      expect(() =>
-        BrandConfigSchema.parse({ name: "x", supportEmail: "not-an-email" }),
-      ).toThrow();
+      expect(() => BrandConfigSchema.parse({ name: "x", supportEmail: "not-an-email" })).toThrow();
     });
   });
 

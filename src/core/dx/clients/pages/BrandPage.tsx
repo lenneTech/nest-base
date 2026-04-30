@@ -123,9 +123,7 @@ function BrandPreview({ brand }: { brand: BrandConfig }): ReactNode {
         <ColorSwatch label="mutedTextColor" value={brand.mutedTextColor} />
       </div>
       <dl style={{ marginTop: "1.5rem" }}>
-        {brand.legalEntity ? (
-          <Row label="legalEntity" value={brand.legalEntity} />
-        ) : null}
+        {brand.legalEntity ? <Row label="legalEntity" value={brand.legalEntity} /> : null}
         <Row label="fromEmail" value={brand.fromEmail} />
         {brand.supportEmail ? <Row label="supportEmail" value={brand.supportEmail} /> : null}
         {brand.supportUrl ? <Row label="supportUrl" value={brand.supportUrl} /> : null}

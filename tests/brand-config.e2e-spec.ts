@@ -114,9 +114,7 @@ describe("Brand-Config · runtime surfaces", () => {
     });
 
     it("POST /dev/brand/reset removes the overlay (idempotent)", async () => {
-      await request(app.getHttpServer())
-        .post("/dev/brand")
-        .send({ name: "Acme" });
+      await request(app.getHttpServer()).post("/dev/brand").send({ name: "Acme" });
       const reset1 = await request(app.getHttpServer()).post("/dev/brand/reset");
       expect(reset1.status).toBe(200);
       expect(reset1.body.ok).toBe(true);

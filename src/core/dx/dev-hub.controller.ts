@@ -90,7 +90,9 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   index(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Dev Portal", brand: "central" }));
+    return renderDevPortalShell(
+      buildDevPortalShellInput({ title: "Dev Portal", brand: "central" }),
+    );
   }
 
   /**
@@ -101,7 +103,9 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   componentsPage(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Components", brand: "central" }));
+    return renderDevPortalShell(
+      buildDevPortalShellInput({ title: "Components", brand: "central" }),
+    );
   }
 
   /**
@@ -435,7 +439,11 @@ export class DevHubController {
     // single owner of the dev-hub chrome.
     res
       .type("text/html; charset=utf-8")
-      .send(renderDevPortalShell(buildDevPortalShellInput({ title: "PostgREST Parser", brand: "central" })));
+      .send(
+        renderDevPortalShell(
+          buildDevPortalShellInput({ title: "PostgREST Parser", brand: "central" }),
+        ),
+      );
   }
 
   @Get("coverage")
@@ -485,7 +493,9 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   diagnostics(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Diagnostics", brand: "central" }));
+    return renderDevPortalShell(
+      buildDevPortalShellInput({ title: "Diagnostics", brand: "central" }),
+    );
   }
 
   @Get("diagnostics.json")
@@ -583,7 +593,9 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   emailPreviewPage(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Email Preview", brand: "central" }));
+    return renderDevPortalShell(
+      buildDevPortalShellInput({ title: "Email Preview", brand: "central" }),
+    );
   }
 
   @Get("email-preview.json")
@@ -898,7 +910,9 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   spaCatchAll(): string {
     this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Dev Portal", brand: "central" }));
+    return renderDevPortalShell(
+      buildDevPortalShellInput({ title: "Dev Portal", brand: "central" }),
+    );
   }
 
   private assertDev(): void {

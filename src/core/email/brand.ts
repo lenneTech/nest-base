@@ -21,10 +21,7 @@
  *     overrides for fixture flexibility.
  */
 
-import {
-  loadBrandSync,
-  type BrandConfig as CentralBrandConfig,
-} from "../branding/brand-loader.js";
+import { loadBrandSync, type BrandConfig as CentralBrandConfig } from "../branding/brand-loader.js";
 
 export interface BrandConfig {
   /** Display name of the application — appears in headers + subjects. */
