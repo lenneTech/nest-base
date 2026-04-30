@@ -140,9 +140,7 @@ export class AdminSpaController {
       ...(filter.search !== undefined && { search: filter.search }),
     });
     // Newest-first ordering — the React list scrolls top → bottom.
-    const sorted = [...matched].sort(
-      (a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt),
-    );
+    const sorted = [...matched].sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt));
 
     const startIdx = cursor ? Math.max(0, Number(cursor)) : 0;
     const slice = sorted.slice(startIdx, startIdx + limit);

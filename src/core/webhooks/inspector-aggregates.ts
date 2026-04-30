@@ -129,7 +129,7 @@ export interface BuildSparklineInput {
  * per hour). Records outside the window are silently dropped.
  */
 export function buildSparkline(input: BuildSparklineInput): number[] {
-  const buckets = new Array<number>(input.bucketCount).fill(0);
+  const buckets: number[] = Array.from({ length: input.bucketCount }, () => 0);
   const windowStart = input.now - input.bucketCount * input.bucketMs;
   for (const record of input.deliveries) {
     const ts = Date.parse(record.occurredAt);

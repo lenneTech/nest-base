@@ -32,8 +32,7 @@ let csrfSecret: string | null = null;
 export function getInspectorCsrfSecret(): string {
   if (csrfSecret !== null) return csrfSecret;
   const fromEnv = process.env.WEBHOOK_INSPECTOR_CSRF_SECRET;
-  csrfSecret =
-    fromEnv && fromEnv.length >= 16 ? fromEnv : randomBytes(32).toString("hex");
+  csrfSecret = fromEnv && fromEnv.length >= 16 ? fromEnv : randomBytes(32).toString("hex");
   return csrfSecret;
 }
 

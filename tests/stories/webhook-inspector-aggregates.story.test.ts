@@ -185,9 +185,7 @@ describe("Story · Webhook-Inspector aggregates", () => {
 
     it("ignores records outside the sparkline window", () => {
       const sparkline = buildSparkline({
-        deliveries: [
-          record({ id: "1", occurredAt: new Date(NOW - 3600_000 * 50).toISOString() }),
-        ],
+        deliveries: [record({ id: "1", occurredAt: new Date(NOW - 3600_000 * 50).toISOString() })],
         now: NOW,
         bucketCount: 24,
         bucketMs: 3600_000,

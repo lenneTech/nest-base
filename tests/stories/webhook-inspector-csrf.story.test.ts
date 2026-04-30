@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  issueCsrfToken,
-  verifyCsrfToken,
-} from "../../src/core/webhooks/inspector-csrf.js";
+import { issueCsrfToken, verifyCsrfToken } from "../../src/core/webhooks/inspector-csrf.js";
 
 /**
  * Story · Inspector CSRF token.

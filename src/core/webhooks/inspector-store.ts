@@ -13,10 +13,7 @@
  * calling `record()`.
  */
 
-import type {
-  DeliveryAggregateInput,
-  InspectorDeliveryStatus,
-} from "./inspector-aggregates.js";
+import type { DeliveryAggregateInput, InspectorDeliveryStatus } from "./inspector-aggregates.js";
 
 export interface WebhookInspectorBufferOptions {
   maxRecords?: number;
