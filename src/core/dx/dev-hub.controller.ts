@@ -26,6 +26,13 @@ import { readTunnelState } from "../dev/tunnel-state-runner.js";
 import { MigrationsService } from "./migrations/migrations.service.js";
 
 import { type Features, loadFeatures } from "../features/features.js";
+import {
+  JobNotFoundError,
+  JobNotRetryableError,
+  type ListJobsOptions,
+} from "../jobs/job-queue.js";
+import type { JobState } from "../jobs/dev-jobs-aggregations.js";
+import { JobQueueService } from "../jobs/jobs.module.js";
 import { parsePostgrestQuery } from "../permissions/postgrest-query.js";
 import { serverConfigFromEnv } from "../server/server-config.js";
 import { APP_NAME, APP_VERSION } from "../app/app.metadata.js";
@@ -73,6 +80,7 @@ export class DevHubController {
   constructor(
     private readonly routes: RouteInventoryService,
     private readonly migrations: MigrationsService,
+    private readonly jobs: JobQueueService,
   ) {}
 
   @Get()
@@ -698,6 +706,106 @@ export class DevHubController {
   }
 
   /**
+   * `/dev/jobs` — Jobs-Dashboard SPA shell. Same SPA bundle as the
+   * rest of `/dev/*`; react-router resolves to `JobsPage`.
+   */
+  @Get("jobs")
+  @Header("content-type", "text/html; charset=utf-8")
+  jobsPage(): string {
+    this.assertDev();
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Jobs" }));
+  }
+
+  /**
+   * `/dev/jobs/queues.json` — aggregate snapshot for the Queues tab.
+   * Per-queue counts + p95 latency + failure rate are computed by the
+   * pure planner (`buildJobAggregates`); this endpoint is just the
+   * thin runner that hands the queue's history to it.
+   */
+  @Get("jobs/queues.json")
+  jobsQueuesJson() {
+    this.assertDev();
+    return this.jobs.getAggregates();
+  }
+
+  /**
+   * `/dev/jobs/jobs.json` — paginated, filterable job listing for the
+   * Jobs tab. The in-memory adapter caps `limit` at 500 to keep the
+   * response sized for the React table; the React page asks for
+   * 100 per page.
+   */
+  @Get("jobs/jobs.json")
+  jobsListJson(
+    @Query("state") state: string | undefined,
+    @Query("name") name: string | undefined,
+    @Query("limit") limit: string | undefined,
+  ) {
+    this.assertDev();
+    const options: ListJobsOptions = {};
+    if (state) {
+      if (!isJobState(state)) {
+        throw new BadRequestException(`unknown state: ${state}`);
+      }
+      options.state = state;
+    }
+    if (name) {
+      if (!isSafeQueueName(name)) {
+        throw new BadRequestException(`invalid queue name`);
+      }
+      options.name = name;
+    }
+    if (limit) {
+      const parsed = Number.parseInt(limit, 10);
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        throw new BadRequestException(`invalid limit`);
+      }
+      options.limit = Math.min(parsed, 500);
+    } else {
+      options.limit = 100;
+    }
+    return { jobs: this.jobs.listJobs(options) };
+  }
+
+  /**
+   * `/dev/jobs/jobs/:id.json` — full record for the drawer detail view.
+   * Validates the id shape before the lookup so a malformed path-param
+   * surfaces as a clean 400 instead of leaking through to the
+   * Map-lookup path.
+   */
+  @Get("jobs/jobs/:id.json")
+  jobDetailJson(@Param("id") id: string) {
+    this.assertDev();
+    if (!isSafeJobId(id)) {
+      throw new BadRequestException(`invalid job id`);
+    }
+    const record = this.jobs.getJob(id);
+    if (!record) throw new NotFoundException();
+    return record;
+  }
+
+  /**
+   * `POST /dev/jobs/jobs/:id/retry` — re-enqueue a failed job. Returns
+   * `{ id }` of the new attempt; the original record stays in history.
+   * 404 on unknown ids, 409 on jobs that are not in the failed state.
+   */
+  @Post("jobs/jobs/:id/retry")
+  @HttpCode(200)
+  async retryJob(@Param("id") id: string): Promise<{ id: string }> {
+    this.assertDev();
+    if (!isSafeJobId(id)) {
+      throw new BadRequestException(`invalid job id`);
+    }
+    try {
+      const newId = await this.jobs.retry(id);
+      return { id: newId };
+    } catch (error) {
+      if (error instanceof JobNotFoundError) throw new NotFoundException();
+      if (error instanceof JobNotRetryableError) throw new ConflictException(error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Catch-all for `/dev/*` paths that don't match a more specific
    * handler. Always returns the SPA shell — react-router on the client
    * decides what to render. NestJS dispatches to the most specific
@@ -766,6 +874,38 @@ function assertNonEmptyString(value: unknown, fieldName: string): string {
 
 function asMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
+}
+
+const JOB_STATES = new Set<JobState>([
+  "created",
+  "active",
+  "completed",
+  "failed",
+  "cancelled",
+  "retry",
+]);
+
+function isJobState(value: string): value is JobState {
+  return JOB_STATES.has(value as JobState);
+}
+
+/**
+ * Allow-list for job ids — UUID-shaped + a defensive length cap.
+ * Path-traversal-shaped or otherwise weird ids never reach the lookup.
+ */
+function isSafeJobId(value: string): boolean {
+  if (!value || value.length > 64) return false;
+  return /^[a-zA-Z0-9_-]+$/.test(value);
+}
+
+/**
+ * Allow-list for queue names — slug-shaped, ≤ 64 chars. Mirrors the
+ * id check; the in-memory queue accepts any string for `register()`,
+ * but the public surface only exposes ones that match this pattern.
+ */
+function isSafeQueueName(value: string): boolean {
+  if (!value || value.length > 64) return false;
+  return /^[a-zA-Z0-9._-]+$/.test(value);
 }
 
 function mimeForExtension(name: string): string {

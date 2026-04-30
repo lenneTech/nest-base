@@ -115,8 +115,13 @@ describe("Dev Jobs Dashboard · /dev/jobs/*", () => {
 
     it("rejects unsafe job ids on detail / retry", async () => {
       // Path-traversal-shaped ids are rejected before the lookup runs.
-      const badPaths = ["..%2Fpackage", "weird%20id", "with/slash"];
-      for (const bad of badPaths) {
+      // The route validator allows only `[a-zA-Z0-9_-]+` (≤ 64 chars);
+      // anything with a space, dot-segment, or path-traversal char is
+      // a 400 BadRequest. Note: literal `/` in the URL would land on
+      // a different route (the SPA catch-all), so we test the cases
+      // that actually reach the param handler.
+      const badIds = ["..", "weird%20id", "..%2Etxt", "way-too-long-".repeat(10)];
+      for (const bad of badIds) {
         const detail = await request(app.getHttpServer()).get(`/dev/jobs/jobs/${bad}.json`);
         expect([400, 404]).toContain(detail.status);
         const retry = await request(app.getHttpServer()).post(`/dev/jobs/jobs/${bad}/retry`);
