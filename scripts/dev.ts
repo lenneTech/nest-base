@@ -327,28 +327,43 @@ child = spawnChild();
 // Watch .env so feature toggles in /dev/features force a full process
 // restart (not just a `bun --watch` reload, which keeps the cached env).
 let respawnTimer: ReturnType<typeof setTimeout> | undefined;
+function scheduleRespawn(reason: 'env-change' | 'brand-change'): void {
+  if (shuttingDown) return;
+  if (respawnTimer) clearTimeout(respawnTimer);
+  respawnTimer = setTimeout(() => {
+    if (!child || shuttingDown) return;
+    console.log(
+      reason === 'brand-change'
+        ? '[dev] brand.json changed — restarting API so brand propagates everywhere'
+        : '[dev] .env changed — restarting API to pick up new env-vars',
+    );
+    markDevSessionRefresh(process.cwd(), reason);
+    respawning = true;
+    const old = child;
+    old.once('exit', () => {
+      respawning = false;
+      if (!shuttingDown) child = spawnChild();
+    });
+    old.kill('SIGTERM');
+  }, 200);
+}
 try {
-  watch(envPath, { persistent: false }, () => {
-    if (shuttingDown) return;
-    // Debounce: editors often emit several events per save.
-    if (respawnTimer) clearTimeout(respawnTimer);
-    respawnTimer = setTimeout(() => {
-      if (!child || shuttingDown) return;
-      console.log('[dev] .env changed — restarting API to pick up new env-vars');
-      // Mark the next bootstrap as ".env change" so the banner says
-      // so explicitly (vs. the plain "code change" watch-reload banner).
-      markDevSessionRefresh(process.cwd(), 'env-change');
-      respawning = true;
-      const old = child;
-      old.once('exit', () => {
-        respawning = false;
-        if (!shuttingDown) child = spawnChild();
-      });
-      old.kill('SIGTERM');
-    }, 200);
-  });
+  watch(envPath, { persistent: false }, () => scheduleRespawn('env-change'));
 } catch {
   /* .env may not exist yet — toggling will create it and the next start picks it up */
+}
+
+// Watch the project-owned brand.json. The brand-loader caches by
+// project root; a full restart (not just `bun --watch`) is the
+// safest invalidation path because some modules (Better-Auth issuer,
+// EmailModule defaultFrom, OpenAPI title) read the brand once at
+// provider init. The default brand.default.json under src/core/ is
+// already covered by `bun --watch` since it lives in the source tree.
+const brandPath = resolve(process.cwd(), 'src/modules/branding/brand.json');
+try {
+  watch(brandPath, { persistent: false }, () => scheduleRespawn('brand-change'));
+} catch {
+  /* brand.json is optional; the next dev-run picks it up if created later */
 }
 
 const shutdown = (signal: NodeJS.Signals): void => {
