@@ -6,6 +6,7 @@ import {
   resolvePresetModifiers,
 } from "../../src/core/files/ipx-url-planner.js";
 import { AssetPresetRegistry } from "../../src/core/files/asset-presets.js";
+import { rewritePresetUrl } from "../../src/core/files/ipx-server.js";
 
 /**
  * Story · IPX URL planner.
@@ -123,6 +124,40 @@ describe("Story · IPX URL planner", () => {
     it("throws when the preset name is unknown", () => {
       const registry = AssetPresetRegistry.fromDefaults();
       expect(() => resolvePresetModifiers("nope", registry)).toThrow();
+    });
+  });
+
+  describe("rewritePresetUrl()", () => {
+    const registry = AssetPresetRegistry.fromDefaults();
+
+    it("expands `/preset_thumbnail/<source>` to the preset's modifier string", () => {
+      expect(rewritePresetUrl("/preset_thumbnail/files/abc.png", registry)).toBe(
+        "/f_webp,fit_cover,h_200,q_75,w_200/files/abc.png",
+      );
+    });
+
+    it("preserves any query suffix", () => {
+      expect(rewritePresetUrl("/preset_thumbnail/files/abc.png?v=1", registry)).toBe(
+        "/f_webp,fit_cover,h_200,q_75,w_200/files/abc.png?v=1",
+      );
+    });
+
+    it("returns the input verbatim when the first segment isn't a preset", () => {
+      expect(rewritePresetUrl("/w_300,f_webp/files/abc.png", registry)).toBe(
+        "/w_300,f_webp/files/abc.png",
+      );
+    });
+
+    it("returns the input verbatim when the URL has no source path", () => {
+      // No `/<source>` segment after the modifier-segment — leave it
+      // untouched and let IPX produce its own 400.
+      expect(rewritePresetUrl("/preset_thumbnail", registry)).toBe(
+        "/preset_thumbnail",
+      );
+    });
+
+    it("throws when the preset name is unknown — caller maps to 404", () => {
+      expect(() => rewritePresetUrl("/preset_nope/files/abc.png", registry)).toThrow();
     });
   });
 });

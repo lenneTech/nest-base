@@ -148,22 +148,36 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   // controllers and binds directly to `app.use(<path>, ...)`. The
   // server instance + path live in the FilesModule DI container.
   try {
-    const { TUS_SERVER_TOKEN, TUS_CONFIG_TOKEN } = await import("../files/files.module.js");
+    const { TUS_SERVER_TOKEN, TUS_CONFIG_TOKEN, IPX_SERVER_TOKEN } = await import(
+      "../files/files.module.js"
+    );
     const tusServer = app.get(TUS_SERVER_TOKEN, { strict: false }) as {
       handle: (req: unknown, res: unknown) => Promise<void> | void;
     } | null;
     const tusConfig = app.get(TUS_CONFIG_TOKEN, { strict: false }) as { mountPath: string } | null;
+    const expressApp = app.getHttpAdapter().getInstance() as {
+      use: (path: string, handler: unknown) => void;
+    };
     if (tusServer && tusConfig?.mountPath) {
-      const expressApp = app.getHttpAdapter().getInstance() as {
-        use: (path: string, handler: unknown) => void;
-      };
       expressApp.use(tusConfig.mountPath, (req: unknown, res: unknown) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return tusServer.handle(req as any, res as any);
       });
     }
+    // IPX `/_ipx/<modifiers>/<source>` — Nuxt-Image-compatible asset
+    // pipeline. Mounted as a raw Node listener (h3 → Node) so IPX's
+    // own ETag / Cache-Control / Accept-negotiation logic stays intact.
+    const ipxServer = app.get(IPX_SERVER_TOKEN, { strict: false }) as {
+      handle: (req: unknown, res: unknown) => void;
+    } | null;
+    if (ipxServer) {
+      expressApp.use("/_ipx", (req: unknown, res: unknown) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ipxServer.handle(req as any, res as any);
+      });
+    }
   } catch {
-    // TUS is opt-in via FEATURE_FILES_TUS — a missing token is
+    // TUS / IPX are opt-in via FEATURE_FILES_*; a missing token is
     // equivalent to "feature off"; degrade quietly.
   }
 

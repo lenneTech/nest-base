@@ -9,14 +9,14 @@ import type { StorageAdapter } from "./storage-adapter.js";
  *   1. compute deterministic cache key from (key, options)
  *   2. read-through the cache adapter — return immediately on hit
  *   3. fetch original from the origin adapter
- *   4. run the transformer (`sharp` in production)
+ *   4. run the transformer (IPX-routed in production)
  *   5. write the result to the cache adapter
  *   6. return bytes + mimeType
  *
  * The transformer interface is injectable so the unit suite skips
- * the `sharp` native binding; the production binding (`SharpTransformer`,
- * lands when the file-module wires the NestJS provider) wraps the
- * real library with the same surface.
+ * the heavy IPX runtime; the production binding (`IpxAssetTransformer`,
+ * wired in `files.module.ts`) routes through `createIPX()` so inline
+ * transforms share the same engine as the URL-mounted `/_ipx/*` endpoint.
  */
 
 export interface TransformOptions {
