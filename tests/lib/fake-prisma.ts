@@ -4,20 +4,21 @@
  * Why this exists:
  *
  * The slim module pattern (`src/modules/<x>/<x>.service.ts` calls
- * `prisma.<table>.<method>()` directly) drops the explicit
- * Repository abstraction. That keeps production code shorter, but
- * tests still need a way to exercise the service WITHOUT booting
- * a Postgres testcontainer for every assertion. This helper is the
- * answer: a fake `PrismaService` whose tables are `Map<id, row>`
- * objects in memory.
+ * `prisma.<table>.<method>()` directly) drops the explicit Repository
+ * abstraction. That keeps production code shorter, but tests still
+ * need a way to exercise the service WITHOUT booting a Postgres
+ * testcontainer for every assertion. This helper is the answer: a
+ * fake `PrismaService` whose tables are `Map<id, row>` objects in
+ * memory.
  *
- * Coverage:
+ * What's emulated:
  *   - `runWithRlsTenant(cb, tenantId)` — calls the callback with
- *     `this` as the tx; tenant scoping is enforced manually inside
- *     each table-mock (filters by `tenantId` column on every read).
+ *     `this` as the tx; tenant scoping is enforced by the service
+ *     (filtering `tenantId` on every read).
  *   - Per table: `create`, `findUnique`, `findMany`, `update`,
- *     `delete`. Enough surface for the example + user-profile
- *     reference modules. Add more if you grow the patterns.
+ *     `delete`. Auto-fills `createdAt` / `updatedAt` as `Date` on
+ *     create, bumps `updatedAt` on update — matching the real
+ *     Prisma `@default(now())` / `@updatedAt` semantics.
  *
  * The helper is intentionally narrow. It doesn't try to be Prisma
  * — it's the smallest contract that lets the service code run
@@ -26,7 +27,11 @@
 
 import type { PrismaService } from "../../src/core/prisma/prisma.service.js";
 
-type Row = Record<string, unknown> & { id: string };
+type Row = Record<string, unknown> & {
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 export interface TableMock<T extends Row> {
   create(input: { data: Partial<T> & Pick<T, "id"> }): Promise<T>;
@@ -60,7 +65,15 @@ function makeTable<T extends Row>(): TableMock<T> {
 
   return {
     async create({ data }) {
-      const row = data as T;
+      // Auto-fill timestamps the way Prisma does via `@default(now())`
+      // / `@updatedAt`, but let the caller override (some callers want
+      // deterministic timestamps for assertions).
+      const now = new Date();
+      const row = {
+        createdAt: now,
+        updatedAt: now,
+        ...data,
+      } as T;
       rows.set(row.id, row);
       return row;
     },
@@ -79,9 +92,13 @@ function makeTable<T extends Row>(): TableMock<T> {
         const [key, direction] = Object.entries(clause)[0] ?? [];
         if (!key) continue;
         result.sort((a, b) => {
-          const av = String(a[key as keyof T]);
-          const bv = String(b[key as keyof T]);
-          return direction === "desc" ? bv.localeCompare(av) : av.localeCompare(bv);
+          const av = a[key as keyof T];
+          const bv = b[key as keyof T];
+          const compare =
+            av instanceof Date && bv instanceof Date
+              ? av.getTime() - bv.getTime()
+              : String(av).localeCompare(String(bv));
+          return direction === "desc" ? -compare : compare;
         });
       }
       return result;
@@ -93,7 +110,9 @@ function makeTable<T extends Row>(): TableMock<T> {
         err.code = "P2025";
         throw err;
       }
-      const next = { ...existing, ...data } as T;
+      // Bump updatedAt the way Prisma does via `@updatedAt`, but let
+      // the caller override if they explicitly pass it.
+      const next = { ...existing, updatedAt: new Date(), ...data } as T;
       rows.set(next.id, next);
       return next;
     },
