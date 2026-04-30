@@ -101,6 +101,15 @@ export const FEATURE_CATALOG: readonly FeatureMeta[] = [
     exposes: ["/geo/geocode", "/places/nearby", "GeocodingCacheCleanupCron"],
   },
   {
+    key: "geoIp",
+    label: "GeoIP",
+    description:
+      "IP→Country/City lookup via offline .mmdb (dbip-lite default, MaxMind opt-in).",
+    envKey: "FEATURE_GEO_IP_ENABLED",
+    category: "data",
+    exposes: ["GeoIpService.lookup()", "scripts/download-geoip.ts", "geoip-init compose service"],
+  },
+  {
     key: "rateLimit",
     label: "Rate Limiting",
     description: "Multi-window token-bucket rate limiter backed by Postgres.",
