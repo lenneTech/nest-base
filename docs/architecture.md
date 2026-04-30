@@ -304,11 +304,12 @@ the trust boundary (server → browser).
 - **Native HTML inputs in net-new pages are forbidden.** Every
   interactive primitive on a brand-new page goes through
   `react-aria-components` via the wrappers in `components/`. The
-  existing admin-page ports (`WebhookInspectorPage`, `AuditBrowserPage`,
-  …) intentionally render bare `<input>` / `<select>` inside
-  `form.admin-form` because the legacy CSS targets those selectors —
-  swapping them for `dp-*` wrappers would break the byte-for-byte
-  fidelity contract with the historical server pages.
+  remaining admin-page ports (e.g. `AuditBrowserPage`) intentionally
+  render bare `<input>` / `<select>` inside `form.admin-form` because
+  the legacy CSS targets those selectors — swapping them for `dp-*`
+  wrappers would break the byte-for-byte fidelity contract with the
+  historical server pages. The Webhook-Inspector is the first page to
+  fully adopt the `dp-*` wrappers (issue #19).
 - **No `process.env.*` / Node imports.** This tree is browser-only;
   `tsconfig.client.json` excludes Node types so this fails at compile
   time.
