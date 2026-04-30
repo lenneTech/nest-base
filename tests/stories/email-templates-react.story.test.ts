@@ -2,8 +2,12 @@ import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { render as renderEmail } from "@react-email/render";
+import * as React from "react";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { Code, Divider, Footer, Greeting, Paragraph } from "../../src/core/email/blocks/index.js";
+import { Barebone } from "../../src/core/email/layouts/Barebone.js";
 import {
   defaultBrandConfig,
   resolveBrandConfig,
@@ -11,6 +15,7 @@ import {
 } from "../../src/core/email/brand.js";
 import {
   ReactEmailTemplateRenderer,
+  ReactEmailTemplateInvalidError,
   ReactEmailTemplateNotFoundError,
   discoverReactEmailTemplates,
 } from "../../src/core/email/email-templates.react.js";
@@ -167,6 +172,71 @@ describe("Story · React-Email Templates", () => {
       }
     });
 
+    it("ReactEmailTemplateNotFoundError carries the template name + locale", () => {
+      const err = new ReactEmailTemplateNotFoundError("welcome", "de");
+      expect(err.name).toBe("ReactEmailTemplateNotFoundError");
+      expect(err.message).toContain("welcome");
+      expect(err.message).toContain("de");
+    });
+
+    it("ReactEmailTemplateInvalidError carries the file path", () => {
+      const err = new ReactEmailTemplateInvalidError("/abs/path/welcome.tsx", "missing meta");
+      expect(err.name).toBe("ReactEmailTemplateInvalidError");
+      expect(err.message).toContain("welcome.tsx");
+      expect(err.message).toContain("missing meta");
+    });
+
+    it("throws ReactEmailTemplateInvalidError when the template lacks a default export", async () => {
+      const tmpRoot = mkdtempSync(join(tmpdir(), "tpl-invalid-default-"));
+      try {
+        const moduleDir = join(tmpRoot, "src/modules/email/templates");
+        mkdirSync(moduleDir, { recursive: true });
+        writeFileSync(
+          join(moduleDir, "broken.tsx"),
+          [
+            // Intentional: no default export → renderer must complain.
+            "export const brokenMeta = { name: 'broken', subject: () => 'broken' };",
+          ].join("\n"),
+        );
+        const renderer = new ReactEmailTemplateRenderer({
+          brand: defaultBrandConfig(),
+          projectRoot: tmpRoot,
+        });
+        await expect(renderer.render("broken", "en", {})).rejects.toThrow(
+          ReactEmailTemplateInvalidError,
+        );
+      } finally {
+        rmSync(tmpRoot, { recursive: true, force: true });
+      }
+    });
+
+    it("throws ReactEmailTemplateInvalidError when the template lacks a Meta export", async () => {
+      const tmpRoot = mkdtempSync(join(tmpdir(), "tpl-invalid-meta-"));
+      try {
+        const moduleDir = join(tmpRoot, "src/modules/email/templates");
+        mkdirSync(moduleDir, { recursive: true });
+        writeFileSync(
+          join(moduleDir, "no-meta.tsx"),
+          [
+            "import * as React from 'react';",
+            // Intentional: no `<name>Meta` export → subject lookup fails.
+            "export default function NoMeta() {",
+            "  return React.createElement('p', null, 'x');",
+            "}",
+          ].join("\n"),
+        );
+        const renderer = new ReactEmailTemplateRenderer({
+          brand: defaultBrandConfig(),
+          projectRoot: tmpRoot,
+        });
+        await expect(renderer.render("no-meta", "en", {})).rejects.toThrow(
+          ReactEmailTemplateInvalidError,
+        );
+      } finally {
+        rmSync(tmpRoot, { recursive: true, force: true });
+      }
+    });
+
     describe("locale-suffix lookup", () => {
       const tmpRoot = mkdtempSync(join(tmpdir(), "tpl-locale-"));
       const moduleDir = join(tmpRoot, "src/modules/email/templates");
@@ -218,6 +288,76 @@ describe("Story · React-Email Templates", () => {
         expect(out.subject).toBe("EN");
         expect(out.html).toContain("english");
       });
+    });
+  });
+
+  describe("Block library renders independently", () => {
+    // Each block is exercised through the live renderer so that the
+    // inline-styled HTML output is verifiable, not just the React tree
+    // shape. Code + Divider have no built-in template that uses them
+    // yet — these tests pin their rendered surface so the block stays
+    // covered when consumers eventually adopt them.
+
+    async function renderShell(child: React.ReactNode): Promise<string> {
+      return renderEmail(React.createElement(Barebone, { children: child }));
+    }
+
+    it("Greeting renders the children inside a heading-weight element", async () => {
+      const html = await renderShell(React.createElement(Greeting, null, "Hello there"));
+      expect(html).toContain("Hello there");
+      expect(html).toContain("font-weight:600");
+    });
+
+    it("Paragraph renders body copy with the brand text color", async () => {
+      const brand: BrandConfig = resolveBrandConfig({ textColor: "#abc123" });
+      const html = await renderShell(React.createElement(Paragraph, { brand }, "paragraph copy"));
+      expect(html).toContain("paragraph copy");
+      expect(html.toLowerCase()).toContain("#abc123");
+    });
+
+    it("Footer renders muted small print", async () => {
+      const brand: BrandConfig = resolveBrandConfig({ mutedTextColor: "#998877" });
+      const html = await renderShell(React.createElement(Footer, { brand }, "footer text"));
+      expect(html).toContain("footer text");
+      expect(html.toLowerCase()).toContain("#998877");
+    });
+
+    it("Code renders monospace-styled token block colored with the brand primary", async () => {
+      const brand: BrandConfig = resolveBrandConfig({ primaryColor: "#33ddee" });
+      const html = await renderShell(React.createElement(Code, { brand }, "TOKEN-ABC-123"));
+      expect(html).toContain("TOKEN-ABC-123");
+      expect(html.toLowerCase()).toContain("#33ddee");
+      expect(html.toLowerCase()).toMatch(/font-family:[^;]*menlo|consolas|sfmono/i);
+    });
+
+    it("Divider renders a horizontal rule with the configured spacing", async () => {
+      const html = await renderShell(React.createElement(Divider, { spacing: 42 }));
+      expect(html.toLowerCase()).toContain("<hr");
+      expect(html).toContain("42px");
+    });
+
+    it("Divider falls back to the default spacing when no override is given", async () => {
+      const html = await renderShell(React.createElement(Divider));
+      expect(html.toLowerCase()).toContain("<hr");
+    });
+
+    it("Barebone renders the preheader when supplied", async () => {
+      const html = await renderEmail(
+        React.createElement(
+          Barebone,
+          { preheader: "preheader-text-marker" },
+          React.createElement(Paragraph, null, "body"),
+        ),
+      );
+      expect(html).toContain("preheader-text-marker");
+    });
+
+    it("Barebone hides the support row when supportEmail is empty", async () => {
+      const brand: BrandConfig = resolveBrandConfig({ supportEmail: "" });
+      const html = await renderEmail(
+        React.createElement(Barebone, { brand }, React.createElement(Paragraph, null, "body")),
+      );
+      expect(html).not.toContain("Need help?");
     });
   });
 });

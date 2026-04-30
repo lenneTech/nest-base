@@ -31,10 +31,7 @@ export interface InvitationProps extends InvitationVars {
 export default function Invitation(props: InvitationProps): React.ReactElement {
   const accentColor = props.brand?.primaryColor ?? "#c5fb45";
   return (
-    <Barebone
-      brand={props.brand}
-      preheader={`${props.senderName} invited you to ${props.appName}`}
-    >
+    <Barebone brand={props.brand} preheader={`${props.senderName} invited you to ${props.appName}`}>
       <Greeting brand={props.brand}>Hello {props.recipientName},</Greeting>
       <Paragraph brand={props.brand}>
         <strong style={{ color: accentColor }}>{props.senderName}</strong> has invited you to join{" "}

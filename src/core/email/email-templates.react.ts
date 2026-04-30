@@ -144,10 +144,8 @@ export class ReactEmailTemplateRenderer implements EmailTemplateRenderer {
   constructor(options: ReactEmailTemplateRendererOptions = {}) {
     this.brand = options.brand ?? defaultBrandConfig();
     this.projectRoot = options.projectRoot ?? process.cwd();
-    this.coreDir =
-      options.coreDir ?? resolve(this.projectRoot, "src/core/email/templates");
-    this.moduleDir =
-      options.moduleDir ?? resolve(this.projectRoot, "src/modules/email/templates");
+    this.coreDir = options.coreDir ?? resolve(this.projectRoot, "src/core/email/templates");
+    this.moduleDir = options.moduleDir ?? resolve(this.projectRoot, "src/modules/email/templates");
   }
 
   async render(template: string, locale: string, vars: object): Promise<EmailRenderedTemplate> {

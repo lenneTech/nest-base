@@ -32,9 +32,7 @@ export default function Welcome(props: WelcomeProps): React.ReactElement {
       <Paragraph brand={props.brand}>
         Welcome to {props.appName}! Your account is ready to go.
       </Paragraph>
-      <Paragraph brand={props.brand}>
-        Reach out any time — we&apos;re glad to have you.
-      </Paragraph>
+      <Paragraph brand={props.brand}>Reach out any time — we&apos;re glad to have you.</Paragraph>
     </Barebone>
   );
 }
