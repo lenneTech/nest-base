@@ -24,6 +24,9 @@ const ComponentShowcasePage = lazy(() =>
 const FeaturesPage = lazy(() =>
   import("./pages/FeaturesPage.js").then((m) => ({ default: m.FeaturesPage })),
 );
+const BrandPage = lazy(() =>
+  import("./pages/BrandPage.js").then((m) => ({ default: m.BrandPage })),
+);
 const CoveragePage = lazy(() =>
   import("./pages/CoveragePage.js").then((m) => ({ default: m.CoveragePage })),
 );
@@ -91,6 +94,7 @@ export function App(): ReactNode {
         <Route path="/dev" element={<DevHubLandingPage />} />
         <Route path="/dev/components" element={<ComponentShowcasePage />} />
         <Route path="/dev/features" element={<FeaturesPage />} />
+        <Route path="/dev/brand" element={<BrandPage />} />
         <Route path="/dev/coverage" element={<CoveragePage />} />
         <Route path="/dev/tests" element={<TestsPage />} />
         <Route path="/dev/diagnostics" element={<DiagnosticsPage />} />
