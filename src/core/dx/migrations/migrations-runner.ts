@@ -364,8 +364,11 @@ class DryRunRollback extends Error {
  * would contain unquoted semicolons). The dry-run path is best-effort;
  * the real apply path uses `prisma migrate deploy` which has its own
  * parser.
+ *
+ * Exported for unit tests; production callers go through
+ * `runDryRunMigration`.
  */
-function splitSqlStatements(sql: string): string[] {
+export function splitSqlStatements(sql: string): string[] {
   const out: string[] = [];
   let current = "";
   let inString = false;
