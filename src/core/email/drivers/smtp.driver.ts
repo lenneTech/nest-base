@@ -43,8 +43,14 @@ export interface SmtpConnectionConfig {
   port: number;
   user?: string;
   pass?: string;
-  /** SMTP_SECURE=true → TLS on 465, false → STARTTLS on 587. */
+  /** SMTP_SECURE=true → TLS on 465; false → plaintext / STARTTLS opportunistically. */
   secure: boolean;
+  /**
+   * If true, Nodemailer mandates STARTTLS on a non-secure connection
+   * (port 587 with TLS upgrade). Off by default so Mailpit / dev relays
+   * that don't speak STARTTLS still work out of the box.
+   */
+  requireTls?: boolean;
   /** Per-connection timeout. Outbox handles retry; we just fail fast. */
   timeoutMs?: number;
   /** How many parallel SMTP connections may be open against the relay. */
@@ -125,7 +131,12 @@ export function createSmtpTransporter(
     host: cfg.host,
     port: cfg.port,
     secure: cfg.secure,
-    requireTLS: !cfg.secure,
+    ...(cfg.requireTls ? { requireTLS: true } : {}),
+    // Nodemailer 7+ blocks connections to private/loopback addresses by
+    // default (SSRF guard). Mailpit, Brevo's local relay, and any
+    // dev-side SMTP container all sit on private IPs — without this
+    // flag the SMTP socket connects but the data event never fires.
+    allowInternalNetworkInterfaces: true,
     pool: true,
     maxConnections: cfg.poolSize ?? DEFAULT_POOL_SIZE,
     connectionTimeout: cfg.timeoutMs ?? DEFAULT_TIMEOUT_MS,
@@ -147,7 +158,9 @@ export function readSmtpConfigFromEnv(env: Record<string, string | undefined>): 
     throw new Error(`smtp: invalid SMTP_PORT="${env.SMTP_PORT}"`);
   }
   const secure = env.SMTP_SECURE === "true" || env.SMTP_SECURE === "1";
+  const requireTls = env.SMTP_REQUIRE_TLS === "true" || env.SMTP_REQUIRE_TLS === "1";
   const cfg: SmtpConnectionConfig = { host, port, secure };
+  if (requireTls) cfg.requireTls = true;
   if (env.SMTP_USER) cfg.user = env.SMTP_USER;
   if (env.SMTP_PASS) cfg.pass = env.SMTP_PASS;
   if (env.SMTP_TIMEOUT_MS) {
