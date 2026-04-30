@@ -264,3 +264,20 @@ model Permission {
   @@unique([policyId, resource, action])
   @@map("permissions")
 }
+
+// ---------- Example (reference module) ----------
+
+// Backs the `src/modules/example/` reference implementation. Real
+// projects rename this to their actual resource.
+model Example {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  name        String
+  description String?
+  status      String   @default("draft")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId])
+  @@map("examples")
+}

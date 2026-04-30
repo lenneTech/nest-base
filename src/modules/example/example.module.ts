@@ -1,27 +1,38 @@
 import { Module } from "@nestjs/common";
 
+import { PrismaModule } from "../../core/prisma/prisma.module.js";
+
 import { ExampleController } from "./example.controller.js";
-import { EXAMPLE_STORAGE, ExampleService, InMemoryExampleStorage } from "./example.service.js";
+import { InMemoryExampleRepository } from "./example.repository.in-memory.js";
+import { PrismaExampleRepository } from "./example.repository.prisma.js";
+import { ExampleService } from "./example.service.js";
+import { EXAMPLE_REPOSITORY } from "./example.tokens.js";
 
 /**
- * Example NestJS module — copy this into your project and rename
- * "Example" to whatever the resource is called.
+ * ExampleModule — wires the controller, the service, and the active
+ * repository binding.
  *
- * To swap the in-memory storage for a real Prisma-backed implementation:
+ * Two repository implementations ship in this module:
+ *   - `PrismaExampleRepository` — real Postgres access. Default
+ *     binding because that's the production case. Requires the
+ *     `examples` table to exist (`bun run prisma:migrate`).
+ *   - `InMemoryExampleRepository` — fast process-local storage,
+ *     used by unit / story tests via direct instantiation. Also
+ *     useful if you want the module to boot before migrations have
+ *     been applied — flip the `useClass` below to switch.
  *
- *   1. Add the model to `prisma/schema.prisma` (or a feature schema)
- *   2. Write `PrismaExampleStorage implements ExampleStorage` in this
- *      folder, injecting `PrismaService` and using
- *      `prisma.runWithRlsTenant(tenantId, () => ...)` for every query
- *   3. Replace `useClass: InMemoryExampleStorage` below with the new
- *      class.
- *
- * The service stays unchanged — only the storage adapter swaps.
- * That's the point of the `EXAMPLE_STORAGE` injection token.
+ * The service depends on the `ExampleRepository` interface only,
+ * never on either implementation. Swapping is a one-line change.
  */
 @Module({
+  imports: [PrismaModule],
   controllers: [ExampleController],
-  providers: [ExampleService, { provide: EXAMPLE_STORAGE, useClass: InMemoryExampleStorage }],
+  providers: [
+    ExampleService,
+    InMemoryExampleRepository,
+    PrismaExampleRepository,
+    { provide: EXAMPLE_REPOSITORY, useClass: PrismaExampleRepository },
+  ],
   exports: [ExampleService],
 })
 export class ExampleModule {}

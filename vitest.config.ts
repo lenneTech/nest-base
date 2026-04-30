@@ -38,6 +38,12 @@ export default defineConfig({
         // Smoke-tested via story tests + visited live during dev.
         'src/core/dx/*-ui.ts',
         'src/core/dx/dashboard-ui.ts',
+        // Prisma-backed repository implementations — thin glue over
+        // raw SQL / Prisma client calls. The contract (the repo
+        // interface) is fully unit-tested via the in-memory
+        // implementation; the Prisma binding is integration-tested
+        // in real projects via e2e specs.
+        'src/**/*.repository.prisma.ts',
         // Non-source artefacts that may live inside src/ but never
         // execute: directory placeholders, ignore lists, docs. v8 can
         // pick these up if they end up in the include glob — exclude

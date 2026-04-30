@@ -1,22 +1,25 @@
 /**
- * Example controller — reference for tenant-scoped REST endpoints.
+ * Example controller — REST endpoints. Thin by design: the controller
+ * is a transport adapter that:
+ *   1. validates the request body / query (via the Zod pipe)
+ *   2. picks the active tenant out of the AsyncLocalStorage (set
+ *      by `TenantInterceptor` from the `x-tenant-id` header)
+ *   3. delegates to `ExampleService`
+ *   4. returns the response shape to NestJS
  *
- * Patterns demonstrated:
- *   - Per-handler ZodValidationPipe wiring through @Body/@Query
- *   - Tenant id pulled from the AsyncLocalStorage (request-scoped),
- *     not from path/body — RLS won't trust client-supplied tenants
- *   - Idiomatic NestJS-style status codes (201 on POST, 204 on DELETE)
+ * What it does NOT do:
+ *   - mutate records directly (that's the service)
+ *   - look at the database (that's the repository)
+ *   - format errors (the global RFC 7807 filter does that)
  *
- * Permission gates (`@Can('action', 'Subject')`) are commented in
- * because the example resource is not registered with CASL yet.
- * Uncomment + register the subject in the permission catalog once
- * you've adapted the module for your real resource.
+ * The `@Can()` decorators are deliberately wired here so an auditor
+ * scanning `/dev/routes` sees every endpoint guarded by the same
+ * mechanism the rest of the codebase uses.
  */
 
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from "@nestjs/common";
 
-// import { Can } from "../../core/permissions/can.guard.js";
-import { getCurrentTenantId } from "../../core/multi-tenancy/tenant.interceptor.js";
+import { Can } from "../../core/permissions/can.guard.js";
 import { ZodValidationPipe } from "../../core/validation/zod-validation.pipe.js";
 
 import {
@@ -29,34 +32,35 @@ import {
   UpdateExampleSchema,
 } from "./example.dto.js";
 import { ExampleService } from "./example.service.js";
+import { requireTenant } from "./require-tenant.js";
 
 @Controller("examples")
 export class ExampleController {
   constructor(private readonly service: ExampleService) {}
 
+  @Can("create", "Example")
   @Post()
   @HttpCode(201)
-  // @Can("create", "Example")
   async create(
     @Body(new ZodValidationPipe(CreateExampleSchema)) dto: CreateExampleDto,
   ): Promise<ExampleResponse> {
     return this.service.create(requireTenant(), dto);
   }
 
+  @Can("read", "Example")
   @Get()
-  // @Can("read", "Example")
   async list(@Query(new ZodValidationPipe(ListExampleQuerySchema)) query: ListExampleQuery) {
     return this.service.list(requireTenant(), query);
   }
 
+  @Can("read", "Example")
   @Get(":id")
-  // @Can("read", "Example")
   async findOne(@Param("id") id: string): Promise<ExampleResponse> {
     return this.service.findById(requireTenant(), id);
   }
 
+  @Can("update", "Example")
   @Patch(":id")
-  // @Can("update", "Example")
   async update(
     @Param("id") id: string,
     @Body(new ZodValidationPipe(UpdateExampleSchema)) dto: UpdateExampleDto,
@@ -64,24 +68,10 @@ export class ExampleController {
     return this.service.update(requireTenant(), id, dto);
   }
 
+  @Can("delete", "Example")
   @Delete(":id")
   @HttpCode(204)
-  // @Can("delete", "Example")
   async remove(@Param("id") id: string): Promise<void> {
     await this.service.remove(requireTenant(), id);
   }
-}
-
-/**
- * Pulls the tenant id off the AsyncLocalStorage that
- * `TenantInterceptor` populates on every non-exempt request. If you
- * see this throw at runtime, the route is hitting a non-tenant-aware
- * code path — usually because the path is in `EXEMPT_PREFIXES`.
- */
-function requireTenant(): string {
-  const tenantId = getCurrentTenantId();
-  if (!tenantId) {
-    throw new Error("example: no tenant id in request context (route is exempt?)");
-  }
-  return tenantId;
 }

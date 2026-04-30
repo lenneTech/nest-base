@@ -1,7 +1,7 @@
 /**
  * Story tests for the Example module — exercise the service against
- * the in-memory storage. The same shape applies to your real modules:
- * inject a fake/in-memory storage, assert tenant-isolation, list
+ * the in-memory repository. The same pattern applies to real modules:
+ * inject the fake / in-memory repo, assert tenant-isolation, list
  * filtering, and not-found errors.
  */
 import { beforeEach, describe, expect, it } from "vitest";
@@ -10,17 +10,15 @@ import {
   CreateExampleSchema,
   ListExampleQuerySchema,
 } from "../../src/modules/example/example.dto.js";
-import {
-  ExampleNotFoundError,
-  ExampleService,
-  InMemoryExampleStorage,
-} from "../../src/modules/example/example.service.js";
+import { ExampleNotFoundError } from "../../src/modules/example/example.errors.js";
+import { InMemoryExampleRepository } from "../../src/modules/example/example.repository.in-memory.js";
+import { ExampleService } from "../../src/modules/example/example.service.js";
 
 const TENANT_A = "00000000-0000-7000-8000-00000000000a";
 const TENANT_B = "00000000-0000-7000-8000-00000000000b";
 
 function makeService(): ExampleService {
-  return new ExampleService(new InMemoryExampleStorage());
+  return new ExampleService(new InMemoryExampleRepository());
 }
 
 describe("Story · Example module", () => {
