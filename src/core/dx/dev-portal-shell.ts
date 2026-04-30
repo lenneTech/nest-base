@@ -59,6 +59,13 @@ export interface DevPortalShellInput {
   brandCss?: string;
   /** Boot-time background color (escaped). Defaults to `#020203`. */
   bootBackground?: string;
+  /**
+   * Brand JSON to expose as `window.__BRAND__` for the SPA. The
+   * AdminShell reads it to render the sidebar brand name without a
+   * round-trip. Optional — when omitted, the SPA falls back to
+   * "nest-server".
+   */
+  brandJson?: string;
 }
 
 export interface DevPortalShellInputOverrides {
@@ -69,6 +76,7 @@ export interface DevPortalShellInputOverrides {
   brandName?: string;
   brandCss?: string;
   bootBackground?: string;
+  brandJson?: string;
 }
 
 const DEFAULT_TITLE = "Dev Portal";
@@ -94,11 +102,18 @@ export function buildDevPortalShellInput(
   let brandName = overrides.brandName;
   let brandCss = overrides.brandCss;
   let bootBackground = overrides.bootBackground;
+  let brandJson = overrides.brandJson;
   if (overrides.brand === "central") {
     const brand = loadBrandSync();
     brandName ??= brand.name;
     brandCss ??= renderBrandCss(brand);
     bootBackground ??= brand.backgroundColor;
+    // Strip CSS-only fields that would only inflate the inlined JSON;
+    // the SPA needs name + shortName + tagline + colors for the
+    // sidebar render. Hex values are schema-validated, so no
+    // sanitisation needed beyond JSON.stringify (which already
+    // escapes embedded quotes / backslashes).
+    brandJson ??= JSON.stringify(brand);
   }
   const result: DevPortalShellInput = {
     title: overrides.title ?? DEFAULT_TITLE,
@@ -109,6 +124,7 @@ export function buildDevPortalShellInput(
   if (brandName !== undefined) result.brandName = brandName;
   if (brandCss !== undefined) result.brandCss = brandCss;
   if (bootBackground !== undefined) result.bootBackground = bootBackground;
+  if (brandJson !== undefined) result.brandJson = brandJson;
   return result;
 }
 
@@ -126,6 +142,14 @@ export function renderDevPortalShell(input: DevPortalShellInput): string {
   // defaults. The string is treated as already-CSS (renderBrandCss
   // sanitises every value internally via escapeCssValue).
   const brandStyle = input.brandCss ? `<style>${input.brandCss}</style>` : "";
+  // Brand JSON injected as `window.__BRAND__` for the SPA. The JSON is
+  // schema-validated (hex colors, email shape, URL shape) but free-text
+  // fields like `name` could contain `</script>` substrings if a future
+  // operator pastes raw HTML there. Escape the close-tag sentinel so
+  // the surrounding <script> block can't be terminated prematurely.
+  const brandScript = input.brandJson
+    ? `<script>window.__BRAND__=${input.brandJson.replace(/<\/script/gi, "<\\/script")};</script>`
+    : "";
 
   return `<!doctype html>
 <html lang="de">
@@ -140,6 +164,7 @@ export function renderDevPortalShell(input: DevPortalShellInput): string {
 ${extras}
 ${brandStyle}
 <style>html,body{margin:0;padding:0}body{background:${bootBackground};color:#ffffff;font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,system-ui,sans-serif}</style>
+${brandScript}
 </head>
 <body>
 <div id="root"></div>

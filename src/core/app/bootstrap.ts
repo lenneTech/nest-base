@@ -12,6 +12,7 @@ import helmet from "helmet";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { apiReference } from "@scalar/nestjs-api-reference";
 
+import { loadBrandSync } from "../branding/brand-loader.js";
 import { readTunnelState } from "../dev/tunnel-state-runner.js";
 import { type BrowserOpenPlatform, planBrowserOpen } from "../dx/browser-open.js";
 import { transitionDevSession } from "../dx/dev-session-runner.js";
@@ -91,9 +92,13 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   // walks every controller registered in DI and produces an OpenAPI
   // 3.1 JSON. Mounted at `/api/openapi.json` (Scalar UI consumes it,
   // kubb generates the SDK from it).
+  // Title + description sourced from the central brand config so a
+  // single edit to brand.json propagates to the OpenAPI surface,
+  // Scalar UI, and any kubb-generated SDK.
+  const brand = loadBrandSync();
   const openApiConfig = new DocumentBuilder()
-    .setTitle("nest-base")
-    .setDescription("Template-fähiger NestJS-Server")
+    .setTitle(brand.name)
+    .setDescription(brand.tagline ?? "Template-fähiger NestJS-Server")
     .setVersion("1.0.0")
     .addBearerAuth()
     .addCookieAuth("better-auth.session_token")

@@ -20,6 +20,30 @@ import { Link, useLocation } from "react-router-dom";
 import { BRAND_LOGO, ICONS } from "./icons.js";
 import { isSpaRoute, NAV_SECTIONS } from "./nav.js";
 
+/**
+ * Brand snapshot inlined by the server shell into `window.__BRAND__`.
+ * The shape mirrors the central `BrandConfig` (only the fields the SPA
+ * actually reads). Falling back to "nest-server" keeps the SPA usable
+ * in test fixtures that hydrate the bundle without the shell.
+ */
+interface RuntimeBrand {
+  name?: string;
+  shortName?: string;
+}
+
+declare global {
+  interface Window {
+    __BRAND__?: RuntimeBrand;
+  }
+}
+
+function getBrandName(): string {
+  if (typeof window !== "undefined" && window.__BRAND__?.name) {
+    return window.__BRAND__.name;
+  }
+  return "nest-server";
+}
+
 export interface AdminShellProps {
   /** Page heading and `<title>`. */
   title: string;
@@ -34,8 +58,10 @@ export interface AdminShellProps {
 export function AdminShell({ title, subtitle, currentNav, children }: AdminShellProps): ReactNode {
   // Update <title> exactly the way the server shell does — keeps the
   // browser tab honest as the user navigates between SPA pages.
+  // Brand sourced from window.__BRAND__ (server-injected) so the title
+  // suffix matches the dev-portal shell on the same request.
   if (typeof document !== "undefined") {
-    document.title = `${title} — nest-server`;
+    document.title = `${title} — ${getBrandName()}`;
   }
 
   return (
@@ -137,7 +163,7 @@ function NavItemBrand(): ReactNode {
         {BRAND_LOGO}
       </span>
       <div className="admin-brand__text">
-        <span className="admin-brand__name">nest-server</span>
+        <span className="admin-brand__name">{getBrandName()}</span>
         <span className="admin-brand__env">
           <span className="admin-brand__dot" />
           development
