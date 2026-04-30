@@ -40,6 +40,7 @@ import { PrismaService } from "../prisma/prisma.service.js";
 import { PostgresStorageAdapter } from "./postgres-storage-adapter.js";
 import { PrismaFileBlobOperations } from "./postgres-file-blob-operations.js";
 import { SharpTransformer } from "./sharp-transformer.js";
+import { StorageAdapterDataStore } from "./storage-adapter-data-store.js";
 import { resolveStoragePath } from "./storage-path.js";
 import {
   createStorageAdapter,
@@ -48,12 +49,16 @@ import {
   type StorageFactoryEnv,
 } from "./storage-factory.js";
 import type { StorageAdapter } from "./storage-adapter.js";
+import { tusUploadConfigDefaults } from "./tus-upload-config.js";
+import type { TusServerLike } from "./tus.module.js";
 
 const FILE_STORAGE = Symbol.for("lt:FileStorage");
 const FOLDER_STORAGE = Symbol.for("lt:FolderStorage");
 const STORAGE_ORIGIN = Symbol.for("lt:StorageOrigin");
 const STORAGE_CACHE = Symbol.for("lt:StorageCache");
 const ASSET_TRANSFORMER = Symbol.for("lt:AssetTransformer");
+const TUS_SERVER = Symbol.for("lt:TusServer");
+const TUS_CONFIG = Symbol.for("lt:TusConfig");
 
 // Re-export the DI tokens so consumers (e.g. test overrides, custom
 // modules) can target the same identity. Symbol.for keeps the values
@@ -63,6 +68,8 @@ export const FOLDER_STORAGE_TOKEN = FOLDER_STORAGE;
 export const STORAGE_ORIGIN_TOKEN = STORAGE_ORIGIN;
 export const STORAGE_CACHE_TOKEN = STORAGE_CACHE;
 export const ASSET_TRANSFORMER_TOKEN = ASSET_TRANSFORMER;
+export const TUS_SERVER_TOKEN = TUS_SERVER;
+export const TUS_CONFIG_TOKEN = TUS_CONFIG;
 
 export interface CreateFileBody {
   tenantId: string;
@@ -310,8 +317,67 @@ function buildCacheAdapter(
       useFactory: (storage: FolderStorage) => new FolderService(storage),
       inject: [FOLDER_STORAGE],
     },
+    // ── TUS resumable uploads (lazy) ──────────────────────────────
+    {
+      provide: TUS_CONFIG,
+      useFactory: () => {
+        const defaults = tusUploadConfigDefaults();
+        const env = process.env;
+        return {
+          ...defaults,
+          ...(env.TUS_MAX_UPLOAD_BYTES
+            ? { maxUploadBytes: Number.parseInt(env.TUS_MAX_UPLOAD_BYTES, 10) }
+            : {}),
+          ...(env.TUS_CHUNK_EXPIRATION_SECONDS
+            ? { chunkExpirationSeconds: Number.parseInt(env.TUS_CHUNK_EXPIRATION_SECONDS, 10) }
+            : {}),
+        };
+      },
+    },
+    {
+      provide: TUS_SERVER,
+      useFactory: async (
+        origin: StorageAdapter,
+        config: { mountPath: string; chunkExpirationSeconds: number },
+      ): Promise<TusServerLike | null> => {
+        const features = loadFeatures(process.env as Record<string, string | undefined>);
+        if (!features.files.tus) return null;
+        const dataStore = new StorageAdapterDataStore(origin);
+        // The DataStore advertises its expiration via getExpiration() —
+        // we set the value here so the cleanup sweep knows how stale
+        // to consider in-progress uploads.
+        Object.assign(dataStore, {
+          getExpiration: () => config.chunkExpirationSeconds * 1000,
+        });
+        try {
+          const { Server } = await import("@tus/server");
+          return new Server({
+            path: config.mountPath,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            datastore: dataStore as any,
+          }) as unknown as TusServerLike;
+        } catch (err) {
+          // `@tus/server` is a hard dep of this template, but we
+          // gracefully degrade to "no TUS" when the import fails so
+          // boot doesn't crash — the upload-complete hook still works
+          // for the single-shot POST /files/upload path.
+          // eslint-disable-next-line no-console
+          console.warn(`[FilesModule] TUS server failed to load: ${String(err)}`);
+          return null;
+        }
+      },
+      inject: [STORAGE_ORIGIN, TUS_CONFIG],
+    },
   ],
-  exports: [FileService, FolderService, AssetService, STORAGE_ORIGIN, STORAGE_CACHE],
+  exports: [
+    FileService,
+    FolderService,
+    AssetService,
+    STORAGE_ORIGIN,
+    STORAGE_CACHE,
+    TUS_SERVER,
+    TUS_CONFIG,
+  ],
 })
 export class FilesModule {
   /**

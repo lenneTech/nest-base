@@ -124,15 +124,19 @@ export class PrismaFileStorage implements FileServiceStorage {
     if (this.deps.__tx) {
       return this.deps.__tx.file.findFirst({ where: { id } as Partial<File> });
     }
-    // Production path: we don't know the tenantId here, so we hop into
-    // a no-tenant tx. RLS may block this read; callers that need a row
-    // by id must come with a tenant context (see `FileService.remove`).
-    // Fall back to a wide-open scan via the first runWithRlsTenant we
-    // can manufacture: there isn't one. The convention is therefore
-    // that production callers go through routes which already have a
-    // tenant in scope (the AsyncLocalStorage default), so the cb runs
-    // in tenant scope.
-    return null;
+    // Production path: relies on the tenant id being present in the
+    // AsyncLocalStorage container (the TenantInterceptor populates it
+    // before any handler runs). `runWithRlsTenant` reads from there
+    // when the second argument is omitted.
+    try {
+      return await this.deps.runWithRlsTenant(
+        (tx) => tx.file.findFirst({ where: { id } as Partial<File> }),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (undefined as unknown) as any,
+      );
+    } catch {
+      return null;
+    }
   }
 
   private toRow(record: FileRecord): File {

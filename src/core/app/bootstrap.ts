@@ -142,6 +142,33 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
     );
   }
 
+  // Mount the TUS resumable-upload endpoint on the Express adapter
+  // before init. TUS speaks raw HTTP semantics (PATCH-with-byte-ranges)
+  // that NestJS' DTO machinery doesn't model, so the handler bypasses
+  // controllers and binds directly to `app.use(<path>, ...)`. The
+  // server instance + path live in the FilesModule DI container.
+  try {
+    const { TUS_SERVER_TOKEN, TUS_CONFIG_TOKEN } = await import("../files/files.module.js");
+    const tusServer = app.get(TUS_SERVER_TOKEN, { strict: false }) as
+      | { handle: (req: unknown, res: unknown) => Promise<void> | void }
+      | null;
+    const tusConfig = app.get(TUS_CONFIG_TOKEN, { strict: false }) as
+      | { mountPath: string }
+      | null;
+    if (tusServer && tusConfig?.mountPath) {
+      const expressApp = app.getHttpAdapter().getInstance() as {
+        use: (path: string, handler: unknown) => void;
+      };
+      expressApp.use(tusConfig.mountPath, (req: unknown, res: unknown) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return tusServer.handle(req as any, res as any);
+      });
+    }
+  } catch {
+    // TUS is opt-in via FEATURE_FILES_TUS — a missing token is
+    // equivalent to "feature off"; degrade quietly.
+  }
+
   await app.init();
 
   if (listen) {
