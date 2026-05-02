@@ -14,9 +14,14 @@
  * `/api/openapi.json` serve the OpenAPI spec the SDK generators read.
  * Both are dev-friendly (they expose error codes / route shapes only,
  * never user data) and intentionally outside the auth wall.
+ *
+ * `/api-docs-json` is the deprecated legacy alias for the OpenAPI
+ * doc, kept exempt for the same reason as `/api/openapi.json` until
+ * the upstream `nuxt-base-starter` fix
+ * (lenneTech/nuxt-base-starter#13) has propagated.
  */
 const PUBLIC_PREFIXES = ["/health/", "/api/auth/", "/docs/", "/dev/", "/errors/", "/api/openapi"];
-const PUBLIC_EXACT = new Set(["/", "/errors", "/api/openapi"]);
+const PUBLIC_EXACT = new Set(["/", "/errors", "/api/openapi", "/api-docs-json"]);
 
 export function isPathProtected(path: string): boolean {
   if (!path) throw new Error("isPathProtected: path is required");

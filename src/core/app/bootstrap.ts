@@ -119,6 +119,22 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   app.use("/api/openapi.json", (_req: any, res: any) => {
     res.json(openApiDocument);
   });
+  // Legacy alias for `nuxt-base-starter` installations whose
+  // `openapi-ts.config.ts` fallback still hardcodes `/api-docs-json`
+  // (the path used by older versions of `nest-server-starter`).
+  // Tracked upstream at
+  // https://github.com/lenneTech/nuxt-base-starter/issues/13;
+  // remove once that fix has propagated to all consumer workspaces.
+  // The `Deprecation` (RFC 8594) + `Link` (RFC 8288, `successor-version`)
+  // headers tell well-behaved clients to migrate to /api/openapi.json.
+  //
+  // @deprecated use /api/openapi.json
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  app.use("/api-docs-json", (_req: any, res: any) => {
+    res.setHeader("Deprecation", "Sat, 31 Oct 2026 23:59:59 GMT");
+    res.setHeader("Link", '</api/openapi.json>; rel="successor-version"');
+    res.json(openApiDocument);
+  });
   if (cfg.env !== "production") {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     app.use("/api/openapi", (req: any, res: any, next: any) => {

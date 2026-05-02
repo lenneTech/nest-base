@@ -65,7 +65,7 @@ describe("Story · Legacy /api-docs-json alias", () => {
       // RFC 8288 Link header with rel="successor-version" points at
       // /api/openapi.json. SDK generators that respect the hint can
       // self-heal without a config change.
-      expect(res.headers.link).toContain('</api/openapi.json>');
+      expect(res.headers.link).toContain("</api/openapi.json>");
       expect(res.headers.link).toContain('rel="successor-version"');
     });
   });
