@@ -4,7 +4,7 @@ import type { AbilityRule } from "./casl-ability.js";
  * DB-Rule → CASL-Rule resolver.
  *
  * Persisted Permission rows speak Directus-flavored filter DSL with
- * variables (`$CURRENT_USER`, `$NOW`). The resolver:
+ * variables (`$CURRENT_USER`, `$CURRENT_TENANT`, `$NOW`). The resolver:
  *   1. lowercases PermissionAction (`READ` → `'read'`)
  *   2. translates Directus operators to MongoDB-query operators that
  *      CASL's `mongoQueryMatcher` consumes (`_neq` → `$ne`, `_in` →
@@ -17,7 +17,11 @@ import type { AbilityRule } from "./casl-ability.js";
  * form. Single source of truth for the operator vocabulary lives here.
  */
 
-export type DbAction = "CREATE" | "READ" | "UPDATE" | "DELETE" | "SHARE";
+// `MANAGE` is not in the `PermissionAction` SQL enum — it only appears
+// on synthesized in-memory rows produced by `buildMemberRoleRules()`.
+// The resolver lowercases it to `'manage'`, which CASL treats as the
+// CRUD wildcard.
+export type DbAction = "CREATE" | "READ" | "UPDATE" | "DELETE" | "SHARE" | "MANAGE";
 
 export interface DbPermissionRow {
   resource: string;
@@ -29,6 +33,14 @@ export interface DbPermissionRow {
 export interface ResolveContext {
   userId: string;
   now: Date;
+  /**
+   * Active tenant id. When set, every `$CURRENT_TENANT` literal in
+   * `itemFilter` is substituted with this value. Optional for back-
+   * compat with callers that built the context before the variable
+   * was defined — those see `$CURRENT_TENANT` as a literal string
+   * which naturally fails to match any real row (safe default).
+   */
+  tenantId?: string;
 }
 
 const OPERATOR_MAP: Record<string, string | null> = {
@@ -44,6 +56,7 @@ const OPERATOR_MAP: Record<string, string | null> = {
 };
 
 const VAR_CURRENT_USER = "$CURRENT_USER";
+const VAR_CURRENT_TENANT = "$CURRENT_TENANT";
 const VAR_NOW = "$NOW";
 
 export function resolveDbRules(rows: DbPermissionRow[], ctx: ResolveContext): AbilityRule[] {
@@ -102,6 +115,11 @@ function resolveFieldFilter(raw: unknown, ctx: ResolveContext): unknown {
 function substituteValue(value: unknown, ctx: ResolveContext): unknown {
   if (Array.isArray(value)) return value.map((item) => substituteValue(item, ctx));
   if (value === VAR_CURRENT_USER) return ctx.userId;
+  // `$CURRENT_TENANT` only substitutes when a tenant id is present in
+  // the context. Legacy callers (no tenantId) get the literal back —
+  // CASL will compare it to the row's `tenantId` and naturally fail,
+  // which is a safe failure mode rather than a silent grant.
+  if (value === VAR_CURRENT_TENANT && ctx.tenantId !== undefined) return ctx.tenantId;
   if (value === VAR_NOW) return ctx.now.toISOString();
   return value;
 }

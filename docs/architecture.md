@@ -131,6 +131,29 @@ Role  ──→  RolePolicy  ──→  Policy  ──→  Permission(resource, 
 `Administrator` and `Public` are system roles — `Administrator` bypasses
 every check; `Public` applies to unauthenticated requests.
 
+**Storage adapter & default rules** — `PrismaPermissionStorage`
+(`src/core/permissions/prisma-permission-storage.ts`) is the default
+backing store. On every `findRulesForUser(userId, tenantId)` it joins
+the `Role → RolePolicy → Policy → Permission` graph for the caller's
+membership AND appends a synthesized "Member" ruleset
+(`buildMemberRoleRules()`) for users with an `ACTIVE` `TenantMember`
+row in the requested tenant. The synthesized rules grant `manage` on
+every project-facing resource subject scoped to `$CURRENT_TENANT` —
+without them a fresh sign-up would 403 on every `@Can()`-gated route
+because the explicit `Permission` table is empty until an admin
+writes to it. The synthesis is opt-out
+(`new PrismaPermissionStorage(prisma, { synthesizeMemberRules: false })`)
+for projects that ship their own seeded Member role.
+
+**Lifecycle** — the active `Ability` is attached to `req.ability` by
+`AbilityMiddleware` (NOT an interceptor), so it is available to every
+guard. NestJS' request lifecycle is `middleware → guards →
+interceptors → handler`; attaching the ability in an interceptor
+would make `CanGuard` always see `undefined` and 403 every
+authenticated request. `TestAbilityMiddleware` runs first across the
+chain and lets `NODE_ENV=test` specs pre-seed the ability via the
+`X-Test-Ability` header.
+
 ## Output pipeline
 
 CASL handles read visibility (item filter) and static field allowlists.

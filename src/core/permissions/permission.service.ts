@@ -60,7 +60,11 @@ export class PermissionService {
     }
 
     const rows = await this.storage.findRulesForUser(userId, tenantId);
-    const rules = resolveDbRules(rows, { userId, now: new Date() });
+    // `tenantId` is forwarded to the resolver so `$CURRENT_TENANT`
+    // literals in `itemFilter` substitute correctly. Without it, the
+    // synthesized "Member" rules would compare `tenantId` to the
+    // literal string `$CURRENT_TENANT` and never match anything.
+    const rules = resolveDbRules(rows, { userId, tenantId, now: new Date() });
     const ability = buildAbility(rules);
 
     this.cache.set(key, { ability, expiresAt: Date.now() + this.ttlMs });

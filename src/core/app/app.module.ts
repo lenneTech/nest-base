@@ -29,6 +29,7 @@ import { TenantMemberModule } from "../multi-tenancy/tenant-member.module.js";
 import { TenantSelfServiceModule } from "../multi-tenancy/tenant-self-service.module.js";
 import { TenantInterceptor } from "../multi-tenancy/tenant.interceptor.js";
 import { OutputPipelineInterceptor } from "../output-pipeline/output-pipeline.interceptor.js";
+import { AbilityMiddleware } from "../permissions/ability.middleware.js";
 import { AdminCrudModule } from "../permissions/admin-crud.module.js";
 import { FiltersModule } from "../permissions/filters.module.js";
 import { PermissionsModule } from "../permissions/permissions.module.js";
@@ -128,11 +129,23 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
-    // Order matters: RequestContext first (request id / trace id /
-    // tenant context populates the AsyncLocalStorage); then the
-    // session middleware sets `req.user` so `PermissionInterceptor`
-    // and downstream guards see a populated identity.
+    // Order matters and is observable to every downstream guard:
+    //   1. RequestContext  — request id / trace id / tenant context
+    //                        populate the AsyncLocalStorage.
+    //   2. Session         — Better-Auth resolves `req.user` from the
+    //                        session cookie / Authorization header.
+    //   3. Ability         — `req.ability` is built from the user's
+    //                        rules. NestJS runs middleware BEFORE
+    //                        guards, so `CanGuard` always sees a
+    //                        populated ability. The `TestAbilityMiddleware`
+    //                        registered inside `PermissionsModule` runs
+    //                        first across the chain and lets specs
+    //                        pre-seed the ability via `X-Test-Ability`
+    //                        — this middleware honours that and
+    //                        short-circuits when the ability is already
+    //                        set.
     consumer.apply(RequestContextMiddleware).forRoutes("*");
     consumer.apply(BetterAuthSessionMiddleware).forRoutes("*");
+    consumer.apply(AbilityMiddleware).forRoutes("*");
   }
 }
