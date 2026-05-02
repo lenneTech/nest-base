@@ -39,10 +39,15 @@ import {
 } from '../src/core/dev/cloudflare-tunnel.js';
 import {
   buildPortlessRunCommand,
+  decideRegistrationAction,
   isPortlessProxyRunning,
   resolveDevPort,
   shouldUsePortless,
 } from '../src/core/dev/portless.js';
+import {
+  isPidAlive,
+  readPortlessRouteOwner,
+} from '../src/core/dev/portless-routes-runner.js';
 import {
   clearTunnelState,
   writeTunnelState,
@@ -274,10 +279,30 @@ if (tunnelArgs.tunnelEnabled) {
 
 function buildSpawnPlan(): SpawnPlan {
   if (usePortless && proxyAlive) {
+    // Defence-in-depth against stale registrations. When a previous
+    // `bun --watch` was hard-killed (SIGKILL, OOM, terminal closed),
+    // its entry in `~/.portless/routes.json` outlives the process and
+    // the next dev-boot would otherwise fail with RouteConflictError.
+    // We probe the existing PID; if it is dead (or its slot is empty)
+    // we let portless evict it via `--force`. Same-PID and
+    // different-but-alive PIDs surface portless's normal error.
+    const hostname = `api.${projectName}.localhost`;
+    const owner = readPortlessRouteOwner(hostname);
+    const decision = decideRegistrationAction({
+      existingPid: owner?.pid,
+      currentPid: process.pid,
+      isAlive: owner ? isPidAlive(owner.pid) : false,
+    });
+    if (decision === 'take-over' && owner) {
+      console.log(
+        `[dev] taking over stale portless registration for ${hostname} (PID ${owner.pid} is gone)`,
+      );
+    }
     const args = buildPortlessRunCommand({
       projectName,
       app: 'api',
       target: ['bun', '--watch', 'src/main.ts'],
+      force: decision === 'take-over',
     });
     return {
       command: portlessPath!,

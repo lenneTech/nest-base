@@ -18,8 +18,10 @@ tests/
 └── <feature>.e2e-spec.ts          ← bun run test:e2e (HTTP layer)
 ```
 
-`bun run test:e2e` matches `e2e-spec` or `stories` in the path. Story
-tests should NOT boot the full NestJS app — they exercise pure
+`bun run test:e2e` runs every file vitest's include glob picks up
+(`tests/**/*.{spec,test,e2e-spec,story.test}.ts`). Pass a path to
+narrow the run, e.g. `bun run test:e2e tests/stories/foo.story.test.ts`.
+Story tests should NOT boot the full NestJS app — they exercise pure
 functions / planners / renderers. If you need the HTTP layer, write an
 `e2e-spec.ts` instead.
 

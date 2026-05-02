@@ -109,6 +109,34 @@ describe("dev runner", () => {
         buildPortlessRunCommand({ projectName: "", app: "api", target: ["bun"] }),
       ).toThrow(/projectName/);
     });
+
+    it("inserts --force before the `--` separator when force is true", () => {
+      const args = buildPortlessRunCommand({
+        projectName: "my-app",
+        app: "api",
+        target: ["bun", "--watch", "src/main.ts"],
+        force: true,
+      });
+      expect(args).toEqual([
+        "run",
+        "--name",
+        "api.my-app",
+        "--force",
+        "--",
+        "bun",
+        "--watch",
+        "src/main.ts",
+      ]);
+    });
+
+    it("omits --force by default (must be opt-in to avoid evicting a live peer)", () => {
+      const args = buildPortlessRunCommand({
+        projectName: "my-app",
+        app: "api",
+        target: ["bun", "src/main.ts"],
+      });
+      expect(args).not.toContain("--force");
+    });
   });
 
   describe("package.json wiring", () => {
