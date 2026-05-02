@@ -150,33 +150,52 @@ export function parseControllerSource(input: ParseControllerSourceInput): RouteA
     // at the first decorator on a method (or at the method name itself
     // if no decorators) and ends at the method's opening `{`.
     //
-    // Strategy: find every HTTP-method decorator inside the body, then
-    // for each, scan upward for the `@<DecoratorName>(...)` lines that
-    // belong to the same method (no blank line breaks the chain).
-    const httpDecoratorRegex = /@(Get|Post|Put|Patch|Delete|All)\s*\(([^)]*)\)/g;
+    // Strategy: find every `@<HttpMethod>` token in the body, then for
+    // each parse the decorator's full argument list (with paren
+    // balancing), collect every decorator stacked above + below until
+    // the handler name, and emit a single finding.
+    const httpDecoratorRegex = /@(Get|Post|Put|Patch|Delete|All)\b/g;
     let dm: RegExpExecArray | null;
     while ((dm = httpDecoratorRegex.exec(body)) !== null) {
       const decName = dm[1] ?? "";
-      const decArgs = dm[2] ?? "";
       if (!HTTP_METHOD_DECORATORS.has(decName)) continue;
+
+      // Parse the decorator's argument list (balanced parens). The token
+      // may be `@Get` (no parens) or `@Get(...)` — both are legal in
+      // NestJS, even though our codebase always uses parens.
+      const afterToken = dm.index + dm[0].length;
+      let argsRaw = "";
+      let endOfDecorator = afterToken;
+      // Skip whitespace between identifier and `(`.
+      let j = afterToken;
+      while (j < body.length && (body[j] === " " || body[j] === "\t")) j++;
+      if (body[j] === "(") {
+        const closeParen = matchClosingParen(body, j);
+        if (closeParen < 0) continue;
+        argsRaw = body.slice(j + 1, closeParen);
+        endOfDecorator = closeParen + 1;
+      }
 
       const decAbsoluteIndex = bodyOffset + dm.index;
       const line = lineNumberFromIndex(input.source, decAbsoluteIndex);
 
-      // Walk forward from the decorator to the method-name token. The
-      // method-name appears on the first non-decorator, non-comment line.
-      const handlerName = findHandlerName(body, dm.index + dm[0].length);
+      // Walk forward from the decorator to the method-name token. Along
+      // the way, collect every `@Decorator(...)` that sits between the
+      // http decorator and the handler — these are the "after" decorators.
+      const forwardWalk = walkForwardCollectDecorators(body, endOfDecorator);
+      const handlerName = forwardWalk.handlerName;
       if (!handlerName) continue;
 
-      // Collect all decorators stacked immediately above the method name.
-      // Walk backward from the http decorator, gathering `@X(...)` blocks
-      // that sit on consecutive lines (allowing for whitespace).
+      // Collect all decorators stacked above the http decorator (backward
+      // walk through `@X(...)` blocks on consecutive lines).
       const stackedDecorators = collectStackedDecorators(body, dm.index);
 
-      // Find the @Can(...) and @Public(...) decorator (if any).
+      // Look at every decorator on this method (above + below the http
+      // method). Either side is a valid place for `@Can` / `@Public`.
+      const allDecorators = [...stackedDecorators, ...forwardWalk.decorators];
       let canMeta: RouteCanDecorator | undefined;
       let publicMeta: RoutePublicDecorator | undefined;
-      for (const dec of stackedDecorators) {
+      for (const dec of allDecorators) {
         if (dec.name === "Can") {
           const args = parseDecoratorArgs(dec.args);
           if (args.length >= 2 && args[0] && args[1]) {
@@ -193,8 +212,15 @@ export function parseControllerSource(input: ParseControllerSourceInput): RouteA
         }
       }
 
+      // Reset the regex pointer to skip past the decorator's full
+      // argument list (otherwise nested `@Foo` inside the args could
+      // re-trigger a match).
+      httpDecoratorRegex.lastIndex = endOfDecorator;
+      const decArgs = argsRaw;
+      void decArgs; // captured below via extractStringArg(argsRaw)
+
       // Resolve the path: controller base + handler argument.
-      const handlerPath = extractStringArg(decArgs);
+      const handlerPath = extractStringArg(argsRaw);
       const path = joinControllerPath(ctrl.basePath, handlerPath);
 
       // Allowlist match (only consulted when no @Can/@Public was set).
@@ -338,7 +364,10 @@ function parseDecoratorArgs(args: string): string[] {
 
 /**
  * Walk forward from the end of an HTTP-method decorator to the next
- * identifier — that's the handler method name.
+ * identifier — that's the handler method name. Handles nested parens
+ * inside decorator arguments (e.g. `@ApiZodOkResponse({ schema:
+ * z.object({}) })` — the closing `)` of the decorator is NOT the
+ * first `)` we see).
  */
 function findHandlerName(body: string, fromIndex: number): string | null {
   let i = fromIndex;
@@ -350,8 +379,19 @@ function findHandlerName(body: string, fromIndex: number): string | null {
       continue;
     }
     if (ch === "@") {
-      // Skip any further decorators stacked between @Get and the method.
-      const closeParen = body.indexOf(")", i);
+      // Walk past the `@` to the open paren that anchors the decorator,
+      // then match the balanced close. Decorators with no args (`@X`)
+      // also need handling — we'd stop at the next non-identifier char.
+      let j = i + 1;
+      while (j < body.length && /[A-Za-z0-9_$.]/.test(body[j] ?? "")) j++;
+      // Skip whitespace between identifier and possible (
+      while (j < body.length && (body[j] === " " || body[j] === "\t")) j++;
+      if (body[j] !== "(") {
+        // Argument-less decorator (`@HttpCode`) — continue from here.
+        i = j;
+        continue;
+      }
+      const closeParen = matchClosingParen(body, j);
       if (closeParen < 0) return null;
       i = closeParen + 1;
       continue;
@@ -379,6 +419,106 @@ function findHandlerName(body: string, fromIndex: number): string | null {
     return null;
   }
   return null;
+}
+
+/**
+ * Walk forward from the end of an HTTP-method decorator and collect
+ * every other `@Foo(...)` decorator that sits between it and the
+ * handler method name. Returns the handler name (or null) plus the
+ * "after" decorator list.
+ *
+ * This complements `collectStackedDecorators` (which walks backward
+ * over decorators above the http method). Together they capture every
+ * decorator on the method, regardless of whether the author put
+ * `@Can`/`@Public` before or after the `@Get`.
+ */
+function walkForwardCollectDecorators(
+  body: string,
+  fromIndex: number,
+): { handlerName: string | null; decorators: Array<{ name: string; args: string }> } {
+  const decorators: Array<{ name: string; args: string }> = [];
+  let i = fromIndex;
+  while (i < body.length) {
+    const ch = body[i];
+    if (ch === " " || ch === "\t" || ch === "\n" || ch === "\r") {
+      i++;
+      continue;
+    }
+    if (ch === "@") {
+      // Pull the decorator name + balanced argument list.
+      let j = i + 1;
+      while (j < body.length && /[A-Za-z0-9_$]/.test(body[j] ?? "")) j++;
+      const name = body.slice(i + 1, j);
+      // Optional whitespace before `(`.
+      while (j < body.length && (body[j] === " " || body[j] === "\t")) j++;
+      if (body[j] === "(") {
+        const closeParen = matchClosingParen(body, j);
+        if (closeParen < 0) return { handlerName: null, decorators };
+        decorators.push({ name, args: body.slice(j + 1, closeParen) });
+        i = closeParen + 1;
+        continue;
+      }
+      // Argument-less decorator.
+      decorators.push({ name, args: "" });
+      i = j;
+      continue;
+    }
+    if (ch === "/" && body[i + 1] === "/") {
+      const eol = body.indexOf("\n", i);
+      if (eol < 0) return { handlerName: null, decorators };
+      i = eol + 1;
+      continue;
+    }
+    if (ch === "/" && body[i + 1] === "*") {
+      const end = body.indexOf("*/", i);
+      if (end < 0) return { handlerName: null, decorators };
+      i = end + 2;
+      continue;
+    }
+    const word = readIdentifier(body, i);
+    if (word === "async" || word === "public" || word === "private" || word === "protected") {
+      i += word.length;
+      continue;
+    }
+    if (word) return { handlerName: word, decorators };
+    return { handlerName: null, decorators };
+  }
+  return { handlerName: null, decorators };
+}
+
+/**
+ * Walk forward from `openIndex` (which must point at `(`) to the
+ * matching `)`. Tolerant of nested parens, strings, line + block
+ * comments. Returns the index of the matching `)`, or -1 if not found.
+ */
+function matchClosingParen(source: string, openIndex: number): number {
+  let depth = 0;
+  let i = openIndex;
+  while (i < source.length) {
+    const ch = source[i];
+    if (ch === "/" && source[i + 1] === "/") {
+      const eol = source.indexOf("\n", i);
+      i = eol < 0 ? source.length : eol + 1;
+      continue;
+    }
+    if (ch === "/" && source[i + 1] === "*") {
+      const end = source.indexOf("*/", i);
+      i = end < 0 ? source.length : end + 2;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") {
+      i = skipString(source, i);
+      continue;
+    }
+    if (ch === "(") {
+      depth++;
+    } else if (ch === ")") {
+      depth--;
+      if (depth === 0) return i;
+    }
+    i++;
+  }
+  return -1;
 }
 
 function readIdentifier(body: string, from: number): string | null {
