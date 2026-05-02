@@ -33,6 +33,7 @@ jobs/            ← in-memory job queue + scheduled-job decorator surface
 mcp/             ← Model Context Protocol server + decorators + auth guard
 multi-tenancy/   ← tenant guard + RLS helpers
 observability/   ← OpenTelemetry + Pino setup + traceparent middleware
+openapi/         ← Zod → OpenAPI bridge (decorators + named-schema registry)
 outbox/          ← OutboxRecorder + OutboxWorker (at-least-once dispatch)
 output-pipeline/ ← 4-stage CASL→fields→remove-secrets→safety-net
 pagination/      ← cursor + page-limit primitives

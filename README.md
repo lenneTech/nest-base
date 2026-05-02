@@ -189,6 +189,8 @@ Every JSON endpoint has a sister HTML page that mounts the React SPA's shared **
 
 [Scalar](https://scalar.com) renders the OpenAPI 3.1 spec with try-it-out. The raw JSON sits at `/api/openapi.json` for [kubb](https://kubb.dev) SDK generation.
 
+DTO schemas reach the OpenAPI document via the **Zod → OpenAPI bridge** in `src/core/openapi/`: the `@ApiZodBody` / `@ApiZodResponse` / `@ApiZodQuery` / `@ApiZodParam` decorators feed Zod schemas into `@nestjs/swagger`'s metadata pipeline, and `applyZodSchemaRegistry()` splices any `registerZodSchema('Name', schema)` calls into `components.schemas` at boot. The slim-module reference (`src/modules/example/`) shows the full pattern. Without the bridge the kubb-generated SDK would type every request body as `never` and every response as `unknown`.
+
 ### Admin Tools — `/admin/*`
 
 Permission tester, audit browser, search tester, webhook inspector, realtime inspector. All in the same dark-mode shell with consistent navigation.
@@ -240,6 +242,7 @@ src/
 │   ├── files/           ← TUS uploads + storage adapters
 │   ├── multi-tenancy/   ← Tenant guard + RLS helpers
 │   ├── observability/   ← OTel + Pino + traceparent middleware
+│   ├── openapi/         ← Zod → OpenAPI bridge (decorators + named-schema registry)
 │   ├── output-pipeline/ ← 4-stage permission/secret-filter
 │   ├── permissions/     ← CASL ability + DB-rule resolver + admin CRUD
 │   ├── prisma/          ← PrismaService + driver-adapter

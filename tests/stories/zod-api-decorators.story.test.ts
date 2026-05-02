@@ -141,4 +141,23 @@ describe("Story · `@ApiZod*` decorators feed the OpenAPI document", () => {
     expect(idParam.schema.type).toBe("string");
     expect(idParam.schema.format).toBe("uuid");
   });
+
+  describe("error paths", () => {
+    it("`ApiZodQuery` rejects a non-object schema (would produce un-named parameters)", async () => {
+      const { ApiZodQuery: query } = await import("../../src/core/openapi/zod-api-decorators.js");
+      // Each top-level property of the object becomes a separate
+      // `@ApiQuery` entry; a primitive schema can't be expanded.
+      expect(() => query(z.string())).toThrow(/object/i);
+    });
+
+    it("`ApiZodResponse` accepts an arbitrary status (e.g. 202)", async () => {
+      const { ApiZodResponse: response } =
+        await import("../../src/core/openapi/zod-api-decorators.js");
+      // The constructor must not throw for non-conventional statuses;
+      // the convenience helpers (Ok / Created / NoContent) cover the
+      // typical 200/201/204 cases — `ApiZodResponse(202, …)` is the
+      // escape hatch.
+      expect(() => response(202, { schema: z.object({ id: z.uuid() }) })).not.toThrow();
+    });
+  });
 });

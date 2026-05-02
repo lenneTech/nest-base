@@ -38,7 +38,10 @@ describe("OpenAPI Zod bridge — `/api/openapi.json` carries Zod-derived schemas
     await app?.close();
   });
 
-  function pathOp(path: string, method: string): {
+  function pathOp(
+    path: string,
+    method: string,
+  ): {
     requestBody?: {
       content: Record<
         string,
