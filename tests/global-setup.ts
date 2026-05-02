@@ -1,4 +1,6 @@
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { Client } from "pg";
@@ -87,6 +89,14 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     throw new Error(`prisma migrate deploy failed (exit ${result.status}):\n${detail}`);
   }
 
+  // Ensure the Dev-Portal SPA bundle is present before any dev-hub e2e
+  // spec runs. Fresh clones don't have `dist/dev-portal/` yet, and the
+  // `/dev/static/*` controller is wired straight to that directory — so
+  // `tests/dev-hub.e2e-spec.ts` would 404 unless someone remembered to
+  // run `bun run build:dev-portal` first. The build is a no-op if the
+  // entry artefact already exists; a fresh install pays the ~1s tax once.
+  ensureDevPortalBundle();
+
   process.env.TEST_INFRA_READY = "1";
 
   return async () => {
@@ -96,6 +106,31 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
       container = undefined;
     }
   };
+}
+
+/**
+ * Build the Dev-Portal SPA bundle on demand if it is missing. The
+ * controller at `/dev/static/*` serves files from `dist/dev-portal/`,
+ * which only exists after `bun run build:dev-portal`. The standard
+ * 6-gate sequence in QUICKSTART.md / CONTRIBUTING.md does not yet
+ * include the build, so fresh installs would fail two dev-hub e2e
+ * tests until they ran the build by hand. Running it from globalSetup
+ * removes that sharp edge.
+ */
+function ensureDevPortalBundle(): void {
+  const repoRoot = process.cwd();
+  const entry = resolve(repoRoot, "dist/dev-portal/main.js");
+  const tokens = resolve(repoRoot, "dist/dev-portal/tokens.css");
+  if (existsSync(entry) && existsSync(tokens)) return;
+
+  const result = spawnSync("bun", ["run", "build:dev-portal"], {
+    stdio: "pipe",
+    encoding: "utf8",
+  });
+  if (result.status !== 0) {
+    const detail = `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
+    throw new Error(`build:dev-portal failed (exit ${result.status}):\n${detail}`);
+  }
 }
 
 /**

@@ -58,6 +58,29 @@ describe("Story · Test-Containers-Setup", () => {
       const src = read();
       expect(src).toMatch(/container\.stop\(\)/);
     });
+
+    /**
+     * Regression: the `tests/dev-hub.e2e-spec.ts` suite hits
+     * `/dev/static/main.js` and `/dev/static/tokens.css`, which the
+     * controller serves from `dist/dev-portal/`. That directory only
+     * exists after `bun run build:dev-portal`. Fresh installs would
+     * fail the two asset tests until someone remembered to run the
+     * build by hand. Global-setup builds the bundle on demand so the
+     * 6-gate sequence stays self-healing on a fresh clone.
+     */
+    it("ensures the dev-portal SPA bundle is built before tests run", () => {
+      const src = read();
+      expect(src).toMatch(/dist\/dev-portal\/main\.js/);
+      expect(src).toMatch(/dist\/dev-portal\/tokens\.css/);
+      expect(src).toMatch(/build:dev-portal/);
+    });
+
+    it("skips the dev-portal build when the bundle already exists (no-op fast-path)", () => {
+      const src = read();
+      // Both artefact paths must be checked before spawning bun, so
+      // a warm cache pays zero rebuild cost on every test run.
+      expect(src).toMatch(/existsSync\(entry\)\s*&&\s*existsSync\(tokens\)/);
+    });
   });
 
   describe("rustfs-container builder", () => {
