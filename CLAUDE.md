@@ -154,6 +154,47 @@ For the user, the slash command [`/add-feature <key> "<description>"`](./.claude
 - **Realtime** — `src/core/realtime/`
 - **MCP** — `src/core/mcp/`
 
+## Route gating policy — every route is gated or @Public()
+
+Every HTTP-handler method on a controller in `src/core/**` and
+`src/modules/**` MUST be one of:
+
+1. **Gated** with `@Can(action, subject)` — the default. The handler
+   runs only if `CanGuard` resolves a CASL ability that allows the
+   action on the subject for the request's `(userId, tenantId)`.
+
+2. **Explicitly public** with `@Public("<one-sentence reason>")` —
+   the route is intentionally callable without auth or permissions
+   (health checks, SDK-discovery endpoints, public catalogues like
+   `/errors`). The reason string is required and shows up in the
+   route audit (Issue #47).
+
+3. **Path-allowlisted** in `src/core/auth/jwt-middleware.ts`
+   `PUBLIC_PREFIXES`/`PUBLIC_EXACT` and/or
+   `src/core/multi-tenancy/tenant-guard.ts` `EXEMPT_*` — for
+   subsystem-wide patterns (`/health/*`, `/api/auth/*`, `/dev/*`,
+   `/me/*`). Adding a path here is a deliberate cross-cutting
+   decision; prefer `@Public()` for individual routes.
+
+**No fourth option.** A handler with neither `@Can()` nor `@Public()`
+nor a matching allowlist entry is a bug — Issue #47 introduces a
+build-time gate that fails CI on this.
+
+When porting a route or adding a new one:
+
+- If you can't decide between `@Can()` and `@Public()`, default to
+  `@Can()` and stop. Pick a CASL subject that already exists or talk
+  to the architecture before inventing a new one.
+- Never delete `@Can()` "to fix a 403" — fix the policy or the
+  storage adapter, not the gate.
+- `@Public()` without a reason is a lint error. Don't write
+  `@Public("")` or `@Public("public")` — explain *why* ("public OAS
+  catalogue for SDK consumers", "health probe for k8s", etc.).
+
+The decorator lives at `src/core/permissions/public.decorator.ts`.
+The skill [`wiring-permissions`](./.claude/skills/wiring-permissions.md)
+has the decision flow + worked examples.
+
 ## Quality bar
 
 - Bun-only commands; never shell out to `node`/`npm` from scripts
