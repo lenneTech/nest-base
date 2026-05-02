@@ -161,3 +161,11 @@ deprecated — favour `.tsx` for any new templates.
   No locale negotiation — caller passes the resolved locale string.
 - File-system discovery is sync (`existsSync` + `readdirSync`) for boot
   predictability. The renderer's `import()` is async — that's the I/O surface.
+- **Worker error-handlers must always log via `serializeOutboxTickError`** —
+  passing a raw `unknown` to `Logger.error()` produces `{}` for non-Error
+  values (issue #50). The `EmailOutboxWorkerLifecycle.setInterval` wrapper
+  routes every rejection through the helper so the real cause + payload reach
+  the log; if you add a new tick / cron / queue handler near the outbox,
+  re-use `serializeOutboxTickError` instead of inlining `err.message` /
+  `String(err)` reads (both fail for Prisma-style throws whose payload lives
+  in non-enumerable properties).
