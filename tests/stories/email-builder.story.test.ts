@@ -1,7 +1,12 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import {
+  CORE_EMAIL_TEMPLATES,
   composeEmailTemplateSource,
+  decomposeTemplateSource,
   isCoreEmailTemplate,
   isValidEmailTemplateLocale,
   isValidEmailTemplateSlug,
@@ -53,7 +58,7 @@ describe("Story · Email-Builder", () => {
   });
 
   describe("isCoreEmailTemplate", () => {
-    it.each(["email-verification", "password-reset", "welcome", "invitation"])(
+    it.each(["email-verification", "password-reset", "welcome", "invitation", "new-device"])(
       "%s is a core template",
       (slug) => {
         expect(isCoreEmailTemplate(slug)).toBe(true);
@@ -62,6 +67,19 @@ describe("Story · Email-Builder", () => {
 
     it("user-defined templates are not core", () => {
       expect(isCoreEmailTemplate("my-custom-tpl")).toBe(false);
+    });
+
+    it("CORE_EMAIL_TEMPLATES catalogues every shipped core template", () => {
+      // The 5 templates that ship under src/core/email/templates/ — must
+      // match the on-disk inventory so the dev-portal "Core (default)"
+      // badge can be derived from this list alone.
+      expect([...CORE_EMAIL_TEMPLATES].sort()).toEqual([
+        "email-verification",
+        "invitation",
+        "new-device",
+        "password-reset",
+        "welcome",
+      ]);
     });
   });
 
@@ -283,6 +301,354 @@ describe("Story · Email-Builder", () => {
       });
       expect(source).toContain("export default function TeamOnboardingWelcome");
       expect(source).toContain("export const teamOnboardingWelcomeMeta");
+    });
+  });
+
+  // -------------------------------------------------------------------
+  // decomposeTemplateSource — Issue #49
+  // -------------------------------------------------------------------
+  describe("decomposeTemplateSource (Issue #49 · core-template editing)", () => {
+    /**
+     * The decomposer is the inverse of `composeEmailTemplateSource`: it
+     * parses a `.tsx` source string back into the JSON composition that
+     * the `/dev/email-builder` UI consumes. Round-trip integrity is the
+     * load-bearing contract — `decompose(compose(c))` must equal `c` for
+     * any composition the composer can build.
+     */
+    function roundtrip(label: string, composition: EmailComposition): void {
+      it(`roundtrips: ${label}`, () => {
+        const source = composeEmailTemplateSource({ slug: "rt-test", composition });
+        const result = decomposeTemplateSource(source);
+        expect(result.decomposable).toBe(true);
+        if (!result.decomposable) return;
+        expect(result.composition).toEqual(composition);
+      });
+    }
+
+    roundtrip("plain subject + greeting + paragraph", {
+      layout: "Barebone",
+      subject: "Welcome",
+      children: [
+        { type: "greeting", props: { text: "Hello {{recipientName}}," } },
+        { type: "paragraph", props: { text: "Thanks for signing up." } },
+      ],
+    });
+
+    roundtrip("subject + preheader with variable interpolation", {
+      layout: "Barebone",
+      subject: "Welcome to {{appName}}",
+      preheader: "Thanks for joining {{appName}}",
+      children: [{ type: "paragraph", props: { text: "Body copy." } }],
+    });
+
+    roundtrip("CTA with variable href + footer + divider", {
+      layout: "Barebone",
+      subject: "Reset your password",
+      children: [
+        { type: "greeting", props: { text: "Hello {{recipientName}}," } },
+        { type: "paragraph", props: { text: "Click the button below." } },
+        { type: "cta", props: { href: "{{resetUrl}}", text: "Reset password" } },
+        { type: "divider", props: {} },
+        { type: "footer", props: { text: "Ignore this email if you didn't request it." } },
+      ],
+    });
+
+    roundtrip("code / OTP block", {
+      layout: "Barebone",
+      subject: "Your code",
+      children: [
+        { type: "paragraph", props: { text: "Your one-time code:" } },
+        { type: "code", props: { text: "{{otp}}" } },
+      ],
+    });
+
+    roundtrip("multiple variable interpolations in one field", {
+      layout: "Barebone",
+      subject: "{{senderName}} invited you to {{appName}}",
+      children: [
+        { type: "paragraph", props: { text: "{{senderName}} thinks {{appName}} suits you." } },
+      ],
+    });
+
+    it("decomposes the shipped welcome.tsx core template", () => {
+      const source = readFileSync(
+        resolve(process.cwd(), "src/core/email/templates/welcome.tsx"),
+        "utf8",
+      );
+      const result = decomposeTemplateSource(source);
+      expect(result.decomposable).toBe(true);
+      if (!result.decomposable) return;
+      expect(result.composition.layout).toBe("Barebone");
+      // welcome.tsx subject: `Welcome to ${vars.appName}` → roundtrip uses {{appName}}
+      expect(result.composition.subject).toBe("Welcome to {{appName}}");
+      // 1 greeting + 2 paragraphs
+      expect(result.composition.children.length).toBe(3);
+      expect(result.composition.children[0]?.type).toBe("greeting");
+      expect(result.composition.children[1]?.type).toBe("paragraph");
+      expect(result.composition.children[2]?.type).toBe("paragraph");
+    });
+
+    it("decomposes the shipped email-verification.tsx core template", () => {
+      const source = readFileSync(
+        resolve(process.cwd(), "src/core/email/templates/email-verification.tsx"),
+        "utf8",
+      );
+      const result = decomposeTemplateSource(source);
+      expect(result.decomposable).toBe(true);
+      if (!result.decomposable) return;
+      expect(result.composition.subject).toBe("Please verify your email");
+      // greeting + paragraph + CTA + footer
+      expect(result.composition.children.map((c) => c.type)).toEqual([
+        "greeting",
+        "paragraph",
+        "cta",
+        "footer",
+      ]);
+      const cta = result.composition.children[2];
+      expect(cta?.props.href).toBe("{{verificationUrl}}");
+    });
+
+    it("decomposes the shipped password-reset.tsx core template", () => {
+      const source = readFileSync(
+        resolve(process.cwd(), "src/core/email/templates/password-reset.tsx"),
+        "utf8",
+      );
+      const result = decomposeTemplateSource(source);
+      expect(result.decomposable).toBe(true);
+      if (!result.decomposable) return;
+      expect(result.composition.subject).toBe("Reset your {{appName}} password");
+      expect(result.composition.children.map((c) => c.type)).toEqual([
+        "greeting",
+        "paragraph",
+        "cta",
+        "footer",
+      ]);
+    });
+
+    it("returns decomposable=false on hand-rolled templates with non-grammar JSX", () => {
+      // invitation.tsx uses <strong style={{ color: ... }}> inside a
+      // Paragraph — that's outside the composer's flat block grammar.
+      const source = readFileSync(
+        resolve(process.cwd(), "src/core/email/templates/invitation.tsx"),
+        "utf8",
+      );
+      const result = decomposeTemplateSource(source);
+      expect(result.decomposable).toBe(false);
+      if (!result.decomposable) {
+        expect(typeof result.reason).toBe("string");
+      }
+    });
+
+    it("returns decomposable=false for templates with conditional JSX (new-device.tsx)", () => {
+      // new-device.tsx uses ternary + <br/> + Fragment — non-decomposable.
+      const source = readFileSync(
+        resolve(process.cwd(), "src/core/email/templates/new-device.tsx"),
+        "utf8",
+      );
+      const result = decomposeTemplateSource(source);
+      expect(result.decomposable).toBe(false);
+    });
+
+    it("returns decomposable=false for source missing a Barebone layout", () => {
+      const result = decomposeTemplateSource(`
+        export default function X() { return <div>hi</div>; }
+      `);
+      expect(result.decomposable).toBe(false);
+    });
+
+    it("returns decomposable=false for source missing a *Meta export", () => {
+      const result = decomposeTemplateSource(`
+        export default function X(props: { brand?: unknown }) {
+          return <Barebone brand={props.brand}><Greeting brand={props.brand}>hi</Greeting></Barebone>;
+        }
+      `);
+      expect(result.decomposable).toBe(false);
+    });
+
+    it("decodes a CTA whose href is a literal string (no interpolation)", () => {
+      const result = decomposeTemplateSource(`
+        export const xMeta = {
+          name: "x",
+          subject: (_vars: XVars): string => "Hello",
+        };
+        export default function X(props: { brand?: unknown }) {
+          return (
+            <Barebone brand={props.brand}>
+              <CTA brand={props.brand} href="https://example.test/static">Open</CTA>
+            </Barebone>
+          );
+        }
+      `);
+      expect(result.decomposable).toBe(true);
+      if (!result.decomposable) return;
+      const cta = result.composition.children[0];
+      expect(cta?.type).toBe("cta");
+      expect(cta?.props.href).toBe("https://example.test/static");
+      expect(cta?.props.text).toBe("Open");
+    });
+
+    it("decodes preheader provided as a literal string attribute", () => {
+      const result = decomposeTemplateSource(`
+        export const xMeta = {
+          name: "x",
+          subject: (_vars: XVars): string => "Hello",
+        };
+        export default function X(props: { brand?: unknown }) {
+          return (
+            <Barebone brand={props.brand} preheader="A simple preheader">
+              <Greeting brand={props.brand}>Hi</Greeting>
+            </Barebone>
+          );
+        }
+      `);
+      expect(result.decomposable).toBe(true);
+      if (!result.decomposable) return;
+      expect(result.composition.preheader).toBe("A simple preheader");
+    });
+
+    it("returns decomposable=false for a self-closed Barebone (no children)", () => {
+      const result = decomposeTemplateSource(`
+        export const xMeta = {
+          name: "x",
+          subject: (_vars: XVars): string => "Hello",
+        };
+        export default function X(props: { brand?: unknown }) {
+          return <Barebone brand={props.brand} />;
+        }
+      `);
+      // Self-closed Barebone is empty children — still valid composition.
+      expect(result.decomposable).toBe(true);
+      if (!result.decomposable) return;
+      expect(result.composition.children).toEqual([]);
+    });
+
+    it("returns decomposable=false for empty source", () => {
+      const result = decomposeTemplateSource("");
+      expect(result.decomposable).toBe(false);
+    });
+
+    it("returns decomposable=false for non-string input", () => {
+      const result = decomposeTemplateSource(undefined as unknown as string);
+      expect(result.decomposable).toBe(false);
+    });
+
+    it("returns decomposable=false on unsupported subject expression", () => {
+      const result = decomposeTemplateSource(`
+        export const xMeta = {
+          name: "x",
+          subject: (vars: XVars): string => doSomething(vars),
+        };
+        export default function X(props: { brand?: unknown }) {
+          return <Barebone brand={props.brand}><Greeting brand={props.brand}>Hi</Greeting></Barebone>;
+        }
+      `);
+      expect(result.decomposable).toBe(false);
+    });
+
+    it("returns decomposable=false when CTA href uses a complex expression", () => {
+      const result = decomposeTemplateSource(`
+        export const xMeta = {
+          name: "x",
+          subject: (_vars: XVars): string => "Hello",
+        };
+        export default function X(props: { brand?: unknown; url?: string }) {
+          return (
+            <Barebone brand={props.brand}>
+              <CTA brand={props.brand} href={makeUrl(props.url)}>Go</CTA>
+            </Barebone>
+          );
+        }
+      `);
+      expect(result.decomposable).toBe(false);
+    });
+
+    it("returns decomposable=false when a block has unknown attrs", () => {
+      const result = decomposeTemplateSource(`
+        export const xMeta = {
+          name: "x",
+          subject: (_vars: XVars): string => "Hello",
+        };
+        export default function X(props: { brand?: unknown }) {
+          return (
+            <Barebone brand={props.brand}>
+              <Greeting brand={props.brand} className="extra">Hi</Greeting>
+            </Barebone>
+          );
+        }
+      `);
+      expect(result.decomposable).toBe(false);
+    });
+
+    it("returns decomposable=false when greeting brand attr is not props.brand", () => {
+      const result = decomposeTemplateSource(`
+        export const xMeta = {
+          name: "x",
+          subject: (_vars: XVars): string => "Hello",
+        };
+        export default function X(props: { brand?: unknown }) {
+          return (
+            <Barebone brand={props.brand}>
+              <Greeting brand={someComputedBrand()}>Hi</Greeting>
+            </Barebone>
+          );
+        }
+      `);
+      expect(result.decomposable).toBe(false);
+    });
+
+    it("returns decomposable=false when an unknown JSX tag appears among children", () => {
+      const result = decomposeTemplateSource(`
+        export const xMeta = {
+          name: "x",
+          subject: (_vars: XVars): string => "Hello",
+        };
+        export default function X(props: { brand?: unknown }) {
+          return (
+            <Barebone brand={props.brand}>
+              <Greeting brand={props.brand}>Hi</Greeting>
+              <CustomBlock brand={props.brand} />
+            </Barebone>
+          );
+        }
+      `);
+      expect(result.decomposable).toBe(false);
+    });
+
+    it("decodes a subject built via string concatenation", () => {
+      const result = decomposeTemplateSource(`
+        export const xMeta = {
+          name: "x",
+          subject: (vars: XVars): string => "Hi " + vars.name + "!",
+        };
+        export default function X(props: { brand?: unknown }) {
+          return <Barebone brand={props.brand}><Greeting brand={props.brand}>Hi</Greeting></Barebone>;
+        }
+      `);
+      expect(result.decomposable).toBe(true);
+      if (!result.decomposable) return;
+      expect(result.composition.subject).toBe("Hi {{name}}!");
+    });
+
+    it("ignores HTML entities inside text (treats them as literal characters)", () => {
+      // welcome.tsx has `we&apos;re` — decomposer should resolve to the
+      // canonical apostrophe so the composer round-trip survives.
+      const result = decomposeTemplateSource(`
+        export const xMeta = {
+          name: "x",
+          subject: (_vars: XVars): string => "Hello",
+        };
+        export default function X(props: { brand?: unknown }) {
+          return (
+            <Barebone brand={props.brand}>
+              <Paragraph brand={props.brand}>It&apos;s nice.</Paragraph>
+            </Barebone>
+          );
+        }
+      `);
+      expect(result.decomposable).toBe(true);
+      if (!result.decomposable) return;
+      const para = result.composition.children[0];
+      expect(para?.props.text).toBe("It's nice.");
     });
   });
 });
