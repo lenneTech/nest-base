@@ -26,7 +26,17 @@ describe("Dev-Hub · /dev/email-builder", () => {
     let app: INestApplication;
     let previousNodeEnv: string | undefined;
     const repoRoot = process.cwd();
-    const cleanupSlugs = ["e2e-builder-test", "e2e-builder-traversal"];
+    // Includes core slugs the override-delete tests recreate so a
+    // leftover overlay never poisons later "fetch composition for core
+    // template" expectations (the runtime resolver picks module > core
+    // for the same name).
+    const cleanupSlugs = [
+      "e2e-builder-test",
+      "e2e-builder-traversal",
+      "welcome",
+      "password-reset",
+      "email-verification",
+    ];
 
     beforeAll(async () => {
       previousNodeEnv = process.env.NODE_ENV;
@@ -320,9 +330,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
       it("never touches the core template file", async () => {
         const corePath = resolve(repoRoot, `src/core/email/templates/${slug}.tsx`);
         expect(existsSync(corePath)).toBe(true);
-        await request(app.getHttpServer()).delete(
-          `/dev/email-builder/templates/${slug}/override`,
-        );
+        await request(app.getHttpServer()).delete(`/dev/email-builder/templates/${slug}/override`);
         expect(existsSync(corePath)).toBe(true);
       });
     });
@@ -342,15 +350,11 @@ describe("Dev-Hub · /dev/email-builder", () => {
           .post("/dev/email-builder/save")
           .send({ slug, composition });
 
-        const res = await request(app.getHttpServer()).get(
-          "/dev/email-builder/templates.json",
-        );
+        const res = await request(app.getHttpServer()).get("/dev/email-builder/templates.json");
         expect(res.status).toBe(200);
         // The list reflects discovery order. Find the *active* welcome
         // entry — module wins over core for the same name + locale.
-        const welcomeEntries = res.body.templates.filter(
-          (t: { name: string }) => t.name === slug,
-        );
+        const welcomeEntries = res.body.templates.filter((t: { name: string }) => t.name === slug);
         // Both core and module-overlay rows are reported so the UI can
         // surface "overridden" badges.
         expect(welcomeEntries.length).toBeGreaterThanOrEqual(2);

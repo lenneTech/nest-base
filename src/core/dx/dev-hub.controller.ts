@@ -1,4 +1,4 @@
-import { createReadStream } from "node:fs";
+import { createReadStream, existsSync } from "node:fs";
 import { mkdir, readFile, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
@@ -64,6 +64,9 @@ import {
   KNOWN_EMAIL_BLOCKS,
   KNOWN_EMAIL_LAYOUTS,
   composeEmailTemplateSource,
+  decomposeTemplateSource,
+  isValidEmailTemplateLocale,
+  isValidEmailTemplateSlug,
   resolveEmailTemplateTarget,
   validateEmailComposition,
   type EmailComposition,
@@ -669,6 +672,10 @@ export class DevHubController {
       source: "core" | "module";
       subject?: string;
       error?: string;
+      /** Module-overlay row that shadows a same-named core template. */
+      overridesCore?: boolean;
+      /** Core row whose name + locale also has a module overlay. */
+      overrideExists?: boolean;
     }>;
   }> {
     this.assertDev();
@@ -676,6 +683,13 @@ export class DevHubController {
     const renderer = new ReactEmailTemplateRenderer({ brand: resolveBrandConfig() });
     const catalog = buildEmailPreviewCatalog();
     const sampleByName = new Map(catalog.entries.map((e) => [e.template, e.samplePayload]));
+    // Index module-overlay rows so we can flag the matching core rows
+    // (and the overlay rows themselves) without an O(n²) scan in the UI.
+    // Issue #49 — the gallery surfaces "Core (overridden)" / "Module
+    // overlay" badges; the precedence reflects the runtime resolver.
+    const overlayKeys = new Set<string>(
+      discovered.filter((t) => t.source === "module").map((t) => `${t.name}::${t.locale ?? ""}`),
+    );
     const out: Array<{
       name: string;
       locale: string | null;
@@ -683,17 +697,174 @@ export class DevHubController {
       source: "core" | "module";
       subject?: string;
       error?: string;
+      overridesCore?: boolean;
+      overrideExists?: boolean;
     }> = [];
     for (const tpl of discovered) {
       const sample = sampleByName.get(tpl.name) ?? {};
+      const key = `${tpl.name}::${tpl.locale ?? ""}`;
+      const flags: { overridesCore?: boolean; overrideExists?: boolean } = {};
+      if (tpl.source === "module") {
+        // Heuristic: module overlay shadows a core template if the
+        // core inventory has the same name + locale. We can compute
+        // this by re-scanning the discovery list; the cost is
+        // negligible (≤ 10 entries in practice).
+        const coreMatch = discovered.find(
+          (other) =>
+            other.source === "core" && other.name === tpl.name && other.locale === tpl.locale,
+        );
+        if (coreMatch) flags.overridesCore = true;
+      } else if (overlayKeys.has(key)) {
+        flags.overrideExists = true;
+      }
       try {
         const rendered = await renderer.render(tpl.name, tpl.locale ?? "en", sample);
-        out.push({ ...tpl, subject: rendered.subject });
+        out.push({ ...tpl, subject: rendered.subject, ...flags });
       } catch (err) {
-        out.push({ ...tpl, error: asMessage(err) });
+        out.push({ ...tpl, error: asMessage(err), ...flags });
       }
     }
     return { templates: out };
+  }
+
+  /**
+   * `GET /dev/email-builder/templates/:name/composition.json` — read
+   * a discovered template's `.tsx` source and decompose it back into
+   * the JSON composition the builder UI consumes. Issue #49.
+   *
+   * The endpoint resolves the template via the same precedence rules
+   * the runtime renderer uses (module overlay > core, locale-specific
+   * > default). When the source falls inside the composer grammar,
+   * the response includes `decomposable: true` + `composition`. When
+   * it's hand-rolled (custom JSX, ternaries, etc.), the response is
+   * `decomposable: false` + `reason` so the UI can render a read-only
+   * source view instead of a broken composer.
+   *
+   * The raw `.tsx` source is always returned alongside so the UI
+   * can show "View source" even on decomposable templates.
+   */
+  @Get("email-builder/templates/:name/composition.json")
+  async emailBuilderTemplateComposition(
+    @Param("name") name: string,
+    @Query("locale") locale: string | undefined,
+  ): Promise<{
+    name: string;
+    locale: string | null;
+    source: "core" | "module";
+    file: string;
+    rawSource: string;
+    decomposable: boolean;
+    composition?: EmailComposition;
+    reason?: string;
+  }> {
+    this.assertDev();
+    if (!isValidEmailTemplateSlug(name)) {
+      throw new BadRequestException(`invalid template name: ${name}`);
+    }
+    if (locale !== undefined && locale !== "" && !isValidEmailTemplateLocale(locale)) {
+      throw new BadRequestException(`invalid locale: ${locale}`);
+    }
+    const discovered = await discoverReactEmailTemplates();
+    // Resolve via runtime precedence: module > core, locale > default.
+    const localeKey = locale && locale !== "" ? locale : null;
+    const resolutionOrder: Array<{ source: "core" | "module"; locale: string | null }> = [
+      { source: "module", locale: localeKey },
+      { source: "core", locale: localeKey },
+    ];
+    if (localeKey !== null) {
+      // Fall through to the locale-less default if the requested
+      // locale is missing on either side — same behaviour as the
+      // ReactEmailTemplateRenderer.
+      resolutionOrder.push({ source: "module", locale: null }, { source: "core", locale: null });
+    }
+    let pick: {
+      name: string;
+      locale: string | null;
+      file: string;
+      source: "core" | "module";
+    } | null = null;
+    for (const step of resolutionOrder) {
+      const match = discovered.find(
+        (t) => t.name === name && t.locale === step.locale && t.source === step.source,
+      );
+      if (match) {
+        pick = match;
+        break;
+      }
+    }
+    if (!pick) throw new NotFoundException();
+    const rawSource = await readFile(pick.file, "utf8");
+    const result = decomposeTemplateSource(rawSource);
+    if (result.decomposable) {
+      return {
+        name: pick.name,
+        locale: pick.locale,
+        source: pick.source,
+        file: pick.file,
+        rawSource,
+        decomposable: true,
+        composition: result.composition,
+      };
+    }
+    return {
+      name: pick.name,
+      locale: pick.locale,
+      source: pick.source,
+      file: pick.file,
+      rawSource,
+      decomposable: false,
+      reason: result.reason,
+    };
+  }
+
+  /**
+   * `DELETE /dev/email-builder/templates/:name/override` — remove a
+   * module-overlay copy of a template so the core file becomes
+   * authoritative again. Issue #49 ("Reset to default").
+   *
+   * Defense-in-depth: same path-validation as the save endpoint —
+   * `resolveEmailTemplateTarget` rejects bad slugs / locales and
+   * the runner double-checks the resolved path is inside the
+   * `src/modules/email/templates/` root before unlinking. The core
+   * file is unreachable from this code path.
+   *
+   * 404 when no override exists (no work to do); 200 acted=true
+   * after a successful unlink.
+   */
+  @Delete("email-builder/templates/:name/override")
+  @HttpCode(200)
+  async emailBuilderDeleteOverride(
+    @Param("name") name: string,
+    @Query("locale") locale: string | undefined,
+  ): Promise<{ ok: true; acted: true; relativePath: string }> {
+    this.assertDev();
+    if (!isValidEmailTemplateSlug(name)) {
+      throw new BadRequestException(`invalid template name: ${name}`);
+    }
+    const localeArg = locale && locale !== "" ? locale : undefined;
+    if (localeArg !== undefined && !isValidEmailTemplateLocale(localeArg)) {
+      throw new BadRequestException(`invalid locale: ${localeArg}`);
+    }
+    const target = resolveEmailTemplateTarget({
+      projectRoot: process.cwd(),
+      slug: name,
+      ...(localeArg !== undefined ? { locale: localeArg } : {}),
+    });
+    if (!target.ok) throw new BadRequestException(target.error);
+    // Belt-and-braces — runner-side anchor check, mirrors the save
+    // endpoint. Catches anything that slipped past the planner.
+    const expectedPrefix = resolve(process.cwd(), "src/modules/email/templates") + "/";
+    if (!target.absolutePath.startsWith(expectedPrefix)) {
+      throw new BadRequestException("resolved path escapes module-templates root");
+    }
+    if (!existsSync(target.absolutePath)) {
+      // No override file — nothing to reset. 404 keeps the endpoint
+      // semantically honest (idempotent DELETE would still need to
+      // signal "did anything happen?" to the UI).
+      throw new NotFoundException();
+    }
+    await rm(target.absolutePath);
+    return { ok: true, acted: true, relativePath: target.relativePath };
   }
 
   /**
