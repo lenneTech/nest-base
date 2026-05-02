@@ -172,15 +172,35 @@ export class EmailOutboxWorker {
 
   async runOnce(): Promise<EmailOutboxRunResult> {
     const now = this.now();
-    const candidates = await this.storage.listDispatchable(now, this.batchSize);
+    // Issue #50: storage failures (driver-adapter pool exhaustion,
+    // disconnect race during graceful shutdown) historically threw
+    // raw shapes that bubbled up to setInterval's .catch as `{}`.
+    // Re-wrap with a real Error so the lifecycle wrapper always logs
+    // a useful message — the serializer at the lifecycle level is the
+    // outer guard, this inner guard keeps the contract that
+    // `runOnce()` rejects with an `instanceof Error`.
+    let candidates: EmailOutboxRecord[];
+    try {
+      candidates = await this.storage.listDispatchable(now, this.batchSize);
+    } catch (raw) {
+      throw wrapStorageError("listDispatchable", raw);
+    }
     const result: EmailOutboxRunResult = { sent: 0, retry: 0, deadLetter: 0 };
 
     for (const candidate of candidates) {
       const claimedAt = this.now();
-      const claimed = await this.storage.claim(candidate.id, claimedAt);
       // claim() returns false when another worker beat us to it — in
       // that case we silently skip this candidate and let the sibling
-      // process complete the record.
+      // process complete the record. A *throw* (lock conflict, pool
+      // exhaustion) on a single record must not abort the whole tick;
+      // siblings still need a chance to dispatch. Skip + log-via-lastError
+      // and move on.
+      let claimed: boolean;
+      try {
+        claimed = await this.storage.claim(candidate.id, claimedAt);
+      } catch {
+        continue;
+      }
       if (!claimed) continue;
 
       try {
@@ -214,6 +234,37 @@ export class EmailOutboxWorker {
 
     return result;
   }
+}
+
+/**
+ * Wraps a non-Error storage throw into a proper `Error` carrying both
+ * the original message (when extractable) and a hint at which storage
+ * call failed. Issue #50: prevents the lifecycle wrapper from logging
+ * `{}` for shapes whose useful payload lives on non-enumerable
+ * properties or inside a plain `{ code, message }` object.
+ */
+function wrapStorageError(call: string, raw: unknown): Error {
+  if (raw instanceof Error) {
+    // Preserve the original Error but prefix the storage call so logs
+    // can pinpoint the failing surface without losing the stack.
+    const wrapped = new Error(`emailOutboxStorage.${call}: ${raw.message}`);
+    wrapped.stack = raw.stack;
+    return wrapped;
+  }
+  // Try to extract `message` / `code` even from non-Error shapes
+  // (Prisma's known-request errors stash these as non-enumerable).
+  let detail = "";
+  if (raw && typeof raw === "object") {
+    const obj = raw as Record<string, unknown>;
+    const code = typeof obj.code === "string" ? obj.code : undefined;
+    const msg = typeof obj.message === "string" ? obj.message : undefined;
+    detail = [code, msg].filter(Boolean).join(": ");
+  } else if (typeof raw === "string" && raw.length > 0) {
+    detail = raw;
+  } else {
+    detail = String(raw);
+  }
+  return new Error(`emailOutboxStorage.${call}: ${detail || "unknown failure"}`);
 }
 
 function toError(raw: unknown): Error {

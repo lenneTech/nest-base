@@ -17,6 +17,7 @@ import {
   readSmtpConfigFromEnv,
 } from "./drivers/smtp.driver.js";
 import { selectEmailDriver, type EmailDriverName } from "./email.module.js";
+import { serializeOutboxTickError } from "./email-outbox-error.js";
 import { ReactEmailTemplateRenderer } from "./email-templates.react.js";
 import {
   EmailOutboxRecorder,
@@ -189,7 +190,13 @@ export class EmailOutboxWorkerLifecycle implements OnModuleInit, OnModuleDestroy
     // instance owns its tick + the SQL claim() prevents
     // double-dispatch.
     this.timer = setInterval(() => {
-      this.worker.runOnce().catch((err) => this.logger.error(err));
+      this.worker.runOnce().catch((err) => {
+        // Logger.error(rawError) collapses non-Error throws to "{}"
+        // (issue #50). Always route through the serializer so the
+        // real cause + payload reach the log.
+        const { message, stack, payload } = serializeOutboxTickError(err);
+        this.logger.error(`outbox tick failed: ${message}${payload ? ` (${payload})` : ""}`, stack);
+      });
     }, this.tickMs);
   }
 
