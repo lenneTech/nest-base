@@ -177,6 +177,23 @@ If app code forgets to scope a query, RLS denies the rows. If RLS is
 misconfigured, CASL still denies the rows. Both layers must fail open
 for a tenant leak to occur.
 
+### Tenant self-service surface
+
+Three HTTP routes let a signed-up user discover or create their first
+tenant without going through the system-setup wizard:
+
+| Route | Purpose | Auth | Tenant header |
+|---|---|---|---|
+| `GET /me/tenants` | List the joined tenant + membership rows for the authenticated caller | required | exempt |
+| `POST /tenants` | Create a Tenant + an ACTIVE owner membership for the caller, atomically | required | exempt |
+| `*` (everything else) | Domain endpoints | required | required (UUID) |
+
+`/me/*` and `/tenants` live on `tenant-guard.ts`'s `EXEMPT_PREFIXES`
+list — they operate on `req.user.id`, not on a specific tenant, so
+the bootstrap step does not (and cannot) require an `x-tenant-id`
+header. The Better-Auth session middleware still gates anonymous
+access (401). See `src/core/multi-tenancy/tenant-self-service.module.ts`.
+
 ## Cross-cutting subsystems
 
 These live in `src/core/` and are activated via `features.ts`:
