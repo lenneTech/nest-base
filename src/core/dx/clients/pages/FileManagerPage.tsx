@@ -237,7 +237,9 @@ export function FileManagerPage(): ReactNode {
                     {createFolder.isPending ? "Anlegen…" : "Anlegen"}
                   </Button>
                   {createFolder.isError ? (
-                    <span className="text-xs text-err">{(createFolder.error as Error).message}</span>
+                    <span className="text-xs text-err">
+                      {(createFolder.error as Error).message}
+                    </span>
                   ) : null}
                 </form>
               </aside>
@@ -343,7 +345,9 @@ function FolderTreeNode({
         type="button"
         className={cn(
           "block w-full rounded px-2 py-1 text-left text-xs",
-          isActive ? "bg-accent-soft text-accent" : "text-fg-muted hover:bg-surface-hover hover:text-fg",
+          isActive
+            ? "bg-accent-soft text-accent"
+            : "text-fg-muted hover:bg-surface-hover hover:text-fg",
         )}
         data-active={isActive}
         style={{ paddingLeft: `${0.5 + node.depth * 0.75}rem` }}
@@ -410,7 +414,12 @@ function FileGrid({
         >
           <div className="flex aspect-square items-center justify-center bg-surface-3">
             {f.thumbnailUrl ? (
-              <img src={f.thumbnailUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
+              <img
+                src={f.thumbnailUrl}
+                alt=""
+                loading="lazy"
+                className="h-full w-full object-cover"
+              />
             ) : (
               <span className="font-mono text-xs text-fg-faint" aria-hidden="true">
                 {iconForMime(f.mimeType)}

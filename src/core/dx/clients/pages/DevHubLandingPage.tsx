@@ -183,9 +183,7 @@ function TunnelCard({ url, startedAt }: { url: string; startedAt?: string }): Re
       void navigator.clipboard.writeText(url);
     }
   }
-  const startedLabel = startedAt
-    ? `started ${new Date(startedAt).toLocaleTimeString()}`
-    : "active";
+  const startedLabel = startedAt ? `started ${new Date(startedAt).toLocaleTimeString()}` : "active";
   return (
     <Card>
       <CardHeader className="flex-row flex-wrap items-center gap-3">
@@ -248,11 +246,7 @@ function Hero({ overall, data }: { overall: OverallHealth; data: DashboardJson }
         <span className="text-sm text-fg-muted">{overall.detail}</span>
       </div>
       <HeroMetric label="Uptime" value={formatDuration(data.uptimeMs)} hint="since boot" />
-      <HeroMetric
-        label="Heap"
-        value={`${heapMb} MB`}
-        hint={`${heapPct}% of ${heapTotalMb} MB`}
-      />
+      <HeroMetric label="Heap" value={`${heapMb} MB`} hint={`${heapPct}% of ${heapTotalMb} MB`} />
       <HeroMetric
         label="Node / Bun"
         value={data.process.bun ?? data.process.node}
@@ -531,7 +525,9 @@ function LogPreview({
                       <Badge variant={tone}>{lvl}</Badge>
                     </td>
                     <td className="py-1 font-mono">
-                      {r.context ? <span className="text-accent">[{String(r.context)}]</span> : null}{" "}
+                      {r.context ? (
+                        <span className="text-accent">[{String(r.context)}]</span>
+                      ) : null}{" "}
                       {String(r.msg ?? "")}
                     </td>
                   </tr>

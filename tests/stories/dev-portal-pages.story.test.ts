@@ -191,7 +191,7 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       "<header",
       "online",
       "NestJS Docs",
-      "to=\"/dev\"",
+      'to="/dev"',
     ];
     for (const fragment of structuralAnchors) {
       it(`AdminShell.tsx contains ${JSON.stringify(fragment)}`, () => {

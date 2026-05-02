@@ -6,7 +6,14 @@ import type { ReactNode } from "react";
 
 import { Badge } from "../components/ui/badge.js";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table.js";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table.js";
 import { PageError, PageLoading, StatTile } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson } from "../lib/api.js";
@@ -65,8 +72,8 @@ export function RoutesPage(): ReactNode {
 function renderSubtitle(total: number, unguarded: number): ReactNode {
   return (
     <>
-      {total} endpoint(s) registered. <strong className="text-err">{unguarded} unguarded</strong>{" "}
-      — review the policy.
+      {total} endpoint(s) registered. <strong className="text-err">{unguarded} unguarded</strong> —
+      review the policy.
     </>
   );
 }
@@ -92,11 +99,7 @@ function RoutesBody({ inventory }: { inventory: RouteInventory }): ReactNode {
           hint={`${tilePct(summary.public)}%`}
           tone="info"
         />
-        <StatTile
-          label="Dev-only"
-          value={summary.devOnly}
-          hint={`${tilePct(summary.devOnly)}%`}
-        />
+        <StatTile label="Dev-only" value={summary.devOnly} hint={`${tilePct(summary.devOnly)}%`} />
         <StatTile
           label="Unguarded"
           value={summary.unguarded}

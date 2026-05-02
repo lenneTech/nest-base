@@ -79,9 +79,7 @@ export function AdminShell({
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-line bg-surface-1/60 px-8 py-5">
           <div className="min-w-0">
             <h1 className="m-0 text-xl font-semibold tracking-tight text-fg">{title}</h1>
-            {subtitle ? (
-              <p className="mt-1 max-w-3xl text-sm text-fg-muted">{subtitle}</p>
-            ) : null}
+            {subtitle ? <p className="mt-1 max-w-3xl text-sm text-fg-muted">{subtitle}</p> : null}
           </div>
           <div className="flex items-center gap-3">
             {toolbar}

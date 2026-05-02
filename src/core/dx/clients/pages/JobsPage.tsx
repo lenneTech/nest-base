@@ -24,7 +24,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select.js";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table.js";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table.js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs.js";
 import { PageEmpty, PageError, PageLoading, StatTile } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
@@ -155,9 +162,7 @@ function SummaryTiles({ aggregates }: { aggregates: JobAggregates }): ReactNode 
       <StatTile label="Completed" value={aggregates.totals.completed} tone="ok" />
       <StatTile
         label="Active / pending"
-        value={
-          aggregates.totals.active + aggregates.totals.created + aggregates.totals.retry
-        }
+        value={aggregates.totals.active + aggregates.totals.created + aggregates.totals.retry}
         tone="info"
       />
       <StatTile

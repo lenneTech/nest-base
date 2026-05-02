@@ -11,7 +11,14 @@ import { Button } from "../components/ui/button.js";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
 import { Input } from "../components/ui/input.js";
 import { Label } from "../components/ui/label.js";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table.js";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table.js";
 import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson } from "../lib/api.js";
@@ -63,7 +70,11 @@ export function PermissionTesterPage(): ReactNode {
               GET form — submit updates the URL which triggers the
               useLocation -> useQuery chain above.
             */}
-            <form method="get" action="/admin/permissions/test" className="flex flex-wrap items-end gap-3">
+            <form
+              method="get"
+              action="/admin/permissions/test"
+              className="flex flex-wrap items-end gap-3"
+            >
               <div className="flex flex-1 min-w-48 flex-col gap-1.5">
                 <Label htmlFor="userId">User ID</Label>
                 <Input id="userId" name="userId" defaultValue={userId} placeholder="user uuid" />
@@ -125,10 +136,7 @@ function ReportSection({ data, isError }: ReportSectionProps): ReactNode {
               {resources.map((resource) => {
                 const entry = report.byResource[resource]!;
                 return (
-                  <TableRow
-                    key={resource}
-                    data-superset={entry.isSuperset ? "true" : undefined}
-                  >
+                  <TableRow key={resource} data-superset={entry.isSuperset ? "true" : undefined}>
                     <TableCell className="font-mono text-xs">
                       {resource}
                       {entry.isSuperset ? (
@@ -137,9 +145,7 @@ function ReportSection({ data, isError }: ReportSectionProps): ReactNode {
                         </Badge>
                       ) : null}
                     </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {entry.actions.join(", ")}
-                    </TableCell>
+                    <TableCell className="font-mono text-xs">{entry.actions.join(", ")}</TableCell>
                   </TableRow>
                 );
               })}

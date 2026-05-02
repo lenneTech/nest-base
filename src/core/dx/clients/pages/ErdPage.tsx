@@ -114,11 +114,7 @@ function ErdBody({ mermaidSrc }: { mermaidSrc: string }): ReactNode {
           </Button>
         </div>
         {showSource ? (
-          <Textarea
-            readOnly
-            value={mermaidSrc}
-            className="h-48 font-mono text-xs"
-          />
+          <Textarea readOnly value={mermaidSrc} className="h-48 font-mono text-xs" />
         ) : null}
         <div
           className="overflow-auto rounded-md border border-line bg-surface-1 p-4 [&_svg]:max-w-full"

@@ -11,7 +11,14 @@ import { Button } from "../components/ui/button.js";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
 import { Input } from "../components/ui/input.js";
 import { Label } from "../components/ui/label.js";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table.js";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table.js";
 import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson } from "../lib/api.js";
@@ -68,7 +75,11 @@ export function AuditBrowserPage(): ReactNode {
             <CardTitle>Filter</CardTitle>
           </CardHeader>
           <CardContent>
-            <form className="grid grid-cols-1 gap-3 md:grid-cols-3 lg:grid-cols-6" method="get" action="/admin/audit">
+            <form
+              className="grid grid-cols-1 gap-3 md:grid-cols-3 lg:grid-cols-6"
+              method="get"
+              action="/admin/audit"
+            >
               <FilterField
                 label="Action"
                 name="action"
@@ -124,7 +135,13 @@ function FilterField({
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={name}>{label}</Label>
-      <Input id={name} name={name} type={type} placeholder={placeholder} defaultValue={defaultValue} />
+      <Input
+        id={name}
+        name={name}
+        type={type}
+        placeholder={placeholder}
+        defaultValue={defaultValue}
+      />
     </div>
   );
 }

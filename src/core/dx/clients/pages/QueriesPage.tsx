@@ -5,7 +5,14 @@ import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table.js";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table.js";
 import { PageEmpty, PageError, PageLoading, StatTile } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson, formatMs } from "../lib/api.js";
@@ -115,8 +122,8 @@ function QueriesBody({ report }: { report: QueriesResponse }): ReactNode {
           <CardTitle>Most frequent templates (rough N+1 detector)</CardTitle>
           <p className="text-xs text-fg-muted">
             Templates that fire many times in a session usually mean a missing{" "}
-            <code className="font-mono text-accent">include:</code> — the loop is round-tripping
-            per row. The sample column shows the most recent occurrence so you can grep for it.
+            <code className="font-mono text-accent">include:</code> — the loop is round-tripping per
+            row. The sample column shows the most recent occurrence so you can grep for it.
           </p>
         </CardHeader>
         <CardContent>

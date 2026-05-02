@@ -352,10 +352,7 @@ function DeliveriesList({
       role="grid"
       aria-rowcount={items.length}
     >
-      <div
-        className="relative w-full"
-        style={{ height: `${virtualizer.getTotalSize()}px` }}
-      >
+      <div className="relative w-full" style={{ height: `${virtualizer.getTotalSize()}px` }}>
         {virtualItems.map((virtual) => {
           const row = items[virtual.index]!;
           const isSelected = row.id === selectedId;
@@ -490,9 +487,7 @@ function DetailDrawer({ deliveryId, csrfToken }: DetailDrawerProps): ReactNode {
           </Button>
         </div>
         {redeliverMutation.isError ? (
-          <p className="text-xs text-err">
-            Redelivery failed: {String(redeliverMutation.error)}
-          </p>
+          <p className="text-xs text-err">Redelivery failed: {String(redeliverMutation.error)}</p>
         ) : null}
       </header>
       <Tabs defaultValue="request">
@@ -621,10 +616,7 @@ function HeaderTable({
                 isHighlighted && "bg-accent-soft/40",
               )}
             >
-              <th
-                scope="row"
-                className="py-1 pr-2 text-left font-mono font-medium text-fg-dim"
-              >
+              <th scope="row" className="py-1 pr-2 text-left font-mono font-medium text-fg-dim">
                 {key}
               </th>
               <td className="py-1 break-all font-mono text-fg">{headers[key]}</td>

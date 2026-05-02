@@ -19,7 +19,14 @@ import {
 } from "../components/ui/dialog.js";
 import { Input } from "../components/ui/input.js";
 import { Label } from "../components/ui/label.js";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table.js";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table.js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs.js";
 import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
@@ -140,7 +147,10 @@ function MigrationsTimeline({ data }: { data: MigrationsStatus }): ReactNode {
     ...data.failed.map((m) => ({ name: m.migration_name, kind: "failed" as const })),
     ...data.pending.map((m) => ({ name: m.name, kind: "pending" as const })),
   ];
-  const palette: Record<typeof all[number]["kind"], { tone: "ok" | "err" | "warn"; dot: string }> = {
+  const palette: Record<
+    (typeof all)[number]["kind"],
+    { tone: "ok" | "err" | "warn"; dot: string }
+  > = {
     applied: { tone: "ok", dot: "bg-ok" },
     failed: { tone: "err", dot: "bg-err" },
     pending: { tone: "warn", dot: "bg-warn" },
@@ -383,10 +393,7 @@ function PendingTab({ data }: { data: MigrationsStatus }): ReactNode {
     <Card>
       <CardHeader className="flex-row items-center justify-between gap-3">
         <CardTitle>Pending migrations ({data.pending.length})</CardTitle>
-        <Button
-          disabled={data.pending.length === 0}
-          onClick={() => setConfirm({ kind: "all" })}
-        >
+        <Button disabled={data.pending.length === 0} onClick={() => setConfirm({ kind: "all" })}>
           Apply All Pending
         </Button>
       </CardHeader>
@@ -409,13 +416,14 @@ function PendingTab({ data }: { data: MigrationsStatus }): ReactNode {
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-2">
-                      <Button size="sm" variant="outline" onClick={() => void loadPreview(row.name)}>
-                        Preview SQL
-                      </Button>
                       <Button
                         size="sm"
-                        onClick={() => setConfirm({ kind: "one", name: row.name })}
+                        variant="outline"
+                        onClick={() => void loadPreview(row.name)}
                       >
+                        Preview SQL
+                      </Button>
+                      <Button size="sm" onClick={() => setConfirm({ kind: "one", name: row.name })}>
                         Apply this one…
                       </Button>
                       <Button

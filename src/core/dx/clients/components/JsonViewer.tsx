@@ -56,12 +56,7 @@ export function JsonViewer({ value, rawJsonHref }: JsonViewerProps): ReactNode {
           onChange={(e) => setFilter(e.target.value)}
         />
         <div className="ml-auto flex items-center gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => setExpandSignal("all")}
-          >
+          <Button type="button" size="sm" variant="outline" onClick={() => setExpandSignal("all")}>
             Expand all
           </Button>
           <Button

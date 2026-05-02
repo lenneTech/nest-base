@@ -51,7 +51,14 @@ import {
   SheetTrigger,
 } from "../components/ui/sheet.js";
 import { Switch } from "../components/ui/switch.js";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table.js";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table.js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs.js";
 import { Textarea } from "../components/ui/textarea.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/tooltip.js";
@@ -151,7 +158,11 @@ export function ComponentShowcasePage(): ReactNode {
               <Label htmlFor="demo-switch">Switch — {switchOn ? "on" : "off"}</Label>
             </div>
             <div className="flex items-center gap-3">
-              <Checkbox checked={checked} onCheckedChange={(v) => setChecked(Boolean(v))} id="demo-checkbox" />
+              <Checkbox
+                checked={checked}
+                onCheckedChange={(v) => setChecked(Boolean(v))}
+                id="demo-checkbox"
+              />
               <Label htmlFor="demo-checkbox">Checkbox</Label>
             </div>
             <RadioGroup value={radio} onValueChange={setRadio}>
@@ -194,13 +205,23 @@ export function ComponentShowcasePage(): ReactNode {
           <div className="flex flex-col gap-3">
             <Progress value={progress} />
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => setProgress((p) => Math.max(0, p - 10))}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setProgress((p) => Math.max(0, p - 10))}
+              >
                 −10
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setProgress((p) => Math.min(100, p + 10))}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setProgress((p) => Math.min(100, p + 10))}
+              >
                 +10
               </Button>
-              <span className="ml-auto self-center font-mono text-xs text-fg-muted">{progress}%</span>
+              <span className="ml-auto self-center font-mono text-xs text-fg-muted">
+                {progress}%
+              </span>
             </div>
           </div>
         </Section>

@@ -9,7 +9,14 @@ import type { ReactNode } from "react";
 import { Badge } from "../components/ui/badge.js";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
 import { Progress } from "../components/ui/progress.js";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table.js";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table.js";
 import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson } from "../lib/api.js";
@@ -55,7 +62,9 @@ export function CoveragePage(): ReactNode {
           <CoverageBody report={data.data} />
         ) : (
           <PageEmpty>
-            Coverage report not generated yet. Run <code className="font-mono text-accent">bun run test:coverage</code> to populate the dashboard.
+            Coverage report not generated yet. Run{" "}
+            <code className="font-mono text-accent">bun run test:coverage</code> to populate the
+            dashboard.
           </PageEmpty>
         )
       ) : data.isError ? (
@@ -75,7 +84,10 @@ function CoverageBody({ report }: { report: CoverageReport }): ReactNode {
           <CardTitle>Totals</CardTitle>
           <div className="flex gap-2">
             <GateBadge label={`Core ≥ ${report.thresholds.core}%`} ok={report.gate.coreOk} />
-            <GateBadge label={`Modules ≥ ${report.thresholds.modules}%`} ok={report.gate.modulesOk} />
+            <GateBadge
+              label={`Modules ≥ ${report.thresholds.modules}%`}
+              ok={report.gate.modulesOk}
+            />
           </div>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

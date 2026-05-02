@@ -98,7 +98,9 @@ export function BrandPage(): ReactNode {
               {reset.isPending ? "Resetting…" : "Reset brand"}
             </Button>
             {reset.isSuccess ? (
-              <p className="mt-2 text-sm text-ok">Brand reset. The dev runner is restarting the API.</p>
+              <p className="mt-2 text-sm text-ok">
+                Brand reset. The dev runner is restarting the API.
+              </p>
             ) : null}
           </CardContent>
         </Card>
@@ -135,10 +137,7 @@ function BrandPreview({ brand }: { brand: BrandConfig }): ReactNode {
 function ColorSwatch({ label, value }: { label: string; value: string }): ReactNode {
   return (
     <div className="rounded-md border border-line bg-surface-2 p-2">
-      <div
-        className="mb-2 h-8 w-full rounded"
-        style={{ background: value }}
-      />
+      <div className="mb-2 h-8 w-full rounded" style={{ background: value }} />
       <div className="font-mono text-[0.65rem] text-fg-dim">{label}</div>
       <div className="font-mono text-xs text-fg">{value}</div>
     </div>

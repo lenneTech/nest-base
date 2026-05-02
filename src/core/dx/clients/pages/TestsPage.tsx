@@ -6,7 +6,14 @@ import type { ReactNode } from "react";
 
 import { Badge } from "../components/ui/badge.js";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table.js";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table.js";
 import { PageEmpty, PageError, PageLoading, StatTile } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson, formatTestDuration } from "../lib/api.js";
@@ -130,8 +137,12 @@ function TestsBody({ report }: { report: TestSummary }): ReactNode {
                           </pre>
                         ) : null}
                       </TableCell>
-                      <TableCell className="font-mono tabular-nums text-ok">{file.passed}</TableCell>
-                      <TableCell className="font-mono tabular-nums text-err">{file.failed}</TableCell>
+                      <TableCell className="font-mono tabular-nums text-ok">
+                        {file.passed}
+                      </TableCell>
+                      <TableCell className="font-mono tabular-nums text-err">
+                        {file.failed}
+                      </TableCell>
                       <TableCell className="font-mono tabular-nums text-fg-muted">
                         {file.skipped}
                       </TableCell>

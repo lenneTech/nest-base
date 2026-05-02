@@ -10,8 +10,21 @@ import { Button } from "../components/ui/button.js";
 import { Card, CardContent } from "../components/ui/card.js";
 import { Input } from "../components/ui/input.js";
 import { Label } from "../components/ui/label.js";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../components/ui/sheet.js";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table.js";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "../components/ui/sheet.js";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table.js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs.js";
 import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
@@ -114,9 +127,7 @@ export function RealtimeInspectorPage(): ReactNode {
               </TabsTrigger>
               <TabsTrigger value="events">
                 Events{" "}
-                <span className="ml-2 text-fg-dim">
-                  ({data.data?.eventsDetailed.length ?? 0})
-                </span>
+                <span className="ml-2 text-fg-dim">({data.data?.eventsDetailed.length ?? 0})</span>
               </TabsTrigger>
             </TabsList>
             <TabsContent value="sockets">
@@ -180,8 +191,18 @@ function SocketsTab({
   return (
     <div className="flex flex-col gap-3" data-tab="sockets">
       <FiltersBar>
-        <FilterInput label="Tenant" value={tenantFilter} onChange={setTenantFilter} placeholder="exact tenant id" />
-        <FilterInput label="User" value={userFilter} onChange={setUserFilter} placeholder="userId substring" />
+        <FilterInput
+          label="Tenant"
+          value={tenantFilter}
+          onChange={setTenantFilter}
+          placeholder="exact tenant id"
+        />
+        <FilterInput
+          label="User"
+          value={userFilter}
+          onChange={setUserFilter}
+          placeholder="userId substring"
+        />
         <FilterInput
           label="Channel pattern"
           value={channelFilter}
@@ -252,7 +273,10 @@ function SocketsTab({
           </TableBody>
         </Table>
       )}
-      <Sheet open={selected !== null} onOpenChange={(open) => (!open ? setSelectedId(null) : undefined)}>
+      <Sheet
+        open={selected !== null}
+        onOpenChange={(open) => (!open ? setSelectedId(null) : undefined)}
+      >
         {selected ? <SocketDrawer socket={selected} events={eventsForSelected} /> : null}
       </Sheet>
     </div>
@@ -261,7 +285,10 @@ function SocketsTab({
 
 function FiltersBar({ children }: { children: ReactNode }): ReactNode {
   return (
-    <div className="flex flex-wrap items-end gap-3 rounded-md border border-line bg-surface-2 p-3" role="search">
+    <div
+      className="flex flex-wrap items-end gap-3 rounded-md border border-line bg-surface-2 p-3"
+      role="search"
+    >
       {children}
     </div>
   );
@@ -332,7 +359,10 @@ function SocketDrawer({
   events: RealtimeEventDetail[];
 }): ReactNode {
   return (
-    <SheetContent className="overflow-y-auto sm:max-w-2xl" aria-label={`Socket ${socket.id} detail`}>
+    <SheetContent
+      className="overflow-y-auto sm:max-w-2xl"
+      aria-label={`Socket ${socket.id} detail`}
+    >
       <SheetHeader>
         <SheetTitle>{socket.id}</SheetTitle>
         <SheetDescription>Socket detail and recent events.</SheetDescription>
@@ -630,7 +660,10 @@ function PayloadDrawer({ event }: { event: RealtimeEventDetail }): ReactNode {
     }
   }, [event.payload]);
   return (
-    <SheetContent className="overflow-y-auto sm:max-w-2xl" aria-label={`Event ${event.eventType} payload`}>
+    <SheetContent
+      className="overflow-y-auto sm:max-w-2xl"
+      aria-label={`Event ${event.eventType} payload`}
+    >
       <SheetHeader>
         <SheetTitle>{event.channel}</SheetTitle>
         <SheetDescription>· {event.eventType}</SheetDescription>

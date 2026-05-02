@@ -5,9 +5,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { Fragment, useEffect, useState, type ReactNode } from "react";
 
-import { Badge } from "../components/ui/badge.js";
 import { Card, CardContent } from "../components/ui/card.js";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table.js";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table.js";
 import { PageError, PageLoading, StatTile } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson, formatMs } from "../lib/api.js";
@@ -145,7 +151,9 @@ function TracesBody({ initial }: { initial: TracesResponse }): ReactNode {
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 animate-pulse rounded-full bg-ok shadow-[0_0_6px_var(--ok)]" />
             <strong className="text-fg">Live tail</strong>
-            <span className="text-fg-dim">— polled every 2 s, click a row for query drill-down</span>
+            <span className="text-fg-dim">
+              — polled every 2 s, click a row for query drill-down
+            </span>
           </div>
           <span className="text-fg-dim">{statusText}</span>
         </div>
@@ -203,8 +211,7 @@ function TraceRow({
 }): ReactNode {
   const ts = new Date(trace.startedAtMs).toISOString().slice(11, 23);
   const statusFamily = Math.floor(trace.status / 100);
-  const statusTone =
-    statusFamily === 5 ? "text-err" : statusFamily === 4 ? "text-warn" : "text-ok";
+  const statusTone = statusFamily === 5 ? "text-err" : statusFamily === 4 ? "text-warn" : "text-ok";
   const durTone =
     trace.durationMs > 1000 ? "text-err" : trace.durationMs > 250 ? "text-warn" : "text-fg";
   const methodPalette: Record<string, string> = {
@@ -215,10 +222,7 @@ function TraceRow({
     DELETE: "bg-err/15 text-err",
   };
   return (
-    <TableRow
-      className={cn("cursor-pointer", expanded && "bg-accent-soft/40")}
-      onClick={onToggle}
-    >
+    <TableRow className={cn("cursor-pointer", expanded && "bg-accent-soft/40")} onClick={onToggle}>
       <TableCell className="font-mono text-[0.7rem] tabular-nums text-fg-muted">{ts}</TableCell>
       <TableCell>
         <span

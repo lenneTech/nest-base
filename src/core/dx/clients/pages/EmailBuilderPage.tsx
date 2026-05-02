@@ -312,7 +312,13 @@ function ComposerView({
     <div className="flex flex-col gap-4">
       <Card>
         <CardContent className="flex flex-wrap items-end gap-3 p-4">
-          <FormField label="Slug" id="eb-slug" value={slug} onChange={setSlug} placeholder="my-template" />
+          <FormField
+            label="Slug"
+            id="eb-slug"
+            value={slug}
+            onChange={setSlug}
+            placeholder="my-template"
+          />
           <FormField
             label="Subject"
             id="eb-subject"

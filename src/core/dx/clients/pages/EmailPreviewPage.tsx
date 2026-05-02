@@ -69,13 +69,7 @@ function EmailPreviewBody({ payload }: { payload: EmailPreviewResponse }): React
   );
 }
 
-function PreviewCard({
-  entry,
-  result,
-}: {
-  entry: CatalogEntry;
-  result: RenderResult;
-}): ReactNode {
+function PreviewCard({ entry, result }: { entry: CatalogEntry; result: RenderResult }): ReactNode {
   if (result.error) {
     return (
       <Card>
