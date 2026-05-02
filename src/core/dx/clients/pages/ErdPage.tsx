@@ -1,15 +1,14 @@
 /**
- * `/dev/erd` — verbatim React port of `erd-ui.ts`. Same toolbar
- * (toggle source / copy Mermaid), same Mermaid-rendered canvas in
- * the dark theme.
- *
- * Mermaid is loaded from the CDN as an ESM module on first paint —
- * the legacy server page does the same. CSP allows
- * `cdn.jsdelivr.net` in dev (see `security-headers.ts`).
+ * `/dev/erd` — Mermaid-rendered Prisma schema diagram. Mermaid is
+ * loaded from the CDN on first paint (CSP allows it in dev).
  */
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
+import { Button } from "../components/ui/button.js";
+import { Card, CardContent } from "../components/ui/card.js";
+import { Textarea } from "../components/ui/textarea.js";
+import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson } from "../lib/api.js";
 
@@ -19,7 +18,6 @@ interface ErdResponse {
   relationCount: number;
 }
 
-// Cached Mermaid module promise — load once per session.
 let mermaidPromise: Promise<typeof import("mermaid").default> | null = null;
 
 function loadMermaid(): Promise<typeof import("mermaid").default> {
@@ -59,9 +57,9 @@ export function ErdPage(): ReactNode {
       {data.data ? (
         <ErdBody mermaidSrc={data.data.mermaid} />
       ) : data.isError ? (
-        <div className="admin-empty">Failed to load ERD.</div>
+        <PageError>Failed to load ERD.</PageError>
       ) : (
-        <div className="admin-empty">Loading ERD…</div>
+        <PageLoading>Loading ERD…</PageLoading>
       )}
     </AdminShell>
   );
@@ -85,7 +83,9 @@ function ErdBody({ mermaidSrc }: { mermaidSrc: string }): ReactNode {
       } catch (err) {
         if (cancelled) return;
         if (canvasRef.current) {
-          canvasRef.current.innerHTML = `<div class="admin-empty">Mermaid render failed: ${String(err)}</div>`;
+          // textContent (set via React) would be cleared on re-render — here we
+          // rewrite the canvas directly so a Mermaid failure stays visible.
+          canvasRef.current.innerText = `Mermaid render failed: ${String(err)}`;
         }
       }
     })();
@@ -94,23 +94,37 @@ function ErdBody({ mermaidSrc }: { mermaidSrc: string }): ReactNode {
     };
   }, [mermaidSrc]);
 
+  if (!mermaidSrc) {
+    return <PageEmpty>No Mermaid source available.</PageEmpty>;
+  }
+
   return (
-    <div className="erd-card">
-      <div className="erd-toolbar">
-        <button type="button" onClick={() => setShowSource((s) => !s)}>
-          {showSource ? "Hide source" : "Show source"}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            void navigator.clipboard?.writeText(mermaidSrc);
-          }}
-        >
-          Copy Mermaid
-        </button>
-      </div>
-      {showSource ? <textarea className="erd-source" readOnly value={mermaidSrc} /> : null}
-      <div className="erd-canvas" ref={canvasRef} />
-    </div>
+    <Card>
+      <CardContent className="flex flex-col gap-4 p-4">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowSource((s) => !s)}>
+            {showSource ? "Hide source" : "Show source"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void navigator.clipboard?.writeText(mermaidSrc)}
+          >
+            Copy Mermaid
+          </Button>
+        </div>
+        {showSource ? (
+          <Textarea
+            readOnly
+            value={mermaidSrc}
+            className="h-48 font-mono text-xs"
+          />
+        ) : null}
+        <div
+          className="overflow-auto rounded-md border border-line bg-surface-1 p-4 [&_svg]:max-w-full"
+          ref={canvasRef}
+        />
+      </CardContent>
+    </Card>
   );
 }

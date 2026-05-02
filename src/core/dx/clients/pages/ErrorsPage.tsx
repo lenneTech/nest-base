@@ -1,14 +1,12 @@
 /**
- * `/errors` — verbatim React port of the JSON-viewer branch the
- * `ErrorCodeController` served via `renderJsonViewerPage`. The HTML
- * page is now the dev-portal SPA shell; this React tree fetches
- * `/errors?format=json` and renders the catalogue through the same
- * `JsonViewer` component the legacy server-side viewer wrapped.
+ * `/errors` — fetches `/errors?format=json` and renders the catalogue
+ * through `JsonViewer`.
  */
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
 import { JsonViewer } from "../components/JsonViewer.js";
+import { PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson } from "../lib/api.js";
 
@@ -31,9 +29,9 @@ export function ErrorsPage(): ReactNode {
       {data.data ? (
         <JsonViewer value={data.data} rawJsonHref="/errors?format=json" />
       ) : data.isError ? (
-        <div className="admin-empty">Failed to load error catalog.</div>
+        <PageError>Failed to load error catalog.</PageError>
       ) : (
-        <div className="admin-empty">Loading error catalog…</div>
+        <PageLoading>Loading error catalog…</PageLoading>
       )}
     </AdminShell>
   );

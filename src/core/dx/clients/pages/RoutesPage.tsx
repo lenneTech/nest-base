@@ -1,13 +1,16 @@
 /**
- * `/dev/routes` — verbatim React port of `route-inventory-ui.ts`.
- * Same 5-tile summary (total / guarded / public / dev-only /
- * unguarded with %), same per-route table.
+ * `/dev/routes` — route inventory: 5-tile summary + per-route table.
  */
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
+import { Badge } from "../components/ui/badge.js";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table.js";
+import { PageError, PageLoading, StatTile } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson } from "../lib/api.js";
+import { cn } from "../lib/utils.js";
 
 type RouteGuard =
   | { kind: "can"; action: string; subject: string }
@@ -51,9 +54,9 @@ export function RoutesPage(): ReactNode {
       {data.data ? (
         <RoutesBody inventory={data.data} />
       ) : data.isError ? (
-        <div className="admin-empty">Failed to load route inventory.</div>
+        <PageError>Failed to load route inventory.</PageError>
       ) : (
-        <div className="admin-empty">Loading routes…</div>
+        <PageLoading>Loading routes…</PageLoading>
       )}
     </AdminShell>
   );
@@ -62,8 +65,8 @@ export function RoutesPage(): ReactNode {
 function renderSubtitle(total: number, unguarded: number): ReactNode {
   return (
     <>
-      {total} endpoint(s) registered.{" "}
-      <strong style={{ color: "var(--err)" }}>{unguarded} unguarded</strong> — review the policy.
+      {total} endpoint(s) registered. <strong className="text-err">{unguarded} unguarded</strong>{" "}
+      — review the policy.
     </>
   );
 }
@@ -74,80 +77,120 @@ function RoutesBody({ inventory }: { inventory: RouteInventory }): ReactNode {
     summary.total === 0 ? 0 : Math.round((n / summary.total) * 100);
 
   return (
-    <>
-      <div className="ri-tiles">
-        <div className="ri-tile">
-          <div className="ri-tile__title">Total</div>
-          <div className="ri-tile__value">{summary.total}</div>
-        </div>
-        <div className="ri-tile ri-tile--ok">
-          <div className="ri-tile__title">Guarded (@Can)</div>
-          <div className="ri-tile__value">
-            {summary.guarded} <span className="ri-tile__pct">{tilePct(summary.guarded)}%</span>
-          </div>
-        </div>
-        <div className="ri-tile ri-tile--info">
-          <div className="ri-tile__title">Public</div>
-          <div className="ri-tile__value">
-            {summary.public} <span className="ri-tile__pct">{tilePct(summary.public)}%</span>
-          </div>
-        </div>
-        <div className="ri-tile ri-tile--devonly">
-          <div className="ri-tile__title">Dev-only</div>
-          <div className="ri-tile__value">
-            {summary.devOnly} <span className="ri-tile__pct">{tilePct(summary.devOnly)}%</span>
-          </div>
-        </div>
-        <div className={`ri-tile${summary.unguarded > 0 ? " ri-tile--bad" : ""}`}>
-          <div className="ri-tile__title">Unguarded</div>
-          <div className="ri-tile__value">
-            {summary.unguarded} <span className="ri-tile__pct">{tilePct(summary.unguarded)}%</span>
-          </div>
-        </div>
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+        <StatTile label="Total" value={summary.total} />
+        <StatTile
+          label="Guarded (@Can)"
+          value={summary.guarded}
+          hint={`${tilePct(summary.guarded)}%`}
+          tone="ok"
+        />
+        <StatTile
+          label="Public"
+          value={summary.public}
+          hint={`${tilePct(summary.public)}%`}
+          tone="info"
+        />
+        <StatTile
+          label="Dev-only"
+          value={summary.devOnly}
+          hint={`${tilePct(summary.devOnly)}%`}
+        />
+        <StatTile
+          label="Unguarded"
+          value={summary.unguarded}
+          hint={`${tilePct(summary.unguarded)}%`}
+          tone={summary.unguarded > 0 ? "err" : "default"}
+        />
       </div>
 
-      <table className="ri-table">
-        <thead>
-          <tr>
-            <th>Method</th>
-            <th>Path</th>
-            <th>Controller</th>
-            <th>Handler</th>
-            <th>Guard</th>
-          </tr>
-        </thead>
-        <tbody>
-          {inventory.routes.map((r, i) => (
-            <tr key={i}>
-              <td>
-                <span className={`ri-method ri-method--${r.method}`}>{r.method}</span>
-              </td>
-              <td>{r.path}</td>
-              <td>{r.controller}</td>
-              <td>{r.handler}</td>
-              <td>
-                {r.guards.map((g, j) => (
-                  <GuardBadge key={j} guard={g} />
+      <Card>
+        <CardHeader>
+          <CardTitle>All routes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="max-h-[65dvh] min-h-56 overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Method</TableHead>
+                  <TableHead>Path</TableHead>
+                  <TableHead>Controller</TableHead>
+                  <TableHead>Handler</TableHead>
+                  <TableHead>Guard</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {inventory.routes.map((r, i) => (
+                  <TableRow key={i}>
+                    <TableCell>
+                      <MethodBadge method={r.method} />
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{r.path}</TableCell>
+                    <TableCell className="text-xs text-fg-muted">{r.controller}</TableCell>
+                    <TableCell className="text-xs text-fg-muted">{r.handler}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {r.guards.map((g, j) => (
+                          <GuardBadge key={j} guard={g} />
+                        ))}
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </>
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function MethodBadge({ method }: { method: string }): ReactNode {
+  const palette: Record<string, string> = {
+    GET: "bg-accent-soft text-accent",
+    POST: "bg-ok/15 text-ok",
+    PUT: "bg-warn/15 text-warn",
+    PATCH: "bg-warn/15 text-warn",
+    DELETE: "bg-err/15 text-err",
+  };
+  return (
+    <span
+      className={cn(
+        "inline-block rounded px-1.5 py-0.5 font-mono text-[0.65rem] font-semibold",
+        palette[method] ?? "bg-surface-3 text-fg-muted",
+      )}
+    >
+      {method}
+    </span>
   );
 }
 
 function GuardBadge({ guard }: { guard: RouteGuard }): ReactNode {
   if (guard.kind === "can") {
     return (
-      <span className="ri-guard ri-guard--can">
+      <Badge variant="ok" className="font-mono text-[0.65rem]">
         @Can({guard.action}, {guard.subject})
-      </span>
+      </Badge>
     );
   }
-  if (guard.kind === "public") return <span className="ri-guard ri-guard--public">public</span>;
+  if (guard.kind === "public")
+    return (
+      <Badge variant="info" className="font-mono text-[0.65rem]">
+        public
+      </Badge>
+    );
   if (guard.kind === "dev-only")
-    return <span className="ri-guard ri-guard--devonly">dev-only</span>;
-  return <span className="ri-guard ri-guard--unguarded">unguarded</span>;
+    return (
+      <Badge variant="secondary" className="font-mono text-[0.65rem]">
+        dev-only
+      </Badge>
+    );
+  return (
+    <Badge variant="err" className="font-mono text-[0.65rem]">
+      unguarded
+    </Badge>
+  );
 }
