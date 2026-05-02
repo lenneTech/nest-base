@@ -177,8 +177,11 @@ Every HTTP-handler method on a controller in `src/core/**` and
    decision; prefer `@Public()` for individual routes.
 
 **No fourth option.** A handler with neither `@Can()` nor `@Public()`
-nor a matching allowlist entry is a bug — Issue #47 introduces a
-build-time gate that fails CI on this.
+nor a matching allowlist entry is a bug — the build-time gate
+(`tests/stories/route-gating-audit.story.test.ts`, planner at
+`src/core/permissions/route-audit-planner.ts`) fails CI on this. See
+[`docs/security/route-audit-2026-05-02.md`](./docs/security/route-audit-2026-05-02.md)
+for the current inventory.
 
 When porting a route or adding a new one:
 
