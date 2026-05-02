@@ -25,8 +25,10 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
     let app: INestApplication;
     let prisma: PrismaService;
     let tenantId: string;
+    let previousNodeEnv: string | undefined;
 
     beforeAll(async () => {
+      previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "development";
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
       prisma = app.get(PrismaService);
@@ -45,7 +47,8 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
         // best-effort
       }
       await app.close();
-      process.env.NODE_ENV = "test";
+      if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = previousNodeEnv;
     });
 
     it("GET /dev/files returns the SPA shell HTML", async () => {
@@ -234,15 +237,18 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
 
   describe("outside development mode", () => {
     let app: INestApplication;
+    let previousNodeEnv: string | undefined;
 
     beforeAll(async () => {
+      previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "production";
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
     });
 
     afterAll(async () => {
       await app.close();
-      process.env.NODE_ENV = "test";
+      if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = previousNodeEnv;
     });
 
     it("GET /dev/files/tree.json 404s in production", async () => {

@@ -21,14 +21,18 @@ const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {
  */
 describe("Dev-Hub · GET /dev/tunnel.json", () => {
   let app: INestApplication;
+  let previousNodeEnv: string | undefined;
 
   beforeAll(async () => {
+    previousNodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = "development";
     app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
   });
 
   afterAll(async () => {
     await app.close();
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
   });
 
   afterEach(() => {
@@ -79,11 +83,13 @@ describe("Dev-Hub · GET /dev/tunnel.json", () => {
 
 describe("Dev-Hub · GET /dev/tunnel.json — production gate", () => {
   let app: INestApplication;
+  let previousNodeEnv: string | undefined;
 
   beforeAll(async () => {
     // Provide the env vars production bootstrap requires so the env
     // pre-check passes; we only care that the controller short-circuits
     // production traffic to a 404.
+    previousNodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = "production";
     process.env.APP_BASE_URL = "https://example.com";
     process.env.SECRET_KEK_HEX = "0".repeat(64);
@@ -98,6 +104,8 @@ describe("Dev-Hub · GET /dev/tunnel.json — production gate", () => {
     delete process.env.SECRET_KEK_HEX;
     delete process.env.SECRET_HMAC_HEX;
     delete process.env.BETTER_AUTH_SECRET;
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
   });
 
   it("404s in production even when the state file exists", async () => {

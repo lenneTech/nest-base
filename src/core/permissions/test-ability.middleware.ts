@@ -2,7 +2,7 @@ import { Injectable, type NestMiddleware } from "@nestjs/common";
 import type { NextFunction, Request, Response } from "express";
 
 import type { Ability } from "./casl-ability.js";
-import { parseTestAbilityHeader } from "./test-ability.js";
+import { parseTestAbilityHeaderForRequest } from "./test-ability.js";
 
 interface AbilityRequest extends Request {
   ability?: Ability;
@@ -25,7 +25,10 @@ interface AbilityRequest extends Request {
 export class TestAbilityMiddleware implements NestMiddleware {
   use(req: AbilityRequest, _res: Response, next: NextFunction): void {
     const header = req.headers["x-test-ability"];
-    const ability = parseTestAbilityHeader(header, process.env.NODE_ENV ?? "");
+    // Uses the cached `NODE_ENV` captured at module load.
+    // Runtime mutations from individual specs cannot disable the hatch
+    // for the rest of the worker — see test-ability.ts for the rationale.
+    const ability = parseTestAbilityHeaderForRequest(header);
     if (ability) {
       req.ability = ability;
     }
