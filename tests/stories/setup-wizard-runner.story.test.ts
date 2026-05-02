@@ -187,4 +187,52 @@ describe("Story · setup-wizard runner planner", () => {
       expect(value).not.toContain("my-app");
     });
   });
+
+  describe("postgresHostPort lockstep (POSTGRES_HOST_PORT + DATABASE_URL)", () => {
+    // Friction-log run 2026-05-02-18-44-43: Compose `.env` does not
+    // expand variables, so the wizard must bake the *same* port number
+    // into both `POSTGRES_HOST_PORT` and `DATABASE_URL=…@localhost:<port>/…`.
+    // Driving them off a single value protects against future drift.
+    const example = [
+      "POSTGRES_USER=nest-base",
+      "POSTGRES_DB=nest-base",
+      "POSTGRES_PASSWORD=change-me-strong-pass",
+      "DATABASE_URL=postgresql://nest-base:change-me-strong-pass@localhost:5432/nest-base",
+      "POSTGRES_HOST_PORT=5432",
+    ].join("\n");
+
+    it("rewrites POSTGRES_HOST_PORT to the chosen free port", () => {
+      const out = planEnvFromExample(example, {
+        randomBytes: deterministicRng(),
+        postgresHostPort: 5433,
+      });
+      expect(out).toMatch(/^POSTGRES_HOST_PORT=5433$/m);
+    });
+
+    it("rewrites the port portion of DATABASE_URL in lockstep", () => {
+      const out = planEnvFromExample(example, {
+        randomBytes: deterministicRng(),
+        postgresHostPort: 5433,
+      });
+      expect(out).toMatch(/^DATABASE_URL=postgresql:\/\/[^@]+@localhost:5433\/nest-base$/m);
+    });
+
+    it("keeps both values in sync after a project-name rewrite", () => {
+      const out = planEnvFromExample(example, {
+        randomBytes: deterministicRng(),
+        projectName: "my-app",
+        postgresHostPort: 5544,
+      });
+      expect(out).toMatch(/^POSTGRES_HOST_PORT=5544$/m);
+      expect(out).toMatch(/^DATABASE_URL=postgresql:\/\/my-app:[^@]+@localhost:5544\/my-app$/m);
+    });
+
+    it("leaves both values at 5432 when no override is provided (test fixtures)", () => {
+      const out = planEnvFromExample(example, {
+        randomBytes: deterministicRng(),
+      });
+      expect(out).toMatch(/^POSTGRES_HOST_PORT=5432$/m);
+      expect(out).toContain("@localhost:5432/nest-base");
+    });
+  });
 });
