@@ -193,8 +193,30 @@ All errors leave the system as `application/problem+json`:
   Add entries there; never inline a magic string.
 - **Translations** belong in the registry entry (`translations.de`,
   `translations.en`).
-- **Throwing** — extend the matching `ProblemException` subclass; the
-  global filter formats the response.
+- **Throwing** — always extend a NestJS `HttpException` subclass (or
+  one of the framework sentinels handled by
+  `ProblemDetailsExceptionFilter`). The global filter only recognises
+  `HttpException`, `ZodError`, and a small set of named framework
+  sentinels; a plain `class FooError extends Error` falls through to
+  the catch-all 500 + `CORE_INTERNAL` branch.
+  - For "resource not found" use the canonical
+    `ResourceNotFoundError` (in `src/core/errors/`):
+
+    ```ts
+    import { ResourceNotFoundError } from "src/core/errors/resource-not-found-error.js";
+
+    export class ExampleNotFoundError extends ResourceNotFoundError {
+      constructor(id: string) {
+        super("Example", id);
+        this.name = "ExampleNotFoundError";
+      }
+    }
+    ```
+
+    The filter maps it to 404 + `CORE_NOT_FOUND` automatically.
+  - For other shapes, extend the matching NestJS exception
+    (`BadRequestException`, `ConflictException`, `ForbiddenException`,
+    …) directly — the filter's `HttpException` branch handles them.
 
 The [`adding-error-code`](../.claude/skills/adding-error-code.md) skill
 walks through it end-to-end.

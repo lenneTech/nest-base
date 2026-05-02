@@ -13,6 +13,7 @@ import { z } from "zod";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { ProblemDetailsExceptionFilter } from "../src/core/errors/problem-details.filter.js";
+import { ResourceNotFoundError } from "../src/core/errors/resource-not-found-error.js";
 import { TenantIsolationError } from "../src/core/multi-tenancy/tenant-header.js";
 
 const Body = z.object({ name: z.string().min(2) });
@@ -87,6 +88,22 @@ class BoomController {
   @Get("tenant-missing")
   tenantMissing(): void {
     throw new TenantIsolationError("tenant header is required");
+  }
+
+  @Get("resource-not-found")
+  resourceNotFound(): void {
+    throw new ResourceNotFoundError("Example", "abc-123");
+  }
+
+  @Get("custom-not-found")
+  customNotFound(): void {
+    class WidgetNotFoundError extends ResourceNotFoundError {
+      constructor(id: string) {
+        super("Widget", id);
+        this.name = "WidgetNotFoundError";
+      }
+    }
+    throw new WidgetNotFoundError("xyz-789");
   }
 }
 
@@ -196,5 +213,33 @@ describe("Problem-Details exception filter", () => {
   it("joins HttpException array messages with commas", async () => {
     const response = await request(app.getHttpServer()).get("/boom/http-array");
     expect(response.body.detail).toBe("one, two");
+  });
+
+  it("ResourceNotFoundError becomes 404 + CORE_NOT_FOUND (not 500)", async () => {
+    // Regression: friction-log finding — module authors used to extend
+    // plain `Error` and got a 500 with "[ProblemDetailsFilter] unhandled
+    // error" logged. Extending `ResourceNotFoundError` (a
+    // `NotFoundException` subclass) now flows through the existing
+    // HttpException branch and produces a clean 404.
+    const response = await request(app.getHttpServer()).get("/boom/resource-not-found");
+    expect(response.status).toBe(404);
+    expect(response.headers["content-type"]).toMatch(/application\/problem\+json/);
+    expect(response.body).toMatchObject({
+      code: "CORE_NOT_FOUND",
+      title: "Not Found",
+      status: 404,
+      detail: 'Example with id "abc-123" not found',
+      instance: "/boom/resource-not-found",
+    });
+  });
+
+  it("subclasses of ResourceNotFoundError also map to 404 + CORE_NOT_FOUND", async () => {
+    const response = await request(app.getHttpServer()).get("/boom/custom-not-found");
+    expect(response.status).toBe(404);
+    expect(response.body).toMatchObject({
+      code: "CORE_NOT_FOUND",
+      status: 404,
+      detail: 'Widget with id "xyz-789" not found',
+    });
   });
 });

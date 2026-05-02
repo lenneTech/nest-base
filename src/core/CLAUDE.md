@@ -83,6 +83,15 @@ The exception filter in `errors/problem-details.filter.ts` maps known
 sentinels to RFC 7807 responses; unknown errors get `CORE_INTERNAL` with
 the message redacted in production.
 
+**Crossing the HTTP boundary?** Always extend a NestJS `HttpException`
+subclass (or one of the framework sentinels the filter handles
+explicitly). `class FooError extends Error` falls through to the
+catch-all 500 + `CORE_INTERNAL` branch — even if the doc-comment says
+"throw this, get a 404". For "resource not found" use the canonical
+`errors/resource-not-found-error.ts` (`ResourceNotFoundError extends
+NotFoundException`); the filter maps it to 404 + `CORE_NOT_FOUND`
+automatically.
+
 ### Imports use `.js` extensions
 
 Even when the source is `foo.ts`. This is ESM `nodenext`; the runtime
