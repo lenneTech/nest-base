@@ -8,8 +8,10 @@
  * tenant-isolation, list filtering, not-found errors.
  */
 
+import { NotFoundException } from "@nestjs/common";
 import { beforeEach, describe, expect, it } from "vitest";
 
+import { ResourceNotFoundError } from "../../src/core/errors/resource-not-found-error.js";
 import {
   CreateExampleSchema,
   ListExampleQuerySchema,
@@ -111,6 +113,23 @@ describe("Story · Example module", () => {
       await expect(service.findById(TENANT_A, "no-such-id")).rejects.toBeInstanceOf(
         ExampleNotFoundError,
       );
+    });
+
+    it("ExampleNotFoundError extends ResourceNotFoundError → 404 (not 500)", async () => {
+      // Regression test for the friction-log finding: the previous
+      // `extends Error` form fell through the filter to a 500 +
+      // CORE_INTERNAL. Asserting both the inheritance chain and the
+      // HTTP status pins the contract so a future refactor can't
+      // silently regress to plain Error.
+      try {
+        await service.findById(TENANT_A, "no-such-id");
+        throw new Error("expected ExampleNotFoundError to be thrown");
+      } catch (err) {
+        expect(err).toBeInstanceOf(ExampleNotFoundError);
+        expect(err).toBeInstanceOf(ResourceNotFoundError);
+        expect(err).toBeInstanceOf(NotFoundException);
+        expect((err as NotFoundException).getStatus()).toBe(404);
+      }
     });
   });
 
