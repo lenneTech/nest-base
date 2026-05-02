@@ -32,6 +32,7 @@ const ADMIN_SPA_CONTROLLER = read("src/core/dx/admin-spa.controller.ts");
 const GLOBALS_CSS = read("src/core/dx/clients/styles/globals.css");
 const TOKENS_CSS = read("src/core/dx/clients/styles/tokens.css");
 const ADMIN_SHELL = read("src/core/dx/clients/layout/AdminShell.tsx");
+const ICONS_TSX = read("src/core/dx/clients/layout/icons.tsx");
 
 describe("Story · Dev-Portal SPA route + nav contract", () => {
   describe("React route table covers every SPA-owned page", () => {
@@ -274,5 +275,28 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
         expect(NAV_TS).toContain(`id: "${id}"`);
       });
     }
+  });
+
+  describe("Sidebar icons render with stroke=currentColor (regression pin · #48)", () => {
+    // Without `stroke="currentColor"` on the shared `COMMON` props every
+    // `<path>` rendered with `fill="none"` is invisible in the DOM —
+    // exactly the regression that landed with the shadcn migration in
+    // PR #41. Pin the four Lucide-style stroke attributes so a future
+    // refactor can't silently drop them again.
+    it('icons.tsx COMMON declares stroke: "currentColor"', () => {
+      expect(ICONS_TSX).toMatch(/stroke:\s*"currentColor"/);
+    });
+
+    it("icons.tsx COMMON declares strokeWidth", () => {
+      expect(ICONS_TSX).toMatch(/strokeWidth:\s*1\.75/);
+    });
+
+    it('icons.tsx COMMON declares strokeLinecap: "round"', () => {
+      expect(ICONS_TSX).toMatch(/strokeLinecap:\s*"round"/);
+    });
+
+    it('icons.tsx COMMON declares strokeLinejoin: "round"', () => {
+      expect(ICONS_TSX).toMatch(/strokeLinejoin:\s*"round"/);
+    });
   });
 });
