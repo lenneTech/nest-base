@@ -11,6 +11,7 @@ import {
 } from "@nestjs/common";
 import type { Request } from "express";
 
+import { Public } from "../permissions/public.decorator.js";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { PrismaTenantSelfServiceStorage } from "./prisma-tenant-self-service-storage.js";
 import {
@@ -69,6 +70,13 @@ const TENANT_SELF_SERVICE_STORAGE = Symbol.for("lt:TenantSelfServiceStorage");
 export class MeTenantsController {
   constructor(private readonly service: TenantSelfServiceService) {}
 
+  // Issue #47 — bootstrap-friendly route. Better-Auth populates
+  // `req.user`; the handler's `req.user.id` filter scopes the query
+  // to the caller. A `@Can("read", "Tenant")` gate would be wrong:
+  // `Tenant` is framework-admin (intentionally absent from the
+  // Member-role rules), and a fresh user with zero memberships needs
+  // to call this route to discover they have no tenants yet.
+  @Public("/me/tenants — bootstrap; handler scopes by req.user.id (Better-Auth session)")
   @Get()
   async list(@Req() req: AuthedRequest): Promise<MeTenantsResponseRow[]> {
     if (!req.user) throw new ForbiddenException("authentication required");
@@ -88,6 +96,13 @@ export class MeTenantsController {
 export class TenantSelfServiceController {
   constructor(private readonly service: TenantSelfServiceService) {}
 
+  // Issue #47 — self-service tenant creation. The same bootstrap
+  // argument as `/me/tenants` applies: `Tenant` is framework-admin
+  // and intentionally outside the Member-role grant; a fresh user
+  // with no tenants needs to be able to mint their first one. The
+  // `req.user` check makes auth a hard requirement; the service
+  // installs the caller as the new tenant's owner.
+  @Public("/tenants — bootstrap; authenticated user creates their first tenant + becomes owner")
   @Post()
   async create(
     @Req() req: AuthedRequest,

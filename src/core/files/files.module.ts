@@ -14,6 +14,7 @@ import {
 } from "@nestjs/common";
 
 import { loadFeatures } from "../features/features.js";
+import { Can } from "../permissions/can.guard.js";
 import { uuidV7 } from "../uuid/uuid-v7.js";
 import { AssetController, IpxCacheController } from "./asset.controller.js";
 import { AssetService, type AssetTransformer } from "./asset.service.js";
@@ -91,6 +92,13 @@ export interface CreateFileBody {
 class FileController {
   constructor(private readonly service: FileService) {}
 
+  // Issue #47 — every route gates on `File`. The synthesized
+  // Member-role rule (member-role-rules.ts) scopes File access to
+  // `tenantId = $CURRENT_TENANT`, which the CASL ability evaluates at
+  // request time. Defense-in-depth: the service layer + RLS still
+  // filter by tenant on top.
+
+  @Can("read", "File")
   @Get()
   async list(
     @Query("tenantId") tenantId: string,
@@ -103,6 +111,7 @@ class FileController {
     );
   }
 
+  @Can("read", "File")
   @Get(":id")
   async get(@Param("id") id: string): Promise<FileRecord> {
     const record = await this.service.findById(id);
@@ -115,6 +124,7 @@ class FileController {
    * base64 field. Suitable for small files (avatars, attachments).
    * Use the `/files/upload` TUS endpoint for resumable / large uploads.
    */
+  @Can("create", "File")
   @Post("upload")
   async upload(@Body() body: CreateFileBody): Promise<FileRecord> {
     if (!body.tenantId) throw new BadRequestException("tenantId required");
@@ -132,11 +142,13 @@ class FileController {
     });
   }
 
+  @Can("create", "File")
   @Post()
   async create(@Body() body: CreateFileInput): Promise<FileRecord> {
     return this.service.create(body);
   }
 
+  @Can("delete", "File")
   @Delete(":id")
   async remove(@Param("id") id: string): Promise<{ removed: boolean }> {
     try {
@@ -153,6 +165,10 @@ class FileController {
 class FolderController {
   constructor(private readonly service: FolderService) {}
 
+  // Folder mirrors File — tenant-scoped CASL rule + service-layer
+  // tenantId filter. See FileController above for the rationale.
+
+  @Can("read", "Folder")
   @Get()
   async list(
     @Query("tenantId") tenantId: string,
@@ -165,6 +181,7 @@ class FolderController {
     );
   }
 
+  @Can("create", "Folder")
   @Post()
   async create(
     @Body() body: { tenantId: string; parentId: string | null; name: string },
@@ -172,6 +189,7 @@ class FolderController {
     return this.service.create(body);
   }
 
+  @Can("delete", "Folder")
   @Delete(":id")
   async remove(@Param("id") id: string): Promise<{ removed: boolean }> {
     try {

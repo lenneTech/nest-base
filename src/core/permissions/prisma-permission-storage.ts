@@ -47,11 +47,18 @@ export interface PrismaPermissionStorageOptions {
    */
   synthesizeMemberRules?: boolean;
   /**
-   * Override the resource list passed to `buildMemberRoleRules()`.
-   * Useful for projects that register additional `@Can()` subjects
-   * and want them unblocked by default for every member.
+   * Override the per-tenant resource list passed to
+   * `buildMemberRoleRules()`. Useful for projects that register
+   * additional `@Can()` subjects and want them unblocked by default
+   * for every member.
    */
   memberResources?: readonly string[];
+  /**
+   * Override the per-user resource list (Issue #47 — `ApiKey` scoped
+   * to `$CURRENT_USER` rather than `$CURRENT_TENANT`). Empty array
+   * disables the default `ApiKey` grant entirely.
+   */
+  memberPerUserResources?: readonly string[];
 }
 
 type PrismaSubset = Pick<PrismaClient, "tenantMember" | "permission">;
@@ -66,6 +73,7 @@ interface PermissionRow {
 export class PrismaPermissionStorage implements PermissionStorage {
   private readonly synthesize: boolean;
   private readonly memberResources?: readonly string[];
+  private readonly memberPerUserResources?: readonly string[];
 
   constructor(
     private readonly prisma: PrismaSubset,
@@ -73,6 +81,7 @@ export class PrismaPermissionStorage implements PermissionStorage {
   ) {
     this.synthesize = options.synthesizeMemberRules ?? true;
     this.memberResources = options.memberResources;
+    this.memberPerUserResources = options.memberPerUserResources;
   }
 
   async findRulesForUser(userId: string, tenantId: string): Promise<DbPermissionRow[]> {
@@ -117,12 +126,15 @@ export class PrismaPermissionStorage implements PermissionStorage {
 
     if (!this.synthesize) return explicit;
 
-    // Synthesized: in-memory `manage:<resource>` rules scoped to the
-    // active tenant. Appended after the explicit rows so the resolver
-    // sees both — CASL OR-merges granting rules.
-    const synthesized = buildMemberRoleRules(
-      this.memberResources ? { resources: this.memberResources } : {},
-    );
+    // Synthesized: in-memory `manage:<resource>` rules — tenant-scoped
+    // entries use `$CURRENT_TENANT`, per-user entries (ApiKey, etc.)
+    // use `$CURRENT_USER`. Appended after the explicit rows so the
+    // resolver sees both — CASL OR-merges granting rules.
+    const opts: Parameters<typeof buildMemberRoleRules>[0] = {};
+    if (this.memberResources !== undefined) opts.resources = this.memberResources;
+    if (this.memberPerUserResources !== undefined)
+      opts.perUserResources = this.memberPerUserResources;
+    const synthesized = buildMemberRoleRules(opts);
     return [...explicit, ...synthesized];
   }
 }

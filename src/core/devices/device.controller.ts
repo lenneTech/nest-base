@@ -9,6 +9,7 @@ import {
 } from "@nestjs/common";
 import type { Request } from "express";
 
+import { Can } from "../permissions/can.guard.js";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { parseUserAgent } from "./ua-parser.js";
 import { fingerprintSession } from "./fingerprint.js";
@@ -44,6 +45,12 @@ export interface DeviceListItem {
 export class DeviceController {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Issue #47 — gate on `Session`, the per-user resource that
+  // member-role-rules.ts seeds with `userId = $CURRENT_USER`. The
+  // explicit `req.user` check below remains as defense-in-depth so
+  // the handler never reads `undefined.id`.
+
+  @Can("read", "Session")
   @Get()
   async list(@Req() req: AuthedRequest): Promise<DeviceListItem[]> {
     if (!req.user) throw new ForbiddenException("authentication required");
@@ -65,6 +72,7 @@ export class DeviceController {
     }));
   }
 
+  @Can("delete", "Session")
   @Delete(":id")
   async revoke(
     @Req() req: AuthedRequest,

@@ -85,11 +85,17 @@ describe("Story · PrismaPermissionStorage", () => {
 
     const rows = await storage.findRulesForUser(userId, tenantId);
     expect(rows.length).toBeGreaterThan(0);
-    // Every synthesized row is `manage` on a project resource, scoped
-    // to the caller's tenant. The exact list lives in the planner.
+    // Every synthesized row is `manage` on a project resource. The
+    // tenant-scoped subset uses `$CURRENT_TENANT`; the per-user subset
+    // (Issue #47, ApiKey) uses `$CURRENT_USER`. The exact split lives
+    // in `buildMemberRoleRules`.
     for (const row of rows) {
       expect(row.action).toBe("MANAGE");
-      expect(row.itemFilter).toEqual({ tenantId: { _eq: "$CURRENT_TENANT" } });
+      expect(row.itemFilter).toMatchObject(
+        row.resource === "ApiKey"
+          ? { userId: { _eq: "$CURRENT_USER" } }
+          : { tenantId: { _eq: "$CURRENT_TENANT" } },
+      );
     }
   });
 

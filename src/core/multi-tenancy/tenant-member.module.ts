@@ -12,6 +12,7 @@ import {
   Put,
 } from "@nestjs/common";
 
+import { Can } from "../permissions/can.guard.js";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { PrismaTenantMemberStorage } from "./prisma-tenant-member-storage.js";
 import {
@@ -66,11 +67,21 @@ export class InMemoryTenantMemberStorage implements TenantMemberStorage {
 class TenantMemberController {
   constructor(private readonly service: TenantMemberService) {}
 
+  // Issue #47 — `TenantMember` is an admin-side resource: only
+  // tenant owners / admins may manage memberships. It is intentionally
+  // NOT in the default `Member`-role rules (`member-role-rules.ts`),
+  // so a regular tenant member gets a 403 here. Tenant-admin / -owner
+  // roles seed the necessary `manage:TenantMember` permission rows in
+  // the DB (Role → RolePolicy → Policy → Permission), which the
+  // PrismaPermissionStorage adapter pulls into the ability.
+
+  @Can("read", "TenantMember")
   @Get(":tenantId")
   async list(@Param("tenantId") tenantId: string): Promise<TenantMemberRecord[]> {
     return this.service.listByTenant(tenantId);
   }
 
+  @Can("create", "TenantMember")
   @Post()
   async add(@Body() body: AddMemberInput): Promise<TenantMemberRecord> {
     if (!body?.userId || !body?.tenantId || !body?.role) {
@@ -86,6 +97,7 @@ class TenantMemberController {
     }
   }
 
+  @Can("update", "TenantMember")
   @Put(":id/status")
   async updateStatus(
     @Param("id") id: string,
@@ -103,6 +115,7 @@ class TenantMemberController {
     }
   }
 
+  @Can("delete", "TenantMember")
   @Delete(":id")
   async remove(@Param("id") id: string): Promise<{ removed: true }> {
     try {
