@@ -29,6 +29,18 @@ describe("Tenant Guard", () => {
     },
   );
 
+  // `/me/*` endpoints operate on the authenticated user (req.user.id),
+  // not on a specific tenant — they are exempt from the tenant header.
+  // `/tenants` (self-service tenant CRUD) is the bootstrap surface a
+  // signed-up user uses to create their first tenant; it cannot
+  // require a tenant id since none exists yet.
+  it.each(["/me/tenants", "/me/devices", "/tenants", "/tenants/", "/tenants/abc"])(
+    "treats %s as tenant-exempt (self-service / per-user surface)",
+    (path) => {
+      expect(isTenantExempt(path)).toBe(true);
+    },
+  );
+
   it("rejects empty input defensively", () => {
     expect(() => requiresTenant("")).toThrow();
   });
