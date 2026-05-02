@@ -1,0 +1,161 @@
+/**
+ * Dev-Portal global stylesheet — Tailwind 4 + shadcn-ui theme bridge.
+ *
+ * Three jobs:
+ *
+ *   1. Pull Tailwind 4 in via `@import "tailwindcss"` so the bundler
+ *      generates the utility layer used by every page.
+ *
+ *   2. Map the dev-portal design tokens (defined in `tokens.css`) into
+ *      Tailwind 4's `@theme` so utilities like `bg-surface-2` /
+ *      `text-fg-muted` / `text-accent` resolve to the brand-controlled
+ *      `:root { --bg: …; --accent: …; }` variables.
+ *
+ *      The brand-loader (Issue #5) emits `:root { --accent: …; }`
+ *      overrides as a `<style>` block in the SPA shell. Because the
+ *      Tailwind utilities reference `var(--accent)`, the brand wins
+ *      automatically when the operator edits `brand.json`.
+ *
+ *   3. Declare the shadcn-ui token aliases (`--background`, `--primary`,
+ *      `--card`, `--ring`, …) on `:root` so the vendored shadcn
+ *      primitives under `components/ui/` paint with our tokens.
+ *
+ * The historic dark-near-black + electric-lime brand identity
+ * (#020203 surfaces, #c5fb45 accent) is preserved verbatim — we only
+ * ferry the values into the new layering system.
+ */
+
+@import "tailwindcss";
+
+/* Animations are needed by Radix primitives shadcn wraps. */
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
+/*
+ * Tailwind 4 theme — utilities resolve to our CSS-vars so the brand
+ * (Issue #5) overrides flow through automatically.
+ *
+ * Naming is shadcn-flavoured (background / foreground / primary / muted
+ * / card / popover / accent / border / input / ring / destructive). Each
+ * one points at the matching dev-portal token from `tokens.css`. This
+ * gives us "Tailwind utility classes" + "shadcn component code" without
+ * duplicating the source of truth for the colors.
+ */
+@theme {
+  --font-sans:
+    "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", "Fira Code", Consolas, monospace;
+
+  /* shadcn-ui semantic colors → dev-portal tokens. */
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+  --color-card: var(--surface-1);
+  --color-card-foreground: var(--fg);
+  --color-popover: var(--surface-2);
+  --color-popover-foreground: var(--fg);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--accent-ink);
+  --color-secondary: var(--surface-3);
+  --color-secondary-foreground: var(--fg);
+  --color-muted: var(--surface-2);
+  --color-muted-foreground: var(--fg-muted);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-ink);
+  --color-destructive: var(--err);
+  --color-destructive-foreground: #ffffff;
+  --color-border: var(--line);
+  --color-input: var(--line-strong);
+  --color-ring: var(--accent);
+
+  /* Direct token aliases — for utilities like `bg-surface-2` etc. */
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-surface-hover: var(--surface-hover);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-dim: var(--fg-dim);
+  --color-fg-faint: var(--fg-faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-line-accent: var(--line-accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-glow: var(--accent-glow);
+  --color-accent-ink: var(--accent-ink);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-err: var(--err);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius-lg);
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+}
+
+/*
+ * Resets that apply once the bundle is hydrated. Mirrors the legacy
+ * `admin-layout.css` reset block but expressed against Tailwind's base
+ * layer so future utilities cooperate cleanly.
+ */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+  html {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.55;
+    font-size: 14px;
+  }
+  ::selection {
+    background: var(--accent-soft);
+    color: var(--fg);
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--bg);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--surface-3);
+    border-radius: 999px;
+    border: 2px solid var(--bg);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--surface-hover);
+  }
+}

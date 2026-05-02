@@ -8,6 +8,9 @@
     "jsx": "react-jsx",
     "rootDir": "src/core/dx/clients",
     "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/core/dx/clients/*"]
+    },
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,

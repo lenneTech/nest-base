@@ -20,8 +20,7 @@
  * a real browser context, not v8.
  */
 import "./styles/tokens.css";
-import "./styles/admin-layout.css";
-import "./styles/components.css";
+import "./styles/globals.css";
 
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -29,6 +28,8 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { App } from "./App.js";
+import { Toaster } from "./components/ui/sonner.js";
+import { TooltipProvider } from "./components/ui/tooltip.js";
 
 const container = document.getElementById("root");
 if (!container) throw new Error("dev-portal: #root mount missing");
@@ -48,9 +49,12 @@ const queryClient = new QueryClient({
 createRoot(container).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <TooltipProvider delayDuration={200}>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+        <Toaster position="bottom-right" richColors />
+      </TooltipProvider>
     </QueryClientProvider>
   </StrictMode>,
 );
