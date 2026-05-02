@@ -1,12 +1,13 @@
 /**
- * `/dev/email-preview` — verbatim React port of `email-preview-ui.ts`.
- * Same gallery of registered templates; each card shows the rendered
- * subject, an HTML iframe (with `sandbox=""` like the server) and
- * plain-text rendering side-by-side, plus the sample payload.
+ * `/dev/email-preview` — gallery of registered email templates. Each
+ * card shows the rendered subject, an HTML iframe (sandboxed), the
+ * plain-text rendering, and the sample payload.
  */
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
+import { PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson } from "../lib/api.js";
 
@@ -37,7 +38,8 @@ export function EmailPreviewPage(): ReactNode {
   const subtitle = data.data ? (
     <>
       {data.data.catalog.entries.length} template(s) registered. Sample payloads are rendered below
-      — Mailpit at <code>localhost:8025</code> shows actually-sent emails.
+      — Mailpit at <code className="font-mono text-accent">localhost:8025</code> shows actually-sent
+      emails.
     </>
   ) : (
     "Loading…"
@@ -48,9 +50,9 @@ export function EmailPreviewPage(): ReactNode {
       {data.data ? (
         <EmailPreviewBody payload={data.data} />
       ) : data.isError ? (
-        <div className="admin-empty">Failed to load email-preview catalog.</div>
+        <PageError>Failed to load email-preview catalog.</PageError>
       ) : (
-        <div className="admin-empty">Loading email previews…</div>
+        <PageLoading>Loading email previews…</PageLoading>
       )}
     </AdminShell>
   );
@@ -58,58 +60,75 @@ export function EmailPreviewPage(): ReactNode {
 
 function EmailPreviewBody({ payload }: { payload: EmailPreviewResponse }): ReactNode {
   return (
-    <>
+    <div className="flex flex-col gap-6">
       {payload.catalog.entries.map((entry) => {
         const result = payload.rendered[entry.template] ?? { error: "not rendered" };
-        return <Card key={entry.template} entry={entry} result={result} />;
+        return <PreviewCard key={entry.template} entry={entry} result={result} />;
       })}
-    </>
+    </div>
   );
 }
 
-function Card({ entry, result }: { entry: CatalogEntry; result: RenderResult }): ReactNode {
+function PreviewCard({ entry, result }: { entry: CatalogEntry; result: RenderResult }): ReactNode {
   if (result.error) {
     return (
-      <section className="ep-card">
-        <h3 className="ep-card__title">{entry.template}</h3>
-        <p className="ep-card__desc">{entry.description}</p>
-        <div className="ep-error">⚠ {result.error}</div>
-      </section>
+      <Card>
+        <CardHeader>
+          <CardTitle>{entry.template}</CardTitle>
+          <p className="text-xs text-fg-muted">{entry.description}</p>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border border-err/40 bg-err/10 p-3 text-sm text-err">
+            ⚠ {result.error}
+          </div>
+        </CardContent>
+      </Card>
     );
   }
   return (
-    <section className="ep-card">
-      <h3 className="ep-card__title">{entry.template}</h3>
-      <p className="ep-card__desc">{entry.description}</p>
-      <div className="ep-subject">
-        <strong>Subject:</strong> {result.subject ?? ""}
-      </div>
-      <div className="ep-grid">
-        <div className="ep-pane">
-          <div className="ep-pane__title">HTML</div>
-          <iframe
-            className="ep-html"
-            sandbox=""
-            srcDoc={result.html ?? ""}
-            style={{
-              width: "100%",
-              minHeight: "22rem",
-              border: 0,
-              background: "transparent",
-              colorScheme: "dark",
-            }}
-            title={`HTML preview of ${entry.template}`}
-          />
+    <Card>
+      <CardHeader>
+        <CardTitle>{entry.template}</CardTitle>
+        <p className="text-xs text-fg-muted">{entry.description}</p>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="text-sm">
+          <strong className="text-fg-dim">Subject:</strong>{" "}
+          <span className="font-mono">{result.subject ?? ""}</span>
         </div>
-        <div className="ep-pane">
-          <div className="ep-pane__title">Text</div>
-          <div className="ep-text">{result.text ?? ""}</div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <Pane title="HTML">
+            <iframe
+              sandbox=""
+              srcDoc={result.html ?? ""}
+              className="h-[22rem] w-full rounded border-0 bg-transparent"
+              style={{ colorScheme: "dark" }}
+              title={`HTML preview of ${entry.template}`}
+            />
+          </Pane>
+          <Pane title="Text">
+            <pre className="m-0 max-h-[22rem] overflow-auto whitespace-pre-wrap rounded-md border border-line bg-surface-2 p-3 font-mono text-xs">
+              {result.text ?? ""}
+            </pre>
+          </Pane>
         </div>
+        <Pane title="Sample payload">
+          <pre className="m-0 max-h-64 overflow-auto rounded-md border border-line bg-surface-2 p-3 font-mono text-xs">
+            {JSON.stringify(entry.samplePayload, null, 2)}
+          </pre>
+        </Pane>
+      </CardContent>
+    </Card>
+  );
+}
+
+function Pane({ title, children }: { title: string; children: ReactNode }): ReactNode {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="text-[0.65rem] font-semibold uppercase tracking-widest text-fg-dim">
+        {title}
       </div>
-      <div className="ep-pane" style={{ marginTop: "1rem" }}>
-        <div className="ep-pane__title">Sample payload</div>
-        <div className="ep-payload">{JSON.stringify(entry.samplePayload, null, 2)}</div>
-      </div>
-    </section>
+      {children}
+    </div>
   );
 }

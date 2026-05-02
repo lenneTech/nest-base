@@ -1,77 +1,119 @@
 # `src/core/dx/clients/` — Dev-Portal SPA source
 
 Every `/dev/*`, `/admin/*`, `/errors`, and `/api/openapi` HTML page is
-served by this React 19 SPA. The legacy `*-ui.ts` server renderers
-were deleted in the full-migration slice — `dist/dev-portal/` is the
-single source of UI for every developer surface.
+served by this React 19 SPA. The legacy server-side `*-ui.ts`
+renderers are gone — `dist/dev-portal/` is the single source of UI
+for every developer surface.
+
+## Stack
+
+- **React 19** + **react-router-dom 7** for the route tree
+- **Tailwind CSS 4** (CSS-first `@theme` config in `styles/globals.css`)
+- **shadcn/ui primitives**, vendored under `components/ui/` (no npm
+  package; the source lives in this tree)
+- **Radix UI** for the underlying primitive layer that shadcn wraps
+- **TanStack Query** for the JSON-loader chain
+- **`sonner`** for toast notifications
+- **`bun-plugin-tailwind`** for the build (Bun bundle ↔ Tailwind
+  oxide compiler)
 
 ## Hard rules
 
-- **No native HTML inputs in net-new pages.** Every `<button>`,
-  `<input>`, `<select>`, `<textarea>`, `<dialog>` etc. goes through
-  `components/`. The `react-aria-components` wrappers preserve focus
-  rings, ARIA roles, and keyboard navigation that bare HTML cannot
-  replicate consistently.
-  _Existing admin-page ports_ (e.g. `WebhookInspectorPage`,
-  `AuditBrowserPage`) intentionally render bare `<input>` / `<select>`
-  inside `form.admin-form` because the legacy server CSS targets those
-  selectors directly — replacing them with `dp-*` wrappers would break
-  the byte-for-byte fidelity contract. Use the wrappers for net-new
-  surfaces; mirror the legacy DOM when porting.
+- **No native HTML inputs / buttons / selects in net-new pages.**
+  Every interactive primitive comes from `components/ui/` (Button,
+  Input, Select, Switch, …) or from a parent shadcn family
+  (Dialog/DialogContent, Tabs/TabsTrigger, …). Native elements are
+  fine inside the legacy ports where the existing styling already
+  lands them somewhere coherent — but new code uses shadcn.
 - **No `process.env.*` or Node imports.** This tree is browser-only.
   TypeScript `tsconfig.client.json` excludes Node types so this fails
   at compile time.
-- **No CSS-in-JS / Tailwind / preprocessors.** Vanilla CSS + custom
-  properties from `styles/tokens.css`. Page chrome lives in
-  `styles/admin-layout.css` (1:1 port of the legacy
-  `ADMIN_LAYOUT_CSS` plus every per-page `<style>` block from the
-  former `*-ui.ts` renderers).
-- **Re-use the legacy classnames.** A React tree for `/admin/foo`
-  emits the same `.foo-tile`, `.foo-section`, `.admin-card`, … markup
-  the deleted `foo-ui.ts` once produced. This is what keeps the visual
-  diff zero.
+- **Tailwind first, shadcn second, hand-rolled CSS only when both
+  fail.** The dev-portal design tokens live in `styles/tokens.css`
+  (the brand-loader's runtime override target — see below) and are
+  exposed to Tailwind via the `@theme` block in `styles/globals.css`.
+  Use utility classes (`bg-surface-2`, `text-fg-muted`,
+  `border-line`, `text-accent`, `bg-ok/15 text-ok`, …) instead of
+  inline styles.
 - **`.js` import suffix everywhere** (ESM convention; see
   `src/core/CLAUDE.md`).
+- **Path alias**: `@/components/ui/*` is wired in `tsconfig.client.json`,
+  but every existing import uses relative paths (`../../components/ui/button.js`).
+  Prefer the relative form to keep the bundler simple.
+
+## Brand integration (Issue #5 hot-reload)
+
+The dev-portal-shell server-renderer (`../dev-portal-shell.ts`)
+inlines the brand-derived `:root { --accent: …; --bg: …; … }`
+declarations as a `<style>` block right after the static `tokens.css`
+link. Because `globals.css` (Tailwind's `@theme`) maps every shadcn
+semantic colour to those CSS-vars, **brand changes propagate
+automatically** — the operator edits `brand.json`, the dev-runner
+restarts the API, the next page load picks up the new brand without
+a code change anywhere.
+
+If you add a new theme token, add it in three places:
+
+1. `styles/tokens.css` — declare the default value.
+2. `styles/globals.css` — alias it under `@theme` so Tailwind utilities
+   resolve to it.
+3. `src/core/branding/brand-css.ts` — emit the `--token: …` override
+   in the brand-loader's CSS-var generator.
 
 ## Layout
 
 ```
 clients/
-├── main.tsx                       ← entry — boots React + Router + Query
+├── main.tsx                       ← entry — boots React + Router + Query + Sonner
 ├── App.tsx                        ← route table (every page lazy-loaded)
+├── global.d.ts                    ← ambient types (CSS imports, mermaid)
 ├── layout/
 │   ├── AdminShell.tsx             ← shell (sidebar + header + content)
 │   ├── nav.ts                     ← sidebar nav model + SPA_ROUTES set
 │   └── icons.tsx                  ← SVG icons inlined per dev-portal
 ├── pages/
 │   ├── DevHubLandingPage.tsx      ← /dev — landing dashboard
-│   ├── FeaturesPage.tsx           ← /dev/features — feature toggles
-│   ├── CoveragePage.tsx           ← /dev/coverage — coverage summary
-│   ├── TestsPage.tsx              ← /dev/tests — test summary
-│   ├── DiagnosticsPage.tsx        ← /dev/diagnostics — runtime diagnostics
-│   ├── LogsPage.tsx               ← /dev/logs — live log buffer
-│   ├── TracesPage.tsx             ← /dev/traces — request traces
-│   ├── QueriesPage.tsx            ← /dev/queries — Prisma query buffer
-│   ├── RoutesPage.tsx             ← /dev/routes — route inventory
-│   ├── ErdPage.tsx                ← /dev/erd — Prisma ERD (Mermaid via CDN)
-│   ├── EmailPreviewPage.tsx       ← /dev/email-preview — email templates
-│   ├── PostgrestParsePage.tsx     ← /dev/postgrest-parse — wraps JsonViewer
-│   ├── ComponentShowcasePage.tsx  ← /dev/components (living style guide)
+│   ├── FeaturesPage.tsx           ← /dev/features
+│   ├── BrandPage.tsx              ← /dev/brand
+│   ├── CoveragePage.tsx           ← /dev/coverage
+│   ├── TestsPage.tsx              ← /dev/tests
+│   ├── DiagnosticsPage.tsx        ← /dev/diagnostics
+│   ├── LogsPage.tsx               ← /dev/logs
+│   ├── TracesPage.tsx             ← /dev/traces
+│   ├── QueriesPage.tsx            ← /dev/queries
+│   ├── MigrationsPage.tsx         ← /dev/migrations (5 tabs)
+│   ├── JobsPage.tsx               ← /dev/jobs
+│   ├── RoutesPage.tsx             ← /dev/routes
+│   ├── ErdPage.tsx                ← /dev/erd
+│   ├── EmailPreviewPage.tsx       ← /dev/email-preview
+│   ├── EmailBuilderPage.tsx       ← /dev/email-builder
+│   ├── PostgrestParsePage.tsx     ← /dev/postgrest-parse
+│   ├── FileManagerPage.tsx        ← /dev/files
+│   ├── ComponentShowcasePage.tsx  ← /dev/components (living shadcn showcase)
 │   ├── PermissionTesterPage.tsx   ← /admin/permissions/test
 │   ├── WebhookInspectorPage.tsx   ← /admin/webhooks
 │   ├── RealtimeInspectorPage.tsx  ← /admin/realtime
 │   ├── AuditBrowserPage.tsx       ← /admin/audit
 │   ├── SearchTesterPage.tsx       ← /admin/search
-│   ├── ErrorsPage.tsx             ← /errors (wraps JsonViewer)
-│   └── OpenApiPage.tsx            ← /api/openapi (wraps JsonViewer)
-├── components/                    ← react-aria-components wrappers + JsonViewer
-│   └── index.ts                   ← barrel export
+│   ├── ErrorsPage.tsx             ← /errors
+│   └── OpenApiPage.tsx            ← /api/openapi
+├── components/
+│   ├── JsonViewer.tsx             ← shared JSON-tree component
+│   ├── PageState.tsx              ← Loading / Error / Empty / StatTile helpers
+│   ├── Sparkline.tsx              ← inline SVG sparkline (used by webhooks)
+│   └── ui/                        ← shadcn primitives (badge, button, card,
+│                                     checkbox, dialog, dropdown-menu, input,
+│                                     label, progress, radio-group, select,
+│                                     separator, sheet, sonner, switch, table,
+│                                     tabs, textarea, tooltip)
 ├── lib/
-│   └── api.ts                     ← fetchJson + format helpers shared by every page
+│   ├── api.ts                     ← fetchJson + format helpers
+│   └── utils.ts                   ← cn() — clsx + tailwind-merge
 └── styles/
     ├── tokens.css                 ← :root design-token vars
-    ├── admin-layout.css           ← server-CSS port — page chrome + per-page styles
-    └── components.css             ← .dp-* react-aria primitive styles
+    └── globals.css                ← `@import "tailwindcss"` + `@theme`
+                                     bridge mapping shadcn colours →
+                                     dev-portal tokens
 ```
 
 ## Adding a new page
@@ -88,38 +130,48 @@ clients/
    the SPA shell hosts the React tree, react-router decides which page
    to render based on the URL.
 5. Wrap the page body in `<AdminShell title=… subtitle=… currentNav=…>`.
-6. Re-use the legacy classnames from `admin-layout.css` so the visual
-   diff stays zero.
+6. Use the shadcn primitives + Tailwind utilities (and the
+   `PageState` helpers) for the body.
+
+## Adding a new component
+
+1. **Look in shadcn-ui's registry first**:
+   <https://ui.shadcn.com/docs/components>. If the component exists,
+   vendor the canonical source under `components/ui/<name>.tsx`,
+   adapt the import paths to `../../lib/utils.js`, and add the
+   `.js` suffix to every relative import. This is exactly what
+   `bunx shadcn@latest add <name>` would do — we do it manually so
+   the registry tooling doesn't need network in CI.
+2. **Add at least one example to `pages/ComponentShowcasePage.tsx`** —
+   the showcase is the contract: if it isn't on the showcase, it
+   doesn't exist for downstream pages.
+3. If the component depends on a Radix primitive that isn't yet a
+   dep, install it (`bun add @radix-ui/react-<name>`).
 
 ## Build
 
 `scripts/build-dev-portal.ts` invokes `Bun.build({ target: "browser",
-splitting: true, minify: true })` and writes the bundle to
-`dist/dev-portal/`. The output is gitignored. `bun run dev` awaits the
-initial build before spawning the API so `/dev/static/main.js` is never
-missing on first paint, then starts a watcher for incremental rebuilds
-(~80 ms warm).
+splitting: true, minify: true, plugins: [bunPluginTailwind] })` and
+writes the bundle to `dist/dev-portal/`. The output is gitignored.
+`bun run dev` awaits the initial build before spawning the API so
+`/dev/static/main.js` is never missing on first paint, then starts a
+watcher for incremental rebuilds (~80 ms warm).
 
 ## Coverage
 
-This subtree is **excluded from the ≥ 70 % core coverage threshold**
+This subtree is **excluded from the ≥ 90 % core coverage threshold**
 (see `vitest.config.ts` and `docs/code-guidelines.md`). The
 **shell renderer** (`../dev-portal-shell.ts`) is still covered by a
 story test — it is the only file in the migration with a coverage
 contract because it crosses the trust boundary (server → browser).
 
-UI glue here is exercised manually in development and by future
-Playwright/Chrome-DevTools-MCP smoke tests; both are fine, neither is
-counted in `bun run test:coverage`. The cross-tier contract (route
-table ↔ sidebar nav ↔ JSON endpoints ↔ classname catalogue) is
-mechanically pinned by `tests/stories/dev-portal-pages.story.test.ts`.
+The cross-tier contract (route table ↔ sidebar nav ↔ JSON endpoints
+↔ Tailwind theme bridge) is mechanically pinned by
+`tests/stories/dev-portal-pages.story.test.ts`.
 
-## When you add a component
+## Bundle size
 
-1. Wrap `react-aria-components`. Never re-implement the underlying
-   primitive yourself.
-2. Add `dp-<name>` selectors to `styles/components.css`.
-3. Re-export from `components/index.ts`.
-4. Show every variant in `pages/ComponentShowcasePage.tsx` — the
-   showcase is the contract: if it isn't in the showcase, it doesn't
-   exist for downstream pages.
+The bundle target is **≤ 1.2 MB total** for `dist/dev-portal/*.js +
+*.css`. Verify with `bun run build:dev-portal && du -h
+dist/dev-portal/main.js dist/dev-portal/main.css`. Tailwind purge
+keeps the CSS lean; lazy-loaded page chunks keep the JS lean.

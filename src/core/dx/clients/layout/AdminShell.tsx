@@ -1,21 +1,21 @@
 /**
- * AdminShell — the React shell rendered for every dev-portal route.
- * Same DOM and classnames the legacy server-side `renderAdminLayout()`
- * produced (now deleted) so the visual diff vs. historical screenshots
- * stays zero.
+ * AdminShell — shadcn / Tailwind shell rendered for every dev-portal route.
  *
- * Children are rendered into the `.admin-content` slot; pages assume
- * the surrounding `.admin-card` / `.admin-grid` chrome exists and
- * just emit their content (matching the way the server `*-ui.ts`
- * renderers output their `body` strings).
+ * Replaces the legacy `admin-layout.css` chrome with Tailwind utility
+ * classes that resolve to the dev-portal design tokens (see
+ * `styles/globals.css#@theme`). The visual identity (dark near-black
+ * surface, electric-lime accent, dense sidebar) is preserved; the
+ * underlying layer is now Tailwind utilities + shadcn primitives.
  *
- * The active-nav highlight is driven by `currentNav` instead of the
- * URL because some pages override the highlight to keep the visual
- * grouping consistent with the server (e.g. `/dev/postgrest-parse`
- * highlights nothing, matching the server JSON-viewer page).
+ * The `currentNav` prop drives the active-nav highlight independent
+ * of the URL because some pages override the highlight to keep the
+ * visual grouping consistent (e.g. `/dev/postgrest-parse` highlights
+ * nothing).
  */
 import type { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
+
+import { cn } from "../lib/utils.js";
 
 import { BRAND_LOGO, ICONS } from "./icons.js";
 import { isSpaRoute, NAV_SECTIONS } from "./nav.js";
@@ -47,15 +47,23 @@ function getBrandName(): string {
 export interface AdminShellProps {
   /** Page heading and `<title>`. */
   title: string;
-  /** Optional subheading rendered as `.admin-page__subtitle`. */
+  /** Optional subheading rendered under the title. */
   subtitle?: ReactNode;
   /** Sidebar id used for the active-state highlight. */
   currentNav: string;
-  /** Page body — already styled with `.admin-card` etc. */
+  /** Page body. */
   children: ReactNode;
+  /** Optional toolbar rendered next to the title (e.g. action buttons). */
+  toolbar?: ReactNode;
 }
 
-export function AdminShell({ title, subtitle, currentNav, children }: AdminShellProps): ReactNode {
+export function AdminShell({
+  title,
+  subtitle,
+  currentNav,
+  children,
+  toolbar,
+}: AdminShellProps): ReactNode {
   // Update <title> exactly the way the server shell does — keeps the
   // browser tab honest as the user navigates between SPA pages.
   // Brand sourced from window.__BRAND__ (server-injected) so the title
@@ -65,22 +73,23 @@ export function AdminShell({ title, subtitle, currentNav, children }: AdminShell
   }
 
   return (
-    <div className="admin-shell">
+    <div className="flex min-h-screen w-full bg-background text-foreground">
       <Sidebar currentNav={currentNav} />
-      <main className="admin-main">
-        <header className="admin-header">
-          <div>
-            <h1 className="admin-page__title">{title}</h1>
-            {subtitle ? <p className="admin-page__subtitle">{subtitle}</p> : null}
+      <main className="flex min-h-screen flex-1 flex-col">
+        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-line bg-surface-1/60 px-8 py-5">
+          <div className="min-w-0">
+            <h1 className="m-0 text-xl font-semibold tracking-tight text-fg">{title}</h1>
+            {subtitle ? <p className="mt-1 max-w-3xl text-sm text-fg-muted">{subtitle}</p> : null}
           </div>
-          <div className="admin-header__meta">
-            <span className="admin-badge admin-badge--ok">
-              <span className="admin-badge__dot" />
+          <div className="flex items-center gap-3">
+            {toolbar}
+            <span className="inline-flex items-center gap-2 rounded-full border border-ok/40 bg-ok/10 px-3 py-1 text-xs font-medium text-ok">
+              <span className="h-1.5 w-1.5 rounded-full bg-ok shadow-[0_0_8px_var(--ok)]" />
               online
             </span>
           </div>
         </header>
-        <section className="admin-content">{children}</section>
+        <section className="flex-1 px-8 py-6">{children}</section>
       </main>
     </div>
   );
@@ -93,24 +102,33 @@ interface SidebarProps {
 function Sidebar({ currentNav }: SidebarProps): ReactNode {
   const location = useLocation();
   return (
-    <aside className="admin-sidebar">
+    <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r border-line bg-surface-1">
       <NavItemBrand />
-      <nav className="admin-nav">
+      <nav className="flex-1 overflow-y-auto px-3 py-4">
         {NAV_SECTIONS.map((section) => (
-          <div key={section.title} className="admin-nav__section">
-            <h3 className="admin-nav__title">{section.title}</h3>
+          <div key={section.title} className="mb-5 last:mb-0">
+            <h3 className="mb-2 px-3 text-[0.65rem] font-semibold uppercase tracking-widest text-fg-faint">
+              {section.title}
+            </h3>
             {section.items.map((item) => {
               // Active when explicitly addressed by the page OR when the
               // SPA URL itself matches the link (defends against pages
               // that forget to set `currentNav`).
               const active = item.id === currentNav || location.pathname === item.href;
-              const className = `admin-nav__link${active ? " admin-nav__link--active" : ""}`;
+              const className = cn(
+                "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                active
+                  ? "bg-accent-soft text-accent"
+                  : "text-fg-muted hover:bg-surface-hover hover:text-fg",
+              );
               const icon = ICONS[item.icon] ?? null;
               if (isSpaRoute(item.href)) {
                 return (
                   <Link key={item.id} to={item.href} className={className}>
-                    <span className="admin-nav__icon">{icon}</span>
-                    <span className="admin-nav__label">{item.label}</span>
+                    <span className="flex h-4 w-4 items-center justify-center text-current">
+                      {icon}
+                    </span>
+                    <span className="truncate">{item.label}</span>
                   </Link>
                 );
               }
@@ -124,20 +142,22 @@ function Sidebar({ currentNav }: SidebarProps): ReactNode {
                   className={className}
                   {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                 >
-                  <span className="admin-nav__icon">{icon}</span>
-                  <span className="admin-nav__label">{item.label}</span>
+                  <span className="flex h-4 w-4 items-center justify-center text-current">
+                    {icon}
+                  </span>
+                  <span className="truncate">{item.label}</span>
                 </a>
               );
             })}
           </div>
         ))}
       </nav>
-      <div className="admin-sidebar__footer">
+      <div className="border-t border-line px-4 py-3">
         <a
           href="https://docs.nestjs.com"
           target="_blank"
           rel="noopener noreferrer"
-          className="admin-sidebar__doclink"
+          className="flex items-center justify-between rounded-md px-2 py-1.5 text-xs text-fg-muted hover:text-accent"
         >
           <span>NestJS Docs</span>
           <svg
@@ -158,14 +178,20 @@ function Sidebar({ currentNav }: SidebarProps): ReactNode {
 
 function NavItemBrand(): ReactNode {
   return (
-    <Link to="/dev" className="admin-brand">
-      <span className="admin-brand__logo" aria-hidden="true">
+    <Link
+      to="/dev"
+      className="flex items-center gap-3 border-b border-line px-4 py-4 text-fg hover:text-accent"
+    >
+      <span
+        className="flex h-9 w-9 items-center justify-center rounded-md bg-accent text-accent-foreground shadow-[0_0_24px_var(--accent-glow)]"
+        aria-hidden="true"
+      >
         {BRAND_LOGO}
       </span>
-      <div className="admin-brand__text">
-        <span className="admin-brand__name">{getBrandName()}</span>
-        <span className="admin-brand__env">
-          <span className="admin-brand__dot" />
+      <div className="flex flex-col">
+        <span className="text-sm font-semibold leading-tight">{getBrandName()}</span>
+        <span className="flex items-center gap-1.5 text-[0.7rem] text-fg-dim">
+          <span className="h-1.5 w-1.5 rounded-full bg-ok" />
           development
         </span>
       </div>

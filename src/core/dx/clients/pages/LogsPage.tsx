@@ -1,18 +1,25 @@
 /**
- * `/dev/logs` — verbatim React port of `log-viewer-ui.ts`. Same
- * sticky-header table inside a `.log-scroll` container, same auto-tail
- * behaviour (re-pin on scroll-to-bottom, "Jump to latest" pill when
- * the user has scrolled up), same level chips and row tints.
- *
- * Live polling uses `/dev/logs.json?since=<seq>` every 2 s exactly
- * like the legacy embedded script. Capped at 500 rows in the DOM so
- * the buffer can't drown the page.
+ * `/dev/logs` — live tail of the in-memory Pino ring buffer with
+ * auto-pin to bottom and "Jump to latest" affordance.
  */
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
+import { Badge } from "../components/ui/badge.js";
+import { Button } from "../components/ui/button.js";
+import { Card, CardContent } from "../components/ui/card.js";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table.js";
+import { PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson, levelName } from "../lib/api.js";
+import { cn } from "../lib/utils.js";
 
 interface LogRecord {
   level: number;
@@ -26,8 +33,6 @@ const TAIL_THRESHOLD_PX = 32;
 const MAX_ROWS = 500;
 
 export function LogsPage(): ReactNode {
-  // The data endpoint returns the recent ring buffer; we additionally
-  // poll `/dev/logs.json?since=<seq>` for the live tail.
   const initial = useQuery({
     queryKey: ["dev", "logs", "initial"],
     queryFn: async () => {
@@ -45,9 +50,9 @@ export function LogsPage(): ReactNode {
       {initial.data ? (
         <LogsBody initialRecords={initial.data} />
       ) : initial.isError ? (
-        <div className="admin-empty">Failed to load logs.</div>
+        <PageError>Failed to load logs.</PageError>
       ) : (
-        <div className="admin-empty">Loading logs…</div>
+        <PageLoading>Loading logs…</PageLoading>
       )}
     </AdminShell>
   );
@@ -61,14 +66,9 @@ function LogsBody({ initialRecords }: { initialRecords: LogRecord[] }): ReactNod
   const followTailRef = useRef(true);
   followTailRef.current = followTail;
 
-  // Capacity isn't returned by `/dev/logs.json` — we only need it for
-  // the toolbar caption. The legacy server-rendered page got it from
-  // the input; here we display the live count and a sensible "of
-  // <X>+" caption.
   const bufferSize = records.length;
 
   useEffect(() => {
-    // Pin to the bottom on first paint, mirroring the server JS.
     const node = scrollerRef.current;
     if (!node) return;
     node.scrollTo({ top: node.scrollHeight, behavior: "auto" });
@@ -89,9 +89,7 @@ function LogsBody({ initialRecords }: { initialRecords: LogRecord[] }): ReactNod
           const merged = [...prev, ...next];
           return merged.length > MAX_ROWS ? merged.slice(merged.length - MAX_ROWS) : merged;
         });
-        // Auto-tail only when the user is already pinned to the bottom.
         if (followTailRef.current) {
-          // Defer to allow the row to mount before scrolling.
           setTimeout(() => {
             const node = scrollerRef.current;
             if (node) node.scrollTo({ top: node.scrollHeight, behavior: "auto" });
@@ -114,90 +112,94 @@ function LogsBody({ initialRecords }: { initialRecords: LogRecord[] }): ReactNod
   const warnLogs = records.filter((r) => r.level === 40).length;
 
   return (
-    <div className="admin-card">
-      <div className="log-toolbar">
-        <div>
-          <span className="log-pulse" />
-          <strong>Live tail</strong>
-          <span className="log-toolbar__meta"> — polled every 2 s, ring-buffer {bufferSize}</span>
+    <Card>
+      <div className="flex items-center justify-between gap-3 border-b border-line bg-surface-2/60 px-4 py-2 text-xs">
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-ok shadow-[0_0_6px_var(--ok)]" />
+          <strong className="text-fg">Live tail</strong>
+          <span className="text-fg-dim">— polled every 2 s, buffer {bufferSize}</span>
         </div>
-        <div className="log-toolbar__meta">
+        <div className="text-fg-dim">
           {errorLogs > 0 ? `${errorLogs} error${errorLogs === 1 ? "" : "s"} · ` : ""}
           {warnLogs > 0 ? `${warnLogs} warn${warnLogs === 1 ? "" : "s"} · ` : ""}
           {statusText}
         </div>
       </div>
-      <div
-        className="log-scroll"
-        ref={scrollerRef}
-        onScroll={(e) => {
-          const node = e.currentTarget;
-          const atBottom =
-            node.scrollHeight - node.scrollTop - node.clientHeight <= TAIL_THRESHOLD_PX;
-          setFollowTail(atBottom);
-        }}
-      >
-        {records.length === 0 ? (
-          <>
-            <table className="log-table">
-              <thead>
-                <tr>
-                  <th style={{ width: "6rem" }}>Time</th>
-                  <th style={{ width: "5rem" }}>Level</th>
-                  <th>Message</th>
-                </tr>
-              </thead>
-              <tbody />
-            </table>
-            <div className="log-empty">
-              No records yet — interact with the API and they'll appear here.
-            </div>
-          </>
-        ) : (
-          <table className="log-table">
-            <thead>
-              <tr>
-                <th style={{ width: "6rem" }}>Time</th>
-                <th style={{ width: "5rem" }}>Level</th>
-                <th>Message</th>
-              </tr>
-            </thead>
-            <tbody>
-              {records.map((r, i) => (
-                <Row key={`${r.seq ?? i}`} record={r} />
-              ))}
-            </tbody>
-          </table>
-        )}
-        <button
-          type="button"
-          className={`log-jump${followTail ? "" : " is-visible"}`}
-          onClick={() => {
-            setFollowTail(true);
-            const node = scrollerRef.current;
-            if (node) node.scrollTo({ top: node.scrollHeight, behavior: "smooth" });
+      <CardContent className="p-0">
+        <div
+          className="relative max-h-[65dvh] min-h-56 overflow-auto"
+          ref={scrollerRef}
+          onScroll={(e) => {
+            const node = e.currentTarget;
+            const atBottom =
+              node.scrollHeight - node.scrollTop - node.clientHeight <= TAIL_THRESHOLD_PX;
+            setFollowTail(atBottom);
           }}
         >
-          ↓ Jump to latest
-        </button>
-      </div>
-    </div>
+          <Table>
+            <TableHeader className="sticky top-0 z-10 bg-surface-2">
+              <TableRow>
+                <TableHead className="w-24">Time</TableHead>
+                <TableHead className="w-20">Level</TableHead>
+                <TableHead>Message</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {records.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center text-fg-muted">
+                    No records yet — interact with the API and they'll appear here.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                records.map((r, i) => <Row key={`${r.seq ?? i}`} record={r} />)
+              )}
+            </TableBody>
+          </Table>
+          {!followTail ? (
+            <Button
+              type="button"
+              variant="default"
+              size="sm"
+              className="sticky bottom-3 left-1/2 z-20 ml-[-3rem] mt-3"
+              onClick={() => {
+                setFollowTail(true);
+                const node = scrollerRef.current;
+                if (node) node.scrollTo({ top: node.scrollHeight, behavior: "smooth" });
+              }}
+            >
+              ↓ Jump to latest
+            </Button>
+          ) : null}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
 function Row({ record }: { record: LogRecord }): ReactNode {
   const level = levelName(record.level);
   const time = new Date(record.time).toISOString().slice(11, 23);
+  const tone =
+    level === "fatal" || level === "error"
+      ? "err"
+      : level === "warn"
+        ? "warn"
+        : level === "info"
+          ? "info"
+          : "secondary";
+  const rowTint =
+    level === "fatal" || level === "error" ? "bg-err/5" : level === "warn" ? "bg-warn/5" : "";
   return (
-    <tr className={`log-row--${level}`}>
-      <td>{time}</td>
-      <td>
-        <span className={`log-level log-level--${level}`}>{level}</span>
-      </td>
-      <td>
-        {record.context ? <span className="log-context">[{String(record.context)}]</span> : null}{" "}
+    <TableRow className={cn(rowTint)}>
+      <TableCell className="font-mono text-[0.7rem] tabular-nums text-fg-muted">{time}</TableCell>
+      <TableCell>
+        <Badge variant={tone}>{level}</Badge>
+      </TableCell>
+      <TableCell className="font-mono text-xs">
+        {record.context ? <span className="text-accent">[{String(record.context)}]</span> : null}{" "}
         {String(record.msg ?? "")}
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }

@@ -1,15 +1,14 @@
 /**
- * `/dev/postgrest-parse` — verbatim React port of the JSON-viewer
- * branch the legacy controller served. The handler accepts arbitrary
- * `?key=op.value` filters and parses them into a Prisma `where`
- * clause; the SPA reads the same data via `?format=json` and renders
- * it through `JsonViewer`.
+ * `/dev/postgrest-parse` — accepts arbitrary `?key=op.value` filters
+ * and renders the resulting Prisma `where` clause through
+ * `JsonViewer`.
  */
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 
 import { JsonViewer } from "../components/JsonViewer.js";
+import { PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson } from "../lib/api.js";
 
@@ -34,9 +33,6 @@ export function PostgrestParsePage(): ReactNode {
   filterParams.delete("format");
   const filterCount = Array.from(filterParams.keys()).length;
 
-  // Raw .json link mirrors what `json-viewer-ui.ts` linked to.
-  const rawJsonHref = fetchUrl;
-
   const data = useQuery({
     queryKey: ["dev", "postgrest-parse", fetchUrl],
     queryFn: () => fetchJson<PostgrestParseResponse>(fetchUrl),
@@ -49,18 +45,23 @@ export function PostgrestParsePage(): ReactNode {
       currentNav="postgrest-parse"
     >
       {filterCount === 0 ? (
-        <p className="admin-meta">
+        <p className="mb-4 text-sm text-fg-muted">
           Try{" "}
-          <a href="/dev/postgrest-parse?status=eq.draft&age=gte.18">?status=eq.draft&age=gte.18</a>{" "}
+          <a
+            className="text-accent underline-offset-4 hover:underline"
+            href="/dev/postgrest-parse?status=eq.draft&age=gte.18"
+          >
+            ?status=eq.draft&age=gte.18
+          </a>{" "}
           to see how PostgREST-style filters map to a Prisma WHERE clause.
         </p>
       ) : null}
       {data.data ? (
-        <JsonViewer value={data.data} rawJsonHref={rawJsonHref} />
+        <JsonViewer value={data.data} rawJsonHref={fetchUrl} />
       ) : data.isError ? (
-        <div className="admin-empty">Failed to parse query.</div>
+        <PageError>Failed to parse query.</PageError>
       ) : (
-        <div className="admin-empty">Parsing query…</div>
+        <PageLoading>Parsing query…</PageLoading>
       )}
     </AdminShell>
   );

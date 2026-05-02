@@ -29,8 +29,9 @@ const APP_TSX = read("src/core/dx/clients/App.tsx");
 const NAV_TS = read("src/core/dx/clients/layout/nav.ts");
 const CONTROLLER = read("src/core/dx/dev-hub.controller.ts");
 const ADMIN_SPA_CONTROLLER = read("src/core/dx/admin-spa.controller.ts");
-const ADMIN_LAYOUT_CSS = read("src/core/dx/clients/styles/admin-layout.css");
+const GLOBALS_CSS = read("src/core/dx/clients/styles/globals.css");
 const TOKENS_CSS = read("src/core/dx/clients/styles/tokens.css");
+const ADMIN_SHELL = read("src/core/dx/clients/layout/AdminShell.tsx");
 
 describe("Story · Dev-Portal SPA route + nav contract", () => {
   describe("React route table covers every SPA-owned page", () => {
@@ -148,75 +149,53 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
     }
   });
 
-  describe("Visual-fidelity classnames are present in admin-layout.css", () => {
-    // Sentinels per page — if any of these go missing we've broken the
-    // 1:1 port from `*-ui.ts`. The full list of classes ports verbatim;
-    // these are spot checks on the most-load-bearing ones.
-    const classes = [
-      // Shell
-      ".admin-shell",
-      ".admin-sidebar",
-      ".admin-nav__link--active",
-      ".admin-card",
-      ".admin-page__title",
-      ".admin-badge--ok",
-      // Hero / stats / services
-      ".hero",
-      ".hero__metric",
-      ".stat-card",
-      ".stat-card__pill--ok",
-      ".svc",
-      ".svc__dot--up",
-      ".dash-log__chip--info",
-      ".feat-row--on",
-      ".quick",
-      // Features
-      ".feat-summary",
-      '.feat-card[data-on="true"]',
-      ".feat-toggle",
-      ".feat-restart",
-      // Coverage
-      ".cov-totals",
-      ".cov-tile__fill--ok",
-      ".cov-gate--ok",
-      ".cov-scroll",
-      // Tests
-      ".test-totals",
-      ".test-pill--passed",
-      ".test-row--failed",
-      // Diagnostics
-      ".diag-grid",
-      ".diag-bar__fill--bad",
-      ".diag-pill",
-      // Routes
-      ".ri-tiles",
-      ".ri-method--GET",
-      ".ri-guard--can",
-      // Traces
-      ".tv-tiles",
-      ".tv-row--expanded",
-      ".tv-drill__sql",
-      // Queries
-      ".qv-tiles",
-      ".qv-dur--bad",
-      // Logs
-      ".log-scroll",
-      ".log-level--error",
-      ".log-jump",
-      // Email preview
-      ".ep-card",
-      ".ep-html",
-      // ERD
-      ".erd-card",
-      ".erd-canvas",
-      // JSON viewer
-      ".jv__node",
-      ".jv__key--match",
-      ".jv__copied",
+  describe("Tailwind theme is wired to the dev-portal tokens", () => {
+    // After the shadcn migration the page chrome lives in Tailwind
+    // utility classes that resolve to the same dev-portal CSS-vars the
+    // brand-loader writes (Issue #5). The contract that survives is
+    // "every shadcn semantic colour points back at our token" — so
+    // brand changes still propagate everywhere.
+    const themeBridges = [
+      "--color-background: var(--bg)",
+      "--color-foreground: var(--fg)",
+      "--color-card: var(--surface-1)",
+      "--color-primary: var(--accent)",
+      "--color-primary-foreground: var(--accent-ink)",
+      "--color-muted: var(--surface-2)",
+      "--color-muted-foreground: var(--fg-muted)",
+      "--color-accent: var(--accent)",
+      "--color-destructive: var(--err)",
+      "--color-border: var(--line)",
+      "--color-ring: var(--accent)",
     ];
-    for (const cls of classes) {
-      it(`admin-layout.css declares ${cls}`, () => {
-        expect(ADMIN_LAYOUT_CSS).toContain(cls);
+    for (const decl of themeBridges) {
+      it(`globals.css declares the @theme bridge ${decl}`, () => {
+        expect(GLOBALS_CSS).toContain(decl);
+      });
+    }
+
+    it("globals.css imports tailwindcss", () => {
+      expect(GLOBALS_CSS).toContain('@import "tailwindcss"');
+    });
+  });
+
+  describe("AdminShell renders the structural identity of the dev-portal", () => {
+    // Spot-check the shell still emits the headline elements the SPA
+    // depends on. The legacy admin-* class catalogue is gone but the
+    // structural contract (sidebar / main / header / online badge /
+    // brand block) holds across the migration.
+    const structuralAnchors = [
+      "<aside",
+      "<main",
+      "<nav",
+      "<header",
+      "online",
+      "NestJS Docs",
+      'to="/dev"',
+    ];
+    for (const fragment of structuralAnchors) {
+      it(`AdminShell.tsx contains ${JSON.stringify(fragment)}`, () => {
+        expect(ADMIN_SHELL).toContain(fragment);
       });
     }
   });

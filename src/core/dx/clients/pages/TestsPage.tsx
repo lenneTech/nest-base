@@ -1,14 +1,23 @@
 /**
- * `/dev/tests` — verbatim React port of `test-summary-ui.ts`. Same
- * 4-tile totals (tests / passed / failed / duration), same files
- * table sorted failures-first inside a sticky-header scroll
- * container with optional failure-snippet `<pre>`.
+ * `/dev/tests` — totals + per-file Vitest summary.
  */
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
+import { Badge } from "../components/ui/badge.js";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table.js";
+import { PageEmpty, PageError, PageLoading, StatTile } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson, formatTestDuration } from "../lib/api.js";
+import { cn } from "../lib/utils.js";
 
 interface TotalShape {
   tests: number;
@@ -53,16 +62,16 @@ export function TestsPage(): ReactNode {
         data.data.available ? (
           <TestsBody report={data.data} />
         ) : (
-          <div className="admin-empty">
-            Test summary not generated yet.
-            <br />
-            Run <code>bun run test:summary</code> to populate the dashboard.
-          </div>
+          <PageEmpty>
+            Test summary not generated yet. Run{" "}
+            <code className="font-mono text-accent">bun run test:summary</code> to populate the
+            dashboard.
+          </PageEmpty>
         )
       ) : data.isError ? (
-        <div className="admin-empty">Failed to load test summary.</div>
+        <PageError>Failed to load test summary.</PageError>
       ) : (
-        <div className="admin-empty">Loading test summary…</div>
+        <PageLoading>Loading test summary…</PageLoading>
       )}
     </AdminShell>
   );
@@ -71,83 +80,83 @@ export function TestsPage(): ReactNode {
 function TestsBody({ report }: { report: TestSummary }): ReactNode {
   const t = report.totals;
   return (
-    <>
-      <div className="admin-card">
-        <h2 className="admin-card__title">
-          Totals
+    <div className="flex flex-col gap-6">
+      <Card>
+        <CardHeader className="flex-row items-center justify-between gap-3">
+          <CardTitle>Totals</CardTitle>
           {t.success ? (
-            <span className="test-pill test-pill--passed">✓ all green</span>
+            <Badge variant="ok">✓ all green</Badge>
           ) : (
-            <span className="test-pill test-pill--failed">✗ failures</span>
+            <Badge variant="err">✗ failures</Badge>
           )}
-        </h2>
-        <div className="test-totals">
-          <div className="test-tile test-tile--neutral">
-            <div className="test-tile__label">Tests</div>
-            <div className="test-tile__value">{t.tests}</div>
-          </div>
-          <div className="test-tile test-tile--ok">
-            <div className="test-tile__label">Passed</div>
-            <div className="test-tile__value">{t.passed}</div>
-          </div>
-          <div className="test-tile test-tile--bad">
-            <div className="test-tile__label">Failed</div>
-            <div className="test-tile__value">{t.failed}</div>
-          </div>
-          <div className="test-tile test-tile--neutral">
-            <div className="test-tile__label">Duration</div>
-            <div className="test-tile__value">{formatTestDuration(t.durationMs)}</div>
-          </div>
-        </div>
-      </div>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <StatTile label="Tests" value={t.tests} />
+          <StatTile label="Passed" value={t.passed} tone="ok" />
+          <StatTile label="Failed" value={t.failed} tone={t.failed > 0 ? "err" : "default"} />
+          <StatTile label="Duration" value={formatTestDuration(t.durationMs)} />
+        </CardContent>
+      </Card>
 
-      <div className="admin-card">
-        <h2 className="admin-card__title">Files ({report.files.length}, fehler zuerst)</h2>
-        {report.files.length === 0 ? (
-          <div className="admin-empty">No file-level data in summary.</div>
-        ) : (
-          <div className="test-scroll">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Status</th>
-                  <th>File</th>
-                  <th>Pass</th>
-                  <th>Fail</th>
-                  <th>Skip</th>
-                  <th>Duration</th>
-                </tr>
-              </thead>
-              <tbody>
-                {report.files.map((file) => (
-                  <tr
-                    key={file.path}
-                    className={file.status === "failed" ? "test-row--failed" : ""}
-                  >
-                    <td>
-                      {file.status === "passed" ? (
-                        <span className="test-pill test-pill--passed">passed</span>
-                      ) : (
-                        <span className="test-pill test-pill--failed">failed</span>
-                      )}
-                    </td>
-                    <td>
-                      <code>{file.path}</code>
-                      {file.failureSnippet ? (
-                        <pre className="test-snippet">{file.failureSnippet}</pre>
-                      ) : null}
-                    </td>
-                    <td>{file.passed}</td>
-                    <td>{file.failed}</td>
-                    <td>{file.skipped}</td>
-                    <td>{formatTestDuration(file.durationMs)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </>
+      <Card>
+        <CardHeader>
+          <CardTitle>Files ({report.files.length}, failures first)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {report.files.length === 0 ? (
+            <PageEmpty>No file-level data in summary.</PageEmpty>
+          ) : (
+            <div className="max-h-[65dvh] min-h-56 overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Status</TableHead>
+                    <TableHead>File</TableHead>
+                    <TableHead>Pass</TableHead>
+                    <TableHead>Fail</TableHead>
+                    <TableHead>Skip</TableHead>
+                    <TableHead>Duration</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {report.files.map((file) => (
+                    <TableRow
+                      key={file.path}
+                      className={cn(file.status === "failed" && "bg-err/5")}
+                    >
+                      <TableCell>
+                        <Badge variant={file.status === "passed" ? "ok" : "err"}>
+                          {file.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <code className="font-mono text-xs">{file.path}</code>
+                        {file.failureSnippet ? (
+                          <pre className="mt-2 rounded bg-surface-3 p-2 text-[0.7rem] text-err whitespace-pre-wrap">
+                            {file.failureSnippet}
+                          </pre>
+                        ) : null}
+                      </TableCell>
+                      <TableCell className="font-mono tabular-nums text-ok">
+                        {file.passed}
+                      </TableCell>
+                      <TableCell className="font-mono tabular-nums text-err">
+                        {file.failed}
+                      </TableCell>
+                      <TableCell className="font-mono tabular-nums text-fg-muted">
+                        {file.skipped}
+                      </TableCell>
+                      <TableCell className="font-mono tabular-nums">
+                        {formatTestDuration(file.durationMs)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }

@@ -4,31 +4,25 @@
  * Two-column layout:
  *   - left rail: collapsible folder tree (built from /dev/files/tree.json)
  *   - right pane: breadcrumb + sort/filter toolbar + file grid
- *
- * The page exposes the storage layer that issue #16 (Files persistence)
- * and issue #17 (IPX thumbnails) made possible: browse what's in
- * Postgres, see image previews via `/_ipx/preset_thumbnail/...`, sort
- * + filter without an extra round-trip below 500 entries.
- *
- * The tenant id is read from the `x-tenant-id` cookie when present
- * (debug surface only — operators can paste a value into the input
- * field). Production will gate the page behind an admin check; for
- * the dev surface the controller already 404s outside development.
- *
- * Out of scope for this slice (tracked by follow-up issues):
- *   - upload via TUS (foundation already wired in #16; UI follow-up)
- *   - drag-and-drop move, rename, multi-select bulk actions
- *   - lightbox / Monaco / PDF preview drawer
- *   - share-link creator + visibility toggle
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState, type ReactNode } from "react";
 
-import { Button } from "../components/Button.js";
-import { Select, SelectItem } from "../components/Select.js";
-import { TextField } from "../components/TextField.js";
+import { Button } from "../components/ui/button.js";
+import { Card, CardContent } from "../components/ui/card.js";
+import { Input } from "../components/ui/input.js";
+import { Label } from "../components/ui/label.js";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select.js";
+import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson, formatBytes } from "../lib/api.js";
+import { cn } from "../lib/utils.js";
 
 interface FolderTreeNodeDto {
   id: string;
@@ -167,124 +161,149 @@ export function FileManagerPage(): ReactNode {
 
   return (
     <AdminShell title="File Manager" subtitle={subtitle} currentNav="files">
-      <div className="admin-card" data-file-manager>
-        <div className="fm-tenant-bar">
-          <TextField
-            label="Tenant-UUID"
-            value={tenantId}
-            onChange={setTenantId}
-            placeholder="00000000-0000-0000-0000-000000000000"
-          />
-          {!tenantValid ? (
-            <span className="admin-meta">UUID muss 8-4-4-4-12 Zeichen lang sein.</span>
-          ) : null}
-        </div>
-        {tenantValid ? (
-          <div className="fm-layout">
-            <aside className="fm-tree" data-fm-region="tree">
-              <header className="fm-tree__header">
-                <strong>Ordner</strong>
-                <button
-                  type="button"
-                  className="fm-tree__rootlink"
-                  onClick={() => setActiveFolderId(null)}
-                  data-action="select-root"
-                  data-active={activeFolderId === null}
-                >
-                  Root
-                </button>
-              </header>
-              {treeQuery.data ? (
-                <FolderTree
-                  nodes={treeQuery.data.tree}
-                  activeId={activeFolderId}
-                  onSelect={setActiveFolderId}
-                />
-              ) : treeQuery.isError ? (
-                <div className="admin-empty">Ordnerbaum konnte nicht geladen werden.</div>
-              ) : (
-                <div className="admin-empty">Lade…</div>
-              )}
-              <form
-                className="fm-tree__create"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (newFolderName.trim().length > 0 && !createFolder.isPending) {
-                    createFolder.mutate();
-                  }
-                }}
+      <Card data-file-manager>
+        <CardContent className="flex flex-col gap-4 p-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-1 min-w-72 flex-col gap-1.5">
+              <Label htmlFor="tenant-id">Tenant-UUID</Label>
+              <Input
+                id="tenant-id"
+                value={tenantId}
+                onChange={(e) => setTenantId(e.target.value)}
+                placeholder="00000000-0000-0000-0000-000000000000"
+              />
+            </div>
+            {!tenantValid ? (
+              <span className="text-xs text-fg-muted">UUID muss 8-4-4-4-12 Zeichen lang sein.</span>
+            ) : null}
+          </div>
+          {tenantValid ? (
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
+              <aside
+                className="rounded-md border border-line bg-surface-2 p-3"
+                data-fm-region="tree"
               >
-                <TextField
-                  label="Neuer Ordner"
-                  value={newFolderName}
-                  onChange={setNewFolderName}
-                  placeholder="Neuer Ordner"
-                />
-                <Button
-                  variant="ghost"
-                  type="submit"
-                  isDisabled={createFolder.isPending || newFolderName.trim().length === 0}
-                  data-action="create-folder"
-                >
-                  {createFolder.isPending ? "Anlegen…" : "Anlegen"}
-                </Button>
-                {createFolder.isError ? (
-                  <span className="admin-meta">{(createFolder.error as Error).message}</span>
-                ) : null}
-              </form>
-            </aside>
-            <section className="fm-grid" data-fm-region="grid">
-              <div className="fm-breadcrumb" aria-label="Pfad">
-                {breadcrumbQuery.data ? (
-                  <BreadcrumbBar
-                    segments={breadcrumbQuery.data.segments}
+                <header className="mb-3 flex items-center justify-between">
+                  <strong className="text-xs uppercase tracking-wider text-fg-dim">Ordner</strong>
+                  <button
+                    type="button"
+                    className={cn(
+                      "rounded px-2 py-1 text-xs",
+                      activeFolderId === null
+                        ? "bg-accent-soft text-accent"
+                        : "text-fg-muted hover:text-fg",
+                    )}
+                    onClick={() => setActiveFolderId(null)}
+                    data-action="select-root"
+                    data-active={activeFolderId === null}
+                  >
+                    Root
+                  </button>
+                </header>
+                {treeQuery.data ? (
+                  <FolderTree
+                    nodes={treeQuery.data.tree}
+                    activeId={activeFolderId}
                     onSelect={setActiveFolderId}
                   />
-                ) : null}
-              </div>
-              <div className="fm-toolbar">
-                <TextField
-                  label="Suche"
-                  value={search}
-                  onChange={setSearch}
-                  placeholder="Dateiname enthält…"
-                />
-                <Select
-                  label="Sortieren nach"
-                  selectedKey={sortBy}
-                  onSelectionChange={(key) => setSortBy(key as SortKey)}
+                ) : treeQuery.isError ? (
+                  <PageError>Ordnerbaum konnte nicht geladen werden.</PageError>
+                ) : (
+                  <PageLoading>Lade…</PageLoading>
+                )}
+                <form
+                  className="mt-4 flex flex-col gap-2 border-t border-line pt-3"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (newFolderName.trim().length > 0 && !createFolder.isPending) {
+                      createFolder.mutate();
+                    }
+                  }}
                 >
-                  {SORT_KEYS.map((k) => (
-                    <SelectItem key={k.id} id={k.id}>
-                      {k.label}
-                    </SelectItem>
-                  ))}
-                </Select>
-                <Button
-                  variant="ghost"
-                  onPress={() => setSortDirection((d) => (d === "asc" ? "desc" : "asc"))}
-                  data-action="toggle-direction"
-                >
-                  {sortDirection === "asc" ? "↑ aufsteigend" : "↓ absteigend"}
-                </Button>
-              </div>
-              {listQuery.isError ? (
-                <div className="admin-empty">Datei-Liste konnte nicht geladen werden.</div>
-              ) : !listQuery.data ? (
-                <div className="admin-empty">Lade…</div>
-              ) : listQuery.data.files.length === 0 ? (
-                <div className="admin-empty">Keine Dateien in diesem Ordner.</div>
-              ) : (
-                <FileGrid
-                  files={listQuery.data.files}
-                  onDelete={(id) => deleteFile.mutate(id)}
-                  isDeleting={deleteFile.isPending}
-                />
-              )}
-            </section>
-          </div>
-        ) : null}
-      </div>
+                  <Label htmlFor="new-folder">Neuer Ordner</Label>
+                  <Input
+                    id="new-folder"
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    placeholder="Neuer Ordner"
+                  />
+                  <Button
+                    variant="outline"
+                    type="submit"
+                    size="sm"
+                    disabled={createFolder.isPending || newFolderName.trim().length === 0}
+                    data-action="create-folder"
+                  >
+                    {createFolder.isPending ? "Anlegen…" : "Anlegen"}
+                  </Button>
+                  {createFolder.isError ? (
+                    <span className="text-xs text-err">
+                      {(createFolder.error as Error).message}
+                    </span>
+                  ) : null}
+                </form>
+              </aside>
+              <section className="flex flex-col gap-3" data-fm-region="grid">
+                <div aria-label="Pfad">
+                  {breadcrumbQuery.data ? (
+                    <BreadcrumbBar
+                      segments={breadcrumbQuery.data.segments}
+                      onSelect={setActiveFolderId}
+                    />
+                  ) : null}
+                </div>
+                <div className="flex flex-wrap items-end gap-3 rounded-md border border-line bg-surface-2 p-3">
+                  <div className="flex flex-1 min-w-48 flex-col gap-1.5">
+                    <Label htmlFor="fm-search">Suche</Label>
+                    <Input
+                      id="fm-search"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Dateiname enthält…"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="fm-sort">Sortieren nach</Label>
+                    <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
+                      <SelectTrigger id="fm-sort" className="w-44">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SORT_KEYS.map((k) => (
+                          <SelectItem key={k.id} value={k.id}>
+                            {k.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSortDirection((d) => (d === "asc" ? "desc" : "asc"))}
+                    data-action="toggle-direction"
+                  >
+                    {sortDirection === "asc" ? "↑ aufsteigend" : "↓ absteigend"}
+                  </Button>
+                </div>
+                {listQuery.isError ? (
+                  <PageError>Datei-Liste konnte nicht geladen werden.</PageError>
+                ) : !listQuery.data ? (
+                  <PageLoading>Lade…</PageLoading>
+                ) : listQuery.data.files.length === 0 ? (
+                  <PageEmpty>Keine Dateien in diesem Ordner.</PageEmpty>
+                ) : (
+                  <FileGrid
+                    files={listQuery.data.files}
+                    onDelete={(id) => deleteFile.mutate(id)}
+                    isDeleting={deleteFile.isPending}
+                  />
+                )}
+              </section>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
     </AdminShell>
   );
 }
@@ -299,10 +318,10 @@ function FolderTree({
   onSelect: (id: string) => void;
 }): ReactNode {
   if (nodes.length === 0) {
-    return <div className="admin-empty">Keine Ordner.</div>;
+    return <PageEmpty>Keine Ordner.</PageEmpty>;
   }
   return (
-    <ul className="fm-tree__list" role="tree">
+    <ul className="flex flex-col gap-0.5" role="tree">
       {nodes.map((n) => (
         <FolderTreeNode key={n.id} node={n} activeId={activeId} onSelect={onSelect} />
       ))}
@@ -324,15 +343,20 @@ function FolderTreeNode({
     <li role="treeitem" aria-selected={isActive} data-folder-id={node.id}>
       <button
         type="button"
-        className="fm-tree__node"
+        className={cn(
+          "block w-full rounded px-2 py-1 text-left text-xs",
+          isActive
+            ? "bg-accent-soft text-accent"
+            : "text-fg-muted hover:bg-surface-hover hover:text-fg",
+        )}
         data-active={isActive}
-        style={{ paddingLeft: `${node.depth * 12}px` }}
+        style={{ paddingLeft: `${0.5 + node.depth * 0.75}rem` }}
         onClick={() => onSelect(node.id)}
       >
         {node.name}
       </button>
       {node.children.length > 0 ? (
-        <ul className="fm-tree__list">
+        <ul className="flex flex-col gap-0.5">
           {node.children.map((c) => (
             <FolderTreeNode key={c.id} node={c} activeId={activeId} onSelect={onSelect} />
           ))}
@@ -350,13 +374,16 @@ function BreadcrumbBar({
   onSelect: (id: string | null) => void;
 }): ReactNode {
   return (
-    <ol className="fm-breadcrumb__list">
+    <ol className="flex flex-wrap items-center gap-1 text-sm">
       {segments.map((seg, idx) => (
-        <li key={`${seg.id ?? "root"}-${idx}`} className="fm-breadcrumb__seg">
-          {idx > 0 ? <span className="fm-breadcrumb__sep">/</span> : null}
+        <li key={`${seg.id ?? "root"}-${idx}`} className="flex items-center gap-1">
+          {idx > 0 ? <span className="text-fg-faint">/</span> : null}
           <button
             type="button"
-            className="fm-breadcrumb__link"
+            className={cn(
+              "rounded px-2 py-1 text-xs hover:bg-surface-hover",
+              idx === segments.length - 1 ? "text-accent" : "text-fg-muted",
+            )}
             onClick={() => onSelect(seg.id)}
             data-active={idx === segments.length - 1}
           >
@@ -378,31 +405,41 @@ function FileGrid({
   isDeleting: boolean;
 }): ReactNode {
   return (
-    <ul className="fm-cards" role="list">
+    <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6" role="list">
       {files.map((f) => (
-        <li key={f.id} className="fm-card" data-file-id={f.id}>
-          <div className="fm-card__thumb">
+        <li
+          key={f.id}
+          className="flex flex-col overflow-hidden rounded-md border border-line bg-surface-2"
+          data-file-id={f.id}
+        >
+          <div className="flex aspect-square items-center justify-center bg-surface-3">
             {f.thumbnailUrl ? (
-              <img src={f.thumbnailUrl} alt="" loading="lazy" />
+              <img
+                src={f.thumbnailUrl}
+                alt=""
+                loading="lazy"
+                className="h-full w-full object-cover"
+              />
             ) : (
-              <span className="fm-card__icon" aria-hidden="true">
+              <span className="font-mono text-xs text-fg-faint" aria-hidden="true">
                 {iconForMime(f.mimeType)}
               </span>
             )}
           </div>
-          <div className="fm-card__meta">
-            <strong className="fm-card__name" title={f.filename}>
+          <div className="flex flex-1 flex-col gap-1 p-2">
+            <strong className="truncate text-xs" title={f.filename}>
               {f.filename}
             </strong>
-            <span className="admin-meta">
+            <span className="text-[0.65rem] text-fg-muted">
               {formatBytes(f.sizeBytes)} · {f.mimeType}
             </span>
           </div>
-          <div className="fm-card__actions">
+          <div className="border-t border-line p-2">
             <Button
               variant="ghost"
-              isDisabled={isDeleting}
-              onPress={() => {
+              size="sm"
+              disabled={isDeleting}
+              onClick={() => {
                 if (typeof window !== "undefined" && !window.confirm(`Löschen: ${f.filename}?`))
                   return;
                 onDelete(f.id);
@@ -431,11 +468,6 @@ function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
 
-/**
- * Read a default tenant id from the `x-tenant-id` cookie if present.
- * The dev-surface lets operators paste a UUID directly when no cookie
- * is set; production gating is the controller-side `assertDev()`.
- */
 function readDefaultTenantId(): string {
   if (typeof document === "undefined") return "";
   const match = /(?:^|; )x-tenant-id=([^;]+)/.exec(document.cookie);

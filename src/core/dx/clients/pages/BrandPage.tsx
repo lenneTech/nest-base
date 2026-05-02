@@ -2,18 +2,16 @@
  * `/dev/brand` — read-only viewer (with reset action) for the
  * project brand configuration.
  *
- * The form-based editor with live preview + color pickers is a
- * follow-up slice; this minimal page already satisfies the route +
- * shows the operator what the active brand looks like and lets them
- * reset to the template default with one click.
- *
- * Data: `/dev/brand.json` (effective brand). Reset posts to
- * `/dev/brand/reset` which deletes `src/modules/branding/brand.json`
- * and triggers the dev-runner's brand-watcher to restart the API.
+ * Reset posts to `/dev/brand/reset` which deletes
+ * `src/modules/branding/brand.json` and triggers the dev-runner's
+ * brand-watcher to restart the API.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
+import { Button } from "../components/ui/button.js";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
+import { PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson } from "../lib/api.js";
 
@@ -59,41 +57,53 @@ export function BrandPage(): ReactNode {
       subtitle="Active brand configuration — reads from src/modules/branding/brand.json (with template fallback)"
       currentNav="brand"
     >
-      <div className="admin-card">
-        {isLoading ? (
-          <p className="admin-page__subtitle">Loading…</p>
-        ) : isError ? (
-          <p className="admin-page__subtitle">Failed to load brand.</p>
-        ) : data ? (
-          <BrandPreview brand={data} />
-        ) : null}
-      </div>
+      <div className="flex flex-col gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Active brand</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <PageLoading>Loading…</PageLoading>
+            ) : isError ? (
+              <PageError>Failed to load brand.</PageError>
+            ) : data ? (
+              <BrandPreview brand={data} />
+            ) : null}
+          </CardContent>
+        </Card>
 
-      <div className="admin-card" style={{ marginTop: "1rem" }}>
-        <h2 style={{ margin: "0 0 0.5rem 0" }}>Reset to default</h2>
-        <p className="admin-page__subtitle">
-          Deletes <code>src/modules/branding/brand.json</code> and falls back to{" "}
-          <code>src/core/branding/brand.default.json</code>. The dev runner restarts the API
-          automatically.
-        </p>
-        <button
-          type="button"
-          className="admin-btn"
-          onClick={() => {
-            // eslint-disable-next-line no-alert
-            if (window.confirm("Delete src/modules/branding/brand.json and reset to default?")) {
-              reset.mutate();
-            }
-          }}
-          disabled={reset.isPending}
-        >
-          {reset.isPending ? "Resetting…" : "Reset brand"}
-        </button>
-        {reset.isSuccess ? (
-          <p className="admin-page__subtitle" style={{ marginTop: "0.5rem", color: "var(--ok)" }}>
-            Brand reset. The dev runner is restarting the API.
-          </p>
-        ) : null}
+        <Card>
+          <CardHeader>
+            <CardTitle>Reset to default</CardTitle>
+            <p className="text-xs text-fg-muted">
+              Deletes <code className="font-mono text-accent">src/modules/branding/brand.json</code>{" "}
+              and falls back to{" "}
+              <code className="font-mono text-accent">src/core/branding/brand.default.json</code>.
+              The dev runner restarts the API automatically.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (
+                  window.confirm("Delete src/modules/branding/brand.json and reset to default?")
+                ) {
+                  reset.mutate();
+                }
+              }}
+              disabled={reset.isPending}
+            >
+              {reset.isPending ? "Resetting…" : "Reset brand"}
+            </Button>
+            {reset.isSuccess ? (
+              <p className="mt-2 text-sm text-ok">
+                Brand reset. The dev runner is restarting the API.
+              </p>
+            ) : null}
+          </CardContent>
+        </Card>
       </div>
     </AdminShell>
   );
@@ -101,20 +111,12 @@ export function BrandPage(): ReactNode {
 
 function BrandPreview({ brand }: { brand: BrandConfig }): ReactNode {
   return (
-    <div>
-      <h2 style={{ margin: "0 0 1rem 0" }}>{brand.name}</h2>
-      {brand.tagline ? (
-        <p className="admin-page__subtitle" style={{ marginBottom: "1rem" }}>
-          {brand.tagline}
-        </p>
-      ) : null}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-          gap: "0.75rem",
-        }}
-      >
+    <div className="flex flex-col gap-6">
+      <div>
+        <h2 className="m-0 text-xl font-semibold">{brand.name}</h2>
+        {brand.tagline ? <p className="mt-1 text-sm text-fg-muted">{brand.tagline}</p> : null}
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <ColorSwatch label="primaryColor" value={brand.primaryColor} />
         <ColorSwatch label="primaryColorInk" value={brand.primaryColorInk} />
         <ColorSwatch label="backgroundColor" value={brand.backgroundColor} />
@@ -122,7 +124,7 @@ function BrandPreview({ brand }: { brand: BrandConfig }): ReactNode {
         <ColorSwatch label="textColor" value={brand.textColor} />
         <ColorSwatch label="mutedTextColor" value={brand.mutedTextColor} />
       </div>
-      <dl style={{ marginTop: "1.5rem" }}>
+      <dl className="grid grid-cols-[10rem_1fr] gap-y-1 text-xs">
         {brand.legalEntity ? <Row label="legalEntity" value={brand.legalEntity} /> : null}
         <Row label="fromEmail" value={brand.fromEmail} />
         {brand.supportEmail ? <Row label="supportEmail" value={brand.supportEmail} /> : null}
@@ -134,40 +136,19 @@ function BrandPreview({ brand }: { brand: BrandConfig }): ReactNode {
 
 function ColorSwatch({ label, value }: { label: string; value: string }): ReactNode {
   return (
-    <div
-      style={{
-        border: "1px solid var(--line)",
-        borderRadius: "var(--radius-sm)",
-        padding: "0.5rem",
-        background: "var(--surface-2)",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          height: "32px",
-          background: value,
-          borderRadius: "var(--radius-sm)",
-          marginBottom: "0.5rem",
-        }}
-      />
-      <div style={{ fontSize: "11px", fontFamily: "var(--font-mono)", color: "var(--fg-dim)" }}>
-        {label}
-      </div>
-      <div style={{ fontSize: "12px", fontFamily: "var(--font-mono)", color: "var(--fg)" }}>
-        {value}
-      </div>
+    <div className="rounded-md border border-line bg-surface-2 p-2">
+      <div className="mb-2 h-8 w-full rounded" style={{ background: value }} />
+      <div className="font-mono text-[0.65rem] text-fg-dim">{label}</div>
+      <div className="font-mono text-xs text-fg">{value}</div>
     </div>
   );
 }
 
 function Row({ label, value }: { label: string; value: string }): ReactNode {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "10rem 1fr", padding: "0.25rem 0" }}>
-      <dt style={{ color: "var(--fg-dim)", fontFamily: "var(--font-mono)", fontSize: "12px" }}>
-        {label}
-      </dt>
-      <dd style={{ margin: 0 }}>{value}</dd>
-    </div>
+    <>
+      <dt className="font-mono text-fg-dim">{label}</dt>
+      <dd className="m-0 break-all font-mono text-fg">{value}</dd>
+    </>
   );
 }

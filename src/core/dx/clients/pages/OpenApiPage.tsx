@@ -1,14 +1,12 @@
 /**
- * `/api/openapi` — verbatim React port of the JSON-viewer branch
- * `bootstrap.ts` mounted via `renderJsonViewerPage`. The HTML page is
- * the dev-portal SPA shell; this React tree fetches
- * `/api/openapi.json` and renders the spec through the same
- * `JsonViewer` component the legacy server viewer wrapped.
+ * `/api/openapi` — fetches `/api/openapi.json` and renders the spec
+ * through `JsonViewer`.
  */
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
 import { JsonViewer } from "../components/JsonViewer.js";
+import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson } from "../lib/api.js";
 
@@ -27,9 +25,11 @@ export function OpenApiPage(): ReactNode {
       {data.data ? (
         <JsonViewer value={data.data} rawJsonHref="/api/openapi.json" />
       ) : data.isError ? (
-        <div className="admin-empty">Failed to load OpenAPI spec.</div>
+        <PageError>Failed to load OpenAPI spec.</PageError>
+      ) : data.isLoading ? (
+        <PageLoading>Loading OpenAPI spec…</PageLoading>
       ) : (
-        <div className="admin-empty">Loading OpenAPI spec…</div>
+        <PageEmpty>No OpenAPI spec available.</PageEmpty>
       )}
     </AdminShell>
   );

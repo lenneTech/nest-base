@@ -1,14 +1,26 @@
 /**
- * `/dev/coverage` — verbatim React port of `coverage-ui.ts`. Same
- * 4-tile totals (lines / statements / branches / functions) with
- * progress bars, same gate badges, same files table sorted
- * worst-first inside a sticky-header scroll container.
+ * `/dev/coverage` — coverage totals + per-file table. Same data the
+ * server's `coverage-ui.ts` rendered; the layer is now Tailwind +
+ * shadcn primitives.
  */
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
+import { Badge } from "../components/ui/badge.js";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
+import { Progress } from "../components/ui/progress.js";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table.js";
+import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson } from "../lib/api.js";
+import { cn } from "../lib/utils.js";
 
 interface Bucket {
   pct: number;
@@ -49,16 +61,16 @@ export function CoveragePage(): ReactNode {
         data.data.available ? (
           <CoverageBody report={data.data} />
         ) : (
-          <div className="admin-empty">
-            Coverage report not generated yet.
-            <br />
-            Run <code>bun run test:coverage</code> to populate the dashboard.
-          </div>
+          <PageEmpty>
+            Coverage report not generated yet. Run{" "}
+            <code className="font-mono text-accent">bun run test:coverage</code> to populate the
+            dashboard.
+          </PageEmpty>
         )
       ) : data.isError ? (
-        <div className="admin-empty">Failed to load coverage report.</div>
+        <PageError>Failed to load coverage report.</PageError>
       ) : (
-        <div className="admin-empty">Loading coverage report…</div>
+        <PageLoading>Loading coverage report…</PageLoading>
       )}
     </AdminShell>
   );
@@ -66,99 +78,105 @@ export function CoveragePage(): ReactNode {
 
 function CoverageBody({ report }: { report: CoverageReport }): ReactNode {
   return (
-    <>
-      <div className="admin-card">
-        <h2 className="admin-card__title">
-          Totals
-          <GateBadge label={`Core ≥ ${report.thresholds.core}%`} ok={report.gate.coreOk} />
-          <GateBadge label={`Modules ≥ ${report.thresholds.modules}%`} ok={report.gate.modulesOk} />
-        </h2>
-        <div className="cov-totals">
+    <div className="flex flex-col gap-6">
+      <Card>
+        <CardHeader className="flex-row flex-wrap items-center justify-between gap-3">
+          <CardTitle>Totals</CardTitle>
+          <div className="flex gap-2">
+            <GateBadge label={`Core ≥ ${report.thresholds.core}%`} ok={report.gate.coreOk} />
+            <GateBadge
+              label={`Modules ≥ ${report.thresholds.modules}%`}
+              ok={report.gate.modulesOk}
+            />
+          </div>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Tile label="Lines" pct={report.total?.lines.pct} />
           <Tile label="Statements" pct={report.total?.statements.pct} />
           <Tile label="Branches" pct={report.total?.branches.pct} />
           <Tile label="Functions" pct={report.total?.functions.pct} />
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <div className="admin-card">
-        <h2 className="admin-card__title">Files ({report.files.length}, schlechteste oben)</h2>
-        {report.files.length === 0 ? (
-          <div className="admin-empty">No file-level coverage data.</div>
-        ) : (
-          <div className="cov-scroll">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>File</th>
-                  <th>Tier</th>
-                  <th>Lines</th>
-                  <th>Stmts</th>
-                  <th>Branches</th>
-                  <th>Funcs</th>
-                </tr>
-              </thead>
-              <tbody>
-                {report.files.map((file) => (
-                  <FileRowView key={file.path} file={file} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </>
+      <Card>
+        <CardHeader>
+          <CardTitle>Files ({report.files.length}, worst first)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {report.files.length === 0 ? (
+            <PageEmpty>No file-level coverage data.</PageEmpty>
+          ) : (
+            <div className="max-h-[65dvh] min-h-56 overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>File</TableHead>
+                    <TableHead>Tier</TableHead>
+                    <TableHead>Lines</TableHead>
+                    <TableHead>Stmts</TableHead>
+                    <TableHead>Branches</TableHead>
+                    <TableHead>Funcs</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {report.files.map((file) => (
+                    <FileRowView key={file.path} file={file} />
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
 function Tile({ label, pct }: { label: string; pct?: number }): ReactNode {
   const value = pct === undefined ? "—" : `${pct.toFixed(2)}%`;
   const safePct = Number.isFinite(pct) ? Math.max(0, Math.min(100, pct ?? 0)) : 0;
-  const cls =
-    safePct >= 90
-      ? "cov-tile__fill--ok"
-      : safePct >= 70
-        ? "cov-tile__fill--warn"
-        : "cov-tile__fill--bad";
+  const tone = safePct >= 90 ? "text-ok" : safePct >= 70 ? "text-warn" : "text-err";
   return (
-    <div className="cov-tile">
-      <div className="cov-tile__label">{label}</div>
-      <div className="cov-tile__value">{value}</div>
-      <div className="cov-tile__bar">
-        <div className={`cov-tile__fill ${cls}`} style={{ width: `${safePct}%` }} />
+    <div className="rounded-lg border border-line bg-surface-1 p-4">
+      <div className="text-[0.65rem] font-semibold uppercase tracking-widest text-fg-faint">
+        {label}
       </div>
+      <div className={cn("mt-2 text-2xl font-semibold tabular-nums", tone)}>{value}</div>
+      <Progress className="mt-3" value={safePct} />
     </div>
   );
 }
 
 function GateBadge({ label, ok }: { label: string; ok: boolean }): ReactNode {
   return (
-    <span className={`cov-gate ${ok ? "cov-gate--ok" : "cov-gate--bad"}`}>
+    <Badge variant={ok ? "ok" : "err"}>
       {ok ? "✓" : "✗"} {label}
-    </span>
+    </Badge>
   );
 }
 
 function FileRowView({ file }: { file: FileRow }): ReactNode {
   return (
-    <tr {...(!file.meetsThreshold ? { "data-below-threshold": "true" } : {})}>
-      <td>
-        <code>{file.path}</code>
-      </td>
-      <td>
-        <span className="cov-tier">{file.tier}</span>
-      </td>
-      <td>{pctCell(file.metrics.lines.pct, file.tier)}</td>
-      <td>{pctCell(file.metrics.statements.pct, file.tier)}</td>
-      <td>{pctCell(file.metrics.branches.pct, file.tier)}</td>
-      <td>{pctCell(file.metrics.functions.pct, file.tier)}</td>
-    </tr>
+    <TableRow data-below-threshold={!file.meetsThreshold ? "true" : undefined}>
+      <TableCell>
+        <code className="font-mono text-xs text-fg">{file.path}</code>
+      </TableCell>
+      <TableCell>
+        <Badge variant="outline" className="text-[0.65rem] uppercase">
+          {file.tier}
+        </Badge>
+      </TableCell>
+      <TableCell>{pctCell(file.metrics.lines.pct, file.tier)}</TableCell>
+      <TableCell>{pctCell(file.metrics.statements.pct, file.tier)}</TableCell>
+      <TableCell>{pctCell(file.metrics.branches.pct, file.tier)}</TableCell>
+      <TableCell>{pctCell(file.metrics.functions.pct, file.tier)}</TableCell>
+    </TableRow>
   );
 }
 
 function pctCell(pct: number, tier: FileRow["tier"]): ReactNode {
   const value = `${pct.toFixed(2)}%`;
   const target = tier === "core" ? 90 : tier === "modules" ? 80 : 0;
-  const cls = pct >= target ? "cov-pct--ok" : pct >= target - 10 ? "cov-pct--warn" : "cov-pct--bad";
-  return <span className={`cov-pct ${cls}`}>{value}</span>;
+  const tone = pct >= target ? "text-ok" : pct >= target - 10 ? "text-warn" : "text-err";
+  return <span className={cn("font-mono text-xs tabular-nums", tone)}>{value}</span>;
 }

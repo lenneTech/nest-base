@@ -2,32 +2,28 @@
  * `/dev/email-builder` — Layout-Designer + Children-Composer (Issue #9).
  *
  * Two top-level views:
- *
- *   1. Gallery — lists every discovered template (core + module
- *      overlay) with rendered subject + an iframe thumbnail. "New
- *      template" creates an empty Barebone draft; "Edit" opens the
- *      composer for an existing one (read-only for built-ins; user
- *      drafts they've saved earlier come back via /templates.json).
- *
- *   2. Composer — three columns:
- *        Left:  block palette (drag handles + click-to-add)
- *        Mid:   ordered child blocks for the current draft
- *        Right: live preview iframe (server-rendered HTML)
- *      The properties of the selected block live above the preview;
- *      changes flow into the live preview via /preview.json.
- *
- * Everything stays in component state — the only persistence is the
- * `Save` button which POSTs to `/dev/email-builder/save`. The bundle
- * is intentionally tiny: no TipTap, no react-dnd. The composer uses
- * react-aria-components for inputs and plain up/down buttons for
- * reordering — drag-drop is a follow-up.
+ *   1. Gallery — lists every discovered template; "New" creates a draft.
+ *   2. Composer — three-column block palette + composition + live preview.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { Button, Select, SelectItem, TextField } from "../components/index.js";
+import { Badge } from "../components/ui/badge.js";
+import { Button } from "../components/ui/button.js";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
+import { Input } from "../components/ui/input.js";
+import { Label } from "../components/ui/label.js";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select.js";
+import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson } from "../lib/api.js";
+import { cn } from "../lib/utils.js";
 
 interface DiscoveredTemplate {
   name: string;
@@ -127,8 +123,6 @@ export function EmailBuilderPage(): ReactNode {
             setView("composer");
           }}
           onDuplicate={(tpl) => {
-            // Duplicating a built-in seeds the composer with an empty
-            // draft and a slug suggestion derived from the source.
             setDraft(emptyDraft());
             setDraftSlug(`${tpl.name}-copy`);
             setView("composer");
@@ -148,10 +142,6 @@ export function EmailBuilderPage(): ReactNode {
   );
 }
 
-// -----------------------------------------------------------------
-// Gallery
-// -----------------------------------------------------------------
-
 interface GalleryProps {
   templates: DiscoveredTemplate[];
   isLoading: boolean;
@@ -167,33 +157,26 @@ function GalleryView({
   onNew,
   onDuplicate,
 }: GalleryProps): ReactNode {
-  if (isLoading) return <div className="admin-empty">Loading email templates…</div>;
-  if (isError) {
-    return <div className="admin-empty">Failed to load /dev/email-builder/templates.json</div>;
-  }
+  if (isLoading) return <PageLoading>Loading email templates…</PageLoading>;
+  if (isError) return <PageError>Failed to load /dev/email-builder/templates.json</PageError>;
   return (
-    <>
-      <div
-        className="admin-card"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: "1rem",
-        }}
-      >
-        <div>
-          <h3 className="feat-section__title">Templates</h3>
-          <p className="admin-page__subtitle">
-            File-based React-Email templates discovered under <code>src/core/email/templates/</code>{" "}
-            and <code>src/modules/email/templates/</code>.
-          </p>
-        </div>
-        <Button onPress={onNew}>+ New template</Button>
-      </div>
-      <div className="ep-grid" data-eb-gallery="true">
+    <div className="flex flex-col gap-6">
+      <Card>
+        <CardHeader className="flex-row items-center justify-between gap-4">
+          <div>
+            <CardTitle>Templates</CardTitle>
+            <p className="mt-1 text-xs text-fg-muted">
+              File-based React-Email templates discovered under{" "}
+              <code className="font-mono text-accent">src/core/email/templates/</code> and{" "}
+              <code className="font-mono text-accent">src/modules/email/templates/</code>.
+            </p>
+          </div>
+          <Button onClick={onNew}>+ New template</Button>
+        </CardHeader>
+      </Card>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" data-eb-gallery="true">
         {templates.length === 0 ? (
-          <div className="admin-empty">No templates discovered.</div>
+          <PageEmpty>No templates discovered.</PageEmpty>
         ) : (
           templates.map((tpl) => (
             <TemplateCard
@@ -204,7 +187,7 @@ function GalleryView({
           ))
         )}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -216,30 +199,27 @@ function TemplateCard({
   onDuplicate: () => void;
 }): ReactNode {
   return (
-    <section className="ep-card" data-eb-card={tpl.name}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <h3 className="ep-card__title">{tpl.name}</h3>
-        <span
-          className={`admin-badge ${tpl.source === "core" ? "admin-badge--ok" : ""}`}
-          style={{ fontSize: "10px", letterSpacing: "0.06em", textTransform: "uppercase" }}
-        >
-          {tpl.source}
-          {tpl.locale ? ` · ${tpl.locale}` : ""}
-        </span>
-      </header>
-      <p className="ep-card__desc" style={{ minHeight: "2em" }}>
-        {tpl.error ? `⚠ ${tpl.error}` : (tpl.subject ?? "")}
-      </p>
-      <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem" }}>
-        <Button onPress={onDuplicate}>Duplicate</Button>
-      </div>
-    </section>
+    <Card data-eb-card={tpl.name}>
+      <CardHeader>
+        <div className="flex items-start justify-between gap-2">
+          <CardTitle>{tpl.name}</CardTitle>
+          <Badge variant={tpl.source === "core" ? "ok" : "info"}>
+            {tpl.source}
+            {tpl.locale ? ` · ${tpl.locale}` : ""}
+          </Badge>
+        </div>
+        <p className="min-h-[2em] text-xs text-fg-muted">
+          {tpl.error ? `⚠ ${tpl.error}` : (tpl.subject ?? "")}
+        </p>
+      </CardHeader>
+      <CardContent>
+        <Button size="sm" variant="outline" onClick={onDuplicate}>
+          Duplicate
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
-
-// -----------------------------------------------------------------
-// Composer
-// -----------------------------------------------------------------
 
 interface ComposerProps {
   draft: CompositionDraft;
@@ -262,17 +242,9 @@ function ComposerView({
   const [selectedBlock, setSelectedBlock] = useState<number | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  // Collect every variable referenced in the draft so the vars-panel
-  // can offer a single text input per name (mirrors how the codegen
-  // would type them as required string fields). Recomputed cheaply on
-  // each render.
   const referencedVars = useMemo(() => collectVars(draft), [draft]);
   const [vars, setVars] = useState<Record<string, string>>({});
 
-  // Seed default values for newly-introduced vars so the preview has
-  // something to render. Pre-existing keys keep their current value so
-  // typing in the vars panel doesn't get clobbered when the draft
-  // grows another `{{var}}`.
   useEffect(() => {
     setVars((prev) => {
       const next: Record<string, string> = { ...prev };
@@ -337,65 +309,70 @@ function ComposerView({
   const layoutLib = blocks?.layouts ?? [];
 
   return (
-    <>
-      <div
-        className="admin-card"
-        style={{
-          display: "flex",
-          gap: "1rem",
-          alignItems: "flex-end",
-          flexWrap: "wrap",
-          marginBottom: "1rem",
-        }}
-      >
-        <TextField label="Slug" value={slug} onChange={setSlug} placeholder="my-template" />
-        <TextField
-          label="Subject"
-          value={draft.subject}
-          onChange={(v) => setDraft({ ...draft, subject: v })}
-        />
-        <TextField
-          label="Preheader"
-          value={draft.preheader}
-          onChange={(v) => setDraft({ ...draft, preheader: v })}
-        />
-        <Select
-          label="Layout"
-          selectedKey={draft.layout}
-          onSelectionChange={(k) => setDraft({ ...draft, layout: String(k) })}
-        >
-          {layoutLib.map((l) => (
-            <SelectItem key={l.name} id={l.name}>
-              {l.name}
-            </SelectItem>
-          ))}
-        </Select>
-        <div style={{ display: "flex", gap: "0.5rem", marginLeft: "auto" }}>
-          <Button onPress={onClose}>Back to gallery</Button>
-          <Button onPress={() => save.mutate()} isDisabled={save.isPending || !slug}>
-            {save.isPending ? "Saving…" : "Save"}
-          </Button>
-        </div>
-      </div>
+    <div className="flex flex-col gap-4">
+      <Card>
+        <CardContent className="flex flex-wrap items-end gap-3 p-4">
+          <FormField
+            label="Slug"
+            id="eb-slug"
+            value={slug}
+            onChange={setSlug}
+            placeholder="my-template"
+          />
+          <FormField
+            label="Subject"
+            id="eb-subject"
+            value={draft.subject}
+            onChange={(v) => setDraft({ ...draft, subject: v })}
+          />
+          <FormField
+            label="Preheader"
+            id="eb-preheader"
+            value={draft.preheader}
+            onChange={(v) => setDraft({ ...draft, preheader: v })}
+          />
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="eb-layout">Layout</Label>
+            <Select value={draft.layout} onValueChange={(v) => setDraft({ ...draft, layout: v })}>
+              <SelectTrigger id="eb-layout" className="w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {layoutLib.map((l) => (
+                  <SelectItem key={l.name} value={l.name}>
+                    {l.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="ml-auto flex flex-wrap gap-2">
+            <Button variant="outline" onClick={onClose}>
+              Back to gallery
+            </Button>
+            <Button onClick={() => save.mutate()} disabled={save.isPending || !slug}>
+              {save.isPending ? "Saving…" : "Save"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {saveError ? (
-        <div className="admin-card" role="alert" style={{ marginBottom: "1rem" }}>
-          <strong>Save failed:</strong> {saveError}
-        </div>
+        <Card className="border-err/40 bg-err/10" role="alert">
+          <CardContent className="p-3 text-sm">
+            <strong className="text-err">Save failed:</strong> {saveError}
+          </CardContent>
+        </Card>
       ) : null}
       {save.isSuccess ? (
-        <div className="admin-card" style={{ marginBottom: "1rem", color: "var(--ok)" }}>
-          Saved to <code>{save.data?.relativePath}</code>
-        </div>
+        <Card className="border-ok/40 bg-ok/10">
+          <CardContent className="p-3 text-sm text-ok">
+            Saved to <code className="font-mono">{save.data?.relativePath}</code>
+          </CardContent>
+        </Card>
       ) : null}
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(180px, 1fr) minmax(280px, 2fr) minmax(320px, 2fr)",
-          gap: "1rem",
-        }}
-      >
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(180px,1fr)_minmax(280px,2fr)_minmax(320px,2fr)]">
         <BlockPalette
           blocks={blockLib}
           onAdd={(type) => {
@@ -418,7 +395,34 @@ function ComposerView({
         />
         <PreviewPane preview={preview.data} isLoading={preview.isFetching} error={preview.error} />
       </div>
-    </>
+    </div>
+  );
+}
+
+function FormField({
+  label,
+  id,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  id: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}): ReactNode {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      <Input
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-44"
+      />
+    </div>
   );
 }
 
@@ -430,22 +434,27 @@ function BlockPalette({
   onAdd: (type: string) => void;
 }): ReactNode {
   return (
-    <div className="admin-card">
-      <h3 className="feat-section__title">Block Palette</h3>
-      <p className="admin-meta">Click to append.</p>
-      <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+    <Card>
+      <CardHeader>
+        <CardTitle>Block Palette</CardTitle>
+        <p className="text-xs text-fg-muted">Click to append.</p>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
         {blocks.map((b) => (
-          <li key={b.type} style={{ marginBottom: "0.5rem" }}>
-            <Button onPress={() => onAdd(b.type)} aria-label={`Add ${b.label} block`}>
+          <div key={b.type} className="flex flex-col gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onAdd(b.type)}
+              aria-label={`Add ${b.label} block`}
+            >
               + {b.label}
             </Button>
-            <p className="admin-meta" style={{ marginTop: "0.25rem" }}>
-              {b.description}
-            </p>
-          </li>
+            <p className="text-[0.7rem] text-fg-muted">{b.description}</p>
+          </div>
         ))}
-      </ul>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -470,105 +479,119 @@ function BlockComposer({
   const selectedDescriptor = selected ? blockLib.find((b) => b.type === selected.type) : null;
 
   return (
-    <div className="admin-card" data-eb-composer="true">
-      <h3 className="feat-section__title">Composition</h3>
-      <ol style={{ listStyle: "none", padding: 0, margin: 0 }}>
-        {draft.children.map((block, i) => (
-          <li
-            key={`${i}-${block.type}`}
-            data-eb-block-row={block.type}
-            style={{
-              padding: "0.5rem",
-              border: "1px solid var(--line)",
-              borderRadius: "var(--radius-sm)",
-              marginBottom: "0.5rem",
-              background: i === selectedIndex ? "var(--surface-hover)" : "var(--surface-1)",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <Button onPress={() => setSelectedIndex(i)} aria-label={`Edit block ${i}`}>
-                {block.type}
-              </Button>
-              <span className="admin-meta" style={{ flex: 1 }}>
-                {String(block.props.text ?? "").slice(0, 40)}
-              </span>
-              <Button
-                onPress={() => moveBlock(draft, setDraft, i, -1, setSelectedIndex)}
-                isDisabled={i === 0}
-                aria-label={`Move block ${i} up`}
-              >
-                ↑
-              </Button>
-              <Button
-                onPress={() => moveBlock(draft, setDraft, i, 1, setSelectedIndex)}
-                isDisabled={i === draft.children.length - 1}
-                aria-label={`Move block ${i} down`}
-              >
-                ↓
-              </Button>
-              <Button
-                onPress={() => removeBlock(draft, setDraft, i, setSelectedIndex)}
-                aria-label={`Delete block ${i}`}
-              >
-                ✕
-              </Button>
-            </div>
-          </li>
-        ))}
-      </ol>
+    <Card data-eb-composer="true">
+      <CardHeader>
+        <CardTitle>Composition</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <ol className="flex flex-col gap-2">
+          {draft.children.map((block, i) => (
+            <li
+              key={`${i}-${block.type}`}
+              data-eb-block-row={block.type}
+              className={cn(
+                "rounded-md border border-line bg-surface-1 p-2",
+                i === selectedIndex && "bg-surface-hover",
+              )}
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  variant={i === selectedIndex ? "default" : "outline"}
+                  onClick={() => setSelectedIndex(i)}
+                  aria-label={`Edit block ${i}`}
+                >
+                  {block.type}
+                </Button>
+                <span className="flex-1 truncate text-xs text-fg-muted">
+                  {String(block.props.text ?? "").slice(0, 40)}
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => moveBlock(draft, setDraft, i, -1, setSelectedIndex)}
+                  disabled={i === 0}
+                  aria-label={`Move block ${i} up`}
+                >
+                  ↑
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => moveBlock(draft, setDraft, i, 1, setSelectedIndex)}
+                  disabled={i === draft.children.length - 1}
+                  aria-label={`Move block ${i} down`}
+                >
+                  ↓
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => removeBlock(draft, setDraft, i, setSelectedIndex)}
+                  aria-label={`Delete block ${i}`}
+                >
+                  ✕
+                </Button>
+              </div>
+            </li>
+          ))}
+        </ol>
 
-      {selected && selectedDescriptor ? (
-        <div
-          style={{
-            marginTop: "1rem",
-            paddingTop: "1rem",
-            borderTop: "1px solid var(--line)",
-          }}
-        >
-          <h4 className="feat-section__title">Properties — {selectedDescriptor.label}</h4>
-          {selectedDescriptor.props.length === 0 ? (
-            <p className="admin-meta">No editable props.</p>
+        {selected && selectedDescriptor ? (
+          <div className="border-t border-line pt-4">
+            <h4 className="mb-2 text-sm font-semibold">Properties — {selectedDescriptor.label}</h4>
+            {selectedDescriptor.props.length === 0 ? (
+              <p className="text-xs text-fg-muted">No editable props.</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {selectedDescriptor.props.map((prop) => (
+                  <FormField
+                    key={prop.name}
+                    label={prop.name}
+                    id={`prop-${selectedIndex}-${prop.name}`}
+                    value={String(selected.props[prop.name] ?? "")}
+                    onChange={(value) =>
+                      updateBlockProp(draft, setDraft, selectedIndex!, prop.name, value)
+                    }
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        ) : null}
+
+        <div className="border-t border-line pt-4">
+          <h4 className="mb-2 text-sm font-semibold">Variables</h4>
+          <p className="text-xs text-fg-muted">
+            Sample values for the live preview. The saved{" "}
+            <code className="font-mono text-accent">.tsx</code> declares each variable as a required
+            string prop.
+          </p>
+          {Object.keys(vars).length === 0 ? (
+            <p className="text-xs text-fg-muted">
+              <em>
+                No variables — add a <code className="font-mono">{"{{name}}"}</code> placeholder to
+                a block.
+              </em>
+            </p>
           ) : (
-            selectedDescriptor.props.map((prop) => (
-              <TextField
-                key={prop.name}
-                label={prop.name}
-                value={String(selected.props[prop.name] ?? "")}
-                onChange={(value) =>
-                  updateBlockProp(draft, setDraft, selectedIndex!, prop.name, value)
-                }
-              />
-            ))
+            <div className="mt-2 flex flex-col gap-3">
+              {Object.keys(vars)
+                .sort()
+                .map((name) => (
+                  <FormField
+                    key={name}
+                    id={`var-${name}`}
+                    label={name}
+                    value={vars[name] ?? ""}
+                    onChange={(value) => setVars({ ...vars, [name]: value })}
+                  />
+                ))}
+            </div>
           )}
         </div>
-      ) : null}
-
-      <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid var(--line)" }}>
-        <h4 className="feat-section__title">Variables</h4>
-        <p className="admin-meta">
-          Sample values for the live preview. The saved <code>.tsx</code> declares each variable as
-          a required string prop.
-        </p>
-        {Object.keys(vars).length === 0 ? (
-          <p className="admin-meta">
-            <em>
-              No variables — add a <code>{"{{name}}"}</code> placeholder to a block.
-            </em>
-          </p>
-        ) : (
-          Object.keys(vars)
-            .sort()
-            .map((name) => (
-              <TextField
-                key={name}
-                label={name}
-                value={vars[name] ?? ""}
-                onChange={(value) => setVars({ ...vars, [name]: value })}
-              />
-            ))
-        )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -582,39 +605,36 @@ function PreviewPane({
   error: unknown;
 }): ReactNode {
   return (
-    <div className="admin-card" data-eb-preview="true">
-      <h3 className="feat-section__title">Live Preview</h3>
-      {error ? (
-        <div className="ep-error">⚠ {error instanceof Error ? error.message : String(error)}</div>
-      ) : isLoading || !preview ? (
-        <p className="admin-meta">Rendering…</p>
-      ) : (
-        <>
-          <div className="ep-subject" style={{ marginBottom: "0.5rem" }}>
-            <strong>Subject:</strong> {preview.subject}
+    <Card data-eb-preview="true">
+      <CardHeader>
+        <CardTitle>Live Preview</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {error ? (
+          <div className="rounded-md border border-err/40 bg-err/10 p-3 text-sm text-err">
+            ⚠ {error instanceof Error ? error.message : String(error)}
           </div>
-          <iframe
-            className="ep-html"
-            sandbox=""
-            srcDoc={preview.html}
-            style={{
-              width: "100%",
-              minHeight: "26rem",
-              border: 0,
-              background: "transparent",
-              colorScheme: "dark",
-            }}
-            title="Live email preview"
-          />
-        </>
-      )}
-    </div>
+        ) : isLoading || !preview ? (
+          <p className="text-xs text-fg-muted">Rendering…</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <div className="text-sm">
+              <strong className="text-fg-dim">Subject:</strong>{" "}
+              <span className="font-mono">{preview.subject}</span>
+            </div>
+            <iframe
+              sandbox=""
+              srcDoc={preview.html}
+              className="h-[26rem] w-full rounded border-0 bg-transparent"
+              style={{ colorScheme: "dark" }}
+              title="Live email preview"
+            />
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
-
-// -----------------------------------------------------------------
-// Helpers
-// -----------------------------------------------------------------
 
 function moveBlock(
   draft: CompositionDraft,
@@ -687,9 +707,6 @@ function scanForVars(value: string, target: Set<string>): void {
 }
 
 function defaultVarValue(name: string): string {
-  // Tiny seed table so the preview shows plausible values for the
-  // common variables. Anything else falls back to the variable name
-  // itself, which still renders something visible.
   const seeds: Record<string, string> = {
     recipientName: "Alice Example",
     senderName: "Bob Example",

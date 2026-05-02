@@ -21,6 +21,8 @@
 import { existsSync, mkdirSync, watch as watchFs, copyFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 
+import tailwindPlugin from "bun-plugin-tailwind";
+
 const repoRoot = process.cwd();
 const entry = resolve(repoRoot, "src/core/dx/clients/main.tsx");
 const tokenSrc = resolve(repoRoot, "src/core/dx/clients/styles/tokens.css");
@@ -43,6 +45,7 @@ async function buildOnce(label: string) {
     splitting: true,
     minify: !isWatch,
     sourcemap: isWatch ? "inline" : "none",
+    plugins: [tailwindPlugin],
   });
 
   if (!result.success) {

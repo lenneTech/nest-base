@@ -1,20 +1,25 @@
 /**
- * `/admin/permissions/test` — verbatim React port of
- * `permission-tester-ui.ts`. Same DOM, same classnames, same form
- * layout (a 1fr 1fr auto grid: userId, tenantId, submit). Submitting
- * the form fetches `/admin/permissions/test.json?userId=…&tenantId=…`
- * and renders the resulting `PermissionReport` through the same
- * `.admin-table[data-permission-report]` table the legacy renderer
- * produced.
- *
- * The form is a `GET` against the SPA route itself so URL-driven state
- * stays sharable and the back-button replays prior lookups — identical
- * to the server-rendered behaviour.
+ * `/admin/permissions/test` — resolve effective CASL ability for a
+ * user / tenant pair. URL-driven so back-button replays prior lookups.
  */
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 
+import { Badge } from "../components/ui/badge.js";
+import { Button } from "../components/ui/button.js";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
+import { Input } from "../components/ui/input.js";
+import { Label } from "../components/ui/label.js";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table.js";
+import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson } from "../lib/api.js";
 
@@ -46,9 +51,7 @@ export function PermissionTesterPage(): ReactNode {
   const data = useQuery({
     queryKey: ["admin", "permissions", "test", userId, tenantId],
     queryFn: () => fetchJson<PermissionTestResponse>(url),
-    // Even with empty inputs we still want the form's submitted echo —
-    // matches the legacy server which always rendered the form chrome.
-    enabled: true,
+    enabled: hasInputs,
   });
 
   return (
@@ -57,29 +60,40 @@ export function PermissionTesterPage(): ReactNode {
       subtitle="Resolve effective CASL ability for a user/tenant pair."
       currentNav="permissions"
     >
-      <div className="admin-card">
-        <h2 className="admin-card__title">Lookup</h2>
-        {/*
-          GET form — react-router intercepts to preserve hash navigation
-          while still refreshing query params. The native form submit
-          updates the URL which triggers the useLocation -> useQuery
-          chain above.
-        */}
-        <form method="get" className="admin-form" action="/admin/permissions/test">
-          <div className="row">
-            <label>
-              User ID
-              <input name="userId" defaultValue={userId} placeholder="user uuid" />
-            </label>
-            <label>
-              Tenant ID
-              <input name="tenantId" defaultValue={tenantId} placeholder="tenant uuid" />
-            </label>
-            <button type="submit">Test</button>
-          </div>
-        </form>
+      <div className="flex flex-col gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Lookup</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/*
+              GET form — submit updates the URL which triggers the
+              useLocation -> useQuery chain above.
+            */}
+            <form
+              method="get"
+              action="/admin/permissions/test"
+              className="flex flex-wrap items-end gap-3"
+            >
+              <div className="flex flex-1 min-w-48 flex-col gap-1.5">
+                <Label htmlFor="userId">User ID</Label>
+                <Input id="userId" name="userId" defaultValue={userId} placeholder="user uuid" />
+              </div>
+              <div className="flex flex-1 min-w-48 flex-col gap-1.5">
+                <Label htmlFor="tenantId">Tenant ID</Label>
+                <Input
+                  id="tenantId"
+                  name="tenantId"
+                  defaultValue={tenantId}
+                  placeholder="tenant uuid"
+                />
+              </div>
+              <Button type="submit">Test</Button>
+            </form>
+          </CardContent>
+        </Card>
+        {hasInputs ? <ReportSection data={data.data} isError={data.isError} /> : null}
       </div>
-      {hasInputs ? <ReportSection data={data.data} isError={data.isError} /> : null}
     </AdminShell>
   );
 }
@@ -91,50 +105,54 @@ interface ReportSectionProps {
 
 function ReportSection({ data, isError }: ReportSectionProps): ReactNode {
   if (isError) {
-    return (
-      <div className="admin-card">
-        <div className="admin-empty">Failed to resolve permissions.</div>
-      </div>
-    );
+    return <PageError>Failed to resolve permissions.</PageError>;
   }
   if (!data?.report) {
-    return (
-      <div className="admin-card">
-        <div className="admin-empty">Resolving permissions…</div>
-      </div>
-    );
+    return <PageLoading>Resolving permissions…</PageLoading>;
   }
   const report = data.report;
   const resources = Object.keys(report.byResource).sort();
   return (
-    <div className="admin-card">
-      <p className="admin-meta">
-        User <strong>{report.userId}</strong> in tenant <strong>{report.tenantId}</strong>
-      </p>
-      {resources.length === 0 ? (
-        <div className="admin-empty">No permissions found for this user.</div>
-      ) : (
-        <table className="admin-table" data-permission-report="true">
-          <thead>
-            <tr>
-              <th>Resource</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {resources.map((resource) => {
-              const entry = report.byResource[resource]!;
-              const actions = entry.actions.join(", ");
-              return (
-                <tr key={resource} data-superset={entry.isSuperset ? "true" : undefined}>
-                  <td>{resource}</td>
-                  <td>{actions}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Effective abilities</CardTitle>
+        <p className="text-xs text-fg-muted">
+          User <strong className="text-fg">{report.userId}</strong> in tenant{" "}
+          <strong className="text-fg">{report.tenantId}</strong>
+        </p>
+      </CardHeader>
+      <CardContent>
+        {resources.length === 0 ? (
+          <PageEmpty>No permissions found for this user.</PageEmpty>
+        ) : (
+          <Table data-permission-report="true">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Resource</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {resources.map((resource) => {
+                const entry = report.byResource[resource]!;
+                return (
+                  <TableRow key={resource} data-superset={entry.isSuperset ? "true" : undefined}>
+                    <TableCell className="font-mono text-xs">
+                      {resource}
+                      {entry.isSuperset ? (
+                        <Badge variant="info" className="ml-2">
+                          superset
+                        </Badge>
+                      ) : null}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{entry.actions.join(", ")}</TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
   );
 }

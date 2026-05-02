@@ -1,40 +1,30 @@
 /**
- * `/admin/webhooks` — three-column webhook inspector.
- *
- * Left column  : endpoint sidebar (aggregates + sparkline per endpoint;
- *                clicking filters the delivery list).
- * Middle column: filter bar + virtual-scrolling delivery list
- *                (`@tanstack/react-virtual`, ≥100 rows on screen).
- * Right column : detail drawer with Request / Response / Attempts tabs
- *                and a CSRF-protected "Re-deliver now" action.
- *
- * Data sources:
- *   - GET /admin/webhooks.json (filter + cursor pagination)
- *   - GET /admin/webhooks/aggregates.json (endpoint cards)
- *   - GET /admin/webhooks/:id.json (detail + curl)
- *   - POST /admin/webhooks/:id/redeliver (CSRF-guarded)
- *
- * Styling reuses the existing `.admin-card` / `.admin-table` chrome.
- * Net-new components (Sparkline, virtual list, drawer tabs) layer on
- * top via dedicated `dp-webhook-*` classes in `admin-layout.css`.
+ * `/admin/webhooks` — three-column webhook inspector with virtual
+ * scrolling, sparklines per endpoint, and a CSRF-protected
+ * "Re-deliver" action.
  */
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 
-import {
-  Button,
-  Select,
-  SelectItem,
-  Tab,
-  TabList,
-  TabPanel,
-  Tabs,
-  TextField,
-} from "../components/index.js";
 import { Sparkline } from "../components/Sparkline.js";
+import { Badge } from "../components/ui/badge.js";
+import { Button } from "../components/ui/button.js";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
+import { Input } from "../components/ui/input.js";
+import { Label } from "../components/ui/label.js";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select.js";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs.js";
+import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson } from "../lib/api.js";
+import { cn } from "../lib/utils.js";
 
 type DeliveryStatus = "DELIVERED" | "FAILED" | "PENDING";
 
@@ -49,7 +39,6 @@ interface DeliveryListEntry {
   latencyMs?: number;
   occurredAt: string;
   errorMessage?: string;
-  /** Optional trace ID for the trace-link button on the drawer header. */
   traceId?: string;
 }
 
@@ -135,32 +124,44 @@ export function WebhookInspectorPage(): ReactNode {
       subtitle="Endpoint health, recent deliveries, and replay actions."
       currentNav="webhooks"
     >
-      <div className="dp-webhook-layout">
-        <aside className="dp-webhook-sidebar admin-card">
-          <h2 className="admin-card__title">Endpoints</h2>
-          <EndpointSidebar
-            data={aggregatesQuery.data}
-            isError={aggregatesQuery.isError}
-            isLoading={aggregatesQuery.isLoading}
-            activeEndpointId={filter.endpointId}
-            onSelect={handleSelectEndpoint}
-          />
-        </aside>
-        <section className="dp-webhook-main admin-card">
-          <h2 className="admin-card__title">Recent deliveries</h2>
-          <FilterBar filter={filter} onChange={setFilter} />
-          <DeliveriesList
-            response={listQuery.data}
-            isError={listQuery.isError}
-            isLoading={listQuery.isLoading}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-          />
-        </section>
-        <aside className="dp-webhook-drawer admin-card">
-          <h2 className="admin-card__title">Detail</h2>
-          <DetailDrawer deliveryId={selectedId} csrfToken={listQuery.data?.csrfToken} />
-        </aside>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[20rem_minmax(0,1fr)_20rem]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Endpoints</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <EndpointSidebar
+              data={aggregatesQuery.data}
+              isError={aggregatesQuery.isError}
+              isLoading={aggregatesQuery.isLoading}
+              activeEndpointId={filter.endpointId}
+              onSelect={handleSelectEndpoint}
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent deliveries</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FilterBar filter={filter} onChange={setFilter} />
+            <DeliveriesList
+              response={listQuery.data}
+              isError={listQuery.isError}
+              isLoading={listQuery.isLoading}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Detail</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DetailDrawer deliveryId={selectedId} csrfToken={listQuery.data?.csrfToken} />
+          </CardContent>
+        </Card>
       </div>
     </AdminShell>
   );
@@ -190,64 +191,73 @@ function EndpointSidebar({
   activeEndpointId,
   onSelect,
 }: EndpointSidebarProps): ReactNode {
-  if (isError) {
-    return <div className="admin-empty">Failed to load endpoint stats.</div>;
-  }
-  if (isLoading || !data) {
-    return <div className="admin-empty">Loading…</div>;
-  }
-  if (data.endpoints.length === 0) {
-    return <div className="admin-empty">No endpoints registered.</div>;
-  }
+  if (isError) return <PageError>Failed to load endpoint stats.</PageError>;
+  if (isLoading || !data) return <PageLoading>Loading…</PageLoading>;
+  if (data.endpoints.length === 0) return <PageEmpty>No endpoints registered.</PageEmpty>;
   return (
-    <ul className="dp-webhook-endpoints">
+    <ul className="flex flex-col gap-2">
       <li>
         <button
           type="button"
-          className={`dp-webhook-endpoint${
-            activeEndpointId === undefined ? " dp-webhook-endpoint--active" : ""
-          }`}
+          className={cn(
+            "w-full rounded-md border border-transparent p-3 text-left text-sm transition-colors hover:bg-surface-hover",
+            activeEndpointId === undefined && "border-accent bg-accent-soft",
+          )}
           onClick={() => onSelect(undefined)}
         >
-          <span className="dp-webhook-endpoint__name">All endpoints</span>
+          <span className="font-medium">All endpoints</span>
         </button>
       </li>
       {data.endpoints.map((ep) => (
         <li key={ep.endpointId}>
           <button
             type="button"
-            className={`dp-webhook-endpoint${
-              activeEndpointId === ep.endpointId ? " dp-webhook-endpoint--active" : ""
-            }`}
+            className={cn(
+              "flex w-full flex-col gap-2 rounded-md border border-line bg-surface-2 p-3 text-left text-sm transition-colors hover:border-line-accent",
+              activeEndpointId === ep.endpointId && "border-accent bg-accent-soft",
+            )}
             onClick={() => onSelect(ep.endpointId)}
           >
-            <div className="dp-webhook-endpoint__head">
-              <span className="dp-webhook-endpoint__name">{ep.endpointId}</span>
-              <span className="dp-webhook-endpoint__url">{ep.endpointUrl}</span>
+            <div className="flex flex-col">
+              <span className="font-medium text-fg">{ep.endpointId}</span>
+              <span className="truncate text-[0.7rem] text-fg-muted">{ep.endpointUrl}</span>
             </div>
-            <div className="dp-webhook-endpoint__stats">
-              <span className="dp-webhook-stat">
-                <span className="dp-webhook-stat__label">total</span>
-                <span className="dp-webhook-stat__value">{ep.total}</span>
-              </span>
-              <span className="dp-webhook-stat dp-webhook-stat--ok">
-                <span className="dp-webhook-stat__label">ok</span>
-                <span className="dp-webhook-stat__value">{ep.delivered}</span>
-              </span>
-              <span className="dp-webhook-stat dp-webhook-stat--fail">
-                <span className="dp-webhook-stat__label">fail</span>
-                <span className="dp-webhook-stat__value">{ep.failed}</span>
-              </span>
-              <span className="dp-webhook-stat">
-                <span className="dp-webhook-stat__label">p95</span>
-                <span className="dp-webhook-stat__value">{Math.round(ep.p95LatencyMs)} ms</span>
-              </span>
+            <div className="grid grid-cols-4 gap-2 text-[0.65rem] text-fg-dim">
+              <Stat label="total" value={ep.total} />
+              <Stat label="ok" value={ep.delivered} tone="ok" />
+              <Stat label="fail" value={ep.failed} tone="err" />
+              <Stat label="p95" value={`${Math.round(ep.p95LatencyMs)}ms`} />
             </div>
             <Sparkline values={ep.sparkline} />
           </button>
         </li>
       ))}
     </ul>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number | string;
+  tone?: "ok" | "err";
+}): ReactNode {
+  return (
+    <span className="flex flex-col">
+      <span className="uppercase tracking-wider text-fg-faint">{label}</span>
+      <span
+        className={cn(
+          "font-mono text-xs tabular-nums text-fg",
+          tone === "ok" && "text-ok",
+          tone === "err" && "text-err",
+        )}
+      >
+        {value}
+      </span>
+    </span>
   );
 }
 
@@ -258,29 +268,46 @@ interface FilterBarProps {
 
 function FilterBar({ filter, onChange }: FilterBarProps): ReactNode {
   return (
-    <div className="dp-webhook-filterbar">
-      <Select
-        label="Status"
-        selectedKey={filter.status}
-        onSelectionChange={(key) => onChange({ ...filter, status: key as FilterState["status"] })}
-      >
-        <SelectItem id="ALL">All</SelectItem>
-        <SelectItem id="DELIVERED">Delivered</SelectItem>
-        <SelectItem id="FAILED">Failed</SelectItem>
-        <SelectItem id="PENDING">Pending</SelectItem>
-      </Select>
-      <TextField
-        label="Event-Type"
-        value={filter.eventType ?? ""}
-        onChange={(value) => onChange({ ...filter, eventType: value === "" ? undefined : value })}
-      />
-      <TextField
-        label="Search ID"
-        value={filter.search ?? ""}
-        onChange={(value) => onChange({ ...filter, search: value === "" ? undefined : value })}
-      />
+    <div className="mb-3 flex flex-wrap items-end gap-3">
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="status">Status</Label>
+        <Select
+          value={filter.status}
+          onValueChange={(v) => onChange({ ...filter, status: v as FilterState["status"] })}
+        >
+          <SelectTrigger id="status" className="w-32">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All</SelectItem>
+            <SelectItem value="DELIVERED">Delivered</SelectItem>
+            <SelectItem value="FAILED">Failed</SelectItem>
+            <SelectItem value="PENDING">Pending</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="event-type">Event-Type</Label>
+        <Input
+          id="event-type"
+          value={filter.eventType ?? ""}
+          onChange={(e) =>
+            onChange({ ...filter, eventType: e.target.value === "" ? undefined : e.target.value })
+          }
+        />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="search">Search ID</Label>
+        <Input
+          id="search"
+          value={filter.search ?? ""}
+          onChange={(e) =>
+            onChange({ ...filter, search: e.target.value === "" ? undefined : e.target.value })
+          }
+        />
+      </div>
       {filter.endpointId ? (
-        <Button onPress={() => onChange({ ...filter, endpointId: undefined })}>
+        <Button variant="outline" onClick={() => onChange({ ...filter, endpointId: undefined })}>
           Clear endpoint filter ({filter.endpointId})
         </Button>
       ) : null}
@@ -312,29 +339,20 @@ function DeliveriesList({
     overscan: 8,
   });
 
-  if (isError) {
-    return <div className="admin-empty">Failed to load deliveries.</div>;
-  }
-  if (isLoading || !response) {
-    return <div className="admin-empty">Loading…</div>;
-  }
-  if (items.length === 0) {
-    return <div className="admin-empty">No deliveries to show.</div>;
-  }
+  if (isError) return <PageError>Failed to load deliveries.</PageError>;
+  if (isLoading || !response) return <PageLoading>Loading…</PageLoading>;
+  if (items.length === 0) return <PageEmpty>No deliveries to show.</PageEmpty>;
 
   const virtualItems = virtualizer.getVirtualItems();
   return (
     <div
       ref={parentRef}
-      className="dp-webhook-list"
+      className="max-h-[60dvh] overflow-auto rounded-md border border-line"
       data-deliveries="true"
       role="grid"
       aria-rowcount={items.length}
     >
-      <div
-        className="dp-webhook-list__viewport"
-        style={{ height: `${virtualizer.getTotalSize()}px` }}
-      >
+      <div className="relative w-full" style={{ height: `${virtualizer.getTotalSize()}px` }}>
         {virtualItems.map((virtual) => {
           const row = items[virtual.index]!;
           const isSelected = row.id === selectedId;
@@ -342,32 +360,33 @@ function DeliveriesList({
             <button
               key={row.id}
               type="button"
-              className={`dp-webhook-row${isSelected ? " dp-webhook-row--selected" : ""}`}
               data-status={row.status}
+              className={cn(
+                "absolute left-0 right-0 grid w-full grid-cols-[6rem_8rem_minmax(0,1fr)_5.5rem_3rem_3rem_4rem] items-center gap-2 border-b border-line/50 px-3 py-2 text-left text-xs transition-colors hover:bg-surface-hover/50",
+                isSelected && "bg-accent-soft",
+              )}
               style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
                 height: `${virtual.size}px`,
                 transform: `translateY(${virtual.start}px)`,
               }}
               onClick={() => onSelect(row.id)}
               aria-selected={isSelected}
             >
-              <span className="dp-webhook-row__when">{shortDate(row.occurredAt)}</span>
-              <span className="dp-webhook-row__event">{row.eventType ?? "—"}</span>
-              <span className="dp-webhook-row__endpoint" title={row.endpointUrl}>
+              <span className="font-mono text-[0.7rem] text-fg-muted">
+                {shortDate(row.occurredAt)}
+              </span>
+              <span className="truncate font-mono text-[0.7rem]">{row.eventType ?? "—"}</span>
+              <span className="truncate text-fg-muted" title={row.endpointUrl}>
                 {row.endpointId}
               </span>
-              <span className="dp-webhook-row__status">
+              <span>
                 <StatusBadge status={row.status} />
               </span>
-              <span className="dp-webhook-row__http">
+              <span className="text-right font-mono tabular-nums">
                 {row.statusCode === undefined ? "—" : String(row.statusCode)}
               </span>
-              <span className="dp-webhook-row__attempts">{row.attemptCount}</span>
-              <span className="dp-webhook-row__latency">
+              <span className="text-right font-mono tabular-nums">{row.attemptCount}</span>
+              <span className="text-right font-mono tabular-nums">
                 {row.latencyMs === undefined ? "—" : `${row.latencyMs} ms`}
               </span>
             </button>
@@ -375,7 +394,7 @@ function DeliveriesList({
         })}
       </div>
       {response.nextCursor ? (
-        <div className="dp-webhook-list__more">
+        <div className="border-t border-line bg-surface-2 px-3 py-2 text-center text-[0.7rem] text-fg-muted">
           More rows available — narrow the filter to load.
         </div>
       ) : null}
@@ -384,13 +403,8 @@ function DeliveriesList({
 }
 
 function StatusBadge({ status }: { status: DeliveryStatus }): ReactNode {
-  const cls =
-    status === "DELIVERED"
-      ? "dp-webhook-badge dp-webhook-badge--ok"
-      : status === "FAILED"
-        ? "dp-webhook-badge dp-webhook-badge--fail"
-        : "dp-webhook-badge dp-webhook-badge--pending";
-  return <span className={cls}>{status}</span>;
+  const tone = status === "DELIVERED" ? "ok" : status === "FAILED" ? "err" : "warn";
+  return <Badge variant={tone}>{status}</Badge>;
 }
 
 interface DetailDrawerProps {
@@ -411,15 +425,10 @@ function DetailDrawer({ deliveryId, csrfToken }: DetailDrawerProps): ReactNode {
     mutationFn: async (id: string) => {
       const res = await fetch(`/admin/webhooks/${encodeURIComponent(id)}/redeliver`, {
         method: "POST",
-        headers: {
-          "content-type": "application/json",
-          accept: "application/json",
-        },
+        headers: { "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify({ csrfToken: csrfToken ?? "" }),
       });
-      if (!res.ok) {
-        throw new Error(`redeliver failed: ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`redeliver failed: ${res.status}`);
       return (await res.json()) as { delivery: DeliveryListEntry };
     },
     onSuccess: () => {
@@ -428,89 +437,85 @@ function DetailDrawer({ deliveryId, csrfToken }: DetailDrawerProps): ReactNode {
   });
 
   const [copied, setCopied] = useState(false);
-
   const copyCurl = useCallback(async (cmd: string) => {
     try {
       await navigator.clipboard.writeText(cmd);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      /* clipboard unavailable — ignore */
+      /* clipboard unavailable */
     }
   }, []);
 
-  if (deliveryId === null) {
-    return <div className="admin-empty">Select a delivery to view its details.</div>;
-  }
-  if (detailQuery.isError) {
-    return <div className="admin-empty">Failed to load delivery detail.</div>;
-  }
-  if (detailQuery.isLoading || !detailQuery.data) {
-    return <div className="admin-empty">Loading…</div>;
-  }
+  if (deliveryId === null) return <PageEmpty>Select a delivery to view its details.</PageEmpty>;
+  if (detailQuery.isError) return <PageError>Failed to load delivery detail.</PageError>;
+  if (detailQuery.isLoading || !detailQuery.data) return <PageLoading>Loading…</PageLoading>;
 
   const { delivery, curl } = detailQuery.data;
   return (
-    <div className="dp-webhook-detail">
-      <header className="dp-webhook-detail__header">
-        <div>
+    <div className="flex flex-col gap-4">
+      <header className="flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-2">
           <StatusBadge status={delivery.status} />
-          <span className="dp-webhook-detail__id">{delivery.id}</span>
+          <span className="font-mono text-[0.7rem] text-fg-muted">{delivery.id}</span>
         </div>
-        <div className="dp-webhook-detail__meta">
-          <span>{delivery.endpointUrl}</span>
+        <div className="flex flex-col gap-1 text-xs text-fg-muted">
+          <span className="break-all">{delivery.endpointUrl}</span>
           <span>
             {delivery.eventType ?? "—"} · attempt {delivery.attemptCount}
             {delivery.latencyMs !== undefined ? ` · ${delivery.latencyMs} ms` : ""}
           </span>
           {delivery.traceId ? (
             <a
-              className="dp-webhook-detail__trace"
+              className="text-accent hover:underline"
               href={`/dev/traces?traceId=${encodeURIComponent(delivery.traceId)}`}
             >
               View trace
             </a>
           ) : null}
         </div>
-        <div className="dp-webhook-detail__actions">
+        <div className="flex flex-wrap gap-2">
           <Button
-            isDisabled={redeliverMutation.isPending || !csrfToken}
-            onPress={() => redeliverMutation.mutate(delivery.id)}
+            size="sm"
+            disabled={redeliverMutation.isPending || !csrfToken}
+            onClick={() => redeliverMutation.mutate(delivery.id)}
           >
             {redeliverMutation.isPending ? "Redelivering…" : "Re-deliver now"}
           </Button>
-          <Button onPress={() => copyCurl(curl)}>{copied ? "Copied!" : "Copy curl"}</Button>
+          <Button size="sm" variant="outline" onClick={() => copyCurl(curl)}>
+            {copied ? "Copied!" : "Copy curl"}
+          </Button>
         </div>
         {redeliverMutation.isError ? (
-          <p className="dp-webhook-detail__error">
-            Redelivery failed: {String(redeliverMutation.error)}
-          </p>
+          <p className="text-xs text-err">Redelivery failed: {String(redeliverMutation.error)}</p>
         ) : null}
       </header>
-      <Tabs>
-        <TabList aria-label="Delivery detail">
-          <Tab id="request">Request</Tab>
-          <Tab id="response">Response</Tab>
-          <Tab id="curl">Curl</Tab>
-        </TabList>
-        <TabPanel id="request">
+      <Tabs defaultValue="request">
+        <TabsList>
+          <TabsTrigger value="request">Request</TabsTrigger>
+          <TabsTrigger value="response">Response</TabsTrigger>
+          <TabsTrigger value="curl">Curl</TabsTrigger>
+        </TabsList>
+        <TabsContent value="request">
           <RequestPanel
             url={delivery.endpointUrl}
             headers={delivery.requestHeaders}
             body={delivery.requestBody}
           />
-        </TabPanel>
-        <TabPanel id="response">
+        </TabsContent>
+        <TabsContent value="response">
           <ResponsePanel
             statusCode={delivery.statusCode}
             headers={delivery.responseHeaders}
             body={delivery.responseBody}
             error={delivery.errorMessage}
           />
-        </TabPanel>
-        <TabPanel id="curl">
-          <pre className="dp-webhook-detail__curl">{curl}</pre>
-        </TabPanel>
+        </TabsContent>
+        <TabsContent value="curl">
+          <pre className="m-0 max-h-[40vh] overflow-auto rounded-md border border-line bg-surface-2 p-3 font-mono text-[0.7rem]">
+            {curl}
+          </pre>
+        </TabsContent>
       </Tabs>
     </div>
   );
@@ -524,17 +529,19 @@ interface RequestPanelProps {
 
 function RequestPanel({ url, headers, body }: RequestPanelProps): ReactNode {
   return (
-    <div className="dp-webhook-detail__panel">
-      <dl className="dp-webhook-detail__kv">
-        <dt>URL</dt>
-        <dd>{url}</dd>
-        <dt>Method</dt>
-        <dd>POST</dd>
-      </dl>
-      <h3>Headers</h3>
+    <div className="flex flex-col gap-3 text-xs">
+      <KvList>
+        <Kv label="URL" value={url} />
+        <Kv label="Method" value="POST" />
+      </KvList>
+      <h3 className="text-[0.65rem] font-semibold uppercase tracking-widest text-fg-dim">
+        Headers
+      </h3>
       <HeaderTable headers={headers} highlight="webhook" />
-      <h3>Body</h3>
-      <pre className="dp-webhook-detail__body">{prettyJson(body)}</pre>
+      <h3 className="text-[0.65rem] font-semibold uppercase tracking-widest text-fg-dim">Body</h3>
+      <pre className="m-0 max-h-[40vh] overflow-auto rounded-md border border-line bg-surface-2 p-3 font-mono text-[0.7rem]">
+        {prettyJson(body)}
+      </pre>
     </div>
   );
 }
@@ -548,30 +555,43 @@ interface ResponsePanelProps {
 
 function ResponsePanel({ statusCode, headers, body, error }: ResponsePanelProps): ReactNode {
   return (
-    <div className="dp-webhook-detail__panel">
-      <dl className="dp-webhook-detail__kv">
-        <dt>Status</dt>
-        <dd>{statusCode === undefined ? "—" : String(statusCode)}</dd>
-        {error ? (
-          <>
-            <dt>Error</dt>
-            <dd>{error}</dd>
-          </>
-        ) : null}
-      </dl>
+    <div className="flex flex-col gap-3 text-xs">
+      <KvList>
+        <Kv label="Status" value={statusCode === undefined ? "—" : String(statusCode)} />
+        {error ? <Kv label="Error" value={error} /> : null}
+      </KvList>
       {headers ? (
         <>
-          <h3>Headers</h3>
+          <h3 className="text-[0.65rem] font-semibold uppercase tracking-widest text-fg-dim">
+            Headers
+          </h3>
           <HeaderTable headers={headers} />
         </>
       ) : null}
       {body !== undefined ? (
         <>
-          <h3>Body</h3>
-          <pre className="dp-webhook-detail__body">{prettyJson(body)}</pre>
+          <h3 className="text-[0.65rem] font-semibold uppercase tracking-widest text-fg-dim">
+            Body
+          </h3>
+          <pre className="m-0 max-h-[40vh] overflow-auto rounded-md border border-line bg-surface-2 p-3 font-mono text-[0.7rem]">
+            {prettyJson(body)}
+          </pre>
         </>
       ) : null}
     </div>
+  );
+}
+
+function KvList({ children }: { children: ReactNode }): ReactNode {
+  return <dl className="m-0 grid grid-cols-[6rem_minmax(0,1fr)] gap-y-1 text-xs">{children}</dl>;
+}
+
+function Kv({ label, value }: { label: string; value: string }): ReactNode {
+  return (
+    <>
+      <dt className="text-fg-dim">{label}</dt>
+      <dd className="m-0 break-all font-mono text-fg">{value}</dd>
+    </>
   );
 }
 
@@ -584,14 +604,22 @@ function HeaderTable({
 }): ReactNode {
   const sortedKeys = useMemo(() => Object.keys(headers).sort(), [headers]);
   return (
-    <table className="dp-webhook-headers">
+    <table className="w-full text-[0.7rem]">
       <tbody>
         {sortedKeys.map((key) => {
           const isHighlighted = highlight !== undefined && key.toLowerCase().includes(highlight);
           return (
-            <tr key={key} className={isHighlighted ? "dp-webhook-headers__row--hl" : undefined}>
-              <th scope="row">{key}</th>
-              <td>{headers[key]}</td>
+            <tr
+              key={key}
+              className={cn(
+                "border-b border-line/40 last:border-0",
+                isHighlighted && "bg-accent-soft/40",
+              )}
+            >
+              <th scope="row" className="py-1 pr-2 text-left font-mono font-medium text-fg-dim">
+                {key}
+              </th>
+              <td className="py-1 break-all font-mono text-fg">{headers[key]}</td>
             </tr>
           );
         })}

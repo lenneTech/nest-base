@@ -1,22 +1,39 @@
 /**
- * `/dev/jobs` — Jobs-Dashboard for the in-memory queue (and any future
- * pg-boss-backed adapter that exposes the same `/dev/jobs/*` JSON
- * contract).
- *
- * Two tabs:
- *   - **Queues** — per-queue counts, p95 latency, failure rate
- *   - **Jobs**   — paginated, state-filterable listing with a drawer
- *                  that shows the full payload + error + retry CTA
- *
- * The page polls both endpoints every 4 s while open. The Schedules /
- * Workers / Archive tabs from the issue are intentionally deferred —
- * pg-boss surface, separate slice (see issue #15 follow-up notes).
+ * `/dev/jobs` — jobs dashboard with two tabs (Queues / Jobs) over the
+ * in-memory queue (and any future pg-boss-backed adapter that exposes
+ * the same `/dev/jobs/*` JSON contract).
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, type Key, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
-import { Button, Select, SelectItem, Tab, TabList, TabPanel, Tabs } from "../components/index.js";
 import { JsonViewer } from "../components/JsonViewer.js";
+import { Badge } from "../components/ui/badge.js";
+import { Button } from "../components/ui/button.js";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog.js";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select.js";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table.js";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs.js";
+import { PageEmpty, PageError, PageLoading, StatTile } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson, formatMs } from "../lib/api.js";
 
@@ -92,9 +109,9 @@ export function JobsPage(): ReactNode {
       {aggregates.data ? (
         <JobsBody aggregates={aggregates.data} />
       ) : aggregates.isError ? (
-        <div className="admin-empty">Failed to load job aggregates.</div>
+        <PageError>Failed to load job aggregates.</PageError>
       ) : (
-        <div className="admin-empty">Loading job aggregates…</div>
+        <PageLoading>Loading job aggregates…</PageLoading>
       )}
     </AdminShell>
   );
@@ -103,17 +120,17 @@ export function JobsPage(): ReactNode {
 function JobsBody({ aggregates }: { aggregates: JobAggregates }): ReactNode {
   const [queueFilter, setQueueFilter] = useState<string>("");
   const [stateFilter, setStateFilter] = useState<string>("all");
-  const [activeTab, setActiveTab] = useState<Key>("queues");
+  const [activeTab, setActiveTab] = useState<string>("queues");
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       <SummaryTiles aggregates={aggregates} />
-      <Tabs selectedKey={activeTab} onSelectionChange={setActiveTab}>
-        <TabList aria-label="Jobs sections">
-          <Tab id="queues">Queues</Tab>
-          <Tab id="jobs">Jobs</Tab>
-        </TabList>
-        <TabPanel id="queues">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="queues">Queues</TabsTrigger>
+          <TabsTrigger value="jobs">Jobs</TabsTrigger>
+        </TabsList>
+        <TabsContent value="queues">
           <QueuesTab
             aggregates={aggregates}
             onQueueClick={(name) => {
@@ -121,8 +138,8 @@ function JobsBody({ aggregates }: { aggregates: JobAggregates }): ReactNode {
               setActiveTab("jobs");
             }}
           />
-        </TabPanel>
-        <TabPanel id="jobs">
+        </TabsContent>
+        <TabsContent value="jobs">
           <JobsTab
             queueFilter={queueFilter}
             onQueueFilterChange={setQueueFilter}
@@ -130,9 +147,9 @@ function JobsBody({ aggregates }: { aggregates: JobAggregates }): ReactNode {
             onStateFilterChange={setStateFilter}
             queueOptions={aggregates.queues.map((q) => q.name)}
           />
-        </TabPanel>
+        </TabsContent>
       </Tabs>
-    </>
+    </div>
   );
 }
 
@@ -140,33 +157,21 @@ function SummaryTiles({ aggregates }: { aggregates: JobAggregates }): ReactNode 
   const failurePct = (aggregates.failureRate * 100).toFixed(1);
   const p95 = aggregates.p95LatencyMs === null ? "—" : formatMs(aggregates.p95LatencyMs);
   return (
-    <div className="feat-summary">
-      <div className="feat-tile">
-        <span className="feat-tile__label">Total jobs</span>
-        <span className="feat-tile__value">{aggregates.totalJobs}</span>
-      </div>
-      <div className="feat-tile feat-tile--ok">
-        <span className="feat-tile__label">Completed</span>
-        <span className="feat-tile__value">{aggregates.totals.completed}</span>
-      </div>
-      <div className="feat-tile">
-        <span className="feat-tile__label">Active / pending</span>
-        <span className="feat-tile__value">
-          {aggregates.totals.active + aggregates.totals.created + aggregates.totals.retry}
-        </span>
-      </div>
-      <div className="feat-tile">
-        <span className="feat-tile__label">Failed</span>
-        <span className="feat-tile__value">{aggregates.totals.failed}</span>
-      </div>
-      <div className="feat-tile">
-        <span className="feat-tile__label">Failure rate</span>
-        <span className="feat-tile__value">{failurePct}%</span>
-      </div>
-      <div className="feat-tile">
-        <span className="feat-tile__label">p95 latency</span>
-        <span className="feat-tile__value">{p95}</span>
-      </div>
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
+      <StatTile label="Total jobs" value={aggregates.totalJobs} />
+      <StatTile label="Completed" value={aggregates.totals.completed} tone="ok" />
+      <StatTile
+        label="Active / pending"
+        value={aggregates.totals.active + aggregates.totals.created + aggregates.totals.retry}
+        tone="info"
+      />
+      <StatTile
+        label="Failed"
+        value={aggregates.totals.failed}
+        tone={aggregates.totals.failed > 0 ? "err" : "default"}
+      />
+      <StatTile label="Failure rate" value={`${failurePct}%`} />
+      <StatTile label="p95 latency" value={p95} />
     </div>
   );
 }
@@ -178,45 +183,57 @@ interface QueuesTabProps {
 
 function QueuesTab({ aggregates, onQueueClick }: QueuesTabProps): ReactNode {
   if (aggregates.queues.length === 0) {
-    return <div className="admin-empty">No queues active yet — enqueue a job to see it here.</div>;
+    return <PageEmpty>No queues active yet — enqueue a job to see it here.</PageEmpty>;
   }
   return (
-    <div className="admin-card">
-      <table className="log-table">
-        <thead>
-          <tr>
-            <th>Queue</th>
-            <th style={{ textAlign: "right" }}>Total</th>
-            <th style={{ textAlign: "right" }}>Active</th>
-            <th style={{ textAlign: "right" }}>Completed</th>
-            <th style={{ textAlign: "right" }}>Failed</th>
-            <th style={{ textAlign: "right" }}>p95 latency</th>
-            <th style={{ textAlign: "right" }}>Failure rate</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {aggregates.queues.map((queue) => (
-            <tr key={queue.name}>
-              <td>
-                <strong>{queue.name}</strong>
-              </td>
-              <td style={{ textAlign: "right" }}>{queue.total}</td>
-              <td style={{ textAlign: "right" }}>{queue.counts.active + queue.counts.created}</td>
-              <td style={{ textAlign: "right" }}>{queue.counts.completed}</td>
-              <td style={{ textAlign: "right" }}>{queue.counts.failed}</td>
-              <td style={{ textAlign: "right" }}>
-                {queue.p95LatencyMs === null ? "—" : formatMs(queue.p95LatencyMs)}
-              </td>
-              <td style={{ textAlign: "right" }}>{(queue.failureRate * 100).toFixed(1)}%</td>
-              <td>
-                <Button onPress={() => onQueueClick(queue.name)}>Filter jobs →</Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Card>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Queue</TableHead>
+              <TableHead className="text-right">Total</TableHead>
+              <TableHead className="text-right">Active</TableHead>
+              <TableHead className="text-right">Completed</TableHead>
+              <TableHead className="text-right">Failed</TableHead>
+              <TableHead className="text-right">p95 latency</TableHead>
+              <TableHead className="text-right">Failure rate</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {aggregates.queues.map((queue) => (
+              <TableRow key={queue.name}>
+                <TableCell>
+                  <strong className="font-mono text-xs">{queue.name}</strong>
+                </TableCell>
+                <TableCell className="text-right font-mono tabular-nums">{queue.total}</TableCell>
+                <TableCell className="text-right font-mono tabular-nums">
+                  {queue.counts.active + queue.counts.created}
+                </TableCell>
+                <TableCell className="text-right font-mono tabular-nums text-ok">
+                  {queue.counts.completed}
+                </TableCell>
+                <TableCell className="text-right font-mono tabular-nums text-err">
+                  {queue.counts.failed}
+                </TableCell>
+                <TableCell className="text-right font-mono tabular-nums">
+                  {queue.p95LatencyMs === null ? "—" : formatMs(queue.p95LatencyMs)}
+                </TableCell>
+                <TableCell className="text-right font-mono tabular-nums">
+                  {(queue.failureRate * 100).toFixed(1)}%
+                </TableCell>
+                <TableCell>
+                  <Button size="sm" variant="outline" onClick={() => onQueueClick(queue.name)}>
+                    Filter jobs →
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -250,63 +267,81 @@ function JobsTab({
   const queueChoices = ["all", ...queueOptions];
 
   return (
-    <div className="admin-card">
-      <div className="log-toolbar">
-        <Select
-          label="Queue"
-          selectedKey={queueFilter || "all"}
-          onSelectionChange={(key) => onQueueFilterChange(key === "all" ? "" : String(key))}
-        >
-          {queueChoices.map((name) => (
-            <SelectItem key={name} id={name}>
-              {name === "all" ? "All queues" : name}
-            </SelectItem>
-          ))}
-        </Select>
-        <Select
-          label="State"
-          selectedKey={stateFilter}
-          onSelectionChange={(key) => onStateFilterChange(String(key))}
-        >
-          {STATE_FILTERS.map((opt) => (
-            <SelectItem key={opt.id} id={opt.id}>
-              {opt.label}
-            </SelectItem>
-          ))}
-        </Select>
-      </div>
-
-      {list.data ? (
-        list.data.jobs.length === 0 ? (
-          <div className="admin-empty">No jobs match the current filters.</div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Jobs</CardTitle>
+        <div className="mt-3 flex flex-wrap gap-3">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[0.65rem] font-semibold uppercase tracking-widest text-fg-dim">
+              Queue
+            </span>
+            <Select
+              value={queueFilter || "all"}
+              onValueChange={(key) => onQueueFilterChange(key === "all" ? "" : key)}
+            >
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {queueChoices.map((name) => (
+                  <SelectItem key={name} value={name}>
+                    {name === "all" ? "All queues" : name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[0.65rem] font-semibold uppercase tracking-widest text-fg-dim">
+              State
+            </span>
+            <Select value={stateFilter} onValueChange={onStateFilterChange}>
+              <SelectTrigger className="w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STATE_FILTERS.map((opt) => (
+                  <SelectItem key={opt.id} value={opt.id}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        {list.data ? (
+          list.data.jobs.length === 0 ? (
+            <PageEmpty>No jobs match the current filters.</PageEmpty>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Queue</TableHead>
+                  <TableHead>State</TableHead>
+                  <TableHead className="text-right">Attempt</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead className="text-right">Duration</TableHead>
+                  <TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {list.data.jobs.map((job) => (
+                  <JobRow key={job.id} job={job} onInspect={() => setSelectedId(job.id)} />
+                ))}
+              </TableBody>
+            </Table>
+          )
+        ) : list.isError ? (
+          <PageError>Failed to load jobs.</PageError>
         ) : (
-          <table className="log-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Queue</th>
-                <th>State</th>
-                <th style={{ textAlign: "right" }}>Attempt</th>
-                <th>Created</th>
-                <th style={{ textAlign: "right" }}>Duration</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {list.data.jobs.map((job) => (
-                <JobRow key={job.id} job={job} onInspect={() => setSelectedId(job.id)} />
-              ))}
-            </tbody>
-          </table>
-        )
-      ) : list.isError ? (
-        <div className="admin-empty">Failed to load jobs.</div>
-      ) : (
-        <div className="admin-empty">Loading jobs…</div>
-      )}
-
+          <PageLoading>Loading jobs…</PageLoading>
+        )}
+      </CardContent>
       {selectedId ? <JobDrawer id={selectedId} onClose={() => setSelectedId(null)} /> : null}
-    </div>
+    </Card>
   );
 }
 
@@ -317,22 +352,38 @@ function JobRow({ job, onInspect }: { job: JobRecord; onInspect: () => void }): 
       ? formatMs(job.completedAt - job.startedAt)
       : "—";
   return (
-    <tr className={`log-row--${stateToLevel(job.state)}`}>
-      <td>
-        <code>{job.id.slice(0, 8)}…</code>
-      </td>
-      <td>{job.name}</td>
-      <td>
-        <span className={`log-level log-level--${stateToLevel(job.state)}`}>{job.state}</span>
-      </td>
-      <td style={{ textAlign: "right" }}>{job.attempt}</td>
-      <td>{created}</td>
-      <td style={{ textAlign: "right" }}>{duration}</td>
-      <td>
-        <Button onPress={onInspect}>Inspect</Button>
-      </td>
-    </tr>
+    <TableRow>
+      <TableCell>
+        <code className="font-mono text-[0.7rem] text-fg-muted">{job.id.slice(0, 8)}…</code>
+      </TableCell>
+      <TableCell className="font-mono text-xs">{job.name}</TableCell>
+      <TableCell>
+        <StateBadge state={job.state} />
+      </TableCell>
+      <TableCell className="text-right font-mono tabular-nums">{job.attempt}</TableCell>
+      <TableCell className="font-mono text-[0.7rem] text-fg-muted">{created}</TableCell>
+      <TableCell className="text-right font-mono tabular-nums">{duration}</TableCell>
+      <TableCell>
+        <Button size="sm" variant="outline" onClick={onInspect}>
+          Inspect
+        </Button>
+      </TableCell>
+    </TableRow>
   );
+}
+
+function StateBadge({ state }: { state: JobState }): ReactNode {
+  const tone =
+    state === "failed"
+      ? "err"
+      : state === "cancelled"
+        ? "warn"
+        : state === "completed"
+          ? "ok"
+          : state === "active" || state === "retry"
+            ? "info"
+            : "secondary";
+  return <Badge variant={tone}>{state}</Badge>;
 }
 
 function JobDrawer({ id, onClose }: { id: string; onClose: () => void }): ReactNode {
@@ -355,100 +406,72 @@ function JobDrawer({ id, onClose }: { id: string; onClose: () => void }): ReactN
       return (await res.json()) as { id: string };
     },
     onSuccess: () => {
-      // Refresh both the listing and the aggregates so the UI reflects
-      // the new attempt without waiting for the next poll tick.
       queryClient.invalidateQueries({ queryKey: ["dev", "jobs"] });
     },
   });
 
   return (
-    <div className="feat-restart is-visible" role="dialog" aria-label="Job detail">
-      <div className="feat-restart__box" style={{ maxWidth: "48rem", textAlign: "left" }}>
-        <header
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "1rem",
-          }}
-        >
-          <h3 className="feat-restart__title">
-            Job <code>{id.slice(0, 16)}…</code>
-          </h3>
-          <Button onPress={onClose}>Close</Button>
-        </header>
+    <Dialog open onOpenChange={(open) => (!open ? onClose() : undefined)}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>
+            Job <code className="font-mono text-sm">{id.slice(0, 16)}…</code>
+          </DialogTitle>
+          {detail.data ? (
+            <DialogDescription>
+              Queue <code className="text-fg">{detail.data.name}</code> · state{" "}
+              <StateBadge state={detail.data.state} /> · attempt {detail.data.attempt}
+            </DialogDescription>
+          ) : null}
+        </DialogHeader>
         {detail.data ? (
-          <div>
-            <p className="feat-restart__msg">
-              Queue <code>{detail.data.name}</code> · state{" "}
-              <span className={`log-level log-level--${stateToLevel(detail.data.state)}`}>
-                {detail.data.state}
-              </span>{" "}
-              · attempt {detail.data.attempt}
-            </p>
+          <div className="flex flex-col gap-4">
             {detail.data.errorMessage ? (
-              <div className="admin-card">
-                <h4>Error</h4>
-                <pre style={{ whiteSpace: "pre-wrap", color: "var(--text-bad, #ff6b6b)" }}>
-                  {detail.data.errorMessage}
-                </pre>
-                {detail.data.errorStack ? (
-                  <pre
-                    style={{
-                      whiteSpace: "pre-wrap",
-                      fontSize: "0.78rem",
-                      opacity: 0.6,
-                    }}
-                  >
-                    {detail.data.errorStack}
+              <Card className="border-err/40">
+                <CardHeader>
+                  <CardTitle className="text-err">Error</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <pre className="m-0 whitespace-pre-wrap font-mono text-xs text-err">
+                    {detail.data.errorMessage}
                   </pre>
-                ) : null}
-              </div>
+                  {detail.data.errorStack ? (
+                    <pre className="mt-2 whitespace-pre-wrap font-mono text-[0.7rem] text-fg-muted">
+                      {detail.data.errorStack}
+                    </pre>
+                  ) : null}
+                </CardContent>
+              </Card>
             ) : null}
-            <h4>Payload</h4>
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-fg-dim">Payload</h4>
             <JsonViewer value={detail.data.payload} />
             {detail.data.state === "failed" ? (
-              <div style={{ display: "flex", gap: "0.75rem", marginTop: "1rem" }}>
-                <Button
-                  variant="accent"
-                  onPress={() => retry.mutate()}
-                  isDisabled={retry.isPending}
-                >
+              <div className="flex items-center gap-3">
+                <Button onClick={() => retry.mutate()} disabled={retry.isPending}>
                   {retry.isPending ? "Retrying…" : "Retry now"}
                 </Button>
                 {retry.isError ? (
-                  <span className="admin-meta">
+                  <span className="text-xs text-err">
                     {String((retry.error as Error | undefined)?.message ?? retry.error)}
                   </span>
                 ) : null}
                 {retry.isSuccess ? (
-                  <span className="admin-meta">
+                  <span className="text-xs text-ok">
                     ✓ re-queued as{" "}
-                    <code>{(retry.data as { id?: string } | undefined)?.id?.slice(0, 8)}…</code>
+                    <code className="font-mono">
+                      {(retry.data as { id?: string } | undefined)?.id?.slice(0, 8)}…
+                    </code>
                   </span>
                 ) : null}
               </div>
             ) : null}
           </div>
         ) : detail.isError ? (
-          <div className="admin-empty">Failed to load job.</div>
+          <PageError>Failed to load job.</PageError>
         ) : (
-          <div className="admin-empty">Loading job…</div>
+          <PageLoading>Loading job…</PageLoading>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
-}
-
-/**
- * Map a job state to the log-row CSS level so the existing
- * `log-row--info` / `log-row--error` styles colour the table without
- * a per-page stylesheet.
- */
-function stateToLevel(state: JobState): "info" | "warn" | "error" | "debug" {
-  if (state === "failed") return "error";
-  if (state === "cancelled") return "warn";
-  if (state === "completed") return "info";
-  if (state === "active" || state === "retry") return "warn";
-  return "debug";
 }

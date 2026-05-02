@@ -1,19 +1,23 @@
 /**
- * `/dev/traces` — verbatim React port of `trace-viewer-ui.ts`. Same
- * 3-tile summary, same sticky-header live-tail table newest-first,
- * same per-row click-to-expand drill-down that fetches
- * `/dev/queries.json?requestId=…` and renders the queries fired
- * during that request.
- *
- * Live polling: every 2 s `/dev/traces.json?since=<seq>`. Newest
- * traces prepend to the top; the DOM is capped at INITIAL_ROW_CAP
- * (100) so a torrent can't choke the page.
+ * `/dev/traces` — live tail of recent HTTP request traces with
+ * click-to-expand DB-query drill-down.
  */
 import { useQuery } from "@tanstack/react-query";
 import { Fragment, useEffect, useState, type ReactNode } from "react";
 
+import { Card, CardContent } from "../components/ui/card.js";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table.js";
+import { PageError, PageLoading, StatTile } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson, formatMs } from "../lib/api.js";
+import { cn } from "../lib/utils.js";
 
 const INITIAL_ROW_CAP = 100;
 
@@ -62,17 +66,15 @@ export function TracesPage(): ReactNode {
       {initial.data ? (
         <TracesBody initial={initial.data} />
       ) : initial.isError ? (
-        <div className="admin-empty">Failed to load traces.</div>
+        <PageError>Failed to load traces.</PageError>
       ) : (
-        <div className="admin-empty">Loading traces…</div>
+        <PageLoading>Loading traces…</PageLoading>
       )}
     </AdminShell>
   );
 }
 
 function TracesBody({ initial }: { initial: TracesResponse }): ReactNode {
-  // Newest first, capped to INITIAL_ROW_CAP. The poller prepends new
-  // traces and trims older ones from the bottom.
   const newestFirst = initial.traces.slice().reverse().slice(0, INITIAL_ROW_CAP);
   const initialCursor = initial.traces.reduce((max, t) => Math.max(max, Number(t.seq ?? 0)), 0);
 
@@ -133,74 +135,68 @@ function TracesBody({ initial }: { initial: TracesResponse }): ReactNode {
   };
 
   return (
-    <>
-      <div className="tv-tiles">
-        <div className="tv-tile">
-          <div className="tv-tile__title">Total requests</div>
-          <div className="tv-tile__value">{summary.total}</div>
-        </div>
-        <div className={`tv-tile${summary.errors > 0 ? " tv-tile--bad" : ""}`}>
-          <div className="tv-tile__title">Server errors (5xx)</div>
-          <div className="tv-tile__value">{summary.errors}</div>
-        </div>
-        <div className="tv-tile">
-          <div className="tv-tile__title">Slowest</div>
-          <div className="tv-tile__value">{Math.round(summary.slowestMs)} ms</div>
-        </div>
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatTile label="Total requests" value={summary.total} />
+        <StatTile
+          label="Server errors (5xx)"
+          value={summary.errors}
+          tone={summary.errors > 0 ? "err" : "default"}
+        />
+        <StatTile label="Slowest" value={`${Math.round(summary.slowestMs)} ms`} />
       </div>
 
-      <div className="tv-toolbar">
-        <div>
-          <span className="tv-pulse" />
-          <strong>Live tail</strong>
-          <span className="tv-toolbar__meta">
-            {" "}
-            — polled every 2 s, click a row for query drill-down
-          </span>
+      <Card>
+        <div className="flex items-center justify-between border-b border-line bg-surface-2/60 px-4 py-2 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-ok shadow-[0_0_6px_var(--ok)]" />
+            <strong className="text-fg">Live tail</strong>
+            <span className="text-fg-dim">
+              — polled every 2 s, click a row for query drill-down
+            </span>
+          </div>
+          <span className="text-fg-dim">{statusText}</span>
         </div>
-        <div className="tv-toolbar__meta">{statusText}</div>
-      </div>
-
-      <div className="tv-scroll">
-        <table className="tv-table">
-          <thead>
-            <tr>
-              <th style={{ width: "7rem" }}>Time</th>
-              <th style={{ width: "5rem" }}>Method</th>
-              <th>Path</th>
-              <th style={{ width: "5rem" }}>Status</th>
-              <th style={{ width: "6rem" }}>Duration</th>
-              <th style={{ width: "8rem" }}>Request-Id</th>
-            </tr>
-          </thead>
-          <tbody>
-            {traces.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={6}
-                  style={{ color: "var(--fg-dim)", textAlign: "center", padding: "1.5rem" }}
-                >
-                  No traces yet — make a request to populate.
-                </td>
-              </tr>
-            ) : (
-              traces.map((t) => (
-                <Fragment key={t.requestId}>
-                  <TraceRow
-                    trace={t}
-                    expanded={expanded.has(t.requestId)}
-                    onToggle={() => void toggleRow(t.requestId)}
-                  />
-                  {expanded.has(t.requestId) ? (
-                    <DrillRow queries={drillCache[t.requestId]} />
-                  ) : null}
-                </Fragment>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </>
+        <CardContent className="p-0">
+          <div className="max-h-[65dvh] min-h-56 overflow-auto">
+            <Table>
+              <TableHeader className="sticky top-0 z-10 bg-surface-2">
+                <TableRow>
+                  <TableHead className="w-28">Time</TableHead>
+                  <TableHead className="w-20">Method</TableHead>
+                  <TableHead>Path</TableHead>
+                  <TableHead className="w-20">Status</TableHead>
+                  <TableHead className="w-24">Duration</TableHead>
+                  <TableHead className="w-32">Request-Id</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {traces.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-fg-muted">
+                      No traces yet — make a request to populate.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  traces.map((t) => (
+                    <Fragment key={t.requestId}>
+                      <TraceRow
+                        trace={t}
+                        expanded={expanded.has(t.requestId)}
+                        onToggle={() => void toggleRow(t.requestId)}
+                      />
+                      {expanded.has(t.requestId) ? (
+                        <DrillRow queries={drillCache[t.requestId]} />
+                      ) : null}
+                    </Fragment>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -214,75 +210,91 @@ function TraceRow({
   onToggle: () => void;
 }): ReactNode {
   const ts = new Date(trace.startedAtMs).toISOString().slice(11, 23);
-  const statusClass = `tv-status--${Math.floor(trace.status / 100)}`;
-  const methodClass = `tv-method--${trace.method}`;
-  const durClass =
-    trace.durationMs > 1000
-      ? "tv-duration--vslow"
-      : trace.durationMs > 250
-        ? "tv-duration--slow"
-        : "";
+  const statusFamily = Math.floor(trace.status / 100);
+  const statusTone = statusFamily === 5 ? "text-err" : statusFamily === 4 ? "text-warn" : "text-ok";
+  const durTone =
+    trace.durationMs > 1000 ? "text-err" : trace.durationMs > 250 ? "text-warn" : "text-fg";
+  const methodPalette: Record<string, string> = {
+    GET: "bg-accent-soft text-accent",
+    POST: "bg-ok/15 text-ok",
+    PUT: "bg-warn/15 text-warn",
+    PATCH: "bg-warn/15 text-warn",
+    DELETE: "bg-err/15 text-err",
+  };
   return (
-    <tr className={`tv-row${expanded ? " tv-row--expanded" : ""}`} onClick={onToggle}>
-      <td>{ts}</td>
-      <td>
-        <span className={`tv-method ${methodClass}`}>{trace.method}</span>
-      </td>
-      <td>{trace.path}</td>
-      <td className={statusClass}>{trace.status}</td>
-      <td className={durClass}>{Math.round(trace.durationMs)} ms</td>
-      <td style={{ color: "var(--fg-muted)" }}>{trace.requestId.slice(0, 8)}…</td>
-    </tr>
+    <TableRow className={cn("cursor-pointer", expanded && "bg-accent-soft/40")} onClick={onToggle}>
+      <TableCell className="font-mono text-[0.7rem] tabular-nums text-fg-muted">{ts}</TableCell>
+      <TableCell>
+        <span
+          className={cn(
+            "inline-block rounded px-1.5 py-0.5 font-mono text-[0.65rem] font-semibold",
+            methodPalette[trace.method] ?? "bg-surface-3 text-fg-muted",
+          )}
+        >
+          {trace.method}
+        </span>
+      </TableCell>
+      <TableCell className="font-mono text-xs">{trace.path}</TableCell>
+      <TableCell className={cn("font-mono tabular-nums", statusTone)}>{trace.status}</TableCell>
+      <TableCell className={cn("font-mono tabular-nums", durTone)}>
+        {Math.round(trace.durationMs)} ms
+      </TableCell>
+      <TableCell className="font-mono text-[0.7rem] text-fg-muted">
+        {trace.requestId.slice(0, 8)}…
+      </TableCell>
+    </TableRow>
   );
 }
 
 function DrillRow({ queries }: { queries: QueryRecord[] | undefined }): ReactNode {
   if (queries === undefined) {
     return (
-      <tr className="tv-drill-row">
-        <td colSpan={6}>
-          <div className="tv-drill">
-            <div className="tv-drill__title">Loading queries…</div>
+      <TableRow>
+        <TableCell colSpan={6}>
+          <div className="rounded-md border border-line bg-surface-2 p-3 text-sm text-fg-muted">
+            Loading queries…
           </div>
-        </td>
-      </tr>
+        </TableCell>
+      </TableRow>
     );
   }
   if (queries.length === 0) {
     return (
-      <tr className="tv-drill-row">
-        <td colSpan={6}>
-          <div className="tv-drill">
-            <div className="tv-drill__title">Queries fired during this request</div>
-            <div className="tv-drill__empty">No queries recorded for this request.</div>
+      <TableRow>
+        <TableCell colSpan={6}>
+          <div className="rounded-md border border-line bg-surface-2 p-3 text-sm">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-fg-dim">
+              Queries fired during this request
+            </div>
+            <div className="text-fg-muted">No queries recorded for this request.</div>
           </div>
-        </td>
-      </tr>
+        </TableCell>
+      </TableRow>
     );
   }
   return (
-    <tr className="tv-drill-row">
-      <td colSpan={6}>
-        <div className="tv-drill">
-          <div className="tv-drill__title">
+    <TableRow>
+      <TableCell colSpan={6}>
+        <div className="rounded-md border border-line bg-surface-2 p-3">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-fg-dim">
             Queries fired during this request ({queries.length})
           </div>
-          {queries.map((q, i) => {
-            const dc =
-              q.durationMs > 200
-                ? "tv-drill__dur--bad"
-                : q.durationMs > 50
-                  ? "tv-drill__dur--slow"
-                  : "";
-            return (
-              <div key={i} className="tv-drill__row">
-                <div className={`tv-drill__dur ${dc}`}>{formatMs(q.durationMs)}</div>
-                <div className="tv-drill__sql">{String(q.sql)}</div>
-              </div>
-            );
-          })}
+          <div className="flex flex-col gap-1.5">
+            {queries.map((q, i) => {
+              const tone =
+                q.durationMs > 200 ? "text-err" : q.durationMs > 50 ? "text-warn" : "text-fg";
+              return (
+                <div key={i} className="flex gap-3 font-mono text-[0.7rem]">
+                  <div className={cn("w-16 shrink-0 tabular-nums", tone)}>
+                    {formatMs(q.durationMs)}
+                  </div>
+                  <div className="break-all text-fg">{String(q.sql)}</div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }

@@ -1,13 +1,22 @@
 /**
- * `/dev/queries` — verbatim React port of `query-viewer-ui.ts`. Same
- * 4-tile summary, same three sections (slowest top-10, top templates,
- * recent newest-first up-to-50). Same warning thresholds.
+ * `/dev/queries` — recent / slowest / most-frequent Prisma queries.
  */
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table.js";
+import { PageEmpty, PageError, PageLoading, StatTile } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson, formatMs } from "../lib/api.js";
+import { cn } from "../lib/utils.js";
 
 const WARN_THRESHOLD_MS = 50;
 const BAD_THRESHOLD_MS = 200;
@@ -52,9 +61,9 @@ export function QueriesPage(): ReactNode {
       {data.data ? (
         <QueriesBody report={data.data} />
       ) : data.isError ? (
-        <div className="admin-empty">Failed to load queries.</div>
+        <PageError>Failed to load queries.</PageError>
       ) : (
-        <div className="admin-empty">Loading queries…</div>
+        <PageLoading>Loading queries…</PageLoading>
       )}
     </AdminShell>
   );
@@ -63,130 +72,132 @@ export function QueriesPage(): ReactNode {
 function QueriesBody({ report }: { report: QueriesResponse }): ReactNode {
   const recent = report.recent.slice().reverse().slice(0, 50);
   return (
-    <>
-      <div className="qv-tiles">
-        <div className="qv-tile">
-          <div className="qv-tile__title">Total queries</div>
-          <div className="qv-tile__value">{report.summary.total}</div>
-        </div>
-        <div className={`qv-tile${report.summary.warnCount > 0 ? " qv-tile--warn" : ""}`}>
-          <div className="qv-tile__title">Slow (&gt; {WARN_THRESHOLD_MS} ms)</div>
-          <div className="qv-tile__value">{report.summary.warnCount}</div>
-        </div>
-        <div className={`qv-tile${report.summary.badCount > 0 ? " qv-tile--bad" : ""}`}>
-          <div className="qv-tile__title">Critical (&gt; {BAD_THRESHOLD_MS} ms)</div>
-          <div className="qv-tile__value">{report.summary.badCount}</div>
-        </div>
-        <div className="qv-tile">
-          <div className="qv-tile__title">Slowest</div>
-          <div className="qv-tile__value">{Math.round(report.summary.slowestMs)} ms</div>
-        </div>
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatTile label="Total queries" value={report.summary.total} />
+        <StatTile
+          label={`Slow (> ${WARN_THRESHOLD_MS} ms)`}
+          value={report.summary.warnCount}
+          tone={report.summary.warnCount > 0 ? "warn" : "default"}
+        />
+        <StatTile
+          label={`Critical (> ${BAD_THRESHOLD_MS} ms)`}
+          value={report.summary.badCount}
+          tone={report.summary.badCount > 0 ? "err" : "default"}
+        />
+        <StatTile label="Slowest" value={`${Math.round(report.summary.slowestMs)} ms`} />
       </div>
 
-      <section className="qv-section">
-        <h2>Slowest queries (top 10)</h2>
-        <p className="qv-section__hint">
-          Queries above {WARN_THRESHOLD_MS} ms get a warning tint, above {BAD_THRESHOLD_MS} ms an
-          error tint. If a slice you just shipped lands here, that's your next thing to fix.
-        </p>
-        {report.slowest.length === 0 ? (
-          <div className="qv-empty">No queries yet — make a request that hits the DB.</div>
-        ) : (
-          <table className="qv-table">
-            <colgroup>
-              <col style={{ width: "7rem" }} />
-              <col />
-            </colgroup>
-            <thead>
-              <tr>
-                <th className="qv-num">Duration</th>
-                <th>SQL</th>
-              </tr>
-            </thead>
-            <tbody>
-              {report.slowest.map((q, i) => (
-                <QueryRow key={i} q={q} />
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
+      <Card>
+        <CardHeader>
+          <CardTitle>Slowest queries (top 10)</CardTitle>
+          <p className="text-xs text-fg-muted">
+            Queries above {WARN_THRESHOLD_MS} ms get a warning tint, above {BAD_THRESHOLD_MS} ms an
+            error tint. If a slice you just shipped lands here, that's your next thing to fix.
+          </p>
+        </CardHeader>
+        <CardContent>
+          {report.slowest.length === 0 ? (
+            <PageEmpty>No queries yet — make a request that hits the DB.</PageEmpty>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-28">Duration</TableHead>
+                  <TableHead>SQL</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {report.slowest.map((q, i) => (
+                  <QueryRow key={i} q={q} />
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
-      <section className="qv-section">
-        <h2>Most frequent templates (rough N+1 detector)</h2>
-        <p className="qv-section__hint">
-          Templates that fire many times in a session usually mean a missing <code>include:</code> —
-          the loop is round-tripping per row. The sample column shows the most recent occurrence so
-          you can grep for it.
-        </p>
-        {report.topTemplates.length === 0 ? (
-          <div className="qv-empty">Empty buffer.</div>
-        ) : (
-          <table className="qv-table">
-            <colgroup>
-              <col style={{ width: "5rem" }} />
-              <col style={{ width: "7rem" }} />
-              <col />
-            </colgroup>
-            <thead>
-              <tr>
-                <th className="qv-num">Count</th>
-                <th className="qv-num">Total</th>
-                <th>Sample</th>
-              </tr>
-            </thead>
-            <tbody>
-              {report.topTemplates.map((g) => (
-                <tr key={g.template}>
-                  <td className={`qv-num${g.count >= 10 ? " qv-count--high" : ""}`}>{g.count}</td>
-                  <td className="qv-num">{formatMs(g.totalMs)}</td>
-                  <td className="qv-sql">{g.sample}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
+      <Card>
+        <CardHeader>
+          <CardTitle>Most frequent templates (rough N+1 detector)</CardTitle>
+          <p className="text-xs text-fg-muted">
+            Templates that fire many times in a session usually mean a missing{" "}
+            <code className="font-mono text-accent">include:</code> — the loop is round-tripping per
+            row. The sample column shows the most recent occurrence so you can grep for it.
+          </p>
+        </CardHeader>
+        <CardContent>
+          {report.topTemplates.length === 0 ? (
+            <PageEmpty>Empty buffer.</PageEmpty>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-20">Count</TableHead>
+                  <TableHead className="w-28">Total</TableHead>
+                  <TableHead>Sample</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {report.topTemplates.map((g) => (
+                  <TableRow key={g.template}>
+                    <TableCell
+                      className={cn(
+                        "font-mono tabular-nums",
+                        g.count >= 10 ? "text-warn" : "text-fg",
+                      )}
+                    >
+                      {g.count}
+                    </TableCell>
+                    <TableCell className="font-mono tabular-nums">{formatMs(g.totalMs)}</TableCell>
+                    <TableCell className="break-all font-mono text-xs">{g.sample}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
-      <section className="qv-section">
-        <h2>Recent (newest first, last 50)</h2>
-        {recent.length === 0 ? (
-          <div className="qv-empty">Empty buffer.</div>
-        ) : (
-          <table className="qv-table">
-            <colgroup>
-              <col style={{ width: "7rem" }} />
-              <col />
-            </colgroup>
-            <thead>
-              <tr>
-                <th className="qv-num">Duration</th>
-                <th>SQL</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recent.map((q, i) => (
-                <QueryRow key={i} q={q} />
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
-    </>
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent (newest first, last 50)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {recent.length === 0 ? (
+            <PageEmpty>Empty buffer.</PageEmpty>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-28">Duration</TableHead>
+                  <TableHead>SQL</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recent.map((q, i) => (
+                  <QueryRow key={i} q={q} />
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
 function QueryRow({ q }: { q: QueryRecord }): ReactNode {
-  const dc =
+  const tone =
     q.durationMs > BAD_THRESHOLD_MS
-      ? "qv-dur--bad"
+      ? "text-err"
       : q.durationMs > WARN_THRESHOLD_MS
-        ? "qv-dur--slow"
-        : "";
+        ? "text-warn"
+        : "text-fg";
   return (
-    <tr>
-      <td className={`qv-num ${dc}`}>{formatMs(q.durationMs)}</td>
-      <td className="qv-sql">{q.sql}</td>
-    </tr>
+    <TableRow>
+      <TableCell className={cn("font-mono tabular-nums", tone)}>{formatMs(q.durationMs)}</TableCell>
+      <TableCell className="break-all font-mono text-xs">{q.sql}</TableCell>
+    </TableRow>
   );
 }

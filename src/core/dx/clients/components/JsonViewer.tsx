@@ -1,20 +1,23 @@
 /**
- * Faithful React port of `json-viewer-ui.ts`'s server-side renderer.
- * Same syntax-highlighted output, same collapse/expand behaviour
- * (collapsed by default at `depth >= 3`), same key-search highlight,
- * same toolbar (Expand all / Collapse all / Copy / Raw .json).
+ * JSON Viewer with collapse / expand / search / copy.
  *
- * The recursion is intentional — strings, numbers, booleans, nulls,
- * undefineds, BigInts, Symbols, functions, cycles get the same
- * special-cased rendering the server does. Cycles fall back to
- * `[Circular]`.
+ * Re-implementation of the legacy server-rendered viewer on top of
+ * Tailwind utilities + shadcn primitives. Same behaviour as before:
+ * collapsed-by-default at `depth >= 3`, key-search highlight, raw-JSON
+ * copy + open-in-new-tab.
  */
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+
+import { cn } from "../lib/utils.js";
+
+import { Button } from "./ui/button.js";
+import { Card } from "./ui/card.js";
+import { Input } from "./ui/input.js";
 
 interface JsonViewerProps {
   /** Value to render. */
   value: unknown;
-  /** Optional href for the "Raw .json ↗" link in the toolbar. */
+  /** Optional href for the "Raw .json" link in the toolbar. */
   rawJsonHref?: string;
 }
 
@@ -42,35 +45,42 @@ export function JsonViewer({ value, rawJsonHref }: JsonViewerProps): ReactNode {
   };
 
   return (
-    <div className="admin-card">
-      <div className="jv-toolbar">
-        <input
+    <Card className="overflow-hidden">
+      <div className="flex flex-wrap items-center gap-2 border-b border-line bg-surface-2/60 p-3">
+        <Input
           type="search"
-          className="jv-search"
+          className="h-8 max-w-xs"
           placeholder="Filter keys (highlights matches)…"
           autoComplete="off"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
-        <div className="jv-actions">
-          <button type="button" className="jv-btn" onClick={() => setExpandSignal("all")}>
+        <div className="ml-auto flex items-center gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={() => setExpandSignal("all")}>
             Expand all
-          </button>
-          <button type="button" className="jv-btn" onClick={() => setExpandSignal("collapse")}>
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => setExpandSignal("collapse")}
+          >
             Collapse all
-          </button>
-          <button type="button" className="jv-btn jv-btn--accent" onClick={() => void onCopy()}>
+          </Button>
+          <Button type="button" size="sm" variant="default" onClick={() => void onCopy()}>
             Copy JSON
-          </button>
+          </Button>
           {rawJsonHref ? (
-            <a className="jv-btn" href={rawJsonHref} target="_blank" rel="noopener noreferrer">
-              Raw .json ↗
-            </a>
+            <Button asChild size="sm" variant="outline">
+              <a href={rawJsonHref} target="_blank" rel="noopener noreferrer">
+                Raw .json ↗
+              </a>
+            </Button>
           ) : null}
         </div>
       </div>
-      <pre className="jv">
-        <code className="jv__root">
+      <pre className="m-0 overflow-auto bg-surface-1 p-4 font-mono text-xs leading-relaxed text-fg">
+        <code>
           <Value
             value={value}
             depth={0}
@@ -80,8 +90,15 @@ export function JsonViewer({ value, rawJsonHref }: JsonViewerProps): ReactNode {
           />
         </code>
       </pre>
-      <div className={`jv__copied${copied ? " is-visible" : ""}`}>✓ Copied to clipboard</div>
-    </div>
+      <div
+        className={cn(
+          "pointer-events-none absolute bottom-4 right-4 rounded-md border border-line-accent bg-surface-1 px-3 py-1.5 text-xs text-accent shadow-md transition-opacity",
+          copied ? "opacity-100" : "opacity-0",
+        )}
+      >
+        ✓ Copied to clipboard
+      </div>
+    </Card>
   );
 }
 
@@ -94,33 +111,33 @@ interface ValueProps {
 }
 
 function Value({ value, depth, seen, filter, expandSignal }: ValueProps): ReactNode {
-  if (value === null) return <span className="jv__null">null</span>;
-  if (value === undefined) return <span className="jv__special">undefined</span>;
+  if (value === null) return <span className="text-fg-muted">null</span>;
+  if (value === undefined) return <span className="text-fg-muted">undefined</span>;
   switch (typeof value) {
     case "string":
-      return <span className="jv__string">{JSON.stringify(value)}</span>;
+      return <span className="text-ok">{JSON.stringify(value)}</span>;
     case "number":
-      return <span className="jv__number">{String(value)}</span>;
+      return <span className="text-warn">{String(value)}</span>;
     case "boolean":
-      return <span className="jv__boolean">{String(value)}</span>;
+      return <span className="text-warn">{String(value)}</span>;
     case "bigint":
-      return <span className="jv__number">{`${String(value)}n`}</span>;
+      return <span className="text-warn">{`${String(value)}n`}</span>;
     case "symbol":
-      return <span className="jv__special">{String(value)}</span>;
+      return <span className="text-fg-muted">{String(value)}</span>;
     case "function":
-      return <span className="jv__special">[Function]</span>;
+      return <span className="text-fg-muted">[Function]</span>;
     case "object":
       break;
     default:
-      return <span className="jv__special">{String(value)}</span>;
+      return <span className="text-fg-muted">{String(value)}</span>;
   }
   if (seen.has(value as object)) {
-    return <span className="jv__special">[Circular]</span>;
+    return <span className="text-fg-muted">[Circular]</span>;
   }
   seen.add(value as object);
 
   if (Array.isArray(value)) {
-    if (value.length === 0) return <span className="jv__brace">[]</span>;
+    if (value.length === 0) return <span className="text-fg-dim">[]</span>;
     return (
       <ContainerNode
         depth={depth}
@@ -132,7 +149,7 @@ function Value({ value, depth, seen, filter, expandSignal }: ValueProps): ReactN
       >
         {value.map((item, idx) => (
           <span key={idx}>
-            <span className="jv__indent" />
+            <span className="inline-block w-4" />
             <Value
               value={item}
               depth={depth + 1}
@@ -140,7 +157,7 @@ function Value({ value, depth, seen, filter, expandSignal }: ValueProps): ReactN
               filter={filter}
               expandSignal={expandSignal}
             />
-            {idx < value.length - 1 ? <span className="jv__comma">,</span> : null}
+            {idx < value.length - 1 ? <span className="text-fg-dim">,</span> : null}
             {"\n"}
           </span>
         ))}
@@ -149,7 +166,7 @@ function Value({ value, depth, seen, filter, expandSignal }: ValueProps): ReactN
   }
 
   const entries = Object.entries(value as Record<string, unknown>);
-  if (entries.length === 0) return <span className="jv__brace">{"{}"}</span>;
+  if (entries.length === 0) return <span className="text-fg-dim">{"{}"}</span>;
   return (
     <ContainerNode
       depth={depth}
@@ -163,11 +180,16 @@ function Value({ value, depth, seen, filter, expandSignal }: ValueProps): ReactN
         const matches = filter.length > 0 && k.toLowerCase().includes(filter);
         return (
           <span key={k}>
-            <span className="jv__indent" />
-            <span className={`jv__key${matches ? " jv__key--match" : ""}`}>
+            <span className="inline-block w-4" />
+            <span
+              className={cn(
+                "text-accent",
+                matches && "rounded bg-accent-soft px-0.5 ring-1 ring-accent",
+              )}
+            >
               {JSON.stringify(k)}
             </span>
-            <span className="jv__comma">: </span>
+            <span className="text-fg-dim">: </span>
             <Value
               value={v}
               depth={depth + 1}
@@ -175,7 +197,7 @@ function Value({ value, depth, seen, filter, expandSignal }: ValueProps): ReactN
               filter={filter}
               expandSignal={expandSignal}
             />
-            {idx < entries.length - 1 ? <span className="jv__comma">,</span> : null}
+            {idx < entries.length - 1 ? <span className="text-fg-dim">,</span> : null}
             {"\n"}
           </span>
         );
@@ -206,19 +228,26 @@ function ContainerNode({
   // React to global expand/collapse-all signals.
   useReactToSignal(expandSignal, setCollapsed);
   return (
-    <span className="jv__node" data-collapsed={String(collapsed)} data-count={countLabel}>
-      <span className="jv__summary">
-        <span
-          className={`jv__toggle ${collapsed ? "jv__toggle--collapsed" : "jv__toggle--expanded"}`}
+    <span data-collapsed={String(collapsed)} data-count={countLabel}>
+      <span className="inline-flex items-center gap-1">
+        <button
+          type="button"
+          aria-label={collapsed ? "Expand" : "Collapse"}
           onClick={() => setCollapsed((c) => !c)}
-        />
-        <span className="jv__brace">{open}</span>
+          className="font-mono text-fg-dim hover:text-accent"
+        >
+          {collapsed ? "▸" : "▾"}
+        </button>
+        <span className="text-fg-dim">{open}</span>
+        {collapsed ? <span className="text-fg-faint">{` … ${countLabel} `}</span> : null}
       </span>
-      <span className="jv__children">
-        {"\n"}
-        {children}
-      </span>
-      <span className="jv__brace">{close}</span>
+      {!collapsed ? (
+        <span>
+          {"\n"}
+          {children}
+        </span>
+      ) : null}
+      <span className="text-fg-dim">{close}</span>
     </span>
   );
 }
