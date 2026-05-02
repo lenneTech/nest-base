@@ -203,7 +203,7 @@ The realtime inspector at `/admin/realtime` ships with three tabs (Sockets / Cha
 
 | Category | Feature | Default | ENV Toggle |
 |---|---|---|---|
-| **Infrastructure** | Multi-Tenancy (`x-tenant-id` + RLS) | ✓ | `FEATURE_MULTI_TENANCY_ENABLED` |
+| **Infrastructure** | Multi-Tenancy (`x-tenant-id` + RLS, `GET /me/tenants`, `POST /tenants`) | ✓ | `FEATURE_MULTI_TENANCY_ENABLED` |
 | | Rate Limiting (multi-window, Postgres) | ✓ | `FEATURE_RATE_LIMIT_ENABLED` |
 | | Idempotency (Stripe-style `Idempotency-Key`) | ✓ | `FEATURE_IDEMPOTENCY_ENABLED` |
 | | Background Jobs (in-memory, pg-boss-ready) | ✓ | `FEATURE_JOBS_ENABLED` |

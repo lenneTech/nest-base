@@ -8,8 +8,21 @@
  * The actual NestJS Guard wraps this classifier in a future slice.
  */
 
-const EXEMPT_EXACT = new Set(["/", "/errors"]);
-const EXEMPT_PREFIXES = ["/health/", "/api/auth/", "/docs/", "/dev/", "/admin/", "/errors/"];
+const EXEMPT_EXACT = new Set(["/", "/errors", "/tenants"]);
+// `/me/*` endpoints operate on the authenticated user (req.user.id),
+// not on a specific tenant. `/tenants` is the self-service tenant CRUD
+// surface — a signed-up user creates their first tenant here, so the
+// header cannot be required at the bootstrap step.
+const EXEMPT_PREFIXES = [
+  "/health/",
+  "/api/auth/",
+  "/docs/",
+  "/dev/",
+  "/admin/",
+  "/errors/",
+  "/me/",
+  "/tenants/",
+];
 
 export function isTenantExempt(path: string): boolean {
   if (!path) throw new Error("isTenantExempt: path is required");

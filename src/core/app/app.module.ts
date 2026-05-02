@@ -26,6 +26,7 @@ import { McpModule } from "../mcp/mcp.module.js";
 import { OutboxModule } from "../outbox/outbox.module.js";
 import { WebhooksModule } from "../webhooks/webhooks.module.js";
 import { TenantMemberModule } from "../multi-tenancy/tenant-member.module.js";
+import { TenantSelfServiceModule } from "../multi-tenancy/tenant-self-service.module.js";
 import { TenantInterceptor } from "../multi-tenancy/tenant.interceptor.js";
 import { OutputPipelineInterceptor } from "../output-pipeline/output-pipeline.interceptor.js";
 import { AdminCrudModule } from "../permissions/admin-crud.module.js";
@@ -86,6 +87,7 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     EmailModule,
     AuditLogModule,
     TenantMemberModule,
+    TenantSelfServiceModule,
     ApiKeyModule,
     AdminCrudModule,
     JobsModule,
