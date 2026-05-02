@@ -105,8 +105,7 @@ function serializeObject(raw: object): OutboxTickErrorReport {
   const messageBits: string[] = [];
   const extractedName = typeof extracted.name === "string" ? extracted.name : undefined;
   const extractedCode = typeof extracted.code === "string" ? extracted.code : undefined;
-  const extractedMessage =
-    typeof extracted.message === "string" ? extracted.message : undefined;
+  const extractedMessage = typeof extracted.message === "string" ? extracted.message : undefined;
 
   if (extractedName) messageBits.push(extractedName);
   if (extractedCode) messageBits.push(extractedCode);

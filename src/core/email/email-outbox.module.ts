@@ -195,10 +195,7 @@ export class EmailOutboxWorkerLifecycle implements OnModuleInit, OnModuleDestroy
         // (issue #50). Always route through the serializer so the
         // real cause + payload reach the log.
         const { message, stack, payload } = serializeOutboxTickError(err);
-        this.logger.error(
-          `outbox tick failed: ${message}${payload ? ` (${payload})` : ""}`,
-          stack,
-        );
+        this.logger.error(`outbox tick failed: ${message}${payload ? ` (${payload})` : ""}`, stack);
       });
     }, this.tickMs);
   }
