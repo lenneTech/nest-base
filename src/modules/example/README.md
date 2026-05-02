@@ -82,12 +82,39 @@ to know about the error class.
 > sentinels. Always extend `ResourceNotFoundError` (or the matching
 > NestJS exception, e.g. `ConflictException`, `BadRequestException`).
 
-### 5. Zod-driven DTOs
+### 5. Zod-driven DTOs + OpenAPI bridge
 
 `example.dto.ts` defines four schemas (Create, Update, ListQuery,
 Response). Each schema is the single source of truth — TypeScript
 types are inferred (`z.infer<...>`), runtime validation goes through
-`ZodValidationPipe`, Swagger schemas come from the same shape.
+`ZodValidationPipe`, OpenAPI schemas come from the same shape.
+
+The OpenAPI bridge (`src/core/openapi/`) feeds those Zod schemas into
+the `@nestjs/swagger` document via the `@ApiZod*` decorator family:
+
+```typescript
+@Post()
+@ApiZodBody(CreateExampleSchema)
+@ApiZodCreatedResponse({ schema: ExampleResponseSchema })
+async create(@Body(new ZodValidationPipe(CreateExampleSchema)) dto: CreateExampleDto) { … }
+
+@Get()
+@ApiZodQuery(ListExampleQuerySchema)
+@ApiZodOkResponse({ schema: z.object({ items: z.array(ExampleResponseSchema), nextCursor: z.string().nullable() }) })
+async list(@Query(new ZodValidationPipe(ListExampleQuerySchema)) query: ListExampleQuery) { … }
+```
+
+Without the bridge, the kubb-generated `types.gen.ts` would surface
+`body?: never` / `200: unknown` for every Zod-validated route — the
+schemas wouldn't reach the OpenAPI document at all. The decorators
+are the difference between the frontend's `Backend Types: Generated
+only` rule being enforceable and being aspirational.
+
+For schemas that should land as named `components.schemas` entries
+(reused across multiple routes by the SDK), call
+`registerZodSchema('Example', ExampleResponseSchema)` at module
+import time. The example module registers `Example`, `CreateExample`,
+and `UpdateExample`.
 
 ## Schema + migration
 

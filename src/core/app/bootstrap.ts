@@ -25,6 +25,7 @@ import { ProblemDetailsExceptionFilter } from "../errors/problem-details.filter.
 import { buildSecurityHeadersConfig } from "../http/security-headers.js";
 import { createLogger } from "../observability/logger.js";
 import { PinoLoggerService } from "../observability/pino-logger.service.js";
+import { applyZodSchemaRegistry } from "../openapi/zod-openapi-bridge.js";
 import { serverConfigFromEnv } from "../server/server-config.js";
 import { checkEnvPrerequisites, renderEnvBanner } from "../setup/env-prerequisites.js";
 import { AppModule } from "./app.module.js";
@@ -104,6 +105,12 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
     .addCookieAuth("better-auth.session_token")
     .build();
   const openApiDocument = SwaggerModule.createDocument(app, openApiConfig);
+  // Splice Zod-registered named schemas + the RFC 7807 problem-details
+  // components into `components.schemas` / `components.responses`.
+  // Routes annotated with `@ApiZod*` already produce inline schemas;
+  // this step adds the named-schema registry so kubb can $ref them
+  // and the SDK doesn't duplicate types across endpoints.
+  applyZodSchemaRegistry(openApiDocument);
   // SwaggerModule.setup also mounts the Swagger UI; we only want the
   // raw JSON since Scalar UI is the chosen renderer. Mount /api/openapi
   // as the dev-hub JSON viewer (browser default) and /api/openapi.json

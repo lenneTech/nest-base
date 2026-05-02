@@ -80,6 +80,7 @@ src/
 │   ├── request-context/             ← AsyncLocalStorage per request
 │   ├── observability/               ← OpenTelemetry setup
 │   ├── dx/  dev/                    ← Scalar, NestJS DevTools, dev hub
+│   ├── openapi/                     ← Zod → OpenAPI bridge (decorators + named-schema registry)
 │   ├── features/                    ← FeaturesSchema (zod) — single source of truth for toggles
 │   └── http/  validation/  …
 ├── modules/                         ← Project-owned. Add your domain code here.
@@ -184,6 +185,29 @@ return the (possibly modified) item to keep it.
 mistakenly grants a secret field, even if a filter forgets to strip it,
 the safety net removes it. New secret-shaped fields (`*Hash`, `*Token`,
 `*Secret`) are picked up automatically.
+
+## Zod → OpenAPI bridge
+
+The slim-module reference (`src/modules/example/`) and any new
+domain module use Zod schemas as the single source of truth for
+runtime validation, TypeScript types, and OpenAPI schemas. The
+bridge that closes the OpenAPI loop lives in `src/core/openapi/`:
+
+| File | Role |
+|---|---|
+| `zod-to-openapi.ts` | Pure planner. Wraps `z.toJSONSchema(schema, { target: 'openapi-3.0' })` so the result is OpenAPI-3.0-compatible (no `$schema` keyword, no draft-2020 type-arrays). Also owns the **named-schema registry**: `registerZodSchema('Foo', schema)` makes the schema available as `components.schemas.Foo` in the document. |
+| `zod-api-decorators.ts` | `@ApiZodBody`, `@ApiZodResponse`, `@ApiZodOkResponse`, `@ApiZodCreatedResponse`, `@ApiZodNoContentResponse`, `@ApiZodQuery`, `@ApiZodParam` — thin wrappers over `@nestjs/swagger`'s `Api*` decorators that take Zod schemas instead of class types. The schemas land in the `@nestjs/swagger` metadata pipeline, so `SwaggerModule.createDocument(...)` picks them up like any other annotation. |
+| `zod-openapi-bridge.ts` | Boot-time runner. After `createDocument(...)` runs, `applyZodSchemaRegistry(doc)` splices the named-schema registry and the RFC 7807 problem-details components into `components.schemas` / `components.responses`. Existing entries are preserved, never overwritten. |
+
+Why this matters: without the bridge, a Zod-validated route reaches
+the OpenAPI document with no body / response schema, so the
+kubb-generated SDK types every endpoint as `body?: never` /
+`200: unknown`. The frontend's *Backend Types: Generated only*
+rule depends on the bridge being wired.
+
+The slim-module reference and the user-profile module are the two
+canonical examples — copy their decorator pattern when you scaffold
+a new module.
 
 ## Multi-tenancy
 
