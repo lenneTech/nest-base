@@ -4,6 +4,12 @@
  * Two top-level views:
  *   1. Gallery — lists every discovered template; "New" creates a draft.
  *   2. Composer — three-column block palette + composition + live preview.
+ *
+ * Issue #49: every template (core or module) gets a "Customize" action
+ * that fetches its decomposed composition and opens the composer
+ * pre-filled. Save always writes to src/modules/email/templates/ —
+ * core files are never overwritten. Core (overridden) entries also
+ * expose a "Reset to default" action that DELETEs the overlay file.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -11,6 +17,14 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Badge } from "../components/ui/badge.js";
 import { Button } from "../components/ui/button.js";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog.js";
 import { Input } from "../components/ui/input.js";
 import { Label } from "../components/ui/label.js";
 import {
@@ -32,6 +46,10 @@ interface DiscoveredTemplate {
   source: "core" | "module";
   subject?: string;
   error?: string;
+  /** Module-overlay row that shadows a same-named core template. */
+  overridesCore?: boolean;
+  /** Core row whose name + locale also has a module overlay. */
+  overrideExists?: boolean;
 }
 
 interface BlockPropDescriptor {
@@ -76,6 +94,22 @@ interface PreviewResponse {
   text: string;
 }
 
+/**
+ * Response of GET /dev/email-builder/templates/:name/composition.json.
+ * `decomposable: false` means the source uses hand-written JSX outside
+ * the composer grammar — the UI falls back to a read-only source view.
+ */
+interface CompositionResponse {
+  name: string;
+  locale: string | null;
+  source: "core" | "module";
+  file: string;
+  rawSource: string;
+  decomposable: boolean;
+  composition?: CompositionDraft & { children: BlockSpec[] };
+  reason?: string;
+}
+
 const VAR_PATTERN = /\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g;
 
 function emptyDraft(): CompositionDraft {
@@ -90,10 +124,18 @@ function emptyDraft(): CompositionDraft {
   };
 }
 
+type View =
+  | { kind: "gallery" }
+  | { kind: "composer" }
+  | { kind: "source"; template: DiscoveredTemplate; rawSource: string; reason: string };
+
 export function EmailBuilderPage(): ReactNode {
-  const [view, setView] = useState<"gallery" | "composer">("gallery");
+  const [view, setView] = useState<View>({ kind: "gallery" });
   const [draft, setDraft] = useState<CompositionDraft>(() => emptyDraft());
   const [draftSlug, setDraftSlug] = useState("");
+  const [editLoadError, setEditLoadError] = useState<string | null>(null);
+  const [resetTarget, setResetTarget] = useState<DiscoveredTemplate | null>(null);
+  const [resetError, setResetError] = useState<string | null>(null);
 
   const templates = useQuery({
     queryKey: ["dev", "email-builder", "templates"],
@@ -106,59 +148,163 @@ export function EmailBuilderPage(): ReactNode {
     queryFn: () => fetchJson<BlocksResponse>("/dev/email-builder/blocks.json"),
   });
 
+  const queryClient = useQueryClient();
+
+  // The "Anpassen" action: fetch composition.json for the picked
+  // template and either pre-fill the composer or fall back to the
+  // source-view when the source is outside the composer grammar.
+  const customize = useMutation({
+    mutationFn: async (tpl: DiscoveredTemplate) => {
+      setEditLoadError(null);
+      const url = buildCompositionUrl(tpl);
+      const data = await fetchJson<CompositionResponse>(url);
+      return { tpl, data };
+    },
+    onSuccess: ({ tpl, data }) => {
+      if (data.decomposable && data.composition) {
+        setDraft({
+          layout: data.composition.layout,
+          subject: data.composition.subject,
+          preheader: data.composition.preheader ?? "",
+          children: data.composition.children,
+        });
+        setDraftSlug(tpl.name);
+        setView({ kind: "composer" });
+        return;
+      }
+      setView({
+        kind: "source",
+        template: tpl,
+        rawSource: data.rawSource,
+        reason: data.reason ?? "Source contains JSX outside the composer grammar.",
+      });
+    },
+    onError: (err) => setEditLoadError(err instanceof Error ? err.message : String(err)),
+  });
+
+  // The "Reset to default" action: DELETE the module-overlay file. The
+  // dialog confirms first; this hook only fires on the confirmed click.
+  const resetOverride = useMutation({
+    mutationFn: async (tpl: DiscoveredTemplate) => {
+      setResetError(null);
+      const params = new URLSearchParams();
+      if (tpl.locale) params.set("locale", tpl.locale);
+      const qs = params.toString();
+      const url = `/dev/email-builder/templates/${encodeURIComponent(tpl.name)}/override${qs ? `?${qs}` : ""}`;
+      const res = await fetch(url, {
+        method: "DELETE",
+        headers: { accept: "application/json" },
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`reset failed: ${res.status} — ${text.slice(0, 200)}`);
+      }
+      return (await res.json()) as { ok: true; acted: true; relativePath: string };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["dev", "email-builder", "templates"] });
+      setResetTarget(null);
+    },
+    onError: (err) => setResetError(err instanceof Error ? err.message : String(err)),
+  });
+
   const subtitle = templates.data
     ? `${templates.data.templates.length} discovered template(s) — gallery + composer for project-owned templates.`
     : "Loading…";
 
   return (
     <AdminShell title="Email Builder" subtitle={subtitle} currentNav="email-builder">
-      {view === "gallery" ? (
+      {editLoadError ? (
+        <Card className="mb-4 border-err/40 bg-err/10" role="alert">
+          <CardContent className="p-3 text-sm">
+            <strong className="text-err">Could not load template:</strong> {editLoadError}
+          </CardContent>
+        </Card>
+      ) : null}
+      {view.kind === "gallery" ? (
         <GalleryView
           templates={templates.data?.templates ?? []}
           isLoading={templates.isLoading}
           isError={templates.isError}
+          isCustomizing={customize.isPending}
           onNew={() => {
             setDraft(emptyDraft());
             setDraftSlug("");
-            setView("composer");
+            setView({ kind: "composer" });
           }}
           onDuplicate={(tpl) => {
             setDraft(emptyDraft());
             setDraftSlug(`${tpl.name}-copy`);
-            setView("composer");
+            setView({ kind: "composer" });
+          }}
+          onCustomize={(tpl) => customize.mutate(tpl)}
+          onReset={(tpl) => {
+            setResetError(null);
+            setResetTarget(tpl);
           }}
         />
-      ) : (
+      ) : view.kind === "composer" ? (
         <ComposerView
           draft={draft}
           setDraft={setDraft}
           slug={draftSlug}
           setSlug={setDraftSlug}
           blocks={blocks.data}
-          onClose={() => setView("gallery")}
+          onClose={() => setView({ kind: "gallery" })}
+        />
+      ) : (
+        <SourceView
+          template={view.template}
+          rawSource={view.rawSource}
+          reason={view.reason}
+          onClose={() => setView({ kind: "gallery" })}
         />
       )}
+      <ResetConfirmDialog
+        target={resetTarget}
+        isPending={resetOverride.isPending}
+        error={resetError}
+        onCancel={() => setResetTarget(null)}
+        onConfirm={(tpl) => resetOverride.mutate(tpl)}
+      />
     </AdminShell>
   );
+}
+
+function buildCompositionUrl(tpl: DiscoveredTemplate): string {
+  const params = new URLSearchParams();
+  if (tpl.locale) params.set("locale", tpl.locale);
+  const qs = params.toString();
+  return `/dev/email-builder/templates/${encodeURIComponent(tpl.name)}/composition.json${qs ? `?${qs}` : ""}`;
 }
 
 interface GalleryProps {
   templates: DiscoveredTemplate[];
   isLoading: boolean;
   isError: boolean;
+  isCustomizing: boolean;
   onNew: () => void;
   onDuplicate: (tpl: DiscoveredTemplate) => void;
+  onCustomize: (tpl: DiscoveredTemplate) => void;
+  onReset: (tpl: DiscoveredTemplate) => void;
 }
 
 function GalleryView({
   templates,
   isLoading,
   isError,
+  isCustomizing,
   onNew,
   onDuplicate,
+  onCustomize,
+  onReset,
 }: GalleryProps): ReactNode {
   if (isLoading) return <PageLoading>Loading email templates…</PageLoading>;
   if (isError) return <PageError>Failed to load /dev/email-builder/templates.json</PageError>;
+  // Hide redundant rows: a module overlay shadows the same-named core
+  // template at runtime, so we only render the "Core (overridden)"
+  // row in the gallery and surface the customise / reset buttons there.
+  const visible = templates.filter((tpl) => !tpl.overridesCore);
   return (
     <div className="flex flex-col gap-6">
       <Card>
@@ -168,21 +314,26 @@ function GalleryView({
             <p className="mt-1 text-xs text-fg-muted">
               File-based React-Email templates discovered under{" "}
               <code className="font-mono text-accent">src/core/email/templates/</code> and{" "}
-              <code className="font-mono text-accent">src/modules/email/templates/</code>.
+              <code className="font-mono text-accent">src/modules/email/templates/</code>. Core
+              templates are editable via copy-on-edit — saving writes a module overlay; the core
+              file is never touched.
             </p>
           </div>
           <Button onClick={onNew}>+ New template</Button>
         </CardHeader>
       </Card>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" data-eb-gallery="true">
-        {templates.length === 0 ? (
+        {visible.length === 0 ? (
           <PageEmpty>No templates discovered.</PageEmpty>
         ) : (
-          templates.map((tpl) => (
+          visible.map((tpl) => (
             <TemplateCard
               key={`${tpl.source}:${tpl.name}:${tpl.locale ?? "default"}`}
               tpl={tpl}
+              isCustomizing={isCustomizing}
               onDuplicate={() => onDuplicate(tpl)}
+              onCustomize={() => onCustomize(tpl)}
+              onReset={() => onReset(tpl)}
             />
           ))
         )}
@@ -191,20 +342,41 @@ function GalleryView({
   );
 }
 
+function templateBadge(tpl: DiscoveredTemplate): {
+  label: string;
+  variant: "ok" | "info" | "warn";
+} {
+  if (tpl.source === "core" && tpl.overrideExists) {
+    return { label: "Core (overridden)", variant: "warn" };
+  }
+  if (tpl.source === "core") {
+    return { label: "Core (default)", variant: "ok" };
+  }
+  return { label: "Module", variant: "info" };
+}
+
 function TemplateCard({
   tpl,
+  isCustomizing,
   onDuplicate,
+  onCustomize,
+  onReset,
 }: {
   tpl: DiscoveredTemplate;
+  isCustomizing: boolean;
   onDuplicate: () => void;
+  onCustomize: () => void;
+  onReset: () => void;
 }): ReactNode {
+  const badge = templateBadge(tpl);
+  const isCoreOverridden = tpl.source === "core" && tpl.overrideExists === true;
   return (
     <Card data-eb-card={tpl.name}>
       <CardHeader>
         <div className="flex items-start justify-between gap-2">
           <CardTitle>{tpl.name}</CardTitle>
-          <Badge variant={tpl.source === "core" ? "ok" : "info"}>
-            {tpl.source}
+          <Badge variant={badge.variant} data-eb-badge={tpl.source}>
+            {badge.label}
             {tpl.locale ? ` · ${tpl.locale}` : ""}
           </Badge>
         </div>
@@ -212,12 +384,136 @@ function TemplateCard({
           {tpl.error ? `⚠ ${tpl.error}` : (tpl.subject ?? "")}
         </p>
       </CardHeader>
-      <CardContent>
-        <Button size="sm" variant="outline" onClick={onDuplicate}>
+      <CardContent className="flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          variant="default"
+          onClick={onCustomize}
+          disabled={isCustomizing}
+          data-eb-action="customize"
+          aria-label={`Customize ${tpl.name}`}
+        >
+          Anpassen
+        </Button>
+        <Button size="sm" variant="outline" onClick={onDuplicate} data-eb-action="duplicate">
           Duplicate
         </Button>
+        {isCoreOverridden ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onReset}
+            data-eb-action="reset"
+            aria-label={`Reset ${tpl.name} to core default`}
+          >
+            Reset to default
+          </Button>
+        ) : null}
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * SourceView — fallback for templates the planner can't decompose
+ * (custom JSX, conditionals, computed expressions). The operator can
+ * read the .tsx but not edit it structurally; saving from the
+ * composer requires a hand-rewrite into composer-grammar shape.
+ */
+function SourceView({
+  template,
+  rawSource,
+  reason,
+  onClose,
+}: {
+  template: DiscoveredTemplate;
+  rawSource: string;
+  reason: string;
+  onClose: () => void;
+}): ReactNode {
+  return (
+    <Card data-eb-source-view={template.name}>
+      <CardHeader className="flex-row items-center justify-between gap-4">
+        <div>
+          <CardTitle>{template.name} — read-only source</CardTitle>
+          <p className="mt-1 text-xs text-fg-muted">
+            This template uses JSX outside the composer grammar — opening it in the structured
+            editor would silently drop content. Reason:{" "}
+            <code className="font-mono text-accent">{reason}</code>
+          </p>
+          <p className="mt-1 text-xs text-fg-muted">
+            To customize it, copy <code className="font-mono">{template.file}</code> to{" "}
+            <code className="font-mono">src/modules/email/templates/{template.name}.tsx</code> by
+            hand, edit it, and the module overlay will take precedence on the next render.
+          </p>
+        </div>
+        <Button variant="outline" onClick={onClose}>
+          Back to gallery
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <pre className="max-h-[60vh] overflow-auto rounded-md border border-line bg-surface-2 p-3 text-xs leading-relaxed">
+          <code>{rawSource}</code>
+        </pre>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * ResetConfirmDialog — guards the destructive DELETE-override action.
+ * Removing the module overlay returns the template to the upstream
+ * core default, which the operator may want to keep around as a
+ * baseline before re-customizing.
+ */
+function ResetConfirmDialog({
+  target,
+  isPending,
+  error,
+  onCancel,
+  onConfirm,
+}: {
+  target: DiscoveredTemplate | null;
+  isPending: boolean;
+  error: string | null;
+  onCancel: () => void;
+  onConfirm: (tpl: DiscoveredTemplate) => void;
+}): ReactNode {
+  return (
+    <Dialog open={target !== null} onOpenChange={(open) => (open ? null : onCancel())}>
+      <DialogContent data-eb-reset-dialog="true">
+        <DialogHeader>
+          <DialogTitle>Reset {target?.name ?? ""} to core default?</DialogTitle>
+          <DialogDescription>
+            This deletes the project-owned overlay file under{" "}
+            <code className="font-mono">src/modules/email/templates/</code> so the upstream core
+            template becomes authoritative again. Your customisations are removed from the file
+            system — keep a copy elsewhere if you need to roll back.
+          </DialogDescription>
+        </DialogHeader>
+        {error ? (
+          <p
+            className="rounded-md border border-err/40 bg-err/10 p-2 text-xs text-err"
+            role="alert"
+          >
+            {error}
+          </p>
+        ) : null}
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onCancel} disabled={isPending}>
+            Cancel
+          </Button>
+          <Button
+            variant="default"
+            onClick={() => target && onConfirm(target)}
+            disabled={isPending || target === null}
+            data-eb-action="confirm-reset"
+          >
+            {isPending ? "Resetting…" : "Reset"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
