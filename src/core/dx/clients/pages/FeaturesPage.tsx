@@ -1,19 +1,25 @@
 /**
- * `/dev/features` — verbatim React port of `features-ui.ts`. Same
- * three-tile summary (active / available / total), same per-category
- * card grid with toggles, same "How toggling works" footer card,
- * same restart overlay shown after a `POST /dev/features/:key/toggle`.
- *
- * Data: `/dev/feature-catalog.json` (catalog metadata + active
- * Features). Each toggle POSTs to `/dev/features/:key/toggle` and the
- * page polls `/health/live` until the new dev-server process answers,
- * then full-reloads.
+ * `/dev/features` — feature-flag dashboard. Three-tile summary +
+ * per-category card grid with switches; flipping a switch POSTs to
+ * `/dev/features/:key/toggle`, then polls `/health/live` until the
+ * dev-server restart completes and reloads the page.
  */
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog.js";
+import { Switch } from "../components/ui/switch.js";
+import { PageError, PageLoading, StatTile } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson } from "../lib/api.js";
+import { cn } from "../lib/utils.js";
 
 interface FeatureMeta {
   key: string;
@@ -58,9 +64,9 @@ export function FeaturesPage(): ReactNode {
       {data.data ? (
         <FeaturesBody data={data.data} />
       ) : data.isError ? (
-        <div className="admin-empty">Failed to load feature catalog.</div>
+        <PageError>Failed to load feature catalog.</PageError>
       ) : (
-        <div className="admin-empty">Loading feature catalog…</div>
+        <PageLoading>Loading feature catalog…</PageLoading>
       )}
     </AdminShell>
   );
@@ -71,8 +77,6 @@ function FeaturesBody({ data }: { data: FeatureCatalogResponse }): ReactNode {
   const active = data.catalog.filter((m) => isActive(data.features, m.key)).length;
   const available = total - active;
 
-  // Group catalog by category, preserving the order categories first
-  // appear in `data.catalog`.
   const grouped = new Map<string, FeatureMeta[]>();
   for (const meta of data.catalog) {
     const list = grouped.get(meta.category) ?? [];
@@ -81,44 +85,49 @@ function FeaturesBody({ data }: { data: FeatureCatalogResponse }): ReactNode {
   }
 
   return (
-    <>
-      <div className="feat-summary">
-        <div className="feat-tile feat-tile--ok">
-          <span className="feat-tile__label">Active</span>
-          <span className="feat-tile__value">{active}</span>
-        </div>
-        <div className="feat-tile">
-          <span className="feat-tile__label">Available</span>
-          <span className="feat-tile__value">{available}</span>
-        </div>
-        <div className="feat-tile">
-          <span className="feat-tile__label">Total</span>
-          <span className="feat-tile__value">{total}</span>
-        </div>
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatTile label="Active" value={active} tone="ok" />
+        <StatTile label="Available" value={available} />
+        <StatTile label="Total" value={total} />
       </div>
 
       {Array.from(grouped.entries()).map(([category, list]) => (
-        <div key={category} className="admin-card">
-          <h3 className="feat-section__title">{CATEGORY_LABEL[category] ?? category}</h3>
-          <div className="feat-card-grid">
-            {list.map((meta) => (
-              <FeatureCard key={meta.key} meta={meta} active={isActive(data.features, meta.key)} />
-            ))}
-          </div>
-        </div>
+        <Card key={category}>
+          <CardHeader>
+            <CardTitle>{CATEGORY_LABEL[category] ?? category}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {list.map((meta) => (
+                <FeatureCard
+                  key={meta.key}
+                  meta={meta}
+                  active={isActive(data.features, meta.key)}
+                />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       ))}
 
-      <div className="admin-card">
-        <h3 className="feat-section__title">How toggling works</h3>
-        <p className="admin-meta">
-          Flipping a switch above writes the matching <code>FEATURE_*_ENABLED</code> line into{" "}
-          <code>.env</code> and touches <code>src/main.ts</code> so <code>bun --watch</code>{" "}
-          restarts the API. The page reloads automatically once the new process answers. Module
-          imports and controller registration are driven entirely by these flags — see{" "}
-          <code>src/core/features/features.ts</code> for the schema.
-        </p>
-      </div>
-    </>
+      <Card>
+        <CardHeader>
+          <CardTitle>How toggling works</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-fg-muted">
+          Flipping a switch above writes the matching{" "}
+          <code className="font-mono text-accent">FEATURE_*_ENABLED</code> line into{" "}
+          <code className="font-mono text-accent">.env</code> and touches{" "}
+          <code className="font-mono text-accent">src/main.ts</code> so{" "}
+          <code className="font-mono text-accent">bun --watch</code> restarts the API. The page
+          reloads automatically once the new process answers. Module imports and controller
+          registration are driven entirely by these flags — see{" "}
+          <code className="font-mono text-accent">src/core/features/features.ts</code> for the
+          schema.
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -151,7 +160,6 @@ function FeatureCard({ meta, active }: FeatureCardProps): ReactNode {
     },
     onSuccess: () => {
       setOverlay({ visible: true, message: "Restarting server…" });
-      // Poll /health/live until the new process answers, then reload.
       const start = Date.now();
       const deadline = start + 30_000;
       const poll = async (): Promise<void> => {
@@ -184,50 +192,58 @@ function FeatureCard({ meta, active }: FeatureCardProps): ReactNode {
     },
   });
 
-  const exposes = meta.exposes;
-
   return (
     <>
-      <div className="feat-card" data-on={String(checked)} data-feature-key={meta.key}>
-        <div className="feat-card__head">
-          <span className="feat-card__name">{meta.label}</span>
-          <label className="feat-toggle" title={`Toggle ${meta.label}`}>
-            <input
-              type="checkbox"
-              data-toggle
-              data-key={meta.key}
-              checked={checked}
-              disabled={mutation.isPending}
-              onChange={(e) => mutation.mutate(e.target.checked)}
-            />
-            <span className="feat-toggle__track" />
-            <span className="feat-toggle__thumb" />
-          </label>
+      <div
+        className={cn(
+          "rounded-lg border bg-surface-1 p-4 transition-colors",
+          checked ? "border-line-accent" : "border-line",
+        )}
+        data-on={String(checked)}
+        data-feature-key={meta.key}
+      >
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <span className="text-sm font-semibold">{meta.label}</span>
+          <Switch
+            data-toggle
+            data-key={meta.key}
+            checked={checked}
+            disabled={mutation.isPending}
+            onCheckedChange={(value) => mutation.mutate(value)}
+            aria-label={`Toggle ${meta.label}`}
+          />
         </div>
-        <p className="feat-card__desc">{meta.description}</p>
-        <div className="feat-card__exposes">
-          {exposes.map((s) => (
-            <code key={s}>{s}</code>
+        <p className="mb-3 text-xs text-fg-muted">{meta.description}</p>
+        <div className="mb-2 flex flex-wrap gap-1">
+          {meta.exposes.map((s) => (
+            <code
+              key={s}
+              className="rounded bg-surface-3 px-1.5 py-0.5 font-mono text-[0.65rem] text-fg-dim"
+            >
+              {s}
+            </code>
           ))}
         </div>
-        <div className="feat-card__env">
-          <code>
+        <div className="flex items-center justify-between gap-2 text-[0.7rem]">
+          <code className="font-mono text-fg-muted">
             {meta.envKey}={checked ? "true" : "false"}
           </code>
-          <span className="feat-card__env-state">
+          <span className={cn("text-[0.65rem]", checked ? "text-ok" : "text-fg-faint")}>
             {checked ? "✓ enabled" : "set to ON to enable"}
           </span>
         </div>
       </div>
-      {overlay.visible ? (
-        <div className="feat-restart is-visible">
-          <div className="feat-restart__box">
-            <div className="feat-restart__spinner" />
-            <h3 className="feat-restart__title">Restarting server…</h3>
-            <p className="feat-restart__msg">{overlay.message}</p>
+      <Dialog open={overlay.visible} onOpenChange={(open) => (!open ? null : undefined)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Restarting server…</DialogTitle>
+            <DialogDescription>{overlay.message}</DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center py-2">
+            <span className="h-6 w-6 animate-spin rounded-full border-2 border-line border-t-accent" />
           </div>
-        </div>
-      ) : null}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

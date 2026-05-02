@@ -1,34 +1,20 @@
 /**
- * `/admin/realtime` — three-tab Realtime Inspector.
- *
- * Replaces the verbatim port from PR #26 with the upgrade specified in
- * issue #20:
- *
- *   - Tabs: Sockets · Channels · Events
- *   - Filters per tab (tenant, user, channel pattern, event-type)
- *   - Per-socket detail drawer (channels + last events)
- *   - Disconnect / Send-to-socket / Replay-event actions
- *   - Pause/Resume the live event stream + Space hotkey
- *   - Auto-refresh poll: refetchInterval is short (1.5 s) so the page
- *     reflects gateway state without an extra WebSocket. The admin
- *     live-push namespace is gated behind a follow-up issue once the
- *     SPA grows a socket.io-client dependency; today we use
- *     React-Query's interval poll which is simpler and keeps the
- *     inspector honest without bloating the bundle.
- *   - All dev-only — production 404s the underlying endpoints.
- *
- * The component reads the JSON snapshot at `/admin/realtime.json`
- * (sockets + channels + events + eventsPerSecond) and lets the user
- * drive the three POST actions through `react-aria-components` Buttons
- * and TextFields. No native HTML inputs on net-new surfaces.
+ * `/admin/realtime` — three-tab Realtime Inspector (Sockets · Channels
+ * · Events) with per-tab filters, drawers, and disconnect / replay
+ * actions. Auto-refresh poll at 1.5 s; Space toggles pause on Events.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
+import { Button } from "../components/ui/button.js";
+import { Card, CardContent } from "../components/ui/card.js";
+import { Input } from "../components/ui/input.js";
+import { Label } from "../components/ui/label.js";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../components/ui/sheet.js";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table.js";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs.js";
+import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
-import { Button } from "../components/Button.js";
-import { TextField } from "../components/TextField.js";
-import { Tab, TabList, TabPanel, Tabs } from "../components/Tabs.js";
 import { fetchJson, formatBytes } from "../lib/api.js";
 
 interface ActiveSocketEntry {
@@ -76,7 +62,7 @@ interface RealtimeInspectorResponse {
 const POLL_MS = 1_500;
 
 export function RealtimeInspectorPage(): ReactNode {
-  const [activeTab, setActiveTab] = useState<"sockets" | "channels" | "events">("sockets");
+  const [activeTab, setActiveTab] = useState<string>("sockets");
   const [paused, setPaused] = useState(false);
 
   // Space toggles pause/resume on the Events tab — matches the
@@ -84,7 +70,6 @@ export function RealtimeInspectorPage(): ReactNode {
   useEffect(() => {
     if (activeTab !== "events") return;
     const handler = (e: KeyboardEvent) => {
-      // Don't steal Space from text inputs / buttons.
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
       if (e.key === " ") {
@@ -103,51 +88,54 @@ export function RealtimeInspectorPage(): ReactNode {
   });
 
   const subtitle = (
-    <span>
+    <>
       Active Socket.IO connections · live channel registry · recent dispatches
       {data.data ? (
-        <span className="admin-meta">
+        <span className="text-fg-dim">
           {" — "}
           {data.data.eventsPerSecond.toFixed(1)} events/s · {data.data.sockets.length} sockets
         </span>
       ) : null}
-    </span>
+    </>
   );
 
   return (
     <AdminShell title="Realtime Inspector" subtitle={subtitle} currentNav="realtime">
-      <div className="admin-card" data-realtime-inspector>
-        <Tabs
-          selectedKey={activeTab}
-          onSelectionChange={(key) => setActiveTab(key as typeof activeTab)}
-        >
-          <TabList aria-label="Realtime inspector tabs">
-            <Tab id="sockets">
-              Sockets <span className="admin-meta">({data.data?.sockets.length ?? 0})</span>
-            </Tab>
-            <Tab id="channels">
-              Channels <span className="admin-meta">({data.data?.channels.length ?? 0})</span>
-            </Tab>
-            <Tab id="events">
-              Events <span className="admin-meta">({data.data?.eventsDetailed.length ?? 0})</span>
-            </Tab>
-          </TabList>
-          <TabPanel id="sockets">
-            <SocketsTab data={data.data} isError={data.isError} />
-          </TabPanel>
-          <TabPanel id="channels">
-            <ChannelsTab data={data.data} isError={data.isError} />
-          </TabPanel>
-          <TabPanel id="events">
-            <EventsTab
-              data={data.data}
-              isError={data.isError}
-              paused={paused}
-              onTogglePaused={() => setPaused((p) => !p)}
-            />
-          </TabPanel>
-        </Tabs>
-      </div>
+      <Card data-realtime-inspector>
+        <CardContent className="p-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value="sockets">
+                Sockets <span className="ml-2 text-fg-dim">({data.data?.sockets.length ?? 0})</span>
+              </TabsTrigger>
+              <TabsTrigger value="channels">
+                Channels{" "}
+                <span className="ml-2 text-fg-dim">({data.data?.channels.length ?? 0})</span>
+              </TabsTrigger>
+              <TabsTrigger value="events">
+                Events{" "}
+                <span className="ml-2 text-fg-dim">
+                  ({data.data?.eventsDetailed.length ?? 0})
+                </span>
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="sockets">
+              <SocketsTab data={data.data} isError={data.isError} />
+            </TabsContent>
+            <TabsContent value="channels">
+              <ChannelsTab data={data.data} isError={data.isError} />
+            </TabsContent>
+            <TabsContent value="events">
+              <EventsTab
+                data={data.data}
+                isError={data.isError}
+                paused={paused}
+                onTogglePaused={() => setPaused((p) => !p)}
+              />
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
     </AdminShell>
   );
 }
@@ -186,99 +174,121 @@ function SocketsTab({
     return data.eventsDetailed.filter((e) => channelSet.has(e.channel)).slice(0, 20);
   }, [selected, data]);
 
-  if (isError) return <div className="admin-empty">Failed to load sockets.</div>;
-  if (!data) return <div className="admin-empty">Loading…</div>;
+  if (isError) return <PageError>Failed to load sockets.</PageError>;
+  if (!data) return <PageLoading>Loading…</PageLoading>;
 
   return (
-    <div className="rti-tab" data-tab="sockets">
-      <div className="rti-filters" role="search">
-        <TextField
-          label="Tenant"
-          value={tenantFilter}
-          onChange={setTenantFilter}
-          placeholder="exact tenant id"
-        />
-        <TextField
-          label="User"
-          value={userFilter}
-          onChange={setUserFilter}
-          placeholder="userId substring"
-        />
-        <TextField
+    <div className="flex flex-col gap-3" data-tab="sockets">
+      <FiltersBar>
+        <FilterInput label="Tenant" value={tenantFilter} onChange={setTenantFilter} placeholder="exact tenant id" />
+        <FilterInput label="User" value={userFilter} onChange={setUserFilter} placeholder="userId substring" />
+        <FilterInput
           label="Channel pattern"
           value={channelFilter}
           onChange={setChannelFilter}
           placeholder="Project:tenant:*"
         />
-      </div>
+      </FiltersBar>
       {filtered.length === 0 ? (
-        <div className="admin-empty">
+        <PageEmpty>
           {sockets.length === 0
             ? "No active sockets right now."
             : "No sockets match the current filters."}
-        </div>
+        </PageEmpty>
       ) : (
-        <table className="admin-table" data-sockets="true">
-          <thead>
-            <tr>
-              <th>Socket</th>
-              <th>User</th>
-              <th>Tenant</th>
-              <th>Channels</th>
-              <th>Ping</th>
-              <th>Bytes (sent / rcvd)</th>
-              <th>Connected</th>
-              <th aria-label="actions" />
-            </tr>
-          </thead>
-          <tbody>
+        <Table data-sockets="true">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Socket</TableHead>
+              <TableHead>User</TableHead>
+              <TableHead>Tenant</TableHead>
+              <TableHead>Channels</TableHead>
+              <TableHead>Ping</TableHead>
+              <TableHead>Bytes (sent / rcvd)</TableHead>
+              <TableHead>Connected</TableHead>
+              <TableHead aria-label="actions" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {filtered.map((s) => (
-              <tr key={s.id} data-socket-id={s.id}>
-                <td>
+              <TableRow key={s.id} data-socket-id={s.id}>
+                <TableCell>
                   <button
                     type="button"
-                    className="rti-link"
+                    className="font-mono text-xs text-accent hover:underline"
                     onClick={() => setSelectedId(s.id)}
                     data-action="open-drawer"
                   >
                     {s.id}
                   </button>
-                </td>
-                <td>{s.userId}</td>
-                <td>
+                </TableCell>
+                <TableCell className="font-mono text-xs">{s.userId}</TableCell>
+                <TableCell>
                   <TenantBadge tenantId={s.tenantId} />
-                </td>
-                <td>
+                </TableCell>
+                <TableCell>
                   {s.channels.length === 0 ? (
-                    <em>none</em>
+                    <em className="text-fg-faint">none</em>
                   ) : (
-                    <ul className="channels">
+                    <ul className="flex flex-col gap-0.5 font-mono text-[0.7rem]">
                       {s.channels.map((c) => (
                         <li key={c}>{c}</li>
                       ))}
                     </ul>
                   )}
-                </td>
-                <td>{s.lastPingMs !== undefined ? `${s.lastPingMs} ms` : "—"}</td>
-                <td>
+                </TableCell>
+                <TableCell className="font-mono text-xs">
+                  {s.lastPingMs !== undefined ? `${s.lastPingMs} ms` : "—"}
+                </TableCell>
+                <TableCell className="font-mono text-xs">
                   {formatBytes(s.bytesSent)} / {formatBytes(s.bytesReceived)}
-                </td>
-                <td>{s.connectedAt}</td>
-                <td>
+                </TableCell>
+                <TableCell className="font-mono text-[0.7rem]">{s.connectedAt}</TableCell>
+                <TableCell>
                   <DisconnectButton id={s.id} />
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       )}
-      {selected ? (
-        <SocketDrawer
-          socket={selected}
-          events={eventsForSelected}
-          onClose={() => setSelectedId(null)}
-        />
-      ) : null}
+      <Sheet open={selected !== null} onOpenChange={(open) => (!open ? setSelectedId(null) : undefined)}>
+        {selected ? <SocketDrawer socket={selected} events={eventsForSelected} /> : null}
+      </Sheet>
+    </div>
+  );
+}
+
+function FiltersBar({ children }: { children: ReactNode }): ReactNode {
+  return (
+    <div className="flex flex-wrap items-end gap-3 rounded-md border border-line bg-surface-2 p-3" role="search">
+      {children}
+    </div>
+  );
+}
+
+function FilterInput({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}): ReactNode {
+  const id = label.toLowerCase().replace(/[^a-z]+/g, "-");
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      <Input
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-44"
+      />
     </div>
   );
 }
@@ -301,8 +311,9 @@ function DisconnectButton({ id }: { id: string }): ReactNode {
   return (
     <Button
       variant="ghost"
-      isDisabled={mutation.isPending}
-      onPress={() => {
+      size="sm"
+      disabled={mutation.isPending}
+      onClick={() => {
         if (typeof window !== "undefined" && !window.confirm(`Disconnect ${id}?`)) return;
         mutation.mutate();
       }}
@@ -316,74 +327,72 @@ function DisconnectButton({ id }: { id: string }): ReactNode {
 function SocketDrawer({
   socket,
   events,
-  onClose,
 }: {
   socket: ActiveSocketEntry;
   events: RealtimeEventDetail[];
-  onClose: () => void;
 }): ReactNode {
   return (
-    <div className="rti-drawer" role="dialog" aria-label={`Socket ${socket.id} detail`}>
-      <header className="rti-drawer__header">
-        <h3>{socket.id}</h3>
-        <Button variant="ghost" onPress={onClose} data-action="close-drawer">
-          Close
-        </Button>
-      </header>
-      <dl className="rti-drawer__meta">
-        <dt>User</dt>
-        <dd>{socket.userId}</dd>
-        <dt>Tenant</dt>
+    <SheetContent className="overflow-y-auto sm:max-w-2xl" aria-label={`Socket ${socket.id} detail`}>
+      <SheetHeader>
+        <SheetTitle>{socket.id}</SheetTitle>
+        <SheetDescription>Socket detail and recent events.</SheetDescription>
+      </SheetHeader>
+      <dl className="mt-4 grid grid-cols-[8rem_1fr] gap-y-2 text-xs">
+        <dt className="text-fg-dim">User</dt>
+        <dd className="font-mono">{socket.userId}</dd>
+        <dt className="text-fg-dim">Tenant</dt>
         <dd>
           <TenantBadge tenantId={socket.tenantId} />
         </dd>
-        <dt>Connected at</dt>
-        <dd>{socket.connectedAt}</dd>
-        <dt>User agent</dt>
-        <dd>{socket.userAgent ?? "—"}</dd>
-        <dt>Last ping</dt>
-        <dd>{socket.lastPingMs !== undefined ? `${socket.lastPingMs} ms` : "—"}</dd>
-        <dt>Bytes</dt>
-        <dd>
+        <dt className="text-fg-dim">Connected at</dt>
+        <dd className="font-mono">{socket.connectedAt}</dd>
+        <dt className="text-fg-dim">User agent</dt>
+        <dd className="font-mono">{socket.userAgent ?? "—"}</dd>
+        <dt className="text-fg-dim">Last ping</dt>
+        <dd className="font-mono">
+          {socket.lastPingMs !== undefined ? `${socket.lastPingMs} ms` : "—"}
+        </dd>
+        <dt className="text-fg-dim">Bytes</dt>
+        <dd className="font-mono">
           {formatBytes(socket.bytesSent)} sent · {formatBytes(socket.bytesReceived)} received
         </dd>
       </dl>
-      <h4>Channel subscriptions</h4>
+      <h4 className="mt-4 text-sm font-semibold">Channel subscriptions</h4>
       {socket.channels.length === 0 ? (
-        <p className="admin-empty">No channels subscribed.</p>
+        <PageEmpty>No channels subscribed.</PageEmpty>
       ) : (
-        <ul className="rti-drawer__channels">
+        <ul className="mt-2 flex flex-col gap-1 font-mono text-xs">
           {socket.channels.map((c) => (
             <li key={c}>{c}</li>
           ))}
         </ul>
       )}
-      <h4>Last 20 events</h4>
+      <h4 className="mt-4 text-sm font-semibold">Last 20 events</h4>
       {events.length === 0 ? (
-        <p className="admin-empty">No events on subscribed channels.</p>
+        <PageEmpty>No events on subscribed channels.</PageEmpty>
       ) : (
-        <table className="admin-table" data-drawer-events="true">
-          <thead>
-            <tr>
-              <th>When</th>
-              <th>Channel</th>
-              <th>Type</th>
-              <th>Recipients</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table data-drawer-events="true">
+          <TableHeader>
+            <TableRow>
+              <TableHead>When</TableHead>
+              <TableHead>Channel</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Recipients</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {events.map((e) => (
-              <tr key={`${e.occurredAt}-${e.channel}-${e.eventType}`}>
-                <td>{e.occurredAt}</td>
-                <td>{e.channel}</td>
-                <td>{e.eventType}</td>
-                <td>{e.recipientCount}</td>
-              </tr>
+              <TableRow key={`${e.occurredAt}-${e.channel}-${e.eventType}`}>
+                <TableCell className="font-mono text-[0.7rem]">{e.occurredAt}</TableCell>
+                <TableCell className="font-mono text-xs">{e.channel}</TableCell>
+                <TableCell className="font-mono text-xs">{e.eventType}</TableCell>
+                <TableCell className="font-mono tabular-nums">{e.recipientCount}</TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       )}
-    </div>
+    </SheetContent>
   );
 }
 
@@ -404,49 +413,49 @@ function ChannelsTab({
     return channels.filter((c) => re.test(c.name));
   }, [channels, pattern]);
 
-  if (isError) return <div className="admin-empty">Failed to load channels.</div>;
-  if (!data) return <div className="admin-empty">Loading…</div>;
+  if (isError) return <PageError>Failed to load channels.</PageError>;
+  if (!data) return <PageLoading>Loading…</PageLoading>;
 
   return (
-    <div className="rti-tab" data-tab="channels">
-      <div className="rti-filters" role="search">
-        <TextField
+    <div className="flex flex-col gap-3" data-tab="channels">
+      <FiltersBar>
+        <FilterInput
           label="Channel pattern"
           value={pattern}
           onChange={setPattern}
           placeholder="Project:tenant:*"
         />
-        <span className="admin-meta">
+        <span className="text-xs text-fg-muted">
           {filtered.length} of {channels.length} channels match
         </span>
-      </div>
+      </FiltersBar>
       {filtered.length === 0 ? (
-        <div className="admin-empty">
+        <PageEmpty>
           {channels.length === 0
             ? "No active channels right now."
             : "No channels match the pattern."}
-        </div>
+        </PageEmpty>
       ) : (
-        <table className="admin-table" data-channels="true">
-          <thead>
-            <tr>
-              <th>Channel</th>
-              <th>Subscribers</th>
-              <th>Events (last 1h)</th>
-              <th>p95 push latency</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table data-channels="true">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Channel</TableHead>
+              <TableHead>Subscribers</TableHead>
+              <TableHead>Events (last 1h)</TableHead>
+              <TableHead>p95 push latency</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {filtered.map((c) => (
-              <tr key={c.name} data-channel={c.name}>
-                <td>{c.name}</td>
-                <td>{c.subscriberCount}</td>
-                <td>{c.eventsLastHour}</td>
-                <td>{c.p95LatencyMs} ms</td>
-              </tr>
+              <TableRow key={c.name} data-channel={c.name}>
+                <TableCell className="font-mono text-xs">{c.name}</TableCell>
+                <TableCell className="font-mono tabular-nums">{c.subscriberCount}</TableCell>
+                <TableCell className="font-mono tabular-nums">{c.eventsLastHour}</TableCell>
+                <TableCell className="font-mono tabular-nums">{c.p95LatencyMs} ms</TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       )}
     </div>
   );
@@ -491,85 +500,90 @@ function EventsTab({
 
   const selected = selectedKey ? (filtered.find((e) => keyOf(e) === selectedKey) ?? null) : null;
 
-  if (isError) return <div className="admin-empty">Failed to load events.</div>;
-  if (!data) return <div className="admin-empty">Loading…</div>;
+  if (isError) return <PageError>Failed to load events.</PageError>;
+  if (!data) return <PageLoading>Loading…</PageLoading>;
 
   return (
-    <div className="rti-tab" data-tab="events">
-      <div className="rti-filters" role="search">
-        <TextField
+    <div className="flex flex-col gap-3" data-tab="events">
+      <FiltersBar>
+        <FilterInput
           label="Channel pattern"
           value={channelFilter}
           onChange={setChannelFilter}
           placeholder="Project:tenant:*"
         />
-        <TextField
+        <FilterInput
           label="Event type"
           value={typeFilter}
           onChange={setTypeFilter}
           placeholder="project.updated"
         />
-        <TextField
+        <FilterInput
           label="Free-text search (payload)"
           value={textSearch}
           onChange={setTextSearch}
           placeholder="anything"
         />
         <Button
-          variant={paused ? "accent" : "ghost"}
-          onPress={onTogglePaused}
+          variant={paused ? "default" : "outline"}
+          onClick={onTogglePaused}
           data-action="pause-resume"
         >
           {paused ? "Resume (Space)" : "Pause (Space)"}
         </Button>
-      </div>
+      </FiltersBar>
       {filtered.length === 0 ? (
-        <div className="admin-empty">
+        <PageEmpty>
           {events.length === 0 ? "No recent events captured." : "No events match the filters."}
-        </div>
+        </PageEmpty>
       ) : (
-        <table className="admin-table" data-events="true">
-          <thead>
-            <tr>
-              <th>When</th>
-              <th>Channel</th>
-              <th>Type</th>
-              <th>Recipients</th>
-              <th>Latency</th>
-              <th>Payload</th>
-              <th aria-label="actions" />
-            </tr>
-          </thead>
-          <tbody>
+        <Table data-events="true">
+          <TableHeader>
+            <TableRow>
+              <TableHead>When</TableHead>
+              <TableHead>Channel</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Recipients</TableHead>
+              <TableHead>Latency</TableHead>
+              <TableHead>Payload</TableHead>
+              <TableHead aria-label="actions" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {filtered.map((e) => {
               const key = keyOf(e);
               return (
-                <tr key={key}>
-                  <td>{e.occurredAt}</td>
-                  <td>{e.channel}</td>
-                  <td>{e.eventType}</td>
-                  <td>{e.recipientCount}</td>
-                  <td>{e.latencyMs} ms</td>
-                  <td>
+                <TableRow key={key}>
+                  <TableCell className="font-mono text-[0.7rem]">{e.occurredAt}</TableCell>
+                  <TableCell className="font-mono text-xs">{e.channel}</TableCell>
+                  <TableCell className="font-mono text-xs">{e.eventType}</TableCell>
+                  <TableCell className="font-mono tabular-nums">{e.recipientCount}</TableCell>
+                  <TableCell className="font-mono tabular-nums">{e.latencyMs} ms</TableCell>
+                  <TableCell>
                     <button
                       type="button"
-                      className="rti-link"
+                      className="text-accent hover:underline"
                       onClick={() => setSelectedKey(key)}
                       data-action="inspect-payload"
                     >
                       view
                     </button>
-                  </td>
-                  <td>
+                  </TableCell>
+                  <TableCell>
                     <ReplayButton event={e} />
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               );
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       )}
-      {selected ? <PayloadDrawer event={selected} onClose={() => setSelectedKey(null)} /> : null}
+      <Sheet
+        open={selected !== null}
+        onOpenChange={(open) => (!open ? setSelectedKey(null) : undefined)}
+      >
+        {selected ? <PayloadDrawer event={selected} /> : null}
+      </Sheet>
     </div>
   );
 }
@@ -597,8 +611,9 @@ function ReplayButton({ event }: { event: RealtimeEventDetail }): ReactNode {
   return (
     <Button
       variant="ghost"
-      isDisabled={mutation.isPending}
-      onPress={() => mutation.mutate()}
+      size="sm"
+      disabled={mutation.isPending}
+      onClick={() => mutation.mutate()}
       data-action="replay"
     >
       {mutation.isPending ? "Replaying…" : "Replay"}
@@ -606,13 +621,7 @@ function ReplayButton({ event }: { event: RealtimeEventDetail }): ReactNode {
   );
 }
 
-function PayloadDrawer({
-  event,
-  onClose,
-}: {
-  event: RealtimeEventDetail;
-  onClose: () => void;
-}): ReactNode {
+function PayloadDrawer({ event }: { event: RealtimeEventDetail }): ReactNode {
   const formatted = useMemo(() => {
     try {
       return JSON.stringify(event.payload, null, 2);
@@ -621,19 +630,18 @@ function PayloadDrawer({
     }
   }, [event.payload]);
   return (
-    <div className="rti-drawer" role="dialog" aria-label={`Event ${event.eventType} payload`}>
-      <header className="rti-drawer__header">
-        <h3>
-          {event.channel} <span className="admin-meta">· {event.eventType}</span>
-        </h3>
-        <Button variant="ghost" onPress={onClose} data-action="close-payload">
-          Close
-        </Button>
-      </header>
-      <pre className="payload" data-payload="full">
+    <SheetContent className="overflow-y-auto sm:max-w-2xl" aria-label={`Event ${event.eventType} payload`}>
+      <SheetHeader>
+        <SheetTitle>{event.channel}</SheetTitle>
+        <SheetDescription>· {event.eventType}</SheetDescription>
+      </SheetHeader>
+      <pre
+        className="mt-4 m-0 max-h-[70vh] overflow-auto rounded-md border border-line bg-surface-2 p-3 font-mono text-xs"
+        data-payload="full"
+      >
         {formatted}
       </pre>
-    </div>
+    </SheetContent>
   );
 }
 
@@ -649,7 +657,7 @@ function TenantBadge({ tenantId }: { tenantId: string }): ReactNode {
   const hue = useMemo(() => hashHue(tenantId), [tenantId]);
   return (
     <span
-      className="rti-tenant-badge"
+      className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[0.65rem]"
       style={{
         background: `hsla(${hue}, 65%, 55%, 0.22)`,
         borderColor: `hsla(${hue}, 65%, 55%, 0.45)`,

@@ -1,20 +1,24 @@
 /**
- * `/dev` — verbatim React port of `dashboard-ui.ts` (the legacy
- * server-rendered cockpit). Same hero, same 5-tile stats grid, same
- * services strip, same log preview + features overview, same
- * quick-navigation block.
+ * `/dev` — Dev Hub landing page. Hero block + 5-tile stats grid +
+ * services strip + log preview + features overview + quick-links.
  *
- * Single fetch: `/dev/dashboard.json` aggregates everything the
- * server cockpit needed (probes + coverage + tests + logs + features
- * + queries + memory + uptime). The status section also re-polls
- * `/dev/status.json` every 4 s so Prisma Studio's "going green"
- * after boot still works without a page refresh.
+ * Single fetch: `/dev/dashboard.json` aggregates everything the cockpit
+ * needs (probes + coverage + tests + logs + features + queries +
+ * memory + uptime). The status section also re-polls
+ * `/dev/status.json` every 4 s for fast probe updates.
  */
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 
+import { Badge } from "../components/ui/badge.js";
+import { Button } from "../components/ui/button.js";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
+import { Progress } from "../components/ui/progress.js";
+import { PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson, formatDuration, levelName, stripProto } from "../lib/api.js";
+import { cn } from "../lib/utils.js";
 
 interface FeatureMeta {
   key: string;
@@ -137,33 +141,29 @@ export function DevHubLandingPage(): ReactNode {
       {dashboard.data ? (
         <DashboardBody data={dashboard.data} />
       ) : dashboard.isError ? (
-        <div className="admin-empty">Failed to load dashboard data.</div>
+        <PageError>Failed to load dashboard data.</PageError>
       ) : (
-        <div className="admin-empty">Loading dashboard…</div>
+        <PageLoading>Loading dashboard…</PageLoading>
       )}
     </AdminShell>
   );
 }
 
-interface DashboardBodyProps {
-  data: DashboardJson;
-}
-
-function DashboardBody({ data }: DashboardBodyProps): ReactNode {
+function DashboardBody({ data }: { data: DashboardJson }): ReactNode {
   const probesDown = data.probes.filter((p) => p.status === "down").length;
   const overall = computeOverallHealth(data, probesDown);
   const errorLogs = data.logs.filter((r) => r.level >= 50).length;
   const warnLogs = data.logs.filter((r) => r.level === 40).length;
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       <Hero overall={overall} data={data} />
       <StatsGrid data={data} errorLogs={errorLogs} warnLogs={warnLogs} />
       {data.tunnel?.active && data.tunnel.url ? (
         <TunnelCard url={data.tunnel.url} startedAt={data.tunnel.startedAt} />
       ) : null}
       <ServicesGrid probes={data.probes} />
-      <div className="admin-grid admin-grid--2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <LogPreview
           records={data.logs}
           capacity={data.logBufferCapacity}
@@ -173,165 +173,134 @@ function DashboardBody({ data }: DashboardBodyProps): ReactNode {
         <FeatureOverview features={data.features} catalog={data.catalog} />
       </div>
       <QuickLinks />
-    </>
+    </div>
   );
 }
 
-interface TunnelCardProps {
-  url: string;
-  startedAt?: string;
-}
-
-/**
- * Surfaces the active Cloudflare-Tunnel URL the dev runner discovered.
- * Visible only when `bun run dev --tunnel` is running. Includes a copy
- * button (clipboard write — no secrets in the URL itself, but still
- * convenient when wiring webhooks).
- */
-function TunnelCard({ url, startedAt }: TunnelCardProps): ReactNode {
+function TunnelCard({ url, startedAt }: { url: string; startedAt?: string }): ReactNode {
   function copy(): void {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
       void navigator.clipboard.writeText(url);
     }
   }
-  const startedLabel = startedAt ? `started ${new Date(startedAt).toLocaleTimeString()}` : "active";
+  const startedLabel = startedAt
+    ? `started ${new Date(startedAt).toLocaleTimeString()}`
+    : "active";
   return (
-    <div className="admin-card">
-      <h2 className="admin-card__title">
-        Cloudflare Tunnel
-        <span
-          style={{
-            fontSize: "0.7rem",
-            color: "var(--fg-dim)",
-            fontWeight: 500,
-            letterSpacing: "0.04em",
-          }}
-        >
-          {startedLabel}
-        </span>
+    <Card>
+      <CardHeader className="flex-row flex-wrap items-center gap-3">
+        <CardTitle className="flex-1">Cloudflare Tunnel</CardTitle>
+        <span className="text-[0.7rem] uppercase tracking-widest text-fg-dim">{startedLabel}</span>
         <a
           href="https://github.com/cloudflare/cloudflared"
           target="_blank"
           rel="noopener noreferrer"
-          style={{ marginLeft: "auto", fontSize: "0.75rem", color: "var(--fg-dim)" }}
+          className="text-xs text-fg-dim hover:text-accent"
         >
           About cloudflared →
         </a>
-      </h2>
-      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-        <code
-          style={{
-            background: "var(--bg-2, #111)",
-            padding: "0.4rem 0.6rem",
-            borderRadius: "4px",
-            fontSize: "0.85rem",
-          }}
-        >
-          {url}
-        </code>
-        <button
-          type="button"
-          onClick={copy}
-          style={{
-            padding: "0.4rem 0.8rem",
-            fontSize: "0.8rem",
-            background: "var(--accent, #c5fb45)",
-            color: "#000",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
-          Copy URL
-        </button>
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            padding: "0.4rem 0.8rem",
-            fontSize: "0.8rem",
-            color: "var(--fg-dim)",
-            textDecoration: "none",
-            border: "1px solid var(--fg-dim)",
-            borderRadius: "4px",
-          }}
-        >
-          Open ↗
-        </a>
-      </div>
-      <p
-        style={{
-          fontSize: "0.75rem",
-          color: "var(--fg-dim)",
-          marginTop: "0.6rem",
-          marginBottom: 0,
-        }}
-      >
-        Wire this URL into Stripe / GitHub / Slack webhook configs. The URL is public — never run a
-        tunnel against a database with real-user data.
-      </p>
-    </div>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <code className="rounded bg-surface-3 px-2 py-1 font-mono text-sm">{url}</code>
+          <Button onClick={copy}>Copy URL</Button>
+          <Button asChild variant="outline">
+            <a href={url} target="_blank" rel="noopener noreferrer">
+              Open ↗
+            </a>
+          </Button>
+        </div>
+        <p className="text-xs text-fg-muted">
+          Wire this URL into Stripe / GitHub / Slack webhook configs. The URL is public — never run
+          a tunnel against a database with real-user data.
+        </p>
+      </CardContent>
+    </Card>
   );
 }
 
-interface HeroProps {
-  overall: OverallHealth;
-  data: DashboardJson;
-}
-
-function Hero({ overall, data }: HeroProps): ReactNode {
+function Hero({ overall, data }: { overall: OverallHealth; data: DashboardJson }): ReactNode {
   const heapPct = Math.round((data.memory.heapUsed / data.memory.heapTotal) * 100);
   const heapMb = (data.memory.heapUsed / (1024 * 1024)).toFixed(1);
   const heapTotalMb = (data.memory.heapTotal / (1024 * 1024)).toFixed(0);
   const stateClass =
-    overall.state === "ok" ? "hero--ok" : overall.state === "warn" ? "hero--warn" : "hero--err";
+    overall.state === "ok"
+      ? "border-ok/40 from-ok/10"
+      : overall.state === "warn"
+        ? "border-warn/40 from-warn/10"
+        : "border-err/40 from-err/10";
   const stateLabel = overall.state === "ok" ? "OK" : overall.state === "warn" ? "WARN" : "ERR";
+  const dotColor =
+    overall.state === "ok" ? "bg-ok" : overall.state === "warn" ? "bg-warn" : "bg-err";
   return (
-    <div className={`hero ${stateClass}`}>
-      <div className="hero__main">
-        <span className="hero__state">
-          <span className="hero__pulse" />
+    <div
+      className={cn(
+        "relative grid grid-cols-1 gap-6 overflow-hidden rounded-xl border bg-gradient-to-br to-transparent p-6 shadow-md md:grid-cols-[1.5fr_repeat(4,minmax(0,1fr))]",
+        stateClass,
+      )}
+    >
+      <div className="flex flex-col gap-2">
+        <span className="inline-flex w-fit items-center gap-2 rounded-full border border-line-strong bg-surface-2 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-widest text-fg">
+          <span className={cn("h-2 w-2 animate-pulse rounded-full", dotColor)} />
           {stateLabel}
         </span>
-        <h2 className="hero__title">{overall.label}</h2>
-        <span className="hero__detail">{overall.detail}</span>
+        <h2 className="m-0 text-2xl font-semibold tracking-tight">{overall.label}</h2>
+        <span className="text-sm text-fg-muted">{overall.detail}</span>
       </div>
-      <div className="hero__metric">
-        <span className="hero__metric-label">Uptime</span>
-        <span className="hero__metric-value">{formatDuration(data.uptimeMs)}</span>
-        <span className="hero__metric-sub">since boot</span>
-      </div>
-      <div className="hero__metric">
-        <span className="hero__metric-label">Heap</span>
-        <span className="hero__metric-value">{heapMb} MB</span>
-        <span className="hero__metric-sub">
-          {heapPct}% of {heapTotalMb} MB
-        </span>
-      </div>
-      <div className="hero__metric">
-        <span className="hero__metric-label">Node / Bun</span>
-        <span className="hero__metric-value">{data.process.bun ?? data.process.node}</span>
-        <span className="hero__metric-sub">{data.process.platform}</span>
-      </div>
-      <div className="hero__metric">
-        <span className="hero__metric-label">Base URL</span>
-        <span className="hero__metric-value hero__metric-value--mono">
-          {stripProto(data.baseUrl)}
-        </span>
-        <span className="hero__metric-sub">portless / loopback</span>
-      </div>
+      <HeroMetric label="Uptime" value={formatDuration(data.uptimeMs)} hint="since boot" />
+      <HeroMetric
+        label="Heap"
+        value={`${heapMb} MB`}
+        hint={`${heapPct}% of ${heapTotalMb} MB`}
+      />
+      <HeroMetric
+        label="Node / Bun"
+        value={data.process.bun ?? data.process.node}
+        hint={data.process.platform}
+      />
+      <HeroMetric
+        label="Base URL"
+        value={stripProto(data.baseUrl)}
+        hint="portless / loopback"
+        mono
+      />
     </div>
   );
 }
 
-interface StatsGridProps {
+function HeroMetric({
+  label,
+  value,
+  hint,
+  mono,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  mono?: boolean;
+}): ReactNode {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-[0.65rem] font-semibold uppercase tracking-widest text-fg-faint">
+        {label}
+      </span>
+      <span className={cn("text-xl font-semibold tabular-nums", mono && "font-mono text-base")}>
+        {value}
+      </span>
+      {hint ? <span className="text-xs text-fg-muted">{hint}</span> : null}
+    </div>
+  );
+}
+
+function StatsGrid({
+  data,
+  errorLogs,
+  warnLogs,
+}: {
   data: DashboardJson;
   errorLogs: number;
   warnLogs: number;
-}
-
-function StatsGrid({ data, errorLogs, warnLogs }: StatsGridProps): ReactNode {
+}): ReactNode {
   const cov = data.coverage;
   const covValue = cov.available ? `${cov.total?.lines.pct.toFixed(1) ?? "—"}%` : "—";
   const covOk = cov.available ? cov.gate.overallOk : null;
@@ -346,82 +315,91 @@ function StatsGrid({ data, errorLogs, warnLogs }: StatsGridProps): ReactNode {
   const querySlow = data.queries.warnCount + data.queries.badCount;
 
   return (
-    <div className="stat-grid">
-      <a className="stat-card" href="/dev/coverage">
-        <span className="stat-card__label">Coverage</span>
-        <span className="stat-card__value">{covValue}</span>
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <StatCard label="Coverage" value={covValue} href="/dev/coverage">
         {covOk === null ? (
-          <span className="stat-card__pill stat-card__pill--neutral">no run yet</span>
+          <Badge variant="secondary">no run yet</Badge>
         ) : covOk ? (
-          <span className="stat-card__pill stat-card__pill--ok">✓ gates pass</span>
+          <Badge variant="ok">✓ gates pass</Badge>
         ) : (
-          <span className="stat-card__pill stat-card__pill--warn">below threshold</span>
+          <Badge variant="warn">below threshold</Badge>
         )}
-      </a>
-      <a className="stat-card" href="/dev/tests">
-        <span className="stat-card__label">Tests</span>
-        <span className="stat-card__value">{testsValue}</span>
+      </StatCard>
+      <StatCard label="Tests" value={testsValue} href="/dev/tests">
         {testsOk === null ? (
-          <span className="stat-card__pill stat-card__pill--neutral">no run yet</span>
+          <Badge variant="secondary">no run yet</Badge>
         ) : testsOk ? (
-          <span className="stat-card__pill stat-card__pill--ok">✓ all green</span>
+          <Badge variant="ok">✓ all green</Badge>
         ) : (
-          <span className="stat-card__pill stat-card__pill--bad">
-            {tests.totals.failed} failing
-          </span>
+          <Badge variant="err">{tests.totals.failed} failing</Badge>
         )}
-      </a>
-      <a className="stat-card" href="/dev/features">
-        <span className="stat-card__label">Features</span>
-        <span className="stat-card__value">
-          {activeFeatures}
-          <span className="stat-card__value-faint"> / {totalFeatures}</span>
-        </span>
-        <span className="stat-card__pill stat-card__pill--neutral">
-          {totalFeatures - activeFeatures} available
-        </span>
-      </a>
-      <a className="stat-card" href="/dev/logs">
-        <span className="stat-card__label">Recent Logs</span>
-        <span className="stat-card__value">{data.logs.length}</span>
+      </StatCard>
+      <StatCard
+        label="Features"
+        value={
+          <>
+            {activeFeatures}
+            <span className="text-fg-faint"> / {totalFeatures}</span>
+          </>
+        }
+        href="/dev/features"
+      >
+        <Badge variant="secondary">{totalFeatures - activeFeatures} available</Badge>
+      </StatCard>
+      <StatCard label="Recent Logs" value={data.logs.length} href="/dev/logs">
         {errorLogs > 0 ? (
-          <span className="stat-card__pill stat-card__pill--bad">
+          <Badge variant="err">
             {errorLogs} error{errorLogs === 1 ? "" : "s"}
-          </span>
+          </Badge>
         ) : warnLogs > 0 ? (
-          <span className="stat-card__pill stat-card__pill--warn">
+          <Badge variant="warn">
             {warnLogs} warn{warnLogs === 1 ? "" : "s"}
-          </span>
+          </Badge>
         ) : (
-          <span className="stat-card__pill stat-card__pill--ok">clean</span>
+          <Badge variant="ok">clean</Badge>
         )}
-      </a>
-      <a className="stat-card" href="/dev/queries">
-        <span className="stat-card__label">DB Queries</span>
-        <span className="stat-card__value">{data.queries.total}</span>
+      </StatCard>
+      <StatCard label="DB Queries" value={data.queries.total} href="/dev/queries">
         {data.queries.badCount > 0 ? (
-          <span className="stat-card__pill stat-card__pill--bad">
-            {data.queries.badCount} critical (&gt; 200 ms)
-          </span>
+          <Badge variant="err">{data.queries.badCount} critical (&gt; 200 ms)</Badge>
         ) : querySlow > 0 ? (
-          <span className="stat-card__pill stat-card__pill--warn">
-            {querySlow} slow (&gt; 50 ms)
-          </span>
+          <Badge variant="warn">{querySlow} slow (&gt; 50 ms)</Badge>
         ) : data.queries.total > 0 ? (
-          <span className="stat-card__pill stat-card__pill--ok">all fast</span>
+          <Badge variant="ok">all fast</Badge>
         ) : (
-          <span className="stat-card__pill stat-card__pill--neutral">no queries yet</span>
+          <Badge variant="secondary">no queries yet</Badge>
         )}
-      </a>
+      </StatCard>
     </div>
   );
 }
 
-interface ServicesGridProps {
-  probes: ServiceProbe[];
+function StatCard({
+  label,
+  value,
+  href,
+  children,
+}: {
+  label: string;
+  value: ReactNode;
+  href: string;
+  children?: ReactNode;
+}): ReactNode {
+  return (
+    <Link
+      to={href}
+      className="flex flex-col gap-2 rounded-lg border border-line bg-surface-1 p-4 transition-colors hover:border-line-accent hover:bg-surface-2"
+    >
+      <span className="text-[0.65rem] font-semibold uppercase tracking-widest text-fg-faint">
+        {label}
+      </span>
+      <span className="text-2xl font-semibold tabular-nums">{value}</span>
+      {children}
+    </Link>
+  );
 }
 
-function ServicesGrid({ probes }: ServicesGridProps): ReactNode {
+function ServicesGrid({ probes }: { probes: ServiceProbe[] }): ReactNode {
   // Re-poll `/dev/status.json` every 4 s to refresh probe state in
   // place — same UX as the server cockpit had via embedded JS.
   const queryClient = useQueryClient();
@@ -431,9 +409,6 @@ function ServicesGrid({ probes }: ServicesGridProps): ReactNode {
       try {
         const next = await fetchJson<ServiceProbe[]>("/dev/status.json");
         if (cancelled) return;
-        // Merge into the dashboard query so the rest of the cockpit
-        // stays consistent — and so this re-render is just a state
-        // diff, not a fresh fetch of the entire dashboard.
         queryClient.setQueryData<DashboardJson | undefined>(["dev", "dashboard"], (prev) =>
           prev ? { ...prev, probes: next } : prev,
         );
@@ -451,163 +426,169 @@ function ServicesGrid({ probes }: ServicesGridProps): ReactNode {
   }, [queryClient]);
 
   return (
-    <div className="admin-card">
-      <h2 className="admin-card__title">Services</h2>
-      <div className="svc-grid">
-        {probes.map((p) => {
-          const dotCls =
-            p.status === "up"
-              ? "svc__dot--up"
-              : p.status === "down"
-                ? "svc__dot--down"
-                : "svc__dot--unknown";
-          const labelText =
-            p.status === "up" ? "online" : p.status === "down" ? "offline" : "unknown";
-          const latency = p.latencyMs !== undefined ? `${p.latencyMs} ms` : "";
-          const href = p.href ?? p.probeUrl ?? "#";
-          const url = p.probeUrl ?? p.href ?? "";
-          return (
-            <a
-              key={p.id}
-              className="svc"
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-service-id={p.id}
-              data-status={p.status}
-            >
-              <div className="svc__head">
-                <span className="svc__label">{p.label}</span>
-                <span className={`svc__dot ${dotCls}`} title={labelText} />
-              </div>
-              {url ? <span className="svc__url">{url}</span> : null}
-              <div className="svc__meta">
-                <span>{labelText}</span>
-                <span>{latency}</span>
-              </div>
-            </a>
-          );
-        })}
-      </div>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Services</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {probes.map((p) => {
+            const dot =
+              p.status === "up"
+                ? "bg-ok shadow-[0_0_8px_var(--ok)]"
+                : p.status === "down"
+                  ? "bg-err shadow-[0_0_8px_var(--err)]"
+                  : "bg-fg-faint";
+            const labelText =
+              p.status === "up" ? "online" : p.status === "down" ? "offline" : "unknown";
+            const latency = p.latencyMs !== undefined ? `${p.latencyMs} ms` : "";
+            const href = p.href ?? p.probeUrl ?? "#";
+            const url = p.probeUrl ?? p.href ?? "";
+            return (
+              <a
+                key={p.id}
+                className="flex flex-col gap-2 rounded-lg border border-line bg-surface-2 p-3 transition-colors hover:border-line-accent"
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-service-id={p.id}
+                data-status={p.status}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-fg">{p.label}</span>
+                  <span className={cn("h-2 w-2 rounded-full", dot)} title={labelText} />
+                </div>
+                {url ? (
+                  <span className="truncate font-mono text-[0.7rem] text-fg-muted">{url}</span>
+                ) : null}
+                <div className="flex items-center justify-between text-[0.7rem] text-fg-dim">
+                  <span>{labelText}</span>
+                  <span>{latency}</span>
+                </div>
+              </a>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
-interface LogPreviewProps {
+function LogPreview({
+  records,
+  capacity,
+  errorLogs,
+  warnLogs,
+}: {
   records: LogRecord[];
   capacity: number;
   errorLogs: number;
   warnLogs: number;
-}
-
-function LogPreview({ records, capacity, errorLogs, warnLogs }: LogPreviewProps): ReactNode {
+}): ReactNode {
   const last10 = records.slice(-10).reverse();
   return (
-    <div className="admin-card">
-      <h2 className="admin-card__title">
-        Live logs
-        <span
-          style={{
-            fontSize: "0.7rem",
-            color: "var(--fg-dim)",
-            fontWeight: 500,
-            letterSpacing: "0.04em",
-          }}
-        >
+    <Card>
+      <CardHeader className="flex-row flex-wrap items-center gap-3">
+        <CardTitle className="flex-1">Live logs</CardTitle>
+        <span className="text-[0.7rem] uppercase tracking-widest text-fg-dim">
           last 10 of {records.length}/{capacity}
         </span>
         {errorLogs > 0 ? (
-          <span className="stat-card__pill stat-card__pill--bad">
+          <Badge variant="err">
             {errorLogs} error{errorLogs === 1 ? "" : "s"}
-          </span>
+          </Badge>
         ) : null}
         {warnLogs > 0 && errorLogs === 0 ? (
-          <span className="stat-card__pill stat-card__pill--warn">
+          <Badge variant="warn">
             {warnLogs} warn{warnLogs === 1 ? "" : "s"}
-          </span>
+          </Badge>
         ) : null}
-        <a
-          href="/dev/logs"
-          style={{ marginLeft: "auto", fontSize: "0.75rem", color: "var(--fg-dim)" }}
-        >
+        <Link to="/dev/logs" className="text-xs text-fg-dim hover:text-accent">
           Open full log →
-        </a>
-      </h2>
-      {records.length === 0 ? (
-        <div className="admin-empty">No log records yet.</div>
-      ) : (
-        <table className="admin-table" style={{ fontSize: "0.8rem" }}>
-          <tbody>
-            {last10.map((r, i) => {
-              const lvl = levelName(r.level);
-              const time = new Date(r.time).toISOString().slice(11, 19);
-              return (
-                <tr key={`${r.seq ?? i}`} className={`dash-log dash-log--${lvl}`}>
-                  <td className="dash-log__time">{time}</td>
-                  <td className="dash-log__level">
-                    <span className={`dash-log__chip dash-log__chip--${lvl}`}>{lvl}</span>
-                  </td>
-                  <td className="dash-log__msg">
-                    {r.context ? (
-                      <span className="dash-log__ctx">[{String(r.context)}]</span>
-                    ) : null}{" "}
-                    {String(r.msg ?? "")}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
-    </div>
+        </Link>
+      </CardHeader>
+      <CardContent>
+        {records.length === 0 ? (
+          <p className="text-sm text-fg-muted">No log records yet.</p>
+        ) : (
+          <table className="w-full text-xs">
+            <tbody>
+              {last10.map((r, i) => {
+                const lvl = levelName(r.level);
+                const time = new Date(r.time).toISOString().slice(11, 19);
+                const tone =
+                  lvl === "fatal" || lvl === "error"
+                    ? "err"
+                    : lvl === "warn"
+                      ? "warn"
+                      : lvl === "info"
+                        ? "info"
+                        : "secondary";
+                return (
+                  <tr key={`${r.seq ?? i}`}>
+                    <td className="py-1 pr-2 font-mono text-[0.7rem] text-fg-muted">{time}</td>
+                    <td className="py-1 pr-2">
+                      <Badge variant={tone}>{lvl}</Badge>
+                    </td>
+                    <td className="py-1 font-mono">
+                      {r.context ? <span className="text-accent">[{String(r.context)}]</span> : null}{" "}
+                      {String(r.msg ?? "")}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
-interface FeatureOverviewProps {
+function FeatureOverview({
+  features,
+  catalog,
+}: {
   features: DashboardJson["features"];
   catalog: FeatureMeta[];
-}
-
-function FeatureOverview({ features, catalog }: FeatureOverviewProps): ReactNode {
+}): ReactNode {
   const total = catalog.length;
   const active = catalog.filter((m) => isFeatureActive(features, m.key)).length;
   return (
-    <div className="admin-card">
-      <h2 className="admin-card__title">
-        Features
-        <span
-          style={{
-            fontSize: "0.7rem",
-            color: "var(--fg-dim)",
-            fontWeight: 500,
-            letterSpacing: "0.04em",
-          }}
-        >
+    <Card>
+      <CardHeader className="flex-row flex-wrap items-center gap-3">
+        <CardTitle className="flex-1">Features</CardTitle>
+        <span className="text-[0.7rem] uppercase tracking-widest text-fg-dim">
           {active} / {total} active
         </span>
-        <a
-          href="/dev/features"
-          style={{ marginLeft: "auto", fontSize: "0.75rem", color: "var(--fg-dim)" }}
-        >
+        <Link to="/dev/features" className="text-xs text-fg-dim hover:text-accent">
           Manage →
-        </a>
-      </h2>
-      <ul className="feat-grid">
-        {catalog.map((meta) => {
-          const on = isFeatureActive(features, meta.key);
-          return (
-            <li
-              key={meta.key}
-              className={`feat-row ${on ? "feat-row--on" : "feat-row--off"}`}
-              title={meta.description}
-            >
-              <span className="feat-row__label">{meta.label}</span>
-              <span className="feat-row__chip">{on ? "ON" : "OFF"}</span>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+        </Link>
+      </CardHeader>
+      <CardContent>
+        <Progress className="mb-3" value={total === 0 ? 0 : (active / total) * 100} />
+        <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+          {catalog.map((meta) => {
+            const on = isFeatureActive(features, meta.key);
+            return (
+              <li
+                key={meta.key}
+                className={cn(
+                  "flex items-center justify-between gap-2 rounded-md border border-line/40 px-2 py-1 text-xs",
+                  on ? "bg-accent-soft/40" : "bg-surface-2/50",
+                )}
+                title={meta.description}
+              >
+                <span className="truncate text-fg-muted">{meta.label}</span>
+                <Badge variant={on ? "ok" : "secondary"} className="text-[0.6rem]">
+                  {on ? "ON" : "OFF"}
+                </Badge>
+              </li>
+            );
+          })}
+        </ul>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -637,16 +618,24 @@ function QuickLinks(): ReactNode {
     { href: "/dev/diagnostics", label: "Diagnostics", hint: "Memory, versions, runtime" },
   ];
   return (
-    <div className="admin-card">
-      <h2 className="admin-card__title">Quick navigation</h2>
-      <div className="quick-grid">
-        {links.map((l) => (
-          <a key={l.href} className="quick" href={l.href}>
-            <span className="quick__title">{l.label}</span>
-            <span className="quick__hint">{l.hint}</span>
-          </a>
-        ))}
-      </div>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Quick navigation</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {links.map((l) => (
+            <a
+              key={l.href}
+              className="flex flex-col gap-1 rounded-lg border border-line bg-surface-2 p-3 transition-colors hover:border-line-accent"
+              href={l.href}
+            >
+              <span className="font-medium text-fg">{l.label}</span>
+              <span className="text-[0.7rem] text-fg-muted">{l.hint}</span>
+            </a>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
