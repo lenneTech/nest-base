@@ -22,14 +22,18 @@ const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {
 describe("Dev-Hub · /dev/migrations", () => {
   describe("in development mode", () => {
     let app: INestApplication;
+    let previousNodeEnv: string | undefined;
 
     beforeAll(async () => {
+      previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "development";
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
     });
 
     afterAll(async () => {
       await app.close();
+      if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = previousNodeEnv;
     });
 
     it("GET /dev/migrations serves the SPA shell with the correct title", async () => {
@@ -123,15 +127,18 @@ describe("Dev-Hub · /dev/migrations", () => {
 
   describe("outside development mode", () => {
     let app: INestApplication;
+    let previousNodeEnv: string | undefined;
 
     beforeAll(async () => {
+      previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "production";
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
     });
 
     afterAll(async () => {
       await app.close();
-      process.env.NODE_ENV = "test";
+      if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = previousNodeEnv;
     });
 
     it("GET /dev/migrations returns 404 in production", async () => {

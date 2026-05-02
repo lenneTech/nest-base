@@ -60,3 +60,38 @@ function isAbilityRule(value: unknown): value is AbilityRule {
   if (typeof r.subject !== "string" && !Array.isArray(r.subject)) return false;
   return true;
 }
+
+/**
+ * `NODE_ENV` snapshot captured at module-load time.
+ *
+ * Specs occasionally flip `process.env.NODE_ENV` mid-suite to test
+ * production / development behaviour. When such a spec fails before
+ * its `afterAll` reset runs, `NODE_ENV` leaks to every subsequent
+ * spec in the same Vitest worker — and the test-ability hatch
+ * silently disables itself for the rest of the run, 403'ing every
+ * downstream spec that pre-seeds an ability.
+ *
+ * Caching here means the runtime middleware decision uses the value
+ * that was set at import time (which is `"test"` because Vitest's
+ * globalSetup runs before any module loads). Runtime mutations of
+ * `process.env.NODE_ENV` do NOT change `MODULE_LOAD_NODE_ENV`, so
+ * the hatch survives leaked env state.
+ *
+ * Note: production safety is unaffected. In a real production runtime
+ * this module loads with `NODE_ENV=production`, so the cached value
+ * is `"production"` and the hatch stays a strict no-op forever.
+ */
+const MODULE_LOAD_NODE_ENV = process.env.NODE_ENV ?? "";
+
+/**
+ * Middleware-facing variant that uses the cached `NODE_ENV`.
+ *
+ * Equivalent to `parseTestAbilityHeader(rawHeader, MODULE_LOAD_NODE_ENV)`,
+ * but exposed as its own export so the call site can't accidentally
+ * pass a runtime-mutated value.
+ */
+export function parseTestAbilityHeaderForRequest(
+  rawHeader: string | string[] | undefined,
+): Ability | null {
+  return parseTestAbilityHeader(rawHeader, MODULE_LOAD_NODE_ENV);
+}

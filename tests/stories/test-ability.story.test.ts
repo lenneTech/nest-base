@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { parseTestAbilityHeader } from "../../src/core/permissions/test-ability.js";
+import {
+  parseTestAbilityHeader,
+  parseTestAbilityHeaderForRequest,
+} from "../../src/core/permissions/test-ability.js";
 
 /**
  * Story · Test-Ability helper.
@@ -61,5 +64,47 @@ describe("Story · parseTestAbilityHeader", () => {
     const ability = parseTestAbilityHeader(["full", "ignored-second"], "test");
     expect(ability).not.toBeNull();
     expect(ability!.can("read", "Anything")).toBe(true);
+  });
+});
+
+/**
+ * Story · `parseTestAbilityHeaderForRequest` (cached-env variant).
+ *
+ * The middleware-facing entry point reads `NODE_ENV` exactly once,
+ * at module load time (when the test runner bootstraps and globalSetup
+ * has already set `NODE_ENV=test`). Subsequent runtime mutations of
+ * `process.env.NODE_ENV` from individual specs do NOT change the
+ * cached value, so a spec that flips to "development" / "production"
+ * mid-suite can never silently disable the test-ability hatch for
+ * the next spec in the same worker.
+ *
+ * Out-of-band guarantee: even if a previous spec failed before its
+ * `afterAll` reset, the test-ability hatch keeps working because
+ * the env was captured at module load.
+ */
+describe("Story · parseTestAbilityHeaderForRequest (cached env)", () => {
+  it("honours the header even after process.env.NODE_ENV is mutated mid-suite", () => {
+    const previous = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    try {
+      const ability = parseTestAbilityHeaderForRequest("full");
+      expect(ability).not.toBeNull();
+      expect(ability!.can("manage", "all")).toBe(true);
+    } finally {
+      process.env.NODE_ENV = previous;
+    }
+  });
+
+  it("returns null when the header is missing (cached env or not)", () => {
+    expect(parseTestAbilityHeaderForRequest(undefined)).toBeNull();
+    expect(parseTestAbilityHeaderForRequest("")).toBeNull();
+  });
+
+  it("parses JSON rule arrays the same way as the explicit-env variant", () => {
+    const json = JSON.stringify([{ action: "read", subject: "Search" }]);
+    const ability = parseTestAbilityHeaderForRequest(json);
+    expect(ability).not.toBeNull();
+    expect(ability!.can("read", "Search")).toBe(true);
+    expect(ability!.can("write", "Search")).toBe(false);
   });
 });

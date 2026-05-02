@@ -69,15 +69,18 @@ const JSON_ENDPOINTS: Array<{ url: string; assert: (body: unknown) => void }> = 
 describe("Admin SPA · /admin/* shell + JSON sidecars", () => {
   describe("in development mode", () => {
     let app: INestApplication;
+    let previousNodeEnv: string | undefined;
 
     beforeAll(async () => {
+      previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "development";
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
     });
 
     afterAll(async () => {
       await app.close();
-      process.env.NODE_ENV = "test";
+      if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = previousNodeEnv;
     });
 
     for (const page of SPA_PAGES) {
@@ -119,15 +122,18 @@ describe("Admin SPA · /admin/* shell + JSON sidecars", () => {
 
   describe("outside development mode", () => {
     let app: INestApplication;
+    let previousNodeEnv: string | undefined;
 
     beforeAll(async () => {
+      previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "production";
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
     });
 
     afterAll(async () => {
       await app.close();
-      process.env.NODE_ENV = "test";
+      if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = previousNodeEnv;
     });
 
     it("GET /admin/permissions/test 404s in production", async () => {

@@ -17,15 +17,18 @@ const TENANT = "11111111-1111-1111-1111-111111111111";
 describe("Webhook Inspector · admin endpoints", () => {
   describe("in development mode", () => {
     let app: INestApplication;
+    let previousNodeEnv: string | undefined;
 
     beforeAll(async () => {
+      previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "development";
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
     });
 
     afterAll(async () => {
       await app.close();
-      process.env.NODE_ENV = "test";
+      if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = previousNodeEnv;
     });
 
     it("GET /admin/webhooks.json returns deliveries + a CSRF token", async () => {
@@ -153,15 +156,18 @@ describe("Webhook Inspector · admin endpoints", () => {
 
   describe("outside development mode", () => {
     let app: INestApplication;
+    let previousNodeEnv: string | undefined;
 
     beforeAll(async () => {
+      previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "production";
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
     });
 
     afterAll(async () => {
       await app.close();
-      process.env.NODE_ENV = "test";
+      if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = previousNodeEnv;
     });
 
     it("GET /admin/webhooks/aggregates.json 404s in production", async () => {

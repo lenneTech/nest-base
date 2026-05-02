@@ -22,14 +22,18 @@ const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {
  */
 describe("Brand-Config · runtime surfaces", () => {
   let app: INestApplication;
+  let previousNodeEnv: string | undefined;
 
   beforeAll(async () => {
+    previousNodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = "development";
     app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
   });
 
   afterAll(async () => {
     await app.close();
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
   });
 
   describe("/dev/brand.json", () => {

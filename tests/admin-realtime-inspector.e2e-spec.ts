@@ -19,15 +19,21 @@ const TENANT = "11111111-1111-1111-1111-111111111111";
 describe("Admin Realtime Inspector · /admin/realtime*", () => {
   describe("in development mode", () => {
     let app: INestApplication;
+    let previousNodeEnv: string | undefined;
 
     beforeAll(async () => {
+      // Capture the prior value so `afterAll` restores it even when
+      // the worker started under a non-default env. Blind resets to
+      // "test" hide the original leak.
+      previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "development";
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
     });
 
     afterAll(async () => {
       await app.close();
-      process.env.NODE_ENV = "test";
+      if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = previousNodeEnv;
     });
 
     it("GET /admin/realtime.json returns sockets + channels + events arrays", async () => {
@@ -129,15 +135,18 @@ describe("Admin Realtime Inspector · /admin/realtime*", () => {
 
   describe("outside development mode", () => {
     let app: INestApplication;
+    let previousNodeEnv: string | undefined;
 
     beforeAll(async () => {
+      previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "production";
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
     });
 
     afterAll(async () => {
       await app.close();
-      process.env.NODE_ENV = "test";
+      if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = previousNodeEnv;
     });
 
     it("GET /admin/realtime/channels.json 404s in production", async () => {
