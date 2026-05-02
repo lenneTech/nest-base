@@ -62,13 +62,20 @@ export interface BuildPortlessRunCommandInput {
   app?: string;
   /** The dev command to wrap, e.g. `['bun', '--watch', 'src/main.ts']`. */
   target: string[];
+  /**
+   * Add `--force` to the portless run argv. The dev runner sets this
+   * after `decideRegistrationAction` returns "take-over" — i.e. the
+   * existing PID in routes.json is dead and the registration is
+   * orphaned. portless then evicts the stale entry and registers us.
+   */
+  force?: boolean;
 }
 
 /**
  * Builds the argv for `portless run`. Returns the args *after* the
  * binary path so the caller can spawn `[portlessPath, ...args]`.
  *
- * Format: `run --name <fullName> -- <target...>`.
+ * Format: `run --name <fullName> [--force] -- <target...>`.
  * `<fullName>` is `<app>.<projectName>` when `app` is given, otherwise
  * just `<projectName>`. Worktree branch prefixes are added by portless
  * itself if the repo is on a non-default branch.
@@ -81,7 +88,62 @@ export function buildPortlessRunCommand(input: BuildPortlessRunCommandInput): st
     throw new Error("buildPortlessRunCommand: target must not be empty");
   }
   const fullName = input.app ? `${input.app}.${input.projectName}` : input.projectName;
-  return ["run", "--name", fullName, "--", ...input.target];
+  const flags: string[] = [];
+  if (input.force) flags.push("--force");
+  return ["run", "--name", fullName, ...flags, "--", ...input.target];
+}
+
+/**
+ * Decide what to do with an existing entry in portless's
+ * `~/.portless/routes.json`. The runner reads the file and calls this
+ * planner before invoking `portless run`; the decision determines
+ * whether to add `--force` to the argv.
+ *
+ * Why we need this at all: when a previous `bun --watch` is killed
+ * unexpectedly (SIGKILL, OOM, terminal closed), its registration in
+ * the routes file outlives the process. portless DOES detect this
+ * — its `addRoute()` check uses `process.kill(pid, 0)` and skips the
+ * conflict if the holder is dead. But:
+ *   1. Some PIDs get re-used by unrelated processes — portless then
+ *      raises `RouteConflictError` even though the holder is gone.
+ *   2. Some shells reap the process but leave the registration
+ *      because portless never got SIGTERM'd (e.g. `kill -9`).
+ *
+ * The planner gives the dev runner a defence-in-depth pass: read the
+ * routes file directly, decide based on `process.kill(pid, 0)`, and
+ * add `--force` only when truly safe (existing PID is dead AND not
+ * the current process).
+ */
+export type RegistrationDecision = "no-existing" | "take-over" | "block-with-error";
+
+export interface DecideRegistrationActionInput {
+  /** PID stored in `~/.portless/routes.json` for the target hostname. */
+  existingPid: number | undefined;
+  /** Our own PID (used to short-circuit "self-conflict" → idempotent re-register). */
+  currentPid: number;
+  /** Result of `process.kill(existingPid, 0)` — true when alive, false when ESRCH. */
+  isAlive: boolean;
+}
+
+export function decideRegistrationAction(
+  input: DecideRegistrationActionInput,
+): RegistrationDecision {
+  // No record (or placeholder pid 0): nothing to take over, register fresh.
+  if (input.existingPid === undefined) return "no-existing";
+  if (input.existingPid === 0) return "no-existing";
+
+  // Self-conflict: portless's own self-PID branch already filters this
+  // out, but if it ever didn't, taking over with --force would SIGTERM
+  // ourselves. Treat as "no conflict, just (re-)register".
+  if (input.existingPid === input.currentPid) return "no-existing";
+
+  // Different PID + alive → genuine conflict (another `bun run dev` in
+  // a sibling shell). Surface portless's normal error.
+  if (input.isAlive) return "block-with-error";
+
+  // Different PID + dead → stale entry from a hard-killed predecessor.
+  // Take over silently.
+  return "take-over";
 }
 
 /**
