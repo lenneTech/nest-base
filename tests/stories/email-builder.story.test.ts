@@ -465,6 +465,170 @@ describe("Story · Email-Builder", () => {
       expect(result.decomposable).toBe(false);
     });
 
+    it("decodes a CTA whose href is a literal string (no interpolation)", () => {
+      const result = decomposeTemplateSource(`
+        export const xMeta = {
+          name: "x",
+          subject: (_vars: XVars): string => "Hello",
+        };
+        export default function X(props: { brand?: unknown }) {
+          return (
+            <Barebone brand={props.brand}>
+              <CTA brand={props.brand} href="https://example.test/static">Open</CTA>
+            </Barebone>
+          );
+        }
+      `);
+      expect(result.decomposable).toBe(true);
+      if (!result.decomposable) return;
+      const cta = result.composition.children[0];
+      expect(cta?.type).toBe("cta");
+      expect(cta?.props.href).toBe("https://example.test/static");
+      expect(cta?.props.text).toBe("Open");
+    });
+
+    it("decodes preheader provided as a literal string attribute", () => {
+      const result = decomposeTemplateSource(`
+        export const xMeta = {
+          name: "x",
+          subject: (_vars: XVars): string => "Hello",
+        };
+        export default function X(props: { brand?: unknown }) {
+          return (
+            <Barebone brand={props.brand} preheader="A simple preheader">
+              <Greeting brand={props.brand}>Hi</Greeting>
+            </Barebone>
+          );
+        }
+      `);
+      expect(result.decomposable).toBe(true);
+      if (!result.decomposable) return;
+      expect(result.composition.preheader).toBe("A simple preheader");
+    });
+
+    it("returns decomposable=false for a self-closed Barebone (no children)", () => {
+      const result = decomposeTemplateSource(`
+        export const xMeta = {
+          name: "x",
+          subject: (_vars: XVars): string => "Hello",
+        };
+        export default function X(props: { brand?: unknown }) {
+          return <Barebone brand={props.brand} />;
+        }
+      `);
+      // Self-closed Barebone is empty children — still valid composition.
+      expect(result.decomposable).toBe(true);
+      if (!result.decomposable) return;
+      expect(result.composition.children).toEqual([]);
+    });
+
+    it("returns decomposable=false for empty source", () => {
+      const result = decomposeTemplateSource("");
+      expect(result.decomposable).toBe(false);
+    });
+
+    it("returns decomposable=false for non-string input", () => {
+      const result = decomposeTemplateSource(undefined as unknown as string);
+      expect(result.decomposable).toBe(false);
+    });
+
+    it("returns decomposable=false on unsupported subject expression", () => {
+      const result = decomposeTemplateSource(`
+        export const xMeta = {
+          name: "x",
+          subject: (vars: XVars): string => doSomething(vars),
+        };
+        export default function X(props: { brand?: unknown }) {
+          return <Barebone brand={props.brand}><Greeting brand={props.brand}>Hi</Greeting></Barebone>;
+        }
+      `);
+      expect(result.decomposable).toBe(false);
+    });
+
+    it("returns decomposable=false when CTA href uses a complex expression", () => {
+      const result = decomposeTemplateSource(`
+        export const xMeta = {
+          name: "x",
+          subject: (_vars: XVars): string => "Hello",
+        };
+        export default function X(props: { brand?: unknown; url?: string }) {
+          return (
+            <Barebone brand={props.brand}>
+              <CTA brand={props.brand} href={makeUrl(props.url)}>Go</CTA>
+            </Barebone>
+          );
+        }
+      `);
+      expect(result.decomposable).toBe(false);
+    });
+
+    it("returns decomposable=false when a block has unknown attrs", () => {
+      const result = decomposeTemplateSource(`
+        export const xMeta = {
+          name: "x",
+          subject: (_vars: XVars): string => "Hello",
+        };
+        export default function X(props: { brand?: unknown }) {
+          return (
+            <Barebone brand={props.brand}>
+              <Greeting brand={props.brand} className="extra">Hi</Greeting>
+            </Barebone>
+          );
+        }
+      `);
+      expect(result.decomposable).toBe(false);
+    });
+
+    it("returns decomposable=false when greeting brand attr is not props.brand", () => {
+      const result = decomposeTemplateSource(`
+        export const xMeta = {
+          name: "x",
+          subject: (_vars: XVars): string => "Hello",
+        };
+        export default function X(props: { brand?: unknown }) {
+          return (
+            <Barebone brand={props.brand}>
+              <Greeting brand={someComputedBrand()}>Hi</Greeting>
+            </Barebone>
+          );
+        }
+      `);
+      expect(result.decomposable).toBe(false);
+    });
+
+    it("returns decomposable=false when an unknown JSX tag appears among children", () => {
+      const result = decomposeTemplateSource(`
+        export const xMeta = {
+          name: "x",
+          subject: (_vars: XVars): string => "Hello",
+        };
+        export default function X(props: { brand?: unknown }) {
+          return (
+            <Barebone brand={props.brand}>
+              <Greeting brand={props.brand}>Hi</Greeting>
+              <CustomBlock brand={props.brand} />
+            </Barebone>
+          );
+        }
+      `);
+      expect(result.decomposable).toBe(false);
+    });
+
+    it("decodes a subject built via string concatenation", () => {
+      const result = decomposeTemplateSource(`
+        export const xMeta = {
+          name: "x",
+          subject: (vars: XVars): string => "Hi " + vars.name + "!",
+        };
+        export default function X(props: { brand?: unknown }) {
+          return <Barebone brand={props.brand}><Greeting brand={props.brand}>Hi</Greeting></Barebone>;
+        }
+      `);
+      expect(result.decomposable).toBe(true);
+      if (!result.decomposable) return;
+      expect(result.composition.subject).toBe("Hi {{name}}!");
+    });
+
     it("ignores HTML entities inside text (treats them as literal characters)", () => {
       // welcome.tsx has `we&apos;re` — decomposer should resolve to the
       // canonical apostrophe so the composer round-trip survives.
