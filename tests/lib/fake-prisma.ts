@@ -23,6 +23,17 @@
  * The helper is intentionally narrow. It doesn't try to be Prisma
  * — it's the smallest contract that lets the service code run
  * unmodified against in-memory data.
+ *
+ * Extensibility — Proxy auto-table:
+ *
+ * Project-owned `src/modules/<x>/` resources need to story-test their
+ * services without force-editing this template-owned file (that would
+ * make every upstream sync a hot-spot). The fake is therefore wrapped
+ * in a `Proxy` that lazily creates a `TableMock` the first time a
+ * spec accesses a previously-unknown property. Calls like
+ * `fake.todo.create(...)` work without registration. The `example`
+ * and `userProfile` mocks remain pre-seeded for backwards
+ * compatibility with existing story tests.
  */
 
 import type { PrismaService } from "../../src/core/prisma/prisma.service.js";
@@ -138,27 +149,89 @@ export interface FakePrismaService {
   runWithRlsTenant<T>(fn: (tx: FakePrismaService) => Promise<T>, tenantId?: string): Promise<T>;
   /** Test-only: clear every table. */
   __resetAll(): void;
+  /** Index access for project-owned tables (Proxy-backed). */
+  [key: string]: unknown;
 }
 
+/**
+ * Reserved property names the Proxy must NOT route to a `TableMock`.
+ * These are the methods / hooks the fake itself exposes — accessing
+ * `fake.runWithRlsTenant` should hit the real function, not a
+ * dynamically-created table mock.
+ */
+const RESERVED_KEYS = new Set<string | symbol>([
+  "runWithRlsTenant",
+  "__resetAll",
+  // Internal slot used by the Proxy to enumerate dynamic tables
+  // when wiping state via `__resetAll`.
+  "__tables__",
+  // Symbols / inspection-time hooks Node, Vitest, and `expect()` use
+  // to introspect the object. Routing these to a table mock confuses
+  // assertion libraries.
+  "then",
+  "catch",
+  "finally",
+  Symbol.toPrimitive,
+  Symbol.iterator,
+  Symbol.asyncIterator,
+]);
+
 export function createFakePrisma(): FakePrismaService {
-  const example = makeTable();
-  const userProfile = makeTable();
-  const fake: FakePrismaService = {
-    example,
-    userProfile,
+  // Backing store: every accessed table name maps to a single TableMock
+  // instance. Stable identity is important — service code that holds
+  // a reference between calls must see the same map.
+  const tables = new Map<string, TableMock<Row>>();
+
+  const ensureTable = (name: string): TableMock<Row> => {
+    let table = tables.get(name);
+    if (!table) {
+      table = makeTable();
+      tables.set(name, table);
+    }
+    return table;
+  };
+
+  // Pre-seed the two template-shipped tables so existing story tests
+  // get the same instance on every access (no surprise re-creation
+  // when a third party also accesses them).
+  ensureTable("example");
+  ensureTable("userProfile");
+
+  const base: Pick<FakePrismaService, "runWithRlsTenant" | "__resetAll"> & {
+    __tables__: Map<string, TableMock<Row>>;
+  } = {
     async runWithRlsTenant(fn) {
       // RLS enforcement is mimicked by the service code (which always
       // passes `tenantId` in the `where` clause). The fake just calls
       // the callback with itself as the tx — same surface as the real
       // Prisma transaction client.
-      return fn(fake);
+      return fn(proxy);
     },
     __resetAll() {
-      example.__reset();
-      userProfile.__reset();
+      for (const table of tables.values()) table.__reset();
     },
+    __tables__: tables,
   };
-  return fake;
+
+  const proxy = new Proxy(base, {
+    get(target, prop) {
+      if (RESERVED_KEYS.has(prop)) {
+        return Reflect.get(target, prop);
+      }
+      if (typeof prop !== "string") {
+        return Reflect.get(target, prop);
+      }
+      return ensureTable(prop);
+    },
+    has(target, prop) {
+      if (RESERVED_KEYS.has(prop)) return Reflect.has(target, prop);
+      if (typeof prop !== "string") return Reflect.has(target, prop);
+      // Always true: any property name maps to a (possibly future) table.
+      return true;
+    },
+  }) as unknown as FakePrismaService;
+
+  return proxy;
 }
 
 /**
