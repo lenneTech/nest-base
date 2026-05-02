@@ -72,10 +72,67 @@ Runtime (`email-builder-runtime.tsx`):
 
 Controller endpoints (in `dev-hub.controller.ts`):
 
-- `GET /dev/email-builder/templates.json` — discovered + sample-rendered
+- `GET /dev/email-builder/templates.json` — discovered + sample-rendered.
+  Each row carries `overridesCore` (module overlay shadows a core
+  template) / `overrideExists` (core template has a module overlay)
+  so the gallery can render "Core (overridden)" badges in one round-trip.
 - `GET /dev/email-builder/blocks.json` — block library + props
 - `POST /dev/email-builder/preview.json` — render draft live
-- `POST /dev/email-builder/save` — codegen + write `.tsx`
+- `POST /dev/email-builder/save` — codegen + write `.tsx`. Always
+  resolves to `src/modules/email/templates/` (path-validation in
+  `resolveEmailTemplateTarget` + runner-side anchor check); core
+  files cannot be overwritten through this endpoint.
+- `GET /dev/email-builder/templates/:name/composition.json` —
+  decompose an existing template's `.tsx` back into the JSON
+  composition the builder consumes (Issue #49). Resolves via
+  module > core, locale > default. Returns
+  `{ decomposable: true, composition }` for sources inside the
+  composer grammar; `{ decomposable: false, reason, rawSource }` for
+  hand-rolled templates with custom JSX.
+- `DELETE /dev/email-builder/templates/:name/override` — remove the
+  module-overlay file so the core template becomes authoritative
+  again (Issue #49 "Reset to default"). 404 when no overlay exists.
+
+## Editing core templates (copy-on-edit, Issue #49)
+
+Core templates ship under `src/core/email/templates/` and are
+template-owned — the upstream sync replaces them on every
+`bun run sync:from-template`. To customise one without losing the
+change on next sync, the dev-portal Email-Builder uses a
+**copy-on-edit overlay** model:
+
+1. Click "Anpassen" (Customize) on any template card. The page fetches
+   `composition.json` and pre-fills the composer with the existing
+   structure.
+2. Edit subject, preheader, blocks, vars — anything the composer
+   exposes.
+3. Click Save. The save endpoint always writes to
+   `src/modules/email/templates/<name>.tsx` (or
+   `<name>.<locale>.tsx`). The core file under
+   `src/core/email/templates/` is never touched.
+4. The runtime resolver (`ReactEmailTemplateRenderer.resolveFile`)
+   prefers the module overlay over core, so the next render uses
+   your customised version.
+
+To revert: click "Reset to default" on a `Core (overridden)` entry.
+The module-overlay file is deleted; the core file becomes
+authoritative again. A confirmation dialog guards the action.
+
+Decomposability — `decomposeTemplateSource()` mirrors the composer's
+grammar: one `<Barebone>` layout, the six known block types
+(`Greeting`, `Paragraph`, `CTA`, `Footer`, `Code`, `Divider`),
+`{props.X}` / `{vars.X}` interpolation, plain text. Two of the
+shipped core templates (`invitation`, `new-device`) use hand-written
+JSX outside this grammar (`<strong style>`, conditional `<br/>` /
+fragments) and surface as a **read-only source view** in the
+gallery. To customise those, copy the file by hand into the module
+overlay and rewrite into composer-grammar shape, then continue from
+the builder.
+
+Sync safety: `bun run sync:from-template` only touches
+`src/core/email/{layouts,blocks,templates}/`. Module overlays under
+`src/modules/email/templates/` survive every sync — the override
+decision is durable across upstream updates.
 
 ## How rendering works
 
