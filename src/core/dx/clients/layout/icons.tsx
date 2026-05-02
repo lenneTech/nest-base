@@ -11,6 +11,17 @@ import type { ReactElement } from "react";
 
 const COMMON = {
   fill: "none" as const,
+  // Lucide-style stroke attributes. Without these the legacy CSS rule
+  // `.admin-nav__icon svg path { stroke: currentColor; }` (deleted in
+  // PR #41 alongside admin-layout.css) no longer paints the icons —
+  // every <path>/<line>/<circle> rendered with `fill="none"` would be
+  // invisible. `currentColor` lets the wrapper `text-…` utility on
+  // AdminShell still drive icon colour, including the active-state
+  // accent. See Issue #48.
+  stroke: "currentColor" as const,
+  strokeWidth: 1.75,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
   // The viewBox + classnames reproduce the markup the server emits.
   viewBox: "0 0 24 24",
 };
