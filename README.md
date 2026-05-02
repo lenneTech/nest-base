@@ -311,7 +311,7 @@ bun run test:summary          # JSON reporter for /dev/tests
 
 # Schema
 bun run prepare:schema        # Concat feature schemas → schema.generated.prisma
-bun run prisma:generate       # Generate Prisma client
+bun run prisma:generate       # Generate Prisma client (also wires the pnpm-hoisting symlink)
 bun run prisma:migrate        # Apply migrations
 
 # Project lifecycle
