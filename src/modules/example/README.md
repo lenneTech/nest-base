@@ -68,9 +68,19 @@ the requested page.
 
 ### 4. Named error sentinels
 
-`ExampleNotFoundError` lives at the top of `example.service.ts`. The
-global `ProblemDetailsFilter` maps it to RFC 7807 with a 404 status.
-The controller never has to know about the error class.
+`ExampleNotFoundError` lives at the top of `example.service.ts` and
+extends `ResourceNotFoundError` (from `src/core/errors/`). The base
+class is a thin wrapper over NestJS' `NotFoundException`, so the
+global `ProblemDetailsFilter` maps it to RFC 7807 with a 404 status
+and `code: CORE_NOT_FOUND` automatically. The controller never has
+to know about the error class.
+
+> **Don't** roll your own `class FooNotFoundError extends Error`.
+> Plain-`Error` subclasses fall through the filter to a 500 +
+> `CORE_INTERNAL` because the filter only recognises
+> `HttpException`, `ZodError`, and a small set of framework
+> sentinels. Always extend `ResourceNotFoundError` (or the matching
+> NestJS exception, e.g. `ConflictException`, `BadRequestException`).
 
 ### 5. Zod-driven DTOs
 

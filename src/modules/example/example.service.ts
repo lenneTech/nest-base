@@ -16,6 +16,7 @@
 import { Injectable } from "@nestjs/common";
 import type { Example } from "@prisma/client";
 
+import { ResourceNotFoundError } from "../../core/errors/resource-not-found-error.js";
 import {
   type CursorPage,
   type CursorRecord,
@@ -33,9 +34,16 @@ import type {
 
 // ── Errors ──────────────────────────────────────────────────────────
 
-export class ExampleNotFoundError extends Error {
+/**
+ * Named sentinel for "Example with id X does not exist (or is in
+ * another tenant)". Extends `ResourceNotFoundError` so the global
+ * `ProblemDetailsExceptionFilter` emits 404 + `CORE_NOT_FOUND`
+ * automatically. Before this class extended the framework base,
+ * the response was a 500 + `CORE_INTERNAL`.
+ */
+export class ExampleNotFoundError extends ResourceNotFoundError {
   constructor(id: string) {
-    super(`Example not found: ${id}`);
+    super("Example", id);
     this.name = "ExampleNotFoundError";
   }
 }
