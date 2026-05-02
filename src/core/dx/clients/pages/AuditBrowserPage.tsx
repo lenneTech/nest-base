@@ -1,17 +1,18 @@
 /**
- * `/admin/audit` — verbatim React port of `audit-browser-ui.ts`.
- *
- * Same five-input filter form (action/resource/actor/from/to) wired
- * via `?action=…&resource=…` query strings. Diffs render as
- * line-prefixed `<span class="add">+ …</span>` / `<span class="del">- …</span>`
- * inside the same `<pre class="diff">` wrapper the legacy renderer
- * produced. The per-row `data-action="delete"` / `"create"` hooks are
- * preserved so the audit-browser CSS rules still target them.
+ * `/admin/audit` — filter + inspect tenant-scoped audit-log entries
+ * with before / after diffs.
  */
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 
+import { Badge } from "../components/ui/badge.js";
+import { Button } from "../components/ui/button.js";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
+import { Input } from "../components/ui/input.js";
+import { Label } from "../components/ui/label.js";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table.js";
+import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson } from "../lib/api.js";
 
@@ -61,52 +62,70 @@ export function AuditBrowserPage(): ReactNode {
       subtitle="Filter and inspect tenant-scoped audit-log entries with diffs."
       currentNav="audit"
     >
-      <div className="admin-card">
-        <h2 className="admin-card__title">Filter</h2>
-        <form
-          className="admin-form filter"
-          method="get"
-          action="/admin/audit"
-          style={{ gridTemplateColumns: "repeat(5, 1fr) auto" }}
-        >
-          <div className="row" style={{ gridTemplateColumns: "repeat(5, 1fr) auto" }}>
-            <label>
-              Action
-              <input
+      <div className="flex flex-col gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Filter</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form className="grid grid-cols-1 gap-3 md:grid-cols-3 lg:grid-cols-6" method="get" action="/admin/audit">
+              <FilterField
+                label="Action"
                 name="action"
-                defaultValue={filter.action ?? ""}
                 placeholder="create / update / delete"
+                defaultValue={filter.action ?? ""}
               />
-            </label>
-            <label>
-              Resource
-              <input name="resource" defaultValue={filter.resource ?? ""} placeholder="Project" />
-            </label>
-            <label>
-              Actor
-              <input
+              <FilterField
+                label="Resource"
+                name="resource"
+                placeholder="Project"
+                defaultValue={filter.resource ?? ""}
+              />
+              <FilterField
+                label="Actor"
                 name="actorUserId"
-                defaultValue={filter.actorUserId ?? ""}
                 placeholder="user uuid"
+                defaultValue={filter.actorUserId ?? ""}
               />
-            </label>
-            <label>
-              From
-              <input name="from" type="date" defaultValue={filter.from ?? ""} />
-            </label>
-            <label>
-              To
-              <input name="to" type="date" defaultValue={filter.to ?? ""} />
-            </label>
-            <button type="submit">Filter</button>
-          </div>
-        </form>
-      </div>
-      <div className="admin-card">
-        <h2 className="admin-card__title">Entries</h2>
-        <EntriesTable entries={data.data?.entries} isError={data.isError} />
+              <FilterField label="From" name="from" type="date" defaultValue={filter.from ?? ""} />
+              <FilterField label="To" name="to" type="date" defaultValue={filter.to ?? ""} />
+              <Button type="submit" className="self-end">
+                Filter
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Entries</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <EntriesTable entries={data.data?.entries} isError={data.isError} />
+          </CardContent>
+        </Card>
       </div>
     </AdminShell>
+  );
+}
+
+function FilterField({
+  label,
+  name,
+  placeholder,
+  defaultValue,
+  type,
+}: {
+  label: string;
+  name: string;
+  placeholder?: string;
+  defaultValue: string;
+  type?: string;
+}): ReactNode {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={name}>{label}</Label>
+      <Input id={name} name={name} type={type} placeholder={placeholder} defaultValue={defaultValue} />
+    </div>
   );
 }
 
@@ -117,42 +136,57 @@ function EntriesTable({
   entries: AuditLogEntry[] | undefined;
   isError: boolean;
 }): ReactNode {
-  if (isError) {
-    return <div className="admin-empty">Failed to load audit entries.</div>;
-  }
-  if (!entries) {
-    return <div className="admin-empty">Loading…</div>;
-  }
-  if (entries.length === 0) {
-    return <div className="admin-empty">No audit entries match the current filter.</div>;
-  }
+  if (isError) return <PageError>Failed to load audit entries.</PageError>;
+  if (!entries) return <PageLoading>Loading…</PageLoading>;
+  if (entries.length === 0)
+    return <PageEmpty>No audit entries match the current filter.</PageEmpty>;
   return (
-    <table className="admin-table" data-audit-entries="true">
-      <thead>
-        <tr>
-          <th>When</th>
-          <th>Action</th>
-          <th>Resource</th>
-          <th>ID</th>
-          <th>Actor</th>
-          <th>Diff</th>
-        </tr>
-      </thead>
-      <tbody>
-        {entries.map((entry) => (
-          <tr key={entry.id} data-action={entry.action}>
-            <td>{entry.occurredAt}</td>
-            <td>{entry.action}</td>
-            <td>{entry.resource}</td>
-            <td>{entry.resourceId ?? ""}</td>
-            <td>{entry.actorUserId ?? ""}</td>
-            <td>
-              <DiffCell before={entry.before} after={entry.after} />
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="max-h-[65dvh] min-h-56 overflow-auto">
+      <Table data-audit-entries="true">
+        <TableHeader>
+          <TableRow>
+            <TableHead>When</TableHead>
+            <TableHead>Action</TableHead>
+            <TableHead>Resource</TableHead>
+            <TableHead>ID</TableHead>
+            <TableHead>Actor</TableHead>
+            <TableHead>Diff</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {entries.map((entry) => {
+            const tone =
+              entry.action === "delete"
+                ? "err"
+                : entry.action === "create"
+                  ? "ok"
+                  : entry.action === "update"
+                    ? "info"
+                    : "secondary";
+            return (
+              <TableRow key={entry.id} data-action={entry.action}>
+                <TableCell className="font-mono text-[0.7rem] text-fg-muted">
+                  {entry.occurredAt}
+                </TableCell>
+                <TableCell>
+                  <Badge variant={tone}>{entry.action}</Badge>
+                </TableCell>
+                <TableCell className="font-mono text-xs">{entry.resource}</TableCell>
+                <TableCell className="font-mono text-[0.7rem] text-fg-muted">
+                  {entry.resourceId ?? ""}
+                </TableCell>
+                <TableCell className="font-mono text-[0.7rem] text-fg-muted">
+                  {entry.actorUserId ?? ""}
+                </TableCell>
+                <TableCell>
+                  <DiffCell before={entry.before} after={entry.after} />
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
 
@@ -167,15 +201,16 @@ function DiffCell({
   const beforeLines = before ? JSON.stringify(before, null, 2).split("\n") : [];
   const afterLines = after ? JSON.stringify(after, null, 2).split("\n") : [];
   return (
-    <pre className="diff">
+    <pre className="m-0 max-h-32 overflow-auto rounded bg-surface-2 p-2 font-mono text-[0.65rem] leading-tight">
       {beforeLines.map((l, i) => (
-        <span key={`b-${i}`} className="del">{`- ${l}\n`}</span>
+        <span key={`b-${i}`} className="block bg-err/10 text-err">
+          {`- ${l}`}
+        </span>
       ))}
       {afterLines.map((l, i) => (
-        <span
-          key={`a-${i}`}
-          className="add"
-        >{`+ ${l}${i < afterLines.length - 1 ? "\n" : ""}`}</span>
+        <span key={`a-${i}`} className="block bg-ok/10 text-ok">
+          {`+ ${l}`}
+        </span>
       ))}
     </pre>
   );

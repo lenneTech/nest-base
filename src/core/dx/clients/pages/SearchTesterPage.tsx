@@ -1,24 +1,24 @@
 /**
- * `/admin/search` — verbatim React port of `search-tester-ui.ts`.
- *
- * The query form is a 1fr/auto grid with autofocus on the input, the
- * tsquery diagnostic shows below it (when the server returned one),
- * and the results table emits the same `data-search-results="true"`
- * `<table>` the legacy renderer produced.
+ * `/admin/search` — cross-resource full-text search with parsed
+ * tsquery diagnostics.
  *
  * Trust boundary: `ts_headline` snippets arrive from postgres
- * pre-wrapped in `<b>…</b>` markers. The legacy renderer emits them
- * verbatim. We mirror that contract via `dangerouslySetInnerHTML` —
- * the trust still lives on the server side; the snippet must already
- * be safe (controlled vocabulary) by the time it reaches the
- * `*.json` sidecar response. Every other user-controlled string
- * (resource, id, title, query) goes through React's default text
- * escaping.
+ * pre-wrapped in `<b>…</b>` markers. We render them via
+ * `dangerouslySetInnerHTML` — the trust lives on the server side; the
+ * snippet must already be safe by the time it reaches the `*.json`
+ * sidecar response. Every other user-controlled string (resource, id,
+ * title, query) goes through React's default text escaping.
  */
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 
+import { Button } from "../components/ui/button.js";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
+import { Input } from "../components/ui/input.js";
+import { Label } from "../components/ui/label.js";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table.js";
+import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson } from "../lib/api.js";
 
@@ -55,32 +55,51 @@ export function SearchTesterPage(): ReactNode {
       subtitle="Cross-resource full-text search with parsed tsquery diagnostics."
       currentNav="search"
     >
-      <div className="admin-card">
-        <h2 className="admin-card__title">Query</h2>
-        <form className="admin-form q" method="get" action="/admin/search">
-          <div className="row" style={{ gridTemplateColumns: "1fr auto" }}>
-            <label>
-              Query
-              <input
-                name="q"
-                defaultValue={query ?? ""}
-                placeholder="Type a search query and press Enter…"
-                autoFocus
-              />
-            </label>
-            <button type="submit">Search</button>
-          </div>
-        </form>
-      </div>
-      {data.data?.tsquery ? (
-        <div className="admin-card" data-tsquery="true">
-          <h2 className="admin-card__title">Parsed tsquery</h2>
-          <pre className="tsquery">{data.data.tsquery}</pre>
-        </div>
-      ) : null}
-      <div className="admin-card">
-        <h2 className="admin-card__title">Results</h2>
-        <Results query={query} response={data.data} isError={data.isError} />
+      <div className="flex flex-col gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Query</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form
+              className="flex flex-wrap items-end gap-3"
+              method="get"
+              action="/admin/search"
+            >
+              <div className="flex flex-1 min-w-72 flex-col gap-1.5">
+                <Label htmlFor="q">Query</Label>
+                <Input
+                  id="q"
+                  name="q"
+                  defaultValue={query ?? ""}
+                  placeholder="Type a search query and press Enter…"
+                  autoFocus
+                />
+              </div>
+              <Button type="submit">Search</Button>
+            </form>
+          </CardContent>
+        </Card>
+        {data.data?.tsquery ? (
+          <Card data-tsquery="true">
+            <CardHeader>
+              <CardTitle>Parsed tsquery</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <pre className="m-0 rounded-md border border-line bg-surface-2 p-3 font-mono text-xs text-fg">
+                {data.data.tsquery}
+              </pre>
+            </CardContent>
+          </Card>
+        ) : null}
+        <Card>
+          <CardHeader>
+            <CardTitle>Results</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Results query={query} response={data.data} isError={data.isError} />
+          </CardContent>
+        </Card>
       </div>
     </AdminShell>
   );
@@ -96,54 +115,57 @@ function Results({
   isError: boolean;
 }): ReactNode {
   if (query === undefined) {
-    return <div className="admin-empty">Enter a query above to start searching.</div>;
+    return <PageEmpty>Enter a query above to start searching.</PageEmpty>;
   }
   if (isError) {
-    return <div className="admin-empty">Search failed.</div>;
+    return <PageError>Search failed.</PageError>;
   }
   if (!response) {
-    return <div className="admin-empty">Searching…</div>;
+    return <PageLoading>Searching…</PageLoading>;
   }
   if (response.hits.length === 0) {
     return (
-      <div className="admin-empty">
-        No results for "<strong>{query}</strong>".
-      </div>
+      <PageEmpty>
+        No results for "<strong className="text-fg">{query}</strong>".
+      </PageEmpty>
     );
   }
   return (
-    <>
-      <p className="admin-meta">
+    <div className="flex flex-col gap-3">
+      <p className="text-xs text-fg-muted">
         {response.hits.length} result{response.hits.length === 1 ? "" : "s"}.
       </p>
-      <table className="admin-table" data-search-results="true">
-        <thead>
-          <tr>
-            <th>Resource</th>
-            <th>Title</th>
-            <th>Snippet</th>
-            <th>Rank</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table data-search-results="true">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Resource</TableHead>
+            <TableHead>Title</TableHead>
+            <TableHead>Snippet</TableHead>
+            <TableHead className="w-20">Rank</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {response.hits.map((hit, i) => (
-            <tr key={`${hit.resource}-${hit.id}-${i}`} data-resource={hit.resource}>
-              <td>
-                <strong>{hit.resource}</strong>
+            <TableRow key={`${hit.resource}-${hit.id}-${i}`} data-resource={hit.resource}>
+              <TableCell>
+                <strong className="font-mono text-xs">{hit.resource}</strong>
                 <br />
-                <small>{hit.id}</small>
-              </td>
-              <td>{hit.title}</td>
+                <small className="font-mono text-[0.65rem] text-fg-muted">{hit.id}</small>
+              </TableCell>
+              <TableCell className="text-sm">{hit.title}</TableCell>
               {/*
                 ts_headline snippet — server-trusted markup. See file
                 header for the trust-boundary rationale.
               */}
-              <td className="snippet" dangerouslySetInnerHTML={{ __html: hit.snippet }} />
-              <td className="rank">{hit.rank.toFixed(2)}</td>
-            </tr>
+              <TableCell
+                className="text-xs text-fg-muted [&_b]:bg-accent-soft [&_b]:px-0.5 [&_b]:font-semibold [&_b]:text-accent"
+                dangerouslySetInnerHTML={{ __html: hit.snippet }}
+              />
+              <TableCell className="font-mono tabular-nums">{hit.rank.toFixed(2)}</TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
-    </>
+        </TableBody>
+      </Table>
+    </div>
   );
 }
