@@ -19,7 +19,7 @@
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "test:unit": "vitest run tests/unit --passWithNoTests",
-    "test:e2e": "vitest run e2e-spec stories --passWithNoTests",
+    "test:e2e": "vitest run --passWithNoTests",
     "test:types": "tsc -p tests/types/tsconfig.json --noEmit",
     "test:coverage": "vitest run --coverage --passWithNoTests",
     "test:summary": "vitest run --passWithNoTests --reporter=json --outputFile=coverage/test-summary.json",

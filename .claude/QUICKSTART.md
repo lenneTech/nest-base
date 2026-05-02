@@ -76,7 +76,7 @@ bun run lint        # oxlint, 95 rules, ~30ms
 bun run format      # oxfmt --check
 bun run test:types  # tsc --noEmit on tests/types
 bun run test:unit   # vitest tests/unit
-bun run test:e2e    # vitest e2e + stories
+bun run test:e2e    # vitest e2e + stories (append a path to filter, e.g. `bun run test:e2e tests/stories/foo.story.test.ts`)
 bun run test:coverage  # ≥ 90% lines on src/core, ≥ 80% on src/modules
 bun run build       # bundle to dist/
 ```
