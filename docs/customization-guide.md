@@ -147,6 +147,51 @@ Add them to `.env.example` and parse them via `src/core/config/env.ts` if you
 want them validated alongside the framework's own env. Project-local config
 modules live in `src/modules/<resource>/<resource>.config.ts`.
 
+## Prisma in pnpm-hoisted monorepos
+
+`lt fullstack init --next` scaffolds the API under
+`projects/api/` next to a Nuxt app and a shared package. pnpm hoists
+shared dependencies to the workspace-root `node_modules/`, which
+breaks Prisma 7 in driver-adapter mode if you do nothing.
+
+The mechanic: `@prisma/client/default.js` ships as a forwarding shim
+that does `require('.prisma/client/default')`. Node walks
+`node_modules/` directories upward from `@prisma/client` looking for
+`.prisma/client/default.js`. The Prisma generator writes that file
+under the *consuming package's* `node_modules/.prisma/client/`. In
+the hoisted layout `@prisma/client` lives at the workspace root, so
+the upward walk never reaches `projects/api/node_modules/.prisma/`
+and `bun run dev` crashes with `Cannot find module '.prisma/client/
+default'`. Tests pass because vitest resolves modules from
+`projects/api/`, hiding the issue from CI.
+
+The template fixes this with `scripts/postinstall-prisma-symlink.ts`,
+wired into both `postinstall` and `prisma:generate`. The script:
+
+- locates the first ancestor `node_modules/` above the package
+  root (the workspace root in a pnpm layout, none in a single-package
+  checkout)
+- creates a symlink `<workspace-root>/node_modules/.prisma →
+  <package-root>/node_modules/.prisma`, completing the upward
+  resolution chain
+- is **idempotent** (no-op if the parent already resolves), **safe**
+  (refuses to clobber a real directory at the target path), and
+  **layout-agnostic** (works for `projects/api/`, `packages/api/`,
+  or any monorepo nesting)
+- gracefully no-ops in single-package mode — the template's own
+  `bun install` and `bun run dev` flow is unchanged
+
+Pure planner + thin runner: `src/core/setup/prisma-client-symlink.ts`
+and `…/prisma-client-symlink-runner.ts`. Tests in
+`tests/stories/prisma-client-symlink.story.test.ts` exercise the
+hoisted layout against the real filesystem (mkdtemp + symlink) so the
+fix can't silently regress.
+
+If the postinstall ever surfaces `refusing to clobber real directory`,
+inspect the contents of `<workspace-root>/node_modules/.prisma` (it
+likely came from a stale `pnpm install` against an older Prisma
+version), remove it, and re-run `bun run prisma:generate`.
+
 ## When you *do* need a core change
 
 It happens — a generic capability you're tempted to copy-paste between
