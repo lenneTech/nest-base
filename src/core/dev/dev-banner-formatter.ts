@@ -61,9 +61,7 @@ function renderUrl(input: DevBannerInput): string {
   const isDefaultPort =
     (input.scheme === "http" && input.port === 80) ||
     (input.scheme === "https" && input.port === 443);
-  return isDefaultPort
-    ? `${input.scheme}://${host}`
-    : `${input.scheme}://${host}:${input.port}`;
+  return isDefaultPort ? `${input.scheme}://${host}` : `${input.scheme}://${host}:${input.port}`;
 }
 
 /**
@@ -94,9 +92,7 @@ export function formatDevReadyLine(input: DevReadyLineInput): string {
  * recovery path instead of a silent exit-144.
  */
 export function formatPortCollisionMessage(input: PortCollisionInput): string {
-  const lines: string[] = [
-    `[dev] port ${input.port} is already in use`,
-  ];
+  const lines: string[] = [`[dev] port ${input.port} is already in use`];
   if (input.holderHint) {
     lines.push(`[dev]   holder: ${input.holderHint}`);
   }

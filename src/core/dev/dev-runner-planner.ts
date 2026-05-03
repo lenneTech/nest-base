@@ -104,8 +104,7 @@ export function planDevRunnerAction(probe: DevRunnerProbeResult): DevRunnerDecis
         return {
           action: "use-fallback",
           port: probe.chosenFallbackPort,
-          message:
-            `[dev] port ${probe.port} held by foreign process — falling back to ${probe.chosenFallbackPort}`,
+          message: `[dev] port ${probe.port} held by foreign process — falling back to ${probe.chosenFallbackPort}`,
         };
       }
       return {
