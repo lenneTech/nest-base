@@ -3,6 +3,7 @@ import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { ProblemDetailsExceptionFilter } from "../src/core/errors/problem-details.filter.js";
 import { PrismaService } from "../src/core/prisma/prisma.service.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
@@ -38,6 +39,12 @@ describe("E2E · /me/tenants + POST /tenants self-service", () => {
       imports: [AppModule],
     }).compile();
     app = moduleRef.createNestApplication({ logger: false });
+    // The Zod-OpenAPI bridge surfaces ZodError from `ApiZodBody` parsing;
+    // without the global filter `ZodError` would 500 in this Test-app
+    // (bootstrap.ts wires the filter for the production runtime, but
+    // `Test.createTestingModule()` does not). Register it so the
+    // malformed-body assertion below sees the production-shaped 400.
+    app.useGlobalFilters(new ProblemDetailsExceptionFilter());
     Object.assign(SILENT_LOGGER, {});
     await app.init();
     prisma = app.get(PrismaService);
@@ -166,6 +173,44 @@ describe("E2E · /me/tenants + POST /tenants self-service", () => {
       .set("content-type", "application/json")
       .send({ name: "   " });
     expect(res.status).toBe(400);
+  });
+
+  /**
+   * Friction-log entry (LLM-test 2026-05-03 #3, 20:34): the route
+   * accepted raw `@Body()` without Zod validation, so SDK consumers
+   * saw `201: unknown` and the contract was effectively
+   * non-validating — any malformed shape was either coerced into
+   * `name=""` (→ 400 generic BadRequest) or, for nullish bodies,
+   * could surface as a 500. The Zod-OpenAPI migration replaces
+   * `@Body()` with `@Body(new ZodValidationPipe(CreateTenantSchema))`,
+   * so a wrong-typed `name` raises `ZodError` → mapped to a 400 with
+   * `code: CORE_VALIDATION` and a structured `errors` array. Asserts
+   * BOTH the status code and the Zod-shaped body so a regression
+   * that drops the pipe is caught (a generic 400 from the legacy
+   * BadRequestException would NOT carry `errors[]` with a `path`).
+   */
+  it("POST /tenants with a wrong-typed `name` → 400 with Zod-shaped CORE_VALIDATION error", async () => {
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post("/api/auth/sign-in/email")
+      .set("content-type", "application/json")
+      .send({ email, password });
+
+    const res = await agent
+      .post("/tenants")
+      .set("content-type", "application/json")
+      // `name` MUST be a string; sending a number is the canonical
+      // shape-violation Zod catches at the boundary.
+      .send({ name: 12345 });
+
+    expect(res.status, JSON.stringify(res.body)).toBe(400);
+    expect(res.body.code).toBe("CORE_VALIDATION");
+    expect(Array.isArray(res.body.errors)).toBe(true);
+    expect(res.body.errors.length).toBeGreaterThan(0);
+    // Each Zod issue must surface its `path` so SDK consumers can
+    // map the failure to the offending field.
+    expect(res.body.errors[0]).toHaveProperty("path");
+    expect(res.body.errors[0].path).toContain("name");
   });
 
   /**
