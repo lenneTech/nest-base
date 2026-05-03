@@ -70,6 +70,10 @@ scoped sharding heuristics. The Node-side fallback lives in
   geo schema's migration already enables the extension; if you start
   from a fresh feature directory, add the `CREATE EXTENSION IF NOT
   EXISTS pg_uuidv7;` migration first.
+  When using `dbgenerated("uuid_generate_v7()")`, the in-memory fake
+  (`tests/lib/fake-prisma.ts`) auto-injects a uuid v7 in
+  `create({ data })` — no manual seeding required, story tests can
+  omit `id` the same way the production service does.
 - **New models in `prisma/schema.prisma` (the always-loaded core)** —
   prefer `uuid_generate_v7()` for the same reason, but verify the
   extension is enabled by an early migration before you ship. If you're
