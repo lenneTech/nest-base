@@ -189,7 +189,12 @@ describe("Story · setup-wizard frontend env-bridge planner", () => {
 
   it("rejects empty project names with a descriptive error", () => {
     expect(() =>
-      planFrontendEnvBridge({ projectName: "", apiPort: 3000, appExists: true, currentEnv: undefined }),
+      planFrontendEnvBridge({
+        projectName: "",
+        apiPort: 3000,
+        appExists: true,
+        currentEnv: undefined,
+      }),
     ).toThrow(/projectName/);
   });
 });

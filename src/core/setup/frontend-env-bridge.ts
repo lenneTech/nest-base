@@ -52,9 +52,7 @@ export type FrontendEnvBridgePlan =
   | { action: "skip"; reason: SkipReason }
   | { action: "write"; next: string };
 
-export type SkipReason =
-  | "frontend-dir-missing"
-  | "all-values-custom-no-write-needed";
+export type SkipReason = "frontend-dir-missing" | "all-values-custom-no-write-needed";
 
 /** Marker so re-runs append below the same block instead of trailing-fragmenting. */
 export const FRONTEND_ENV_BRIDGE_MARKER = "# Managed by nest-base setup-wizard";
@@ -72,12 +70,7 @@ export const FRONTEND_ENV_BRIDGE_MARKER = "# Managed by nest-base setup-wizard";
  * and writing it would either be a no-op or stomp a deliberate user
  * disable.
  */
-const BRIDGE_KEYS = [
-  "NUXT_API_URL",
-  "NUXT_PUBLIC_API_URL",
-  "API_URL",
-  "API_PORT",
-] as const;
+const BRIDGE_KEYS = ["NUXT_API_URL", "NUXT_PUBLIC_API_URL", "API_URL", "API_PORT"] as const;
 
 type BridgeKey = (typeof BRIDGE_KEYS)[number];
 
@@ -182,10 +175,7 @@ function parseEnv(text: string): Map<string, string> {
  *
  * The output always ends with a single trailing newline (POSIX).
  */
-function renderEnv(
-  current: string,
-  finalValues: Record<BridgeKey, string>,
-): string {
+function renderEnv(current: string, finalValues: Record<BridgeKey, string>): string {
   const lines = current === "" ? [] : current.split(/\r?\n/);
   // Strip a single trailing empty entry from the split (the file ends
   // with `\n`); we'll re-add it at the bottom unconditionally.
@@ -208,7 +198,9 @@ function renderEnv(
     next.push(`${key}=${finalValues[key]}`);
   }
 
-  const missing = BRIDGE_KEYS.filter((k) => !seen.has(k)).slice().sort();
+  const missing = BRIDGE_KEYS.filter((k) => !seen.has(k))
+    .slice()
+    .sort();
   if (missing.length > 0) {
     if (next.length > 0 && next[next.length - 1] !== "") next.push("");
     // Don't duplicate the marker if a prior run already laid one down.

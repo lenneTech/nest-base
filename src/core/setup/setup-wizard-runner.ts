@@ -287,9 +287,8 @@ function writeFrontendEnvBridge(options: WriteFrontendEnvBridgeOptions): void {
   const appDir = join(options.projectRoot, "projects/app");
   const appExists = existsSync(appDir) && safeIsDirectory(appDir);
   const frontendEnvPath = join(appDir, ".env");
-  const currentEnv = appExists && existsSync(frontendEnvPath)
-    ? readFileSync(frontendEnvPath, "utf8")
-    : undefined;
+  const currentEnv =
+    appExists && existsSync(frontendEnvPath) ? readFileSync(frontendEnvPath, "utf8") : undefined;
 
   const plan = planFrontendEnvBridge({
     projectName: options.projectName,
