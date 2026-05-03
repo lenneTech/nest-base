@@ -63,7 +63,15 @@ bun run dev
 >
 > **`bun run reset`** wipes the DB, replays every migration, and re-seeds — one command for "give me a clean slate". Refuses on production and non-local DATABASE_URL hosts as defense-in-depth.
 >
-> **Re-running `bun run setup` after a prior boot?** Delete `.env` first, then re-run setup, then run `docker compose down -v && docker compose up -d` to discard the old Postgres volume — otherwise `bun run prisma:migrate` fails with `P1000` because the volume still holds the previous password.
+> **Recover from a stale Postgres volume?** Wipe the volume first; the existing `.env` already carries a password compatible with the freshly-initialised volume:
+>
+> ```bash
+> docker compose down -v
+> docker compose up -d postgres
+> bun run prisma:migrate
+> ```
+>
+> Only delete `.env` if you specifically want to regenerate the random secrets (e.g. you suspect leakage). The full re-setup dance (`rm .env && bun run setup`) is strictly more steps than this lighter path.
 >
 > **Two workspaces with the same project name?** `bun run setup` writes `COMPOSE_PROJECT_NAME=<name>-<6-hex-of-path>` so two `my-app` checkouts in different directories get separate Postgres volumes (`my-app-a1b2c3_postgres_data` vs `my-app-d4e5f6_postgres_data`). The volume-collision check honours the path-hash, so duplicate names across cache dirs no longer abort the wizard. Existing `.env` files keep whatever `COMPOSE_PROJECT_NAME` they already carry — only fresh inits get the hashed namespace.
 
