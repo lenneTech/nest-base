@@ -19,6 +19,11 @@ it more often than `/add-feature` or `/add-page`.
 
 > Companion reading: `.claude/skills/adding-feature-module.md` (the
 > spec) and `src/modules/example/` (the lived reference).
+>
+> Shell-callable equivalent: `bun run add:module <name>` — emits the
+> same skeleton via `scripts/add-module.ts` driving
+> `src/core/dx/scaffold-module-planner.ts`. Useful for fresh agents
+> without slash-command resolution and for one-shot CLI scripting.
 
 ## Arguments
 

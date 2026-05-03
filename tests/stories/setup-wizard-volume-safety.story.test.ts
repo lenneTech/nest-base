@@ -89,4 +89,44 @@ describe("Story · Setup-Wizard volume-collision-check planner", () => {
       planVolumeCollisionCheck({ composeProjectName: "   ", volumeExists: false }),
     ).toThrow(/composeProjectName/);
   });
+
+  // Friction-log entry 14:21 follow-up: a freshly initialised workspace
+  // bakes `COMPOSE_PROJECT_NAME=<name>-<path-hash>` into `.env`, and the
+  // path-hash already prevents cross-workspace volume collisions in
+  // practice. The planner accepts an optional `expectedComposeProjectName`
+  // so the runner can also skip a *legacy* non-hashed name's volume
+  // collision when the operator clearly didn't generate that volume in
+  // this workspace path. Without this, a user who runs `bun run setup`
+  // in path A after a different-path workspace had `COMPOSE_PROJECT_NAME=
+  // my-next-fs` would falsely abort.
+  describe("expectedComposeProjectName false-positive avoidance", () => {
+    it("returns ok=true when the active name does not match the expected hashed name (foreign workspace's volume)", () => {
+      const plan = planVolumeCollisionCheck({
+        composeProjectName: "my-next-fs",
+        volumeExists: true,
+        expectedComposeProjectName: "my-next-fs-a1b2c3",
+      });
+      expect(plan.ok).toBe(true);
+      expect(plan.message).toBeUndefined();
+    });
+
+    it("still flags a real collision when the active name matches the expected hashed name", () => {
+      const plan = planVolumeCollisionCheck({
+        composeProjectName: "my-next-fs-a1b2c3",
+        volumeExists: true,
+        expectedComposeProjectName: "my-next-fs-a1b2c3",
+      });
+      expect(plan.ok).toBe(false);
+      expect(plan.message).toMatch(/my-next-fs-a1b2c3_postgres_data/);
+    });
+
+    it("ignores expectedComposeProjectName when the volume does not exist", () => {
+      const plan = planVolumeCollisionCheck({
+        composeProjectName: "my-next-fs",
+        volumeExists: false,
+        expectedComposeProjectName: "my-next-fs-a1b2c3",
+      });
+      expect(plan.ok).toBe(true);
+    });
+  });
 });

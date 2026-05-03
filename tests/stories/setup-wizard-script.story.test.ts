@@ -104,4 +104,75 @@ describe("Story · bun run setup runner I/O", () => {
     expect(env).toContain("postgresql://my-app:");
     expect(env).toContain("@localhost:5432/my-app");
   });
+
+  // Friction-log entry 14:21: two workspaces named the same in
+  // different cache dirs collided on the same docker volume because
+  // `COMPOSE_PROJECT_NAME` was just `kebabCase(workspaceName)`. Fresh
+  // inits now bake a per-workspace path-hash so the namespace is
+  // unique. Pre-existing `.env` files (with a non-hashed name) are
+  // preserved — only fresh inits get the hashed namespace.
+  describe("per-workspace COMPOSE_PROJECT_NAME hash", () => {
+    it("bakes `<project>-<6hex>` into the freshly written .env", () => {
+      writeFileSync(
+        join(workspace, "package.json"),
+        '{\n  "name": "my-next-fs",\n  "version": "0.0.0"\n}\n',
+      );
+      writeFileSync(
+        join(workspace, ".env.example"),
+        ["COMPOSE_PROJECT_NAME=nest-base", "NODE_ENV=development"].join("\n") + "\n",
+      );
+      runSetupWizard({ projectRoot: workspace, logger });
+      const env = readFileSync(join(workspace, ".env"), "utf8");
+      expect(env).toMatch(/^COMPOSE_PROJECT_NAME=my-next-fs-[0-9a-f]{6}$/m);
+    });
+
+    it("produces DIFFERENT compose names for the same project in two different paths", () => {
+      const wsA = mkdtempSync(join(tmpdir(), "setup-wizard-hashA-"));
+      const wsB = mkdtempSync(join(tmpdir(), "setup-wizard-hashB-"));
+      try {
+        for (const ws of [wsA, wsB]) {
+          writeFileSync(
+            join(ws, "package.json"),
+            '{\n  "name": "shared-name",\n  "version": "0.0.0"\n}\n',
+          );
+          writeFileSync(
+            join(ws, ".env.example"),
+            ["COMPOSE_PROJECT_NAME=nest-base"].join("\n") + "\n",
+          );
+          runSetupWizard({ projectRoot: ws, logger });
+        }
+        const a = readFileSync(join(wsA, ".env"), "utf8").match(
+          /^COMPOSE_PROJECT_NAME=(.*)$/m,
+        )?.[1];
+        const b = readFileSync(join(wsB, ".env"), "utf8").match(
+          /^COMPOSE_PROJECT_NAME=(.*)$/m,
+        )?.[1];
+        expect(a).toBeDefined();
+        expect(b).toBeDefined();
+        expect(a).not.toBe(b);
+        expect(a!.startsWith("shared-name-")).toBe(true);
+        expect(b!.startsWith("shared-name-")).toBe(true);
+      } finally {
+        rmSync(wsA, { recursive: true, force: true });
+        rmSync(wsB, { recursive: true, force: true });
+      }
+    });
+
+    it("preserves an existing legacy non-hashed COMPOSE_PROJECT_NAME (no rewrite)", () => {
+      // Pre-existing `.env` with the legacy non-hashed name. The
+      // runner refuses to overwrite an existing `.env` at all, so the
+      // legacy line stays exactly as the operator wrote it.
+      writeFileSync(
+        join(workspace, "package.json"),
+        '{\n  "name": "my-next-fs",\n  "version": "0.0.0"\n}\n',
+      );
+      writeFileSync(join(workspace, ".env.example"), "COMPOSE_PROJECT_NAME=nest-base\n");
+      writeFileSync(join(workspace, ".env"), "COMPOSE_PROJECT_NAME=my-next-fs\n");
+
+      const result = runSetupWizard({ projectRoot: workspace, logger });
+      expect(result.created).toBe(false);
+      const env = readFileSync(join(workspace, ".env"), "utf8");
+      expect(env).toBe("COMPOSE_PROJECT_NAME=my-next-fs\n");
+    });
+  });
 });

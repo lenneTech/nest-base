@@ -12,6 +12,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { computeComposeProjectName } from '../src/core/setup/compose-project-name.js';
 import { findFreePort } from '../src/core/setup/find-free-port.js';
 import { runSetupWizard } from '../src/core/setup/setup-wizard-runner.js';
 import { planVolumeCollisionCheck } from '../src/core/setup/volume-collision-check.js';
@@ -58,9 +59,21 @@ const volumeProbe = spawnSync('docker', ['volume', 'inspect', volumeName], {
 // → ENOENT) as "no collision", because a host without Docker can't
 // have the legacy volume. The runner stays planner-driven so the
 // operator-visible message is built from a single source of truth.
+//
+// Pass `expectedComposeProjectName` so the planner can short-circuit a
+// false-positive when the active `COMPOSE_PROJECT_NAME` was set by a
+// *different* workspace path (legacy non-hashed name in this `.env`
+// pointing at someone else's volume).
+const expectedComposeProjectName = readPackageJsonName(process.cwd())
+  ? computeComposeProjectName({
+      projectName: readPackageJsonName(process.cwd())!,
+      workspacePath: process.cwd(),
+    })
+  : undefined;
 const collisionPlan = planVolumeCollisionCheck({
   composeProjectName,
   volumeExists: volumeProbe.status === 0,
+  expectedComposeProjectName,
 });
 
 if (!collisionPlan.ok) {
@@ -86,4 +99,11 @@ function readComposeProjectName(cwd: string): string | undefined {
   const text = readFileSync(envPath, 'utf8');
   const match = /^COMPOSE_PROJECT_NAME=(.*)$/m.exec(text);
   return match?.[1]?.trim() || undefined;
+}
+
+function readPackageJsonName(cwd: string): string | undefined {
+  const pkgPath = join(cwd, 'package.json');
+  if (!existsSync(pkgPath)) return undefined;
+  const match = /"name"\s*:\s*"([^"]+)"/.exec(readFileSync(pkgPath, 'utf8'));
+  return match?.[1];
 }

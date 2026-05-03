@@ -21,6 +21,20 @@ export interface VolumeCollisionInput {
   composeProjectName: string;
   /** True if the runner's `docker volume inspect` probe succeeded. */
   volumeExists: boolean;
+  /**
+   * The compose-project name the wizard *would* pick today for this
+   * workspace path (typically `computeComposeProjectName({ projectName,
+   * workspacePath })`). When provided and different from
+   * `composeProjectName`, the active name belongs to a workspace
+   * elsewhere on disk — a stale legacy `.env` from a *different* path
+   * pointed at a volume that someone else's workspace owns. Treat
+   * that as a false positive: the planner returns ok=true so the
+   * fresh path-hashed namespace can proceed unimpeded. Only when
+   * `composeProjectName === expectedComposeProjectName` (or the
+   * expected name is omitted) does an existing volume mean a real
+   * collision.
+   */
+  expectedComposeProjectName?: string;
 }
 
 export interface VolumeCollisionPlan {
@@ -46,6 +60,15 @@ export function planVolumeCollisionCheck(input: VolumeCollisionInput): VolumeCol
   const volumeName = `${name}_postgres_data`;
 
   if (!input.volumeExists) {
+    return { ok: true, volumeName };
+  }
+
+  // False-positive guard: the active `COMPOSE_PROJECT_NAME` was set by
+  // a *different* workspace path (the new per-path hash differs). The
+  // detected volume belongs to that other workspace, not this one —
+  // proceeding is safe because Compose for *this* path would create a
+  // freshly-namespaced `<name>-<hash>_postgres_data` volume anyway.
+  if (input.expectedComposeProjectName !== undefined && input.expectedComposeProjectName !== name) {
     return { ok: true, volumeName };
   }
 

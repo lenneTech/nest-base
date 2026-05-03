@@ -3,6 +3,7 @@ import { randomBytes as nodeRandomBytes } from "node:crypto";
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { computeComposeProjectName } from "./compose-project-name.js";
 import { planFrontendEnvBridge } from "./frontend-env-bridge.js";
 import { buildDefaultEnvExample } from "./setup-wizard.js";
 
@@ -42,6 +43,15 @@ export interface PlanEnvFromExampleOptions {
    * undefined to leave whatever the example already had.
    */
   postgresHostPort?: number;
+  /**
+   * Override the `COMPOSE_PROJECT_NAME` line. The runner derives this
+   * from `computeComposeProjectName({ projectName, workspacePath })`
+   * so two workspaces with the same name in different dirs get
+   * different docker volumes (friction-log entry 14:21). When omitted,
+   * the line passes through with whatever the project-name rewrite
+   * produced.
+   */
+  composeProjectName?: string;
 }
 
 const TEMPLATE_NAME = "nest-base";
@@ -83,6 +93,14 @@ export function planEnvFromExample(
   // host don't collide.
   if (options.postgresHostPort !== undefined && options.postgresHostPort !== 5432) {
     sourceText = rewritePostgresHostPort(sourceText, options.postgresHostPort);
+  }
+
+  // Override COMPOSE_PROJECT_NAME with the per-workspace hashed value.
+  // Without this, two workspaces named the same in different paths
+  // share `<name>_postgres_data` and inherit each other's POSTGRES_PASSWORD
+  // on first boot (friction-log entry 14:21).
+  if (options.composeProjectName !== undefined) {
+    sourceText = rewriteComposeProjectName(sourceText, options.composeProjectName);
   }
 
   const generated: Record<string, string> = {};
@@ -135,6 +153,16 @@ function rewritePostgresHostPort(text: string, port: number): string {
   return text
     .replace(/^POSTGRES_HOST_PORT=\d+$/m, `POSTGRES_HOST_PORT=${port}`)
     .replace(/^(DATABASE_URL=postgresql:\/\/[^@]+@localhost):\d+(\/[^\n]+)$/m, `$1:${port}$2`);
+}
+
+/**
+ * Replace the `COMPOSE_PROJECT_NAME=<value>` line with the per-workspace
+ * hashed name. Anchored on `^COMPOSE_PROJECT_NAME=` so only that one
+ * line gets rewritten — comments referring to the variable name pass
+ * through untouched.
+ */
+function rewriteComposeProjectName(text: string, name: string): string {
+  return text.replace(/^COMPOSE_PROJECT_NAME=.*$/m, `COMPOSE_PROJECT_NAME=${name}`);
 }
 
 function rewriteProjectScopedVars(text: string, projectName: string): string {
@@ -219,10 +247,22 @@ export function runSetupWizard(options: RunSetupWizardOptions): SetupWizardResul
     );
   } else {
     const exampleText = readFileSync(examplePath, "utf8");
+    // Derive the per-workspace hashed `COMPOSE_PROJECT_NAME` so two
+    // workspaces with the same project name in different paths never
+    // collide on the same docker volume. Only baked into freshly
+    // written `.env`s — pre-existing files are preserved unchanged
+    // by the `existsSync` short-circuit above.
+    const composeProjectName = projectName
+      ? computeComposeProjectName({
+          projectName,
+          workspacePath: options.projectRoot,
+        })
+      : undefined;
     const rendered = planEnvFromExample(exampleText, {
       randomBytes: options.randomBytes ?? ((size) => nodeRandomBytes(size)),
       projectName,
       postgresHostPort: options.postgresHostPort,
+      composeProjectName,
     });
     writeFileSync(envPath, rendered, "utf8");
     logger.info(`wrote ${envPath} with auto-generated secrets`);
