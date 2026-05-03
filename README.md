@@ -189,7 +189,16 @@ Every JSON endpoint has a sister HTML page that mounts the React SPA's shared **
 
 ### API Reference — `/api/docs`
 
-[Scalar](https://scalar.com) renders the OpenAPI 3.1 spec with try-it-out. The raw JSON sits at `/api/openapi.json` for [kubb](https://kubb.dev) SDK generation.
+[Scalar](https://scalar.com) renders the OpenAPI 3.1 spec with try-it-out. The raw JSON sits at `/api/openapi.json` for [kubb](https://kubb.dev) SDK generation. The path `/api-docs-json` is a deprecated alias for older `nuxt-base-starter` workspaces — it serves the same body plus an RFC 8594 `Deprecation` header pointing at the canonical URL.
+
+**Offline type generation.** A snapshot of the OpenAPI document ships at [`docs/openapi.snapshot.json`](./docs/openapi.snapshot.json), so frontend consumers can generate types without booting the dev API:
+
+```bash
+# In the frontend workspace:
+openapi-ts --input ../api/docs/openapi.snapshot.json --output app/api-client
+```
+
+The snapshot is refreshed via `bun run dump:openapi`. CI fails on drift (see `tests/stories/openapi-snapshot.story.test.ts`), so a contributor who adds a route can't ship without regenerating the file.
 
 DTO schemas reach the OpenAPI document via the **Zod → OpenAPI bridge** in `src/core/openapi/`: the `@ApiZodBody` / `@ApiZodResponse` / `@ApiZodQuery` / `@ApiZodParam` decorators feed Zod schemas into `@nestjs/swagger`'s metadata pipeline, and `applyZodSchemaRegistry()` splices any `registerZodSchema('Name', schema)` calls into `components.schemas` at boot. The slim-module reference (`src/modules/example/`) shows the full pattern. Without the bridge the kubb-generated SDK would type every request body as `never` and every response as `unknown`.
 

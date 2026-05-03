@@ -27,7 +27,34 @@ bump may include breaking changes. The migration guide stays mandatory.
 | `prisma/schema.prisma` (field names) | **public** — semver applies | Schema renames bump major. New nullable columns are minor. |
 | `prisma/features/*.prisma` | **public** — semver applies | Same rules per feature schema. |
 | Generated SDK (`bun run sdk:generate`) | mirrors OpenAPI doc | OpenAPI changes follow the same semver rules. |
+| `docs/openapi.snapshot.json` | **public** — mirrors OpenAPI doc | Checked-in snapshot of `/api/openapi.json`. Regenerated via `bun run dump:openapi`; CI fails when it drifts. Frontend consumers can target it directly when the dev API isn't running. |
 | `tests/`, `scripts/` | internal | Don't depend on test fixtures or the build script. |
+
+## OpenAPI URLs (canonical vs deprecated)
+
+The OpenAPI document is served at two paths:
+
+| Path | Status | Purpose |
+|------|--------|---------|
+| `/api/openapi.json` | **canonical** | Use this for SDK generators, frontend `openapi-ts.config.ts`, and any new tooling. |
+| `/api-docs-json` | deprecated alias | Older `nuxt-base-starter` workspaces that hard-coded this path. The server returns the same body plus an RFC 8594 `Deprecation` header and an RFC 8288 `Link: rel="successor-version"` pointing at the canonical URL. Tracked at lenneTech/nuxt-base-starter#13 — once that fix has propagated, the alias is removed in a future minor. |
+
+### Offline / fallback type generation
+
+If the dev API isn't running (e.g. the dev runner is down, or you're
+working frontend-first against a locked-down CI), point your SDK
+generator at the checked-in snapshot instead of a live URL:
+
+```bash
+# In the frontend workspace:
+openapi-ts --input ../api/docs/openapi.snapshot.json --output app/api-client
+```
+
+The snapshot is regenerated via `bun run dump:openapi` (boots NestJS
+in-process against a Postgres testcontainer, fetches `/api/openapi.json`,
+writes the result). `tests/stories/openapi-snapshot.story.test.ts` fails
+CI on drift, so a contributor who adds a route can't ship without
+refreshing the file.
 
 ## Deprecation window
 
