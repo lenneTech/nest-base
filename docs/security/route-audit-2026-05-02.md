@@ -36,8 +36,8 @@ handler argument), and classifies:
 
 | Class | Count |
 |---|---|
-| `gated` | 38 |
-| `public-by-design` | 100 |
+| `gated` | 36 |
+| `public-by-design` | 102 |
 | `ungated-bug` | **0** |
 | **total** | **138** |
 
@@ -52,7 +52,7 @@ documented justification.
 |---|---|---|---|
 | `ApiKeyController` (`api-key.module.ts`) | `GET /api-keys/:userId`, `POST /api-keys`, `POST /api-keys/:id/rotate`, `DELETE /api-keys/:id` | `@Can(...)` | `ApiKey` (per-user; `userId = $CURRENT_USER`) |
 | `FileController` / `FolderController` (`files.module.ts`) | `GET /files`, `GET /files/:id`, `POST /files/upload`, `POST /files`, `DELETE /files/:id`, `GET /folders`, `POST /folders`, `DELETE /folders/:id` | `@Can(...)` | `File` / `Folder` (per-tenant; `tenantId = $CURRENT_TENANT`) |
-| `DeviceController` (`device.controller.ts`) | `GET /me/devices`, `DELETE /me/devices/:id` | `@Can(...)` | `Session` (per-user; `userId = $CURRENT_USER`) |
+| `DeviceController` (`device.controller.ts`) | `GET /me/devices`, `DELETE /me/devices/:id` | `@Public("...")` | n/a — `/me/*` is tenant-exempt; handler scopes by `req.user.id` |
 | `TenantMemberController` (`tenant-member.module.ts`) | `GET /tenant-members/:tenantId`, `POST /tenant-members`, `PUT /tenant-members/:id/status`, `DELETE /tenant-members/:id` | `@Can(...)` | `TenantMember` (no default Member-rule grant — admin-side only) |
 | `MeTenantsController` (`tenant-self-service.module.ts`) | `GET /me/tenants` | `@Public("/me/tenants — bootstrap; handler scopes by req.user.id")` | n/a |
 | `TenantSelfServiceController` (`tenant-self-service.module.ts`) | `POST /tenants` | `@Public("/tenants — bootstrap; authenticated user creates their first tenant + becomes owner")` | n/a |
@@ -86,11 +86,19 @@ DEFAULT_MEMBER_RESOURCES         // tenantId = $CURRENT_TENANT
 DEFAULT_MEMBER_PER_USER_RESOURCES // userId   = $CURRENT_USER
 ```
 
-The per-user list seeds `ApiKey` and `Session` so a regular tenant
-member sees only their own keys / sessions, regardless of which
-tenant they're operating in. CASL evaluates BOTH lists when building
-the request-scoped ability, and the Postgres RLS layer keeps the last
+The per-user list currently seeds `ApiKey` so a regular tenant
+member sees only their own keys, regardless of which tenant they're
+operating in. CASL evaluates BOTH lists when building the
+request-scoped ability, and the Postgres RLS layer keeps the last
 line of defence regardless of the planner's output.
+
+`/me/devices` (Better-Auth `Session`) is intentionally NOT in this
+list: the route is `@Public(...)` because `/me/*` is tenant-exempt
+(see `EXEMPT_PREFIXES` in
+[`tenant-guard.ts`](../../src/core/multi-tenancy/tenant-guard.ts)),
+so a `@Can(...)` rule would have no `(userId, tenantId)` pair to
+resolve against. The handler scopes the Prisma query to
+`req.user.id` directly — that's the per-user enforcement.
 
 ## Findings
 
@@ -106,8 +114,8 @@ the planner picked up (`@Can(...)`, `@Public("...")`, or `allowlist:
 | gated | POST | `/api-keys/:id/rotate` | `ApiKeyController.rotate` | `src/core/auth/api-keys/api-key.module.ts:87` | `@Can("update", "ApiKey")` |
 | gated | DELETE | `/api-keys/:id` | `ApiKeyController.remove` | `src/core/auth/api-keys/api-key.module.ts:100` | `@Can("delete", "ApiKey")` |
 | gated | POST | `/powersync/crud` | `PowerSyncController.crud` | `src/core/auth/powersync.controller.ts:26` | `@Can("write", "PowerSync")` |
-| gated | GET | `/me/devices` | `DeviceController.list` | `src/core/devices/device.controller.ts:54` | `@Can("read", "Session")` |
-| gated | DELETE | `/me/devices/:id` | `DeviceController.revoke` | `src/core/devices/device.controller.ts:76` | `@Can("delete", "Session")` |
+| public-by-design | GET | `/me/devices` | `DeviceController.list` | `src/core/devices/device.controller.ts:55` | `@Public("/me/devices — handler scopes by req.user.id …")` |
+| public-by-design | DELETE | `/me/devices/:id` | `DeviceController.revoke` | `src/core/devices/device.controller.ts:78` | `@Public("/me/devices/:id — handler scopes the Prisma session.delete …")` |
 | gated | GET | `/assets/:key` | `AssetController.get` | `src/core/files/asset.controller.ts:38` | `@Can("read", "Asset")` |
 | gated | DELETE | `/_ipx/cache/:sourcePath` | `IpxCacheController.invalidate` | `src/core/files/asset.controller.ts:102` | `@Can("delete", "Asset")` |
 | gated | GET | `/files` | `FileController.list` | `src/core/files/files.module.ts:102` | `@Can("read", "File")` |

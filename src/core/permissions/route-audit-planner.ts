@@ -216,8 +216,6 @@ export function parseControllerSource(input: ParseControllerSourceInput): RouteA
       // argument list (otherwise nested `@Foo` inside the args could
       // re-trigger a match).
       httpDecoratorRegex.lastIndex = endOfDecorator;
-      const decArgs = argsRaw;
-      void decArgs; // captured below via extractStringArg(argsRaw)
 
       // Resolve the path: controller base + handler argument.
       const handlerPath = extractStringArg(argsRaw);
@@ -315,20 +313,24 @@ function safeIsDirectory(path: string): boolean {
 }
 
 function* walkSourceFiles(dir: string): Generator<string> {
-  let entries: ReturnType<typeof readdirSync>;
+  let entries: import("node:fs").Dirent[];
   try {
-    entries = readdirSync(dir, { withFileTypes: true });
+    entries = readdirSync(dir, {
+      withFileTypes: true,
+      encoding: "utf8",
+    }) as unknown as import("node:fs").Dirent[];
   } catch {
     return;
   }
   for (const entry of entries) {
-    const full = join(dir, entry.name);
+    const name = entry.name;
+    const full = join(dir, name);
     if (entry.isDirectory()) {
       // Skip node_modules + dist out of paranoia even though we start
       // inside `src/`.
-      if (entry.name === "node_modules" || entry.name === "dist") continue;
+      if (name === "node_modules" || name === "dist") continue;
       yield* walkSourceFiles(full);
-    } else if (entry.isFile() && entry.name.endsWith(".ts")) {
+    } else if (entry.isFile() && name.endsWith(".ts")) {
       yield full;
     }
   }
@@ -360,65 +362,6 @@ function parseDecoratorArgs(args: string): string[] {
     out.push(match[2] ?? "");
   }
   return out;
-}
-
-/**
- * Walk forward from the end of an HTTP-method decorator to the next
- * identifier — that's the handler method name. Handles nested parens
- * inside decorator arguments (e.g. `@ApiZodOkResponse({ schema:
- * z.object({}) })` — the closing `)` of the decorator is NOT the
- * first `)` we see).
- */
-function findHandlerName(body: string, fromIndex: number): string | null {
-  let i = fromIndex;
-  while (i < body.length) {
-    const ch = body[i];
-    // Skip whitespace and decorators.
-    if (ch === " " || ch === "\t" || ch === "\n" || ch === "\r") {
-      i++;
-      continue;
-    }
-    if (ch === "@") {
-      // Walk past the `@` to the open paren that anchors the decorator,
-      // then match the balanced close. Decorators with no args (`@X`)
-      // also need handling — we'd stop at the next non-identifier char.
-      let j = i + 1;
-      while (j < body.length && /[A-Za-z0-9_$.]/.test(body[j] ?? "")) j++;
-      // Skip whitespace between identifier and possible (
-      while (j < body.length && (body[j] === " " || body[j] === "\t")) j++;
-      if (body[j] !== "(") {
-        // Argument-less decorator (`@HttpCode`) — continue from here.
-        i = j;
-        continue;
-      }
-      const closeParen = matchClosingParen(body, j);
-      if (closeParen < 0) return null;
-      i = closeParen + 1;
-      continue;
-    }
-    if (ch === "/" && body[i + 1] === "/") {
-      const eol = body.indexOf("\n", i);
-      if (eol < 0) return null;
-      i = eol + 1;
-      continue;
-    }
-    if (ch === "/" && body[i + 1] === "*") {
-      const end = body.indexOf("*/", i);
-      if (end < 0) return null;
-      i = end + 2;
-      continue;
-    }
-    // Async / public / private / protected modifiers don't appear in
-    // class methods often, but we tolerate them anyway.
-    const word = readIdentifier(body, i);
-    if (word === "async" || word === "public" || word === "private" || word === "protected") {
-      i += word.length;
-      continue;
-    }
-    if (word) return word;
-    return null;
-  }
-  return null;
 }
 
 /**

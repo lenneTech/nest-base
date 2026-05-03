@@ -199,7 +199,7 @@ describe("Story · Route-audit planner — parseControllerSource", () => {
     expect(first?.classification).toBe("public-by-design");
   });
 
-  it("rejects empty `@Public(\"\")` consent at parse time (no string)", () => {
+  it('rejects empty `@Public("")` consent at parse time (no string)', () => {
     // The runtime decorator already throws for empty reasons; the
     // planner mirrors that — an empty reason is treated as missing
     // consent (= ungated-bug) so the audit cannot be silenced with `""`.

@@ -76,10 +76,6 @@ export const DEFAULT_MEMBER_PER_USER_RESOURCES = [
   // membership is enforced by the request's tenant header + RLS, not
   // by the ability rule itself.
   "ApiKey",
-  // src/core/devices — `/me/devices` is the user's own session list,
-  // which a Better-Auth `Session` row models. Per-user scope so a
-  // user can only revoke their own sessions, never someone else's.
-  "Session",
 ] as const;
 
 export type DefaultMemberResource = (typeof DEFAULT_MEMBER_RESOURCES)[number];
