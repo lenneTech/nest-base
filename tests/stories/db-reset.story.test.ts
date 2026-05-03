@@ -18,11 +18,11 @@ describe("Story · planDbReset", () => {
     };
   }
 
-  it("returns wipe → migrate → seed in that order on dev", () => {
+  it("returns wipe → migrate → verify → seed in that order on dev", () => {
     const plan = planDbReset({ ...defaults(), nodeEnv: "development" });
     expect(plan.allowed).toBe(true);
     const verbs = plan.steps.map((s) => s.verb);
-    expect(verbs).toEqual(["wipe", "migrate", "seed"]);
+    expect(verbs).toEqual(["wipe", "migrate", "verify", "seed"]);
   });
 
   it("includes prepare:schema in front when feature-gated schemas are configured", () => {

@@ -40,7 +40,7 @@ export interface DbResetInput {
 }
 
 export interface DbResetStep {
-  verb: "prepare-schema" | "wipe" | "migrate" | "seed";
+  verb: "prepare-schema" | "wipe" | "migrate" | "verify" | "seed";
   command: "bun" | "bunx";
   args: string[];
   env: Record<string, string>;
@@ -109,6 +109,19 @@ export function planDbReset(input: DbResetInput): DbResetPlan {
     args: ["prisma", "migrate", "deploy"],
     env,
     description: "Apply every migration to bring the schema back up",
+  });
+
+  // Verify ALWAYS runs — even when no seed script is configured. If
+  // `migrate deploy` reports success but the schema is empty (the
+  // friction-log #4 failure mode), failing here surfaces the cause
+  // immediately instead of letting a downstream consumer hit a
+  // confusing P2021 hours later.
+  steps.push({
+    verb: "verify",
+    command: "bun",
+    args: ["run", "scripts/verify-schema.ts"],
+    env,
+    description: "Probe the public schema; abort if migrate deploy left it empty",
   });
 
   if (input.seedScript) {
