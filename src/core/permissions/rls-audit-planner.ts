@@ -58,20 +58,34 @@ export interface RlsAuditFinding {
  * finding per uncovered model.
  */
 export function auditRlsCoverage(input: RlsAuditPlannerInput): RlsAuditFinding[] {
-  const models = parseModels(input.schemaSource);
-  const tenantScoped = models.filter((m) => m.hasTenantIdField);
+  const tenantScoped = listTenantScopedModels(input.schemaSource);
   const findings: RlsAuditFinding[] = [];
   for (const model of tenantScoped) {
     const covered = input.migrations.some((mig) => migrationEnablesRls(mig.sql, model.table));
     if (!covered) {
       findings.push({
-        model: model.name,
+        model: model.model,
         table: model.table,
         migrationsScanned: input.migrations.length,
       });
     }
   }
   return findings;
+}
+
+/**
+ * Public helper: enumerate every tenant-scoped model in the schema
+ * source. The runtime check (`scripts/check-rls.ts --runtime`) needs
+ * the same list as the static audit but without the migration scan,
+ * so we expose the model resolver as its own pure function rather
+ * than duplicating the parser.
+ */
+export function listTenantScopedModels(
+  schemaSource: string,
+): ReadonlyArray<{ model: string; table: string }> {
+  return parseModels(schemaSource)
+    .filter((m) => m.hasTenantIdField)
+    .map((m) => ({ model: m.name, table: m.table }));
 }
 
 // ─── Schema parsing ─────────────────────────────────────────────────

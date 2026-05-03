@@ -44,7 +44,17 @@ jobs:
       # multi-tenant isolation contract is silently bypassed. The audit is
       # cheap (no DB / no Nest bootstrap), so it lives in the lint job
       # rather than as its own ~30s checkout-and-install pipeline.
-      - name: RLS coverage audit
+      #
+      # Static-only on purpose: this job has no Postgres available, and
+      # `bun run check:rls` (without DATABASE_URL) auto-skips the runtime
+      # half with an info note. The runtime mode is a developer-side /
+      # downstream-consumer defense-in-depth — it catches the failure
+      # mode where a consumer edits an applied migration file post-deploy,
+      # leaving the live DB unprotected while the static scan stays green.
+      # Run `bun run check:rls --runtime` locally (or wire it into a
+      # consumer's prod CI gate that already has a DB) to verify
+      # `pg_class.relrowsecurity` against the live cluster.
+      - name: RLS coverage audit (static)
         run: bun run check:rls
 
   format:

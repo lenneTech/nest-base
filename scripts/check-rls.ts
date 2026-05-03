@@ -1,7 +1,9 @@
 #!/usr/bin/env bun
 /**
  * `bun run check:rls` — fails when a tenant-scoped Prisma model has
- * no `ENABLE ROW LEVEL SECURITY` migration anywhere in the tree.
+ * no `ENABLE ROW LEVEL SECURITY` migration anywhere in the tree
+ * AND/OR (in runtime mode) the live Postgres has
+ * `pg_class.relrowsecurity = false` on a tenant-scoped table.
  *
  * Tenant isolation in this template rests on Postgres RLS — every
  * `runWithRlsTenant` wrapper, every `tenant_isolation_<table>`
@@ -11,21 +13,33 @@
  * `tenantId` column — so a forgotten manual migration ships a
  * tenant-leaky table without warning.
  *
- * This runner is deliberately a separate CI gate (not a Prisma plugin
- * / migrate hook): the audit lives next to `bun run test:e2e`, runs
- * in CI exactly once per push, and surfaces with an actionable error
- * message. Wrapping `prisma migrate dev` would need a custom Prisma
- * plugin trampoline + a `postinstall` shim to make the hook
- * discoverable for everyone — too much surface area for a single
- * lint rule.
+ * Two modes coexist on purpose:
  *
- * The runner is the thin I/O layer. The pure planner
- * (`auditRlsCoverage`) is exhaustively unit-tested in
- * `tests/stories/rls-audit-planner.story.test.ts`.
+ *   - **Static** (always runs) — scans the migration files on disk
+ *     for the `ENABLE ROW LEVEL SECURITY` statement. Cheap, no DB,
+ *     this is what the `lint` CI job runs.
+ *
+ *   - **Runtime** (when `DATABASE_URL` is set OR `--runtime` is
+ *     passed) — connects to Postgres and reads `pg_class.relrowsecurity`
+ *     for every tenant-scoped table. This catches the failure mode the
+ *     static scan can't: a consumer edits a migration file *after* it
+ *     was applied (Prisma records the migration's hash but doesn't
+ *     re-check the file), and the live table ends up unprotected
+ *     even though the static scan stays green.
+ *
+ * Use `--strict` to fail when the runtime check is skipped — useful
+ * in pre-prod CI gates that should never accept a static-only pass.
+ *
+ * The runner is the thin I/O layer. The two pure planners
+ * (`auditRlsCoverage`, `auditRlsRuntime`) are exhaustively unit-tested
+ * in `tests/stories/rls-audit-planner.story.test.ts` and
+ * `tests/stories/rls-runtime-planner.story.test.ts`.
  *
  * Exit code:
  *   - 0 — no findings (clean).
- *   - 1 — one or more tenant-scoped models lack an RLS migration.
+ *   - 1 — one or more tenant-scoped models lack an RLS migration,
+ *         OR the live DB has RLS off on a tenant-scoped table,
+ *         OR `--strict` was set and the runtime check was skipped.
  *   - 2 — runner failure (missing schema / migrations dir / read err).
  */
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
@@ -34,13 +48,22 @@ import { resolve } from "node:path";
 import {
   type RlsAuditFinding,
   auditRlsCoverage,
+  listTenantScopedModels,
 } from "../src/core/permissions/rls-audit-planner.js";
+import {
+  type RlsRuntimeFinding,
+  connectAndCheckRlsAtRuntime,
+} from "../src/core/permissions/rls-runtime-check.js";
 
 const ROOT = process.cwd();
 const PRISMA_DIR = resolve(ROOT, "prisma");
 const SCHEMA_PATH = resolve(PRISMA_DIR, "schema.prisma");
 const GENERATED_SCHEMA_PATH = resolve(PRISMA_DIR, "schema.generated.prisma");
 const MIGRATIONS_DIR = resolve(PRISMA_DIR, "migrations");
+
+const argv = process.argv.slice(2);
+const FORCE_RUNTIME = argv.includes("--runtime");
+const STRICT = argv.includes("--strict");
 
 function fail(message: string, code = 2): never {
   console.error(`[check:rls] ${message}`);
@@ -70,33 +93,104 @@ for (const entry of readdirSync(MIGRATIONS_DIR)) {
   migrations.push({ name: entry, sql: readFileSync(sqlPath, "utf8") });
 }
 
-const findings: RlsAuditFinding[] = auditRlsCoverage({ schemaSource, migrations });
+// ─── Static scan (always) ───────────────────────────────────────────
+const staticFindings: RlsAuditFinding[] = auditRlsCoverage({ schemaSource, migrations });
+const tenantScoped = listTenantScopedModels(schemaSource);
 
-// Count tenant-scoped models for an informative success line. Every
-// model that the planner reports against an empty-migrations input is
-// tenant-scoped (each one is "uncovered"); subtract nothing — that's
-// the canonical count regardless of how many were covered this run.
-const tenantScopedCount = auditRlsCoverage({ schemaSource, migrations: [] }).length;
+// ─── Runtime check (conditional) ────────────────────────────────────
+const databaseUrl = process.env.DATABASE_URL;
+const runtimeRequested = FORCE_RUNTIME || databaseUrl !== undefined;
 
-if (findings.length === 0) {
+let runtimeFindings: RlsRuntimeFinding[] = [];
+let runtimeSkipped = false;
+let runtimeSkipReason = "";
+
+if (runtimeRequested) {
+  if (!databaseUrl) {
+    // `--runtime` forced but no DATABASE_URL — escalate to exit 2:
+    // the user explicitly asked for runtime verification and we
+    // can't honour it.
+    fail("--runtime requested but DATABASE_URL is not set", 2);
+  }
+  try {
+    runtimeFindings = await connectAndCheckRlsAtRuntime({
+      tenantScopedModels: tenantScoped,
+      databaseUrl,
+    });
+  } catch (err) {
+    fail(
+      `runtime check failed to connect or query: ${err instanceof Error ? err.message : String(err)}`,
+      2,
+    );
+  }
+} else {
+  runtimeSkipped = true;
+  runtimeSkipReason =
+    "Runtime RLS check skipped (no DATABASE_URL). " +
+    "Run `bun run check:rls --runtime` locally to verify pg_class.relrowsecurity.";
+}
+
+// ─── Reporting ──────────────────────────────────────────────────────
+let exitCode = 0;
+
+if (staticFindings.length === 0) {
   console.log(
-    `[check:rls] clean (${tenantScopedCount} tenant-scoped model(s), ${migrations.length} migration(s) scanned)`,
+    `[check:rls] static: clean (${tenantScoped.length} tenant-scoped model(s), ${migrations.length} migration(s) scanned)`,
   );
-  process.exit(0);
+} else {
+  exitCode = 1;
+  console.error(
+    `[check:rls] static: ${staticFindings.length} tenant-scoped model(s) lack an ENABLE ROW LEVEL SECURITY migration:`,
+  );
+  for (const f of staticFindings) {
+    console.error(
+      `  - RLS missing: ${f.model} (table: ${f.table}) — add ENABLE ROW LEVEL SECURITY migration`,
+    );
+  }
 }
 
-console.error(
-  `[check:rls] ${findings.length} tenant-scoped model(s) lack an ENABLE ROW LEVEL SECURITY migration:`,
-);
-for (const f of findings) {
+if (runtimeSkipped) {
+  if (STRICT) {
+    exitCode = 1;
+    console.error(`[check:rls] runtime: STRICT failure — ${runtimeSkipReason}`);
+  } else {
+    console.log(`[check:rls] runtime: ${runtimeSkipReason}`);
+  }
+} else if (runtimeFindings.length === 0) {
+  console.log(
+    `[check:rls] runtime: clean (${tenantScoped.length} tenant-scoped table(s) verified against pg_class.relrowsecurity)`,
+  );
+} else {
+  exitCode = 1;
   console.error(
-    `  - RLS missing: ${f.model} (table: ${f.table}) — add ENABLE ROW LEVEL SECURITY migration`,
+    `[check:rls] runtime: ${runtimeFindings.length} tenant-scoped table(s) failed the live pg_class.relrowsecurity check:`,
+  );
+  for (const f of runtimeFindings) {
+    if (f.reason === "rls-disabled") {
+      console.error(
+        `  - RLS disabled at runtime: ${f.model} (table: ${f.table}) — pg_class.relrowsecurity is false`,
+      );
+    } else {
+      console.error(
+        `  - Table missing at runtime: ${f.model} (table: ${f.table}) — no row in pg_class for this table in the public schema`,
+      );
+    }
+  }
+}
+
+if (exitCode === 1) {
+  console.error("");
+  console.error(
+    "Fix: ensure each tenant-scoped table has `ALTER TABLE \"<table>\" ENABLE ROW LEVEL SECURITY;`",
+  );
+  console.error("plus a `CREATE POLICY` matching tenant_id = current_setting('app.tenant_id').");
+  console.error("See prisma/migrations/20260428000150_rls_tenant_isolation_extended/ for the shape.");
+  console.error(
+    "If runtime findings disagree with the static scan, the migration file was edited after",
+  );
+  console.error(
+    "deploy — re-apply RLS in a NEW migration (forward-only); never edit a shipped migration.",
   );
 }
-console.error("");
-console.error(
-  "Fix: create a migration that runs `ALTER TABLE \"<table>\" ENABLE ROW LEVEL SECURITY;`",
-);
-console.error("plus a `CREATE POLICY` matching tenant_id = current_setting('app.tenant_id').");
-console.error("See prisma/migrations/20260428000150_rls_tenant_isolation_extended/ for the shape.");
-process.exit(1);
+
+process.exit(exitCode);

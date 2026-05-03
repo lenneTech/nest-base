@@ -133,13 +133,33 @@ with a migration that enables Postgres RLS on the resolved table —
 See `prisma/migrations/20260428000150_rls_tenant_isolation_extended/`
 for the canonical shape.
 
-The CI gate `bun run check:rls` (planner:
-`src/core/permissions/rls-audit-planner.ts`, runner:
-`scripts/check-rls.ts`) walks every model + every migration and fails
-when a tenant-scoped model has no RLS-enabling migration anywhere in
-the tree. Run it locally before commit; the lint job runs it on every
-PR. There's no auto-fix — RLS is a load-bearing security layer, opt-in
-per table is the safer default.
+The CI gate `bun run check:rls` (planners:
+`src/core/permissions/rls-audit-planner.ts` +
+`src/core/permissions/rls-runtime-planner.ts`, runner:
+`scripts/check-rls.ts`) operates in two modes:
+
+- **Static** (always runs) — walks every model + every migration and
+  fails when a tenant-scoped model has no RLS-enabling migration
+  anywhere in the tree. The lint CI job runs this; no DB needed.
+- **Runtime** (auto-enabled when `DATABASE_URL` is set, or forced via
+  `--runtime`) — connects to Postgres and asserts
+  `pg_class.relrowsecurity = true` for every tenant-scoped table.
+  Catches the failure mode the static scan can't see: a consumer
+  edits a migration file *after* it has been applied (Prisma records
+  the file's hash but doesn't re-run it), so the live DB is
+  unprotected even though the static scan stays green.
+
+```bash
+bun run check:rls            # static + runtime (if DATABASE_URL set)
+bun run check:rls --runtime  # force runtime; exit 2 if no DATABASE_URL
+bun run check:rls --strict   # fail when runtime is skipped (prod CI)
+```
+
+There's no auto-fix — RLS is a load-bearing security layer, opt-in
+per table is the safer default. If runtime findings disagree with the
+static scan, ship a NEW migration that re-enables RLS — never edit a
+shipped migration (forward-only history per
+`docs/api-stability-promise.md`).
 
 ## Migrations are forward-only
 
