@@ -265,6 +265,16 @@ CREATE POLICY "tenant_isolation" ON "<plural_snake_case>"
 `PrismaService.runWithRlsTenant(fn, tenantId)` (used by every service
 method below) does the `SET LOCAL` so the policy fires.
 
+`bunx prisma migrate dev` does NOT generate the `ENABLE ROW LEVEL
+SECURITY` clause for you — the CI gate `bun run check:rls` walks
+every tenant-scoped model and fails when no RLS-enabling migration
+exists. Run it locally after `prisma migrate dev` to catch a missed
+sibling migration before pushing:
+
+```bash
+bun run check:rls   # exits 1 + lists offenders if any
+```
+
 ## Step 3 — DTOs
 
 Zod schemas as the single source of truth — runtime validation, type
