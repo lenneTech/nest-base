@@ -172,9 +172,7 @@ export class PermissionsModule implements NestModule {
   static forFeature(contribution: MemberResourceContribution): DynamicModule {
     // Unique token per call so two modules don't shadow each other.
     // `Symbol.for` so DiscoveryService can read it via Symbol.keyFor.
-    const token = Symbol.for(
-      `${FEATURE_CONTRIBUTION_PREFIX}${++featureContributionCounter}`,
-    );
+    const token = Symbol.for(`${FEATURE_CONTRIBUTION_PREFIX}${++featureContributionCounter}`);
     return {
       module: PermissionsModule,
       providers: [{ provide: token, useValue: contribution }],

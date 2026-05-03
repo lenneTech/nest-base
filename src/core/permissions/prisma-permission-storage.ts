@@ -187,9 +187,7 @@ export class PrismaPermissionStorage implements PermissionStorage {
  * authored deliberately in `member-role-rules.ts` and merged after
  * via `dedupePreserveOrder`.
  */
-function stableUniqueSort(
-  source: readonly (readonly string[])[] | undefined,
-): readonly string[] {
+function stableUniqueSort(source: readonly (readonly string[])[] | undefined): readonly string[] {
   if (!source || source.length === 0) return [];
   return [...new Set(source.flat())].sort();
 }

@@ -50,9 +50,7 @@
  * Nest-idiomatic equivalents.
  */
 export const EXTRA_MEMBER_RESOURCES = Symbol.for("lt:extra-member-resources");
-export const EXTRA_MEMBER_PER_USER_RESOURCES = Symbol.for(
-  "lt:extra-member-per-user-resources",
-);
+export const EXTRA_MEMBER_PER_USER_RESOURCES = Symbol.for("lt:extra-member-per-user-resources");
 
 /**
  * Internal namespace prefix attached to every `forFeature`

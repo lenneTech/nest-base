@@ -84,9 +84,7 @@ function resourceNames(rows: DbPermissionRow[]): string[] {
 describe("Story · EXTRA_MEMBER_RESOURCES project-extension hook", () => {
   it("emits ONLY DEFAULT_MEMBER_RESOURCES + DEFAULT_MEMBER_PER_USER_RESOURCES when no extras are provided", async () => {
     const storage = new PrismaPermissionStorage(
-      fakePrismaWithMember() as unknown as ConstructorParameters<
-        typeof PrismaPermissionStorage
-      >[0],
+      fakePrismaWithMember() as unknown as ConstructorParameters<typeof PrismaPermissionStorage>[0],
     );
     const rows = await storage.findRulesForUser(TEST_USER_ID, TEST_TENANT_ID);
     const names = resourceNames(rows);
@@ -98,9 +96,7 @@ describe("Story · EXTRA_MEMBER_RESOURCES project-extension hook", () => {
 
   it("adds a tenant-scoped 'manage' rule when one extra resource is provided", async () => {
     const storage = new PrismaPermissionStorage(
-      fakePrismaWithMember() as unknown as ConstructorParameters<
-        typeof PrismaPermissionStorage
-      >[0],
+      fakePrismaWithMember() as unknown as ConstructorParameters<typeof PrismaPermissionStorage>[0],
       {},
       { extraTenantResources: [["Todo"]] },
     );
@@ -135,9 +131,7 @@ describe("Story · EXTRA_MEMBER_RESOURCES project-extension hook", () => {
 
   it("scopes per-user extras with $CURRENT_USER, not $CURRENT_TENANT", async () => {
     const storage = new PrismaPermissionStorage(
-      fakePrismaWithMember() as unknown as ConstructorParameters<
-        typeof PrismaPermissionStorage
-      >[0],
+      fakePrismaWithMember() as unknown as ConstructorParameters<typeof PrismaPermissionStorage>[0],
       {},
       { extraUserResources: [["UserNote"]] },
     );
@@ -151,9 +145,7 @@ describe("Story · EXTRA_MEMBER_RESOURCES project-extension hook", () => {
 
   it("dedupes when two contributions list the same extra (Todo appears once)", async () => {
     const storage = new PrismaPermissionStorage(
-      fakePrismaWithMember() as unknown as ConstructorParameters<
-        typeof PrismaPermissionStorage
-      >[0],
+      fakePrismaWithMember() as unknown as ConstructorParameters<typeof PrismaPermissionStorage>[0],
       {},
       { extraTenantResources: [["Todo"], ["Todo", "Invoice"]] },
     );
@@ -171,9 +163,7 @@ describe("Story · EXTRA_MEMBER_RESOURCES project-extension hook", () => {
     // []) — and emerge with zero rules. Proves the flat-map / merge
     // does not "rescue" extras into the wrong bucket.
     const storage = new PrismaPermissionStorage(
-      fakePrismaWithMember() as unknown as ConstructorParameters<
-        typeof PrismaPermissionStorage
-      >[0],
+      fakePrismaWithMember() as unknown as ConstructorParameters<typeof PrismaPermissionStorage>[0],
       { memberResources: [], memberPerUserResources: [] },
       { extraTenantResources: [], extraUserResources: [] },
     );
@@ -186,9 +176,7 @@ describe("Story · EXTRA_MEMBER_RESOURCES project-extension hook", () => {
     // Project test fixture pattern: override defaults to a minimal
     // catalogue but still keep the EXTRA_* hook composable.
     const storage = new PrismaPermissionStorage(
-      fakePrismaWithMember() as unknown as ConstructorParameters<
-        typeof PrismaPermissionStorage
-      >[0],
+      fakePrismaWithMember() as unknown as ConstructorParameters<typeof PrismaPermissionStorage>[0],
       { memberResources: [], memberPerUserResources: [] },
       { extraTenantResources: [["Todo"]], extraUserResources: [["UserNote"]] },
     );
@@ -224,9 +212,7 @@ describe("Story · EXTRA_MEMBER_RESOURCES project-extension hook", () => {
     // pin a determinism contract here so future refactors don't shuffle
     // the list silently.
     const storage = new PrismaPermissionStorage(
-      fakePrismaWithMember() as unknown as ConstructorParameters<
-        typeof PrismaPermissionStorage
-      >[0],
+      fakePrismaWithMember() as unknown as ConstructorParameters<typeof PrismaPermissionStorage>[0],
       {},
       { extraTenantResources: [["ZZZTodo", "AAAInvoice"]] },
     );
