@@ -9,6 +9,7 @@ import {
 } from "@nestjs/common";
 import type { Request } from "express";
 
+import { Public } from "../permissions/public.decorator.js";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { parseUserAgent } from "./ua-parser.js";
 import { fingerprintSession } from "./fingerprint.js";
@@ -44,6 +45,16 @@ export interface DeviceListItem {
 export class DeviceController {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Issue #47 — `/me/devices` is exempt from the tenant header
+  // (tenant-guard.ts EXEMPT_PREFIXES `/me/`) so a `@Can(...)` rule
+  // would have no `(userId, tenantId)` pair to resolve against. The
+  // route is per-user-only — Better-Auth populates `req.user` and
+  // the handler scopes the Prisma query to `req.user.id`. The
+  // `req.user` nullcheck below is the runtime auth enforcement.
+
+  @Public(
+    "/me/devices — handler scopes by req.user.id (Better-Auth session); tenant-exempt by design",
+  )
   @Get()
   async list(@Req() req: AuthedRequest): Promise<DeviceListItem[]> {
     if (!req.user) throw new ForbiddenException("authentication required");
@@ -65,6 +76,9 @@ export class DeviceController {
     }));
   }
 
+  @Public(
+    "/me/devices/:id — handler scopes the Prisma session.delete by req.user.id; tenant-exempt by design",
+  )
   @Delete(":id")
   async revoke(
     @Req() req: AuthedRequest,

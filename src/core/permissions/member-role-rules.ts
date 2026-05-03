@@ -59,21 +59,51 @@ export const DEFAULT_MEMBER_RESOURCES = [
   "Address",
 ] as const;
 
+/**
+ * Per-user resources the default Member role unblocks.
+ *
+ * Unlike `DEFAULT_MEMBER_RESOURCES`, these subjects are NOT scoped to
+ * the active tenant — they belong to the authenticated user across
+ * tenants (`$CURRENT_USER`). The canonical case is `ApiKey`: a user's
+ * key works across whichever tenants they're a member of, so a tenant
+ * scope would prevent the SDK from listing the keys it can use.
+ *
+ * Issue #47 added this layer alongside the @Can() audit so the default
+ * grant correctly mirrors the per-user nature of the resource.
+ */
+export const DEFAULT_MEMBER_PER_USER_RESOURCES = [
+  // src/core/auth/api-keys — each key belongs to one user; the tenant
+  // membership is enforced by the request's tenant header + RLS, not
+  // by the ability rule itself.
+  "ApiKey",
+] as const;
+
 export type DefaultMemberResource = (typeof DEFAULT_MEMBER_RESOURCES)[number];
+export type DefaultMemberPerUserResource = (typeof DEFAULT_MEMBER_PER_USER_RESOURCES)[number];
 
 export interface MemberRoleRulesInput {
   /**
-   * Override the default resource list. Useful for project tests
+   * Override the per-tenant resource list. Useful for project tests
    * that want a minimal fixture, or for projects that ship their
    * own resource catalogue at boot (and pass it via the storage
    * adapter constructor).
+   *
+   * Pass `[]` to disable per-tenant rules entirely (still emits
+   * `perUserResources` rules).
    */
   resources?: readonly string[];
+
+  /**
+   * Override the per-user resource list. Defaults to
+   * `DEFAULT_MEMBER_PER_USER_RESOURCES` (`ApiKey`).
+   */
+  perUserResources?: readonly string[];
 }
 
 export function buildMemberRoleRules(input: MemberRoleRulesInput = {}): DbPermissionRow[] {
-  const resources = input.resources ?? DEFAULT_MEMBER_RESOURCES;
-  return resources.map((resource) => ({
+  const tenantResources = input.resources ?? DEFAULT_MEMBER_RESOURCES;
+  const userResources = input.perUserResources ?? DEFAULT_MEMBER_PER_USER_RESOURCES;
+  const tenantRules: DbPermissionRow[] = tenantResources.map((resource) => ({
     resource,
     // Persisted shape uses uppercase action verbs. `MANAGE` is the
     // CASL-wildcard convention — see the file-level comment.
@@ -85,4 +115,13 @@ export function buildMemberRoleRules(input: MemberRoleRulesInput = {}): DbPermis
     itemFilter: { tenantId: { _eq: "$CURRENT_TENANT" } },
     fields: [],
   }));
+  const userRules: DbPermissionRow[] = userResources.map((resource) => ({
+    resource,
+    action: "MANAGE" as DbPermissionRow["action"],
+    // `$CURRENT_USER` keeps API-key-style resources scoped to the
+    // authenticated identity even across tenant boundaries.
+    itemFilter: { userId: { _eq: "$CURRENT_USER" } },
+    fields: [],
+  }));
+  return [...tenantRules, ...userRules];
 }

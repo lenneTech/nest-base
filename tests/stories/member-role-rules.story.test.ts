@@ -21,8 +21,8 @@ import {
  * admin auditing the abilities sees an honest catalogue.
  */
 describe("Story · buildMemberRoleRules", () => {
-  it("returns one row per known resource", () => {
-    const rules = buildMemberRoleRules();
+  it("returns one tenant-scoped row per known resource (per-user rules excluded for this assertion)", () => {
+    const rules = buildMemberRoleRules({ perUserResources: [] });
     expect(rules.length).toBe(DEFAULT_MEMBER_RESOURCES.length);
     expect(rules.map((r) => r.resource).sort()).toEqual([...DEFAULT_MEMBER_RESOURCES].sort());
   });
@@ -39,8 +39,8 @@ describe("Story · buildMemberRoleRules", () => {
     }
   });
 
-  it("every rule scopes to the caller's tenant via $CURRENT_TENANT", () => {
-    const rules = buildMemberRoleRules();
+  it("every tenant-scoped rule uses $CURRENT_TENANT", () => {
+    const rules = buildMemberRoleRules({ perUserResources: [] });
     for (const rule of rules) {
       expect(rule.itemFilter).toEqual({ tenantId: { _eq: "$CURRENT_TENANT" } });
     }
@@ -64,11 +64,46 @@ describe("Story · buildMemberRoleRules", () => {
   });
 
   it("supports overriding the resource list", () => {
-    const rules = buildMemberRoleRules({ resources: ["Project", "Task"] });
+    const rules = buildMemberRoleRules({
+      resources: ["Project", "Task"],
+      perUserResources: [],
+    });
     expect(rules.map((r) => r.resource)).toEqual(["Project", "Task"]);
   });
 
   it("is deterministic — same input → equal output", () => {
     expect(buildMemberRoleRules()).toEqual(buildMemberRoleRules());
+  });
+
+  /**
+   * Issue #47 — `ApiKey` is per-user, not per-tenant. A member should
+   * only see / rotate / delete their OWN keys, irrespective of the
+   * tenant they're operating in. The planner emits a separate
+   * `userId = $CURRENT_USER` rule for each `perUserResources` entry.
+   */
+  it("emits userId-scoped rules for the perUserResources list (ApiKey, …)", () => {
+    const rules = buildMemberRoleRules({
+      resources: [],
+      perUserResources: ["ApiKey"],
+    });
+    expect(rules).toHaveLength(1);
+    expect(rules[0]).toEqual({
+      resource: "ApiKey",
+      action: "MANAGE",
+      itemFilter: { userId: { _eq: "$CURRENT_USER" } },
+      fields: [],
+    });
+  });
+
+  it("merges per-tenant + per-user rules without aliasing", () => {
+    const rules = buildMemberRoleRules({
+      resources: ["Project"],
+      perUserResources: ["ApiKey"],
+    });
+    expect(rules).toHaveLength(2);
+    const project = rules.find((r) => r.resource === "Project");
+    const apiKey = rules.find((r) => r.resource === "ApiKey");
+    expect(project?.itemFilter).toEqual({ tenantId: { _eq: "$CURRENT_TENANT" } });
+    expect(apiKey?.itemFilter).toEqual({ userId: { _eq: "$CURRENT_USER" } });
   });
 });

@@ -10,6 +10,7 @@ import {
   Post,
 } from "@nestjs/common";
 
+import { Can } from "../../permissions/can.guard.js";
 import {
   type ApiKeyRecord,
   type ApiKeyStorage,
@@ -60,11 +61,20 @@ class InMemoryApiKeyStorage implements ApiKeyStorage {
 class ApiKeyController {
   constructor(private readonly service: ApiKeyService) {}
 
+  // Issue #47 — every route is `@Can(action, "ApiKey")`-gated. The
+  // synthesized Member-role rule (member-role-rules.ts) scopes the
+  // ability to `userId = $CURRENT_USER`, so the CASL ability layer
+  // already prevents a member from listing / rotating / deleting
+  // someone else's key. The path param is still validated against
+  // the row's stored userId in the service layer for defense-in-depth.
+
+  @Can("read", "ApiKey")
   @Get(":userId")
   async list(@Param("userId") userId: string): Promise<ApiKeyRecord[]> {
     return this.service.listByUser(userId);
   }
 
+  @Can("create", "ApiKey")
   @Post()
   async create(@Body() body: CreateKeyInput): Promise<CreateKeyResult> {
     if (!body?.userId || !body?.name || !Array.isArray(body?.scopes)) {
@@ -73,6 +83,7 @@ class ApiKeyController {
     return this.service.createKey(body);
   }
 
+  @Can("update", "ApiKey")
   @Post(":id/rotate")
   async rotate(@Param("id") id: string): Promise<CreateKeyResult> {
     try {
@@ -85,6 +96,7 @@ class ApiKeyController {
     }
   }
 
+  @Can("delete", "ApiKey")
   @Delete(":id")
   async remove(@Param("id") id: string): Promise<{ removed: boolean }> {
     try {

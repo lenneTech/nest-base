@@ -155,6 +155,25 @@ authenticated request. `TestAbilityMiddleware` runs first across the
 chain and lets `NODE_ENV=test` specs pre-seed the ability via the
 `X-Test-Ability` header.
 
+**Route-gating policy + CI gate (Issue #47)** — every controller
+route MUST carry exactly one of:
+
+1. `@Can(action, subject)` — gated by the CASL ability layer above.
+2. `@Public("<reason>")` — explicit consent that the route is
+   anonymous-by-design (with the rationale at the decoration site).
+3. A path on the runtime allowlist (`PUBLIC_PREFIXES` / `PUBLIC_EXACT`
+   in `src/core/auth/jwt-middleware.ts`, `EXEMPT_*` in
+   `src/core/multi-tenancy/tenant-guard.ts`).
+
+The build-time CI gate
+(`tests/stories/route-gating-audit.story.test.ts` →
+`src/core/permissions/route-audit-planner.ts`) walks every
+`*.controller.ts` and `*.module.ts` under `src/`, parses each HTTP-
+method decorator + the surrounding `@Can` / `@Public` decorators, and
+fails the suite if a route slips through with neither marker. The
+current snapshot lives in
+[`docs/security/route-audit-2026-05-02.md`](./security/route-audit-2026-05-02.md).
+
 ## Output pipeline
 
 CASL handles read visibility (item filter) and static field allowlists.
