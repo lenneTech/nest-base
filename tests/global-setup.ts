@@ -5,13 +5,26 @@ import { resolve } from "node:path";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { Client } from "pg";
 
+import { pinTestNodeEnv } from "../src/core/testing/pin-test-node-env.js";
+import { planTestDatabaseStrategy } from "../src/core/testing/test-database-strategy.js";
+
 /**
  * Vitest globalSetup hook.
  *
- * Bootstraps a Postgres test container for the entire test run and exposes its
- * connection URL via `DATABASE_URL`. If a `DATABASE_URL` is already provided
- * (CI service container, dev override), the existing URL is reused and no
- * container is started.
+ * Bootstraps a Postgres test container for the entire test run and exposes
+ * its connection URL via `DATABASE_URL`.
+ *
+ * Database strategy is decided by `planTestDatabaseStrategy()` (pure
+ * planner), not by branching on the inherited env directly. The default
+ * is **always testcontainer** — even when `DATABASE_URL` is already in
+ * `process.env`. Bun auto-loads `.env`, so a fresh consumer's dev URL
+ * would otherwise leak into the test runner and silently turn
+ * `bun run test:e2e` into "drop my dev DB". Two explicit overrides
+ * exist:
+ *   - `TEST_DATABASE_URL=<url>`  → CI service container (no opt-in needed).
+ *   - `TEST_REUSE_DEV_DB=1`      → reuse the inherited DATABASE_URL
+ *                                   (DESTRUCTIVE — tests will write to
+ *                                   and drop rows from the dev DB).
  *
  * Why testcontainers and not docker-compose: testcontainers gives us
  * parallel-safe, run-isolated databases with deterministic cleanup. The
@@ -28,9 +41,30 @@ import { Client } from "pg";
 let container: StartedPostgreSqlContainer | undefined;
 
 export default async function globalSetup(): Promise<() => Promise<void>> {
-  process.env.NODE_ENV = "test";
+  // Belt-and-braces NODE_ENV pin. The per-worker `setupFiles` hook
+  // (pin-node-env.ts) is the load-bearing version; pinning here too
+  // covers the main Vitest process where globalSetup itself runs.
+  pinTestNodeEnv(process.env);
 
-  if (!process.env.DATABASE_URL) {
+  const plan = planTestDatabaseStrategy({ env: process.env });
+  // eslint-disable-next-line no-console
+  console.log(`[global-setup] database strategy: ${plan.reason}`);
+  if (plan.warning) {
+    // eslint-disable-next-line no-console
+    console.warn(`[global-setup] WARNING: ${plan.warning}`);
+  }
+
+  if (plan.strategy === "reuse-existing" && plan.useUrl) {
+    process.env.DATABASE_URL = plan.useUrl;
+  } else {
+    // Spawn-container path. Clear any inherited URL so the runner's
+    // testcontainer URL is the only one that lands in process.env —
+    // otherwise a stale dev URL could survive the assignment if the
+    // testcontainer assignment races with a parallel module read.
+    if (plan.clearDatabaseUrl) {
+      delete process.env.DATABASE_URL;
+    }
+
     container = await new PostgreSqlContainer("postgres:18-alpine")
       .withDatabase("nst_test")
       .withUsername("nst_test")

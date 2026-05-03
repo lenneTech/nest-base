@@ -8,8 +8,13 @@
  * is just the thin CLI surface (cwd + stdout logging + exit code).
  */
 
+import { spawnSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { findFreePort } from '../src/core/setup/find-free-port.js';
 import { runSetupWizard } from '../src/core/setup/setup-wizard-runner.js';
+import { planVolumeCollisionCheck } from '../src/core/setup/volume-collision-check.js';
 
 // Pick a free Postgres host-port at setup time so two `--next`
 // workspaces on the same machine never collide on `5432:5432`. The
@@ -36,14 +41,49 @@ if (!result.created) {
   process.exit(1);
 }
 
+// Probe for a stale docker volume from a same-named older workspace.
+// The friction is that `${COMPOSE_PROJECT_NAME}_postgres_data` keeps
+// the *old* POSTGRES_PASSWORD; the freshly written `.env` carries a
+// new one, so `bun run prisma:migrate` fails with P1000 and the
+// operator chases an opaque auth error. Fail-fast here with the
+// recovery commands instead of letting them rediscover the trap.
+const composeProjectName = readComposeProjectName(process.cwd()) ?? 'nest-base';
+const volumeName = `${composeProjectName}_postgres_data`;
+const volumeProbe = spawnSync('docker', ['volume', 'inspect', volumeName], {
+  stdio: 'pipe',
+  encoding: 'utf8',
+});
+// `docker volume inspect` exits 0 when the volume exists, non-zero
+// otherwise. We treat any non-zero (including "docker not installed"
+// → ENOENT) as "no collision", because a host without Docker can't
+// have the legacy volume. The runner stays planner-driven so the
+// operator-visible message is built from a single source of truth.
+const collisionPlan = planVolumeCollisionCheck({
+  composeProjectName,
+  volumeExists: volumeProbe.status === 0,
+});
+
+if (!collisionPlan.ok) {
+  console.error('');
+  console.error(collisionPlan.message);
+  console.error('');
+  console.error('Aborting before `prisma:migrate` would fail with P1000.');
+  process.exit(2);
+}
+
 console.log('');
 console.log('Next steps:');
 console.log('  1. Review and adjust values in .env');
 console.log('  2. Start dependencies: docker compose up -d');
 console.log('  3. Run migrations:     bun run prisma:migrate');
 console.log('  4. Boot the server:    bun run dev');
-console.log('');
-console.log('Re-running setup after a previous boot? Postgres remembers the old');
-console.log("password in its volume — if `bun run prisma:migrate` later fails with");
-console.log('P1000 auth error, run `docker compose down -v` first to wipe the');
-console.log('volume, then `docker compose up -d` again.');
+
+function readComposeProjectName(cwd: string): string | undefined {
+  // The wizard just wrote `.env`; read the value back rather than
+  // re-parsing `.env.example` so any operator override is honoured.
+  const envPath = join(cwd, '.env');
+  if (!existsSync(envPath)) return undefined;
+  const text = readFileSync(envPath, 'utf8');
+  const match = /^COMPOSE_PROJECT_NAME=(.*)$/m.exec(text);
+  return match?.[1]?.trim() || undefined;
+}

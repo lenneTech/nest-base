@@ -85,6 +85,14 @@ All six must pass before commit. If `lint`/`format` fails, run their
 `*:fix` siblings. If `coverage` fails, write more story tests — don't
 add files to the exclude list without strong justification.
 
+> **Test env caveat**: tests run against an isolated Postgres
+> testcontainer; `DATABASE_URL` and `NODE_ENV` from `.env` are
+> intentionally ignored, so Bun's `.env` autoload can never silently
+> route the suite at your dev DB. Two explicit overrides exist:
+> `TEST_DATABASE_URL=<url>` (CI service container, no opt-in needed),
+> or `TEST_REUSE_DEV_DB=1` (DESTRUCTIVE — tests will write to and
+> drop rows from the dev DB). See `tests/CLAUDE.md` for details.
+
 ## Common gotchas (one-liners — full skill in `avoiding-common-pitfalls`)
 
 - **Forgot `.js` suffix on import?** TypeScript will compile, runtime
