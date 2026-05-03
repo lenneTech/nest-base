@@ -93,4 +93,23 @@ describe("Story · planDbReset", () => {
       expect(["bun", "bunx"]).toContain(step.command);
     }
   });
+
+  it("runs a verify step between migrate and seed so empty schemas fail fast", () => {
+    // Friction-log #4: when `_prisma_migrations` survives the wipe,
+    // `migrate deploy` reports success but doesn't create any tables.
+    // Without a verify step the failure surfaces inside seed as a
+    // confusing P2021 hours later. The verify step probes the public
+    // schema right after migrate and aborts the chain with a remediation
+    // hint, before seed even tries to talk to Prisma.
+    const plan = planDbReset({ ...defaults(), nodeEnv: "development" });
+    const verbs = plan.steps.map((s) => s.verb);
+    expect(verbs).toEqual(["wipe", "migrate", "verify", "seed"]);
+  });
+
+  it("the verify step still runs when no seed script is configured", () => {
+    const plan = planDbReset({ ...defaults(), nodeEnv: "development", seedScript: false });
+    const verbs = plan.steps.map((s) => s.verb);
+    expect(verbs).toContain("verify");
+    expect(verbs).not.toContain("seed");
+  });
 });
