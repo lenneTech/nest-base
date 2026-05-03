@@ -160,6 +160,25 @@ import { foo } from "../../src/core/foo.js";
 expectTypeOf(foo({ x: 1 })).toMatchTypeOf<{ y: string }>();
 ```
 
+## `tests/lib/fake-prisma.ts` — what's emulated, what isn't
+
+The in-memory fake covers the slim-module call surface — `create`,
+`findUnique`, `findMany`, `update`, `delete`, plus the new `count` and
+`findMany({ skip, take })` after the friction-log #9 fix. Two
+limitations to know about:
+
+- `findUnique` ignores `select` / `include`. It returns the full row
+  shape every time. If a service relies on `select` to drop columns
+  (e.g. for an output-pipeline test), the assertion has to filter
+  those columns itself — story tests can't depend on Prisma's
+  projection semantics. Tracked for a future slice; not in scope for
+  the current pagination/UUID fixes.
+- `dbgenerated("uuid_generate_v7()")` runs server-side only — the
+  fake auto-injects a `uuidV7()` when `data.id` is absent on
+  `create`, so service code that omits `id` (the recommended
+  pattern for new feature-gated schemas) round-trips correctly. See
+  `tests/stories/fake-prisma-uuid-injection.story.test.ts`.
+
 ## global-setup.ts
 
 `tests/global-setup.ts` is a Vitest globalSetup hook. It:

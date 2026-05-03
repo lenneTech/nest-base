@@ -36,6 +36,7 @@
  * compatibility with existing story tests.
  */
 
+import { uuidV7 } from "../../src/core/uuid/uuid-v7.js";
 import type { PrismaService } from "../../src/core/prisma/prisma.service.js";
 
 type Row = Record<string, unknown> & {
@@ -45,12 +46,25 @@ type Row = Record<string, unknown> & {
 };
 
 export interface TableMock<T extends Row> {
-  create(input: { data: Partial<T> & Pick<T, "id"> }): Promise<T>;
+  /**
+   * `data.id` is optional in the fake. `dbgenerated("uuid_generate_v7()")`
+   * is server-side only — Prisma client never computes it client-side,
+   * so the fake fills the gap by auto-injecting a fresh `uuidV7()` when
+   * the caller omits the id (or passes it as `undefined`). Callers that
+   * supply an explicit id keep their value untouched.
+   */
+  create(input: { data: Partial<T> }): Promise<T>;
   findUnique(input: { where: Partial<T> }): Promise<T | null>;
   findMany(input?: {
     where?: Partial<T>;
     orderBy?: { [k: string]: "asc" | "desc" } | Array<{ [k: string]: "asc" | "desc" }>;
+    /** Number of rows to discard from the start of the filtered+ordered result. */
+    skip?: number;
+    /** Maximum number of rows to return after the skip. */
+    take?: number;
   }): Promise<T[]>;
+  /** Returns the number of rows that match `where` (no pagination slicing). */
+  count(input?: { where?: Partial<T> }): Promise<number>;
   update(input: { where: Partial<T>; data: Partial<T> }): Promise<T>;
   delete(input: { where: Partial<T> }): Promise<T>;
   /** Test-only: clear all rows. Use in `beforeEach` to reset state. */
@@ -80,10 +94,18 @@ function makeTable<T extends Row>(): TableMock<T> {
       // / `@updatedAt`, but let the caller override (some callers want
       // deterministic timestamps for assertions).
       const now = new Date();
+      // `dbgenerated("uuid_generate_v7()")` runs server-side only;
+      // Prisma client never computes it on `create`. The fake stands
+      // in for that path so story tests can omit `id` the same way
+      // production code does and still have a stable lookup key for
+      // chained `findUnique` / `update` / `delete` calls.
+      const dataObj = data as Partial<T> & { id?: string };
+      const id = dataObj.id ?? uuidV7();
       const row = {
         createdAt: now,
         updatedAt: now,
         ...data,
+        id,
       } as T;
       rows.set(row.id, row);
       return row;
@@ -112,7 +134,24 @@ function makeTable<T extends Row>(): TableMock<T> {
           return direction === "desc" ? -compare : compare;
         });
       }
-      return result;
+      // Pagination is applied AFTER where + orderBy so the slice
+      // matches what real Prisma + Postgres would yield. `skip`
+      // defaults to 0 and `take` to "no upper bound" — passing
+      // neither must keep the legacy "return all matching rows"
+      // behaviour.
+      const skip = typeof input.skip === "number" && input.skip > 0 ? input.skip : 0;
+      const take = typeof input.take === "number" && input.take >= 0 ? input.take : undefined;
+      const sliced = take === undefined ? result.slice(skip) : result.slice(skip, skip + take);
+      return sliced;
+    },
+    async count(input = {}) {
+      const where = input.where;
+      if (!where) return rows.size;
+      let n = 0;
+      for (const row of rows.values()) {
+        if (matchesWhere(row, where)) n++;
+      }
+      return n;
     },
     async update({ where, data }) {
       const existing = findFirst(where);
