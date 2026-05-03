@@ -6,13 +6,15 @@
 
 **A production-grade NestJS starter that ships with a developer cockpit you'll actually want to use.**
 
-Pure-black dark theme. Electric-lime accent. Live status, coverage, tests, logs, feature toggles — all in one screen. No cloud dependencies. No bloat.
+Pure-black dark theme. Electric-lime accent. Live status, coverage, tests, logs, feature toggles — all in one screen, rendered by a React 19 SPA built on shadcn/ui (Radix) + Tailwind CSS 4 + lucide-react + sonner. No cloud dependencies. No bloat.
 
-[Quick Start](#-quick-start) · [Dev Hub](#-the-dev-hub) · [Features](#-features) · [Architecture](#-architecture) · [Testing](#-testing)
+[Quick Start](#-quick-start) · [Dev Hub](#-the-dev-hub) · [Showcase](docs/showcase/README.md) · [Features](#-features) · [Architecture](#-architecture) · [Testing](#-testing)
 
 ---
 
-![Dev Hub Cockpit](docs/screenshots/dev-hub.png)
+[![Dev Hub Cockpit](docs/showcase/screenshots/dev-landing-desktop.png)](docs/showcase/README.md)
+
+> The full screenshot index — every `/dev/*`, `/admin/*`, `/errors`, `/api/openapi` page at desktop + mobile — is in [`docs/showcase/`](docs/showcase/README.md).
 
 </div>
 
@@ -75,19 +77,21 @@ The Dev Hub opens automatically at the URL the dev runner prints — `https://ap
 
 ## 🎯 The Dev Hub
 
-A black + lime developer console powered by a React 19 SPA (`src/core/dx/clients/`). Every developer-facing page — `/dev/*`, `/admin/*`, `/errors`, `/api/openapi` — is rendered by the same shell; the Nest controllers return JSON sidecars + the SPA shell, the SPA decides which page to mount. Every page is reachable from the sidebar.
+A black + lime developer console powered by a React 19 SPA (`src/core/dx/clients/`) built on **shadcn/ui (Radix) + Tailwind CSS 4 + lucide-react + sonner + TanStack Query**. Every developer-facing page — `/dev/*`, `/admin/*`, `/errors`, `/api/openapi` — is rendered by the same shell; the Nest controllers return JSON sidecars + the SPA shell, the SPA decides which page to mount. Every page is reachable from the sidebar.
+
+> Full screenshot gallery: [`docs/showcase/`](docs/showcase/README.md).
 
 ### Cockpit Dashboard — `/dev`
 
 Live overview of the running server: health verdict, uptime, heap, 4 stat tiles (Coverage / Tests / Features / Logs), service probes, log preview, feature matrix, quick navigation.
 
-![Dev Hub Cockpit](docs/screenshots/dev-hub.png)
+![Dev Hub Cockpit](docs/showcase/screenshots/dev-landing-desktop.png)
 
 ### Feature Toggles — `/dev/features`
 
 14 feature flags grouped by category. Each card shows description, exposed surfaces, and the matching `FEATURE_*` env-var. **Flip the switch → `.env` is patched → server respawns → page reloads.** No manual restarts.
 
-![Feature Toggles](docs/screenshots/features.png)
+![Feature Toggles](docs/showcase/screenshots/dev-features-desktop.png)
 
 ### Brand — `/dev/brand`
 
@@ -97,25 +101,19 @@ Single-file brand config (`src/modules/branding/brand.json`, with template defau
 
 Reads `coverage/test-summary.json` (populated by `bun run test:summary`). Failed suites floated to the top with embedded failure snippets.
 
-![Tests](docs/screenshots/tests.png)
-
 ### Coverage Report — `/dev/coverage`
 
-Reads `coverage/coverage-summary.json` (populated by `bun run test:coverage`). Per-tier gate badges (core ≥ 90% / modules ≥ 80%), per-file table sorted worst-first.
+Reads `reports/coverage/coverage-summary.json` (populated by `bun run test:coverage`). Per-tier gate badges (core ≥ 70% / modules ≥ 60%), per-file table sorted worst-first.
 
-![Coverage](docs/screenshots/coverage.png)
+![Coverage](docs/showcase/screenshots/dev-coverage-desktop.png)
 
 ### Live Log Tail — `/dev/logs`
 
 In-memory ring buffer of the last 500 Pino records. Auto-polls every 2 seconds. Level chips (info / warn / error / fatal) with subtle color tints.
 
-![Logs](docs/screenshots/logs.png)
-
 ### Diagnostics — `/dev/diagnostics`
 
 Heap usage bar (turns warn/bad above 70%/90%, clamped to 100% — Bun's JSC heap accounting can briefly show used > committed and that's not a leak), versions (Node, Bun, platform), active features matrix, app metadata.
-
-![Diagnostics](docs/screenshots/diagnostics.png)
 
 ### Live Request Traces — `/dev/traces`
 
@@ -184,8 +182,8 @@ Five-tab handler for Prisma schema evolution: **Status** (rows from `_prisma_mig
 
 Every JSON endpoint has a sister HTML page that mounts the React SPA's shared **JSON viewer** — syntax-highlighted, collapsible tree, copy button, key-filter search. Browser default → viewer; `Accept: application/json` or `?format=json` → raw JSON for SDKs.
 
-![Error Catalog](docs/screenshots/errors.png)
-![OpenAPI Viewer](docs/screenshots/openapi.png)
+![Error Catalog](docs/showcase/screenshots/errors-desktop.png)
+![OpenAPI Viewer](docs/showcase/screenshots/openapi-desktop.png)
 
 ### API Reference — `/api/docs`
 
@@ -199,7 +197,8 @@ Permission tester, audit browser, search tester, webhook inspector, realtime ins
 
 The realtime inspector at `/admin/realtime` ships with three tabs (Sockets / Channels / Events), per-socket disconnect / send-event actions, payload-replay, and a 1.5 s React-Query poll so the live snapshot reflects every gateway lifecycle change without a page reload. Payloads are PII-masked and the surface 404s outside `NODE_ENV=development`.
 
-![Permission Tester](docs/screenshots/permission-tester.png)
+![Permission Tester](docs/showcase/screenshots/admin-permissions-test-desktop.png)
+![Webhook Inspector](docs/showcase/screenshots/admin-webhooks-desktop.png)
 
 ---
 
@@ -331,6 +330,9 @@ bun run seed                  # Insert deterministic demo data (2 tenants, 6 use
 bun run sync:from-template    # Pull latest src/core/ from upstream
 bun run sync:to-template      # Contribute changes back upstream
 bun run sdk:generate          # kubb → typed SDK from /api/openapi.json
+bun run docs:screenshots      # Re-shoot every dev-portal page (Playwright,
+                              # docs/showcase/screenshots/) — opt-in, see
+                              # docs/showcase/README.md
 ```
 
 ---
@@ -425,6 +427,7 @@ A fresh agent reads [`.claude/QUICKSTART.md`](./.claude/QUICKSTART.md) (60 sec) 
 - [`docs/template-update-workflow.md`](./docs/template-update-workflow.md) — pulling upstream changes
 - [`docs/customization-guide.md`](./docs/customization-guide.md) — adding domain modules in `src/modules/`
 - [`docs/core-contribution-guide.md`](./docs/core-contribution-guide.md) — contributing back to `src/core/`
+- [`docs/showcase/README.md`](./docs/showcase/README.md) — every `/dev/*`, `/admin/*`, `/errors`, `/api/openapi` page at desktop + mobile, plus the `bun run docs:screenshots` reproduction command
 
 **Community**
 - [`SECURITY.md`](./SECURITY.md) — vulnerability disclosure
