@@ -1,5 +1,3 @@
-import { AsyncLocalStorage } from "node:async_hooks";
-
 import {
   Injectable,
   Optional,
@@ -8,10 +6,11 @@ import {
   type NestInterceptor,
 } from "@nestjs/common";
 import type { Request } from "express";
-import { Observable, defer, from, switchMap, throwError } from "rxjs";
+import { Observable, defer, from, switchMap } from "rxjs";
 
 import { PrismaService } from "../prisma/prisma.service.js";
 import { resolveRequestTenantId } from "./resolve-request-tenant.js";
+import { getCurrentTenantId, runWithTenant } from "./tenant-context.js";
 import { isTenantExempt } from "./tenant-guard.js";
 import { parseTenantHeader } from "./tenant-header.js";
 
@@ -39,15 +38,14 @@ import { parseTenantHeader } from "./tenant-header.js";
  *   relied on `TenantIsolationError` propagation.
  */
 
-const tenantStorage = new AsyncLocalStorage<string>();
-
-export function getCurrentTenantId(): string | undefined {
-  return tenantStorage.getStore();
-}
-
-export async function runWithTenant<T>(tenantId: string, fn: () => Promise<T> | T): Promise<T> {
-  return tenantStorage.run(tenantId, fn);
-}
+// `getCurrentTenantId` and `runWithTenant` are re-exported from
+// `tenant-context.ts` to keep existing imports working. The container
+// lives in its own file so `PrismaService` (which reads
+// `getCurrentTenantId()` in `runWithRlsTenant`) doesn't pull in this
+// interceptor — and through it, `PrismaService` itself — at module-
+// load time. The cycle manifested as
+// `ReferenceError: Cannot access 'PrismaService' before initialization`.
+export { getCurrentTenantId, runWithTenant };
 
 interface AuthenticatedRequest extends Request {
   user?: { id: string; tenantId: string | null };
@@ -130,6 +128,3 @@ function streamToPromise(observable: Observable<unknown>): Promise<unknown> {
 function unwrap(value: unknown): Promise<unknown> {
   return Promise.resolve(value);
 }
-
-// Re-export so existing imports keep working without churn.
-export { throwError };

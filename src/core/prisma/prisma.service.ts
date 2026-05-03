@@ -3,7 +3,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { type Prisma, PrismaClient } from "@prisma/client";
 
 import { getQueryBuffer } from "../dx/query-buffer.js";
-import { getCurrentTenantId } from "../multi-tenancy/tenant.interceptor.js";
+import { getCurrentTenantId } from "../multi-tenancy/tenant-context.js";
 import { getRequestContext } from "../request-context/request-context.js";
 
 /**
