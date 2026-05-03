@@ -64,6 +64,8 @@ bun run dev
 > **`bun run reset`** wipes the DB, replays every migration, and re-seeds — one command for "give me a clean slate". Refuses on production and non-local DATABASE_URL hosts as defense-in-depth.
 >
 > **Re-running `bun run setup` after a prior boot?** Delete `.env` first, then re-run setup, then run `docker compose down -v && docker compose up -d` to discard the old Postgres volume — otherwise `bun run prisma:migrate` fails with `P1000` because the volume still holds the previous password.
+>
+> **Two workspaces with the same project name?** `bun run setup` writes `COMPOSE_PROJECT_NAME=<name>-<6-hex-of-path>` so two `my-app` checkouts in different directories get separate Postgres volumes (`my-app-a1b2c3_postgres_data` vs `my-app-d4e5f6_postgres_data`). The volume-collision check honours the path-hash, so duplicate names across cache dirs no longer abort the wizard. Existing `.env` files keep whatever `COMPOSE_PROJECT_NAME` they already carry — only fresh inits get the hashed namespace.
 
 The Dev Hub opens automatically at the URL the dev runner prints — `https://api.<project>.localhost/dev` if you use [portless](https://github.com/portless/portless), otherwise the bare `http://localhost:<port>/dev`. The runner picks `:3000` when free and falls back to a dynamic port (e.g. `:4266`) when it isn't, so always trust the printed URL over a hard-coded `:3000`.
 
@@ -326,6 +328,11 @@ bun run setup                 # Generate .env with strong random secrets (idempo
 bun run onboard               # First-run sanity check (Bun / .env / Postgres-TCP / Prisma)
 bun run doctor                # Comprehensive health check (containers, services, secrets,
                               # disk space, env strength) — JSON output for CI via --json
+bun run add:module <name>     # Scaffold a new tenant-scoped resource under src/modules/
+                              # (DTO / service / controller / module / README + story tests).
+                              # Mirrors src/modules/example/. Idempotent: refuses to overwrite
+                              # an existing folder. Prints next-steps for the Prisma model,
+                              # RLS migration, and AppModule wiring.
 bun run rename <new-name>     # Rename project across the codebase
 bun run reset                 # Wipe DB → migrate → seed in one shot (refuses on prod /
                               # non-local DATABASE_URL hosts as defense-in-depth)

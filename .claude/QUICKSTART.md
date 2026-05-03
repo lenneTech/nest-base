@@ -57,15 +57,16 @@ If `bun install` hasn't run: `bun install && bun run prisma:generate`.
 
 ## When the user says X, reach for Y
 
-| User intent                    | Primitive                                                   |
-| ------------------------------ | ----------------------------------------------------------- |
-| "Add a feature flag"           | `/add-feature` command + `feature-toggle-implementer` agent |
-| "Add an admin/dev page"        | `/add-page` command + skill `extending-dev-hub`             |
-| "Run all gates"                | `quality-gate-runner` agent                                 |
-| "Why does X work this way?"    | skill `understanding-the-architecture`                      |
-| "I keep hitting Y error"       | skill `avoiding-common-pitfalls`                            |
-| "How do I write a story test?" | skill `writing-story-tests`                                 |
-| "How does Prisma 7 work here?" | skill `working-with-prisma`                                 |
+| User intent                    | Primitive                                                                       |
+| ------------------------------ | ------------------------------------------------------------------------------- |
+| "Add a feature flag"           | `/add-feature` command + `feature-toggle-implementer` agent                     |
+| "Add a tenant-scoped module"   | `/add-module` command, `module-scaffolder` agent, or `bun run add:module <name>` |
+| "Add an admin/dev page"        | `/add-page` command + skill `extending-dev-hub`                                 |
+| "Run all gates"                | `quality-gate-runner` agent                                                     |
+| "Why does X work this way?"    | skill `understanding-the-architecture`                                          |
+| "I keep hitting Y error"       | skill `avoiding-common-pitfalls`                                                |
+| "How do I write a story test?" | skill `writing-story-tests`                                                     |
+| "How does Prisma 7 work here?" | skill `working-with-prisma`                                                     |
 
 The full lookup table is in [`.claude/AGENTS.md`](AGENTS.md).
 
