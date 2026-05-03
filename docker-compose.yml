@@ -11,7 +11,7 @@
 
 services:
   postgres:
-    # Custom image: postgres:17 + postgis + pg_uuidv7. See docker/postgres/Dockerfile.
+    # Custom image: postgres:18 + postgis + pg_uuidv7. See docker/postgres/Dockerfile.
     # `pull_policy: build` would force a rebuild on every up; we leave it default so
     # the image is built once on first `up` and re-used until `docker compose build postgres`.
     build:
