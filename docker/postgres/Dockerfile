@@ -7,17 +7,17 @@
 #                must be available in the binary so `CREATE EXTENSION`
 #                works without an extra container swap.
 #
-# Postgres 17 instead of 18 because PostGIS does not officially support
-# Postgres 18 yet (as of 2026-04). Bun the version when upstream catches
-# up. We use the Debian-based `postgres:17-bookworm` rather than alpine
-# because:
+# Postgres 18 — Debian apt now ships `postgresql-18-postgis-3` since
+# the 2026-04 PostGIS release, so we no longer need to hold the image
+# back at 17. We use the Debian-based `postgres:18-bookworm` rather
+# than alpine because:
 #   1. The official `postgres` image is multi-arch (amd64 + arm64);
 #      `postgis/postgis` only ships some tags for arm64.
-#   2. Debian apt ships `postgresql-17-postgis-3` as a single package,
+#   2. Debian apt ships `postgresql-18-postgis-3` as a single package,
 #      no compiling required for PostGIS.
 #   3. pg_uuidv7 still needs to be compiled from source either way.
 
-ARG POSTGRES_VERSION=17
+ARG POSTGRES_VERSION=18
 
 FROM postgres:${POSTGRES_VERSION}-bookworm AS build
 ARG POSTGRES_VERSION

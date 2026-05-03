@@ -63,7 +63,15 @@ bun run dev
 >
 > **`bun run reset`** wipes the DB, replays every migration, and re-seeds — one command for "give me a clean slate". Refuses on production and non-local DATABASE_URL hosts as defense-in-depth.
 >
-> **Re-running `bun run setup` after a prior boot?** Delete `.env` first, then re-run setup, then run `docker compose down -v && docker compose up -d` to discard the old Postgres volume — otherwise `bun run prisma:migrate` fails with `P1000` because the volume still holds the previous password.
+> **Recover from a stale Postgres volume?** Wipe the volume first; the existing `.env` already carries a password compatible with the freshly-initialised volume:
+>
+> ```bash
+> docker compose down -v
+> docker compose up -d postgres
+> bun run prisma:migrate
+> ```
+>
+> Only delete `.env` if you specifically want to regenerate the random secrets (e.g. you suspect leakage). The full re-setup dance (`rm .env && bun run setup`) is strictly more steps than this lighter path.
 >
 > **Two workspaces with the same project name?** `bun run setup` writes `COMPOSE_PROJECT_NAME=<name>-<6-hex-of-path>` so two `my-app` checkouts in different directories get separate Postgres volumes (`my-app-a1b2c3_postgres_data` vs `my-app-d4e5f6_postgres_data`). The volume-collision check honours the path-hash, so duplicate names across cache dirs no longer abort the wizard. Existing `.env` files keep whatever `COMPOSE_PROJECT_NAME` they already carry — only fresh inits get the hashed namespace.
 
@@ -189,7 +197,16 @@ Every JSON endpoint has a sister HTML page that mounts the React SPA's shared **
 
 ### API Reference — `/api/docs`
 
-[Scalar](https://scalar.com) renders the OpenAPI 3.1 spec with try-it-out. The raw JSON sits at `/api/openapi.json` for [kubb](https://kubb.dev) SDK generation.
+[Scalar](https://scalar.com) renders the OpenAPI 3.1 spec with try-it-out. The raw JSON sits at `/api/openapi.json` for [kubb](https://kubb.dev) SDK generation. The path `/api-docs-json` is a deprecated alias for older `nuxt-base-starter` workspaces — it serves the same body plus an RFC 8594 `Deprecation` header pointing at the canonical URL.
+
+**Offline type generation.** A snapshot of the OpenAPI document ships at [`docs/openapi.snapshot.json`](./docs/openapi.snapshot.json), so frontend consumers can generate types without booting the dev API:
+
+```bash
+# In the frontend workspace:
+openapi-ts --input ../api/docs/openapi.snapshot.json --output app/api-client
+```
+
+The snapshot is refreshed via `bun run dump:openapi`. CI fails on drift (see `tests/stories/openapi-snapshot.story.test.ts`), so a contributor who adds a route can't ship without regenerating the file.
 
 DTO schemas reach the OpenAPI document via the **Zod → OpenAPI bridge** in `src/core/openapi/`: the `@ApiZodBody` / `@ApiZodResponse` / `@ApiZodQuery` / `@ApiZodParam` decorators feed Zod schemas into `@nestjs/swagger`'s metadata pipeline, and `applyZodSchemaRegistry()` splices any `registerZodSchema('Name', schema)` calls into `components.schemas` at boot. The slim-module reference (`src/modules/example/`) shows the full pattern. Without the bridge the kubb-generated SDK would type every request body as `never` and every response as `unknown`.
 

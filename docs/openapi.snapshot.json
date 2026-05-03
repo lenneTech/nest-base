@@ -1,0 +1,3082 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "AppController_index",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "App"
+        ]
+      }
+    },
+    "/health/live": {
+      "get": {
+        "operationId": "HealthController_live",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "HealthController_ready",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/dev/files": {
+      "get": {
+        "operationId": "DevFilesController_page",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevFiles"
+        ]
+      }
+    },
+    "/dev/files/tree.json": {
+      "get": {
+        "operationId": "DevFilesController_tree",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevFiles"
+        ]
+      }
+    },
+    "/dev/files/list.json": {
+      "get": {
+        "operationId": "DevFilesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevFiles"
+        ]
+      }
+    },
+    "/dev/files/breadcrumb.json": {
+      "get": {
+        "operationId": "DevFilesController_breadcrumb",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevFiles"
+        ]
+      }
+    },
+    "/admin/permissions/test": {
+      "get": {
+        "operationId": "AdminSpaController_permissionsTestPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminSpa"
+        ]
+      },
+      "post": {
+        "operationId": "PermissionAdminController_test",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PermissionAdmin"
+        ]
+      }
+    },
+    "/admin/permissions/test.json": {
+      "get": {
+        "operationId": "AdminSpaController_permissionsTestJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminSpa"
+        ]
+      }
+    },
+    "/admin/webhooks": {
+      "get": {
+        "operationId": "AdminSpaController_webhookInspectorPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminSpa"
+        ]
+      }
+    },
+    "/admin/webhooks.json": {
+      "get": {
+        "operationId": "AdminSpaController_webhookInspectorJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminSpa"
+        ]
+      }
+    },
+    "/admin/webhooks/aggregates.json": {
+      "get": {
+        "operationId": "AdminSpaController_webhookAggregatesJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminSpa"
+        ]
+      }
+    },
+    "/admin/webhooks/{id}.json": {
+      "get": {
+        "operationId": "AdminSpaController_webhookDeliveryDetailJson",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminSpa"
+        ]
+      }
+    },
+    "/admin/webhooks/{id}/redeliver": {
+      "post": {
+        "operationId": "AdminSpaController_redeliverWebhook",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminSpa"
+        ]
+      }
+    },
+    "/admin/realtime": {
+      "get": {
+        "operationId": "AdminSpaController_realtimeInspectorPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminSpa"
+        ]
+      }
+    },
+    "/admin/realtime.json": {
+      "get": {
+        "operationId": "AdminSpaController_realtimeInspectorJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminSpa"
+        ]
+      }
+    },
+    "/admin/realtime/channels.json": {
+      "get": {
+        "operationId": "AdminSpaController_realtimeChannelsJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminSpa"
+        ]
+      }
+    },
+    "/admin/realtime/sockets/{id}/disconnect": {
+      "post": {
+        "operationId": "AdminSpaController_realtimeDisconnectSocket",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminSpa"
+        ]
+      }
+    },
+    "/admin/realtime/sockets/{id}/send": {
+      "post": {
+        "operationId": "AdminSpaController_realtimeSendToSocket",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminSpa"
+        ]
+      }
+    },
+    "/admin/realtime/events/replay": {
+      "post": {
+        "operationId": "AdminSpaController_realtimeReplayEvent",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminSpa"
+        ]
+      }
+    },
+    "/admin/audit": {
+      "get": {
+        "operationId": "AdminSpaController_auditBrowserPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminSpa"
+        ]
+      }
+    },
+    "/admin/audit.json": {
+      "get": {
+        "operationId": "AdminSpaController_auditBrowserJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminSpa"
+        ]
+      }
+    },
+    "/admin/search": {
+      "get": {
+        "operationId": "AdminSpaController_searchTesterPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminSpa"
+        ]
+      }
+    },
+    "/admin/search.json": {
+      "get": {
+        "operationId": "AdminSpaController_searchTesterJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminSpa"
+        ]
+      }
+    },
+    "/dev": {
+      "get": {
+        "operationId": "DevHubController_index",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/components": {
+      "get": {
+        "operationId": "DevHubController_componentsPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/static/{filename}": {
+      "get": {
+        "operationId": "DevHubController_serveStatic",
+        "parameters": [
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/dashboard.json": {
+      "get": {
+        "operationId": "DevHubController_dashboardJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/tunnel.json": {
+      "get": {
+        "operationId": "DevHubController_tunnelJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/brand.json": {
+      "get": {
+        "operationId": "DevHubController_brandJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/brand": {
+      "get": {
+        "operationId": "DevHubController_brandPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      },
+      "post": {
+        "operationId": "DevHubController_saveBrand",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/brand/reset": {
+      "post": {
+        "operationId": "DevHubController_resetBrand",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/status.json": {
+      "get": {
+        "operationId": "DevHubController_statusJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/features": {
+      "get": {
+        "operationId": "DevHubController_features",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/features.json": {
+      "get": {
+        "operationId": "DevHubController_featuresJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/feature-catalog.json": {
+      "get": {
+        "operationId": "DevHubController_featureCatalogJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/features/{key}/toggle": {
+      "post": {
+        "operationId": "DevHubController_toggleFeature",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/postgrest-parse": {
+      "get": {
+        "operationId": "DevHubController_postgrestParse",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/coverage": {
+      "get": {
+        "operationId": "DevHubController_coverage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/coverage.json": {
+      "get": {
+        "operationId": "DevHubController_coverageJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/logs": {
+      "get": {
+        "operationId": "DevHubController_logsPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/logs.json": {
+      "get": {
+        "operationId": "DevHubController_logsJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/tests": {
+      "get": {
+        "operationId": "DevHubController_tests",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/tests.json": {
+      "get": {
+        "operationId": "DevHubController_testsJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/diagnostics": {
+      "get": {
+        "operationId": "DevHubController_diagnostics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/diagnostics.json": {
+      "get": {
+        "operationId": "DevHubController_diagnosticsJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/routes": {
+      "get": {
+        "operationId": "DevHubController_routesPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/routes.json": {
+      "get": {
+        "operationId": "DevHubController_routesJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/erd": {
+      "get": {
+        "operationId": "DevHubController_erdPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/erd.json": {
+      "get": {
+        "operationId": "DevHubController_erdJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/traces": {
+      "get": {
+        "operationId": "DevHubController_tracesPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/traces.json": {
+      "get": {
+        "operationId": "DevHubController_tracesJson",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "requestId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/queries": {
+      "get": {
+        "operationId": "DevHubController_queriesPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/queries.json": {
+      "get": {
+        "operationId": "DevHubController_queriesJson",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "requestId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/email-preview": {
+      "get": {
+        "operationId": "DevHubController_emailPreviewPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/email-preview.json": {
+      "get": {
+        "operationId": "DevHubController_emailPreviewJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/email-builder": {
+      "get": {
+        "operationId": "DevHubController_emailBuilderPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/email-builder/templates.json": {
+      "get": {
+        "operationId": "DevHubController_emailBuilderTemplatesJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/email-builder/templates/{name}/composition.json": {
+      "get": {
+        "operationId": "DevHubController_emailBuilderTemplateComposition",
+        "parameters": [
+          {
+            "name": "name",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/email-builder/templates/{name}/override": {
+      "delete": {
+        "operationId": "DevHubController_emailBuilderDeleteOverride",
+        "parameters": [
+          {
+            "name": "name",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/email-builder/blocks.json": {
+      "get": {
+        "operationId": "DevHubController_emailBuilderBlocksJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/email-builder/preview.json": {
+      "post": {
+        "operationId": "DevHubController_emailBuilderPreview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/email-builder/save": {
+      "post": {
+        "operationId": "DevHubController_emailBuilderSave",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/migrations": {
+      "get": {
+        "operationId": "DevHubController_migrationsPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/migrations.json": {
+      "get": {
+        "operationId": "DevHubController_migrationsJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/migrations/preview/{name}": {
+      "get": {
+        "operationId": "DevHubController_migrationsPreview",
+        "parameters": [
+          {
+            "name": "name",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/migrations/diff": {
+      "get": {
+        "operationId": "DevHubController_migrationsDiff",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/migrations/deploy": {
+      "post": {
+        "operationId": "DevHubController_migrationsDeploy",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/migrations/apply-one": {
+      "post": {
+        "operationId": "DevHubController_migrationsApplyOne",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/migrations/dry-run": {
+      "post": {
+        "operationId": "DevHubController_migrationsDryRun",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/migrations/retry": {
+      "post": {
+        "operationId": "DevHubController_migrationsRetry",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/migrations/create": {
+      "post": {
+        "operationId": "DevHubController_migrationsCreate",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/migrations/apply-draft": {
+      "post": {
+        "operationId": "DevHubController_migrationsApplyDraft",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/migrations/draft/{name}": {
+      "delete": {
+        "operationId": "DevHubController_migrationsDiscardDraft",
+        "parameters": [
+          {
+            "name": "name",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/jobs": {
+      "get": {
+        "operationId": "DevHubController_jobsPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/jobs/queues.json": {
+      "get": {
+        "operationId": "DevHubController_jobsQueuesJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/jobs/jobs.json": {
+      "get": {
+        "operationId": "DevHubController_jobsListJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/jobs/jobs/{id}.json": {
+      "get": {
+        "operationId": "DevHubController_jobDetailJson",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/jobs/jobs/{id}/retry": {
+      "post": {
+        "operationId": "DevHubController_retryJob",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/outbox.json": {
+      "get": {
+        "operationId": "DevHubController_outboxJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/{splat}": {
+      "get": {
+        "operationId": "DevHubController_spaCatchAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/api/auth/{splat}": {
+      "get": {
+        "operationId": "BetterAuthController_handle_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BetterAuth"
+        ]
+      },
+      "post": {
+        "operationId": "BetterAuthController_handle_post",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BetterAuth"
+        ]
+      },
+      "put": {
+        "operationId": "BetterAuthController_handle_put",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BetterAuth"
+        ]
+      },
+      "delete": {
+        "operationId": "BetterAuthController_handle_delete",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BetterAuth"
+        ]
+      },
+      "patch": {
+        "operationId": "BetterAuthController_handle_patch",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BetterAuth"
+        ]
+      },
+      "options": {
+        "operationId": "BetterAuthController_handle_options",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BetterAuth"
+        ]
+      },
+      "head": {
+        "operationId": "BetterAuthController_handle_head",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BetterAuth"
+        ]
+      },
+      "search": {
+        "operationId": "BetterAuthController_handle_search",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BetterAuth"
+        ]
+      }
+    },
+    "/errors": {
+      "get": {
+        "operationId": "ErrorCodeController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ErrorCode"
+        ]
+      }
+    },
+    "/errors/{code}": {
+      "get": {
+        "operationId": "ErrorCodeController_resolve",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ErrorCode"
+        ]
+      }
+    },
+    "/search": {
+      "get": {
+        "operationId": "SearchController_search",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Search"
+        ]
+      }
+    },
+    "/me/export": {
+      "get": {
+        "operationId": "GdprController_export",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Gdpr"
+        ]
+      }
+    },
+    "/me/account": {
+      "delete": {
+        "operationId": "GdprController_deleteAccount",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Gdpr"
+        ]
+      }
+    },
+    "/geo/geocode": {
+      "get": {
+        "operationId": "GeoController_geocode",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Geo"
+        ]
+      }
+    },
+    "/geo/reverse-geocode": {
+      "get": {
+        "operationId": "GeoController_reverseGeocode",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Geo"
+        ]
+      }
+    },
+    "/places/nearby": {
+      "post": {
+        "operationId": "GeoController_placesNearby",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Geo"
+        ]
+      }
+    },
+    "/addresses": {
+      "get": {
+        "operationId": "AddressController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Address"
+        ]
+      },
+      "post": {
+        "operationId": "AddressController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Address"
+        ]
+      }
+    },
+    "/addresses/{id}": {
+      "get": {
+        "operationId": "AddressController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Address"
+        ]
+      },
+      "delete": {
+        "operationId": "AddressController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Address"
+        ]
+      }
+    },
+    "/me/devices": {
+      "get": {
+        "operationId": "DeviceController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Device"
+        ]
+      }
+    },
+    "/me/devices/{id}": {
+      "delete": {
+        "operationId": "DeviceController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Device"
+        ]
+      }
+    },
+    "/powersync/crud": {
+      "post": {
+        "operationId": "PowerSyncController_crud",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PowerSync"
+        ]
+      }
+    },
+    "/tenant-members/{tenantId}": {
+      "get": {
+        "operationId": "TenantMemberController_list",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "TenantMember"
+        ]
+      }
+    },
+    "/tenant-members": {
+      "post": {
+        "operationId": "TenantMemberController_add",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "TenantMember"
+        ]
+      }
+    },
+    "/tenant-members/{id}/status": {
+      "put": {
+        "operationId": "TenantMemberController_updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "TenantMember"
+        ]
+      }
+    },
+    "/tenant-members/{id}": {
+      "delete": {
+        "operationId": "TenantMemberController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "TenantMember"
+        ]
+      }
+    },
+    "/me/tenants": {
+      "get": {
+        "operationId": "MeTenantsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MeTenants"
+        ]
+      }
+    },
+    "/tenants": {
+      "post": {
+        "operationId": "TenantSelfServiceController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "TenantSelfService"
+        ]
+      }
+    },
+    "/api-keys/{userId}": {
+      "get": {
+        "operationId": "ApiKeyController_list",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ApiKey"
+        ]
+      }
+    },
+    "/api-keys": {
+      "post": {
+        "operationId": "ApiKeyController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ApiKey"
+        ]
+      }
+    },
+    "/api-keys/{id}/rotate": {
+      "post": {
+        "operationId": "ApiKeyController_rotate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ApiKey"
+        ]
+      }
+    },
+    "/api-keys/{id}": {
+      "delete": {
+        "operationId": "ApiKeyController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ApiKey"
+        ]
+      }
+    },
+    "/admin/roles": {
+      "get": {
+        "operationId": "RoleAdminController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RoleAdmin"
+        ]
+      },
+      "post": {
+        "operationId": "RoleAdminController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RoleAdmin"
+        ]
+      }
+    },
+    "/admin/roles/{id}": {
+      "get": {
+        "operationId": "RoleAdminController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RoleAdmin"
+        ]
+      },
+      "delete": {
+        "operationId": "RoleAdminController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RoleAdmin"
+        ]
+      }
+    },
+    "/admin/policies": {
+      "get": {
+        "operationId": "PolicyAdminController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PolicyAdmin"
+        ]
+      },
+      "post": {
+        "operationId": "PolicyAdminController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PolicyAdmin"
+        ]
+      }
+    },
+    "/admin/policies/{id}": {
+      "get": {
+        "operationId": "PolicyAdminController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PolicyAdmin"
+        ]
+      },
+      "delete": {
+        "operationId": "PolicyAdminController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PolicyAdmin"
+        ]
+      }
+    },
+    "/admin/permissions": {
+      "get": {
+        "operationId": "PermissionAdminController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PermissionAdmin"
+        ]
+      },
+      "post": {
+        "operationId": "PermissionAdminController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PermissionAdmin"
+        ]
+      }
+    },
+    "/admin/permissions/{id}": {
+      "get": {
+        "operationId": "PermissionAdminController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PermissionAdmin"
+        ]
+      },
+      "delete": {
+        "operationId": "PermissionAdminController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PermissionAdmin"
+        ]
+      }
+    },
+    "/files": {
+      "get": {
+        "operationId": "FileController_list",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "File"
+        ]
+      },
+      "post": {
+        "operationId": "FileController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "File"
+        ]
+      }
+    },
+    "/files/{id}": {
+      "get": {
+        "operationId": "FileController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "File"
+        ]
+      },
+      "delete": {
+        "operationId": "FileController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "File"
+        ]
+      }
+    },
+    "/files/upload": {
+      "post": {
+        "operationId": "FileController_upload",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "File"
+        ]
+      }
+    },
+    "/folders": {
+      "get": {
+        "operationId": "FolderController_list",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Folder"
+        ]
+      },
+      "post": {
+        "operationId": "FolderController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Folder"
+        ]
+      }
+    },
+    "/folders/{id}": {
+      "delete": {
+        "operationId": "FolderController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Folder"
+        ]
+      }
+    },
+    "/assets/{key}": {
+      "get": {
+        "operationId": "AssetController_get",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Asset"
+        ]
+      }
+    },
+    "/_ipx/cache/{sourcePath}": {
+      "delete": {
+        "operationId": "IpxCacheController_invalidate",
+        "parameters": [
+          {
+            "name": "sourcePath",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "IpxCache"
+        ]
+      }
+    },
+    "/examples": {
+      "post": {
+        "operationId": "ExampleController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "Create-payload for a new Example.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "status": {
+                    "default": "draft",
+                    "type": "string",
+                    "enum": [
+                      "draft",
+                      "published",
+                      "archived"
+                    ]
+                  }
+                },
+                "required": [
+                  "name",
+                  "status"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created Example.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "draft",
+                        "published",
+                        "archived"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "description",
+                    "status",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Example"
+        ]
+      },
+      "get": {
+        "operationId": "ExampleController_list",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "published",
+                "archived"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cursor-paginated list of Examples.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "draft",
+                              "published",
+                              "archived"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "description",
+                          "status",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "nextCursor": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nextCursor"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Example"
+        ]
+      }
+    },
+    "/examples/{id}": {
+      "get": {
+        "operationId": "ExampleController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "draft",
+                        "published",
+                        "archived"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "description",
+                    "status",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Example"
+        ]
+      },
+      "patch": {
+        "operationId": "ExampleController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Partial update — every field optional.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "status": {
+                    "default": "draft",
+                    "type": "string",
+                    "enum": [
+                      "draft",
+                      "published",
+                      "archived"
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "draft",
+                        "published",
+                        "archived"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "description",
+                    "status",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Example"
+        ]
+      },
+      "delete": {
+        "operationId": "ExampleController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Example deleted."
+          }
+        },
+        "tags": [
+          "Example"
+        ]
+      }
+    },
+    "/me/profile": {
+      "get": {
+        "operationId": "UserProfileController_getMine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "userId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "displayName": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "avatarUrl": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "bio": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "phoneNumber": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "preferences": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "userId",
+                    "displayName",
+                    "avatarUrl",
+                    "bio",
+                    "phoneNumber",
+                    "preferences",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "UserProfile"
+        ]
+      },
+      "patch": {
+        "operationId": "UserProfileController_updateMine",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "displayName": {
+                    "nullable": true,
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  "avatarUrl": {
+                    "nullable": true,
+                    "type": "string",
+                    "maxLength": 2048,
+                    "format": "uri"
+                  },
+                  "bio": {
+                    "nullable": true,
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "phoneNumber": {
+                    "nullable": true,
+                    "type": "string",
+                    "maxLength": 50
+                  },
+                  "preferences": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "userId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "displayName": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "avatarUrl": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "bio": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "phoneNumber": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "preferences": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "userId",
+                    "displayName",
+                    "avatarUrl",
+                    "bio",
+                    "phoneNumber",
+                    "preferences",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "UserProfile"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "nest-server",
+    "description": "Template-fähiger NestJS-Server",
+    "version": "1.0.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      },
+      "cookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "better-auth.session_token"
+      }
+    },
+    "schemas": {
+      "CreateExample": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "status": {
+            "default": "draft",
+            "type": "string",
+            "enum": [
+              "draft",
+              "published",
+              "archived"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "Example": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published",
+              "archived"
+            ]
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateExample": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "status": {
+            "default": "draft",
+            "type": "string",
+            "enum": [
+              "draft",
+              "published",
+              "archived"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateUserProfile": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 255
+          },
+          "avatarUrl": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 2048,
+            "format": "uri"
+          },
+          "bio": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 2000
+          },
+          "phoneNumber": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 50
+          },
+          "preferences": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "additionalProperties": false
+      },
+      "UserProfile": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "displayName": {
+            "nullable": true,
+            "type": "string"
+          },
+          "avatarUrl": {
+            "nullable": true,
+            "type": "string"
+          },
+          "bio": {
+            "nullable": true,
+            "type": "string"
+          },
+          "phoneNumber": {
+            "nullable": true,
+            "type": "string"
+          },
+          "preferences": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "displayName",
+          "avatarUrl",
+          "bio",
+          "phoneNumber",
+          "preferences",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri",
+            "description": "Problem-type URI (RFC 7807 §3.1)."
+          },
+          "title": {
+            "type": "string",
+            "description": "Short, human-readable summary of the problem type."
+          },
+          "status": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 599,
+            "description": "HTTP status code generated by the origin server."
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "CORE_CONFLICT",
+              "CORE_FORBIDDEN",
+              "CORE_INTERNAL",
+              "CORE_NOT_FOUND",
+              "CORE_RATE_LIMITED",
+              "CORE_UNAUTHORIZED",
+              "CORE_VALIDATION"
+            ],
+            "description": "Stable machine-readable identifier (CORE_* or APP_* prefix)."
+          },
+          "detail": {
+            "type": "string",
+            "description": "Human-readable explanation specific to this occurrence."
+          },
+          "instance": {
+            "type": "string",
+            "description": "URI reference identifying the specific occurrence."
+          }
+        }
+      }
+    },
+    "responses": {
+      "ProblemDetailsResponse": {
+        "description": "RFC 7807 problem-details payload.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      }
+    }
+  }
+}

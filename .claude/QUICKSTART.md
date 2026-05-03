@@ -34,6 +34,8 @@ docker compose up -d postgres   # boot Postgres only (others optional)
 bun run dev                     # auto-spawns Prisma Studio + opens /dev
 ```
 
+> **Recover from a stale Postgres volume?** `docker compose down -v && docker compose up -d postgres` followed by `bun run prisma:migrate`. Don't delete `.env` first — the existing password initialises the recreated volume.
+
 Server is at the URL the dev runner prints — `https://api.nest-base.localhost`
 if you have [portless](https://github.com/portless/portless) installed,
 otherwise the bare `http://localhost:<port>` it announces (`:3000` when
