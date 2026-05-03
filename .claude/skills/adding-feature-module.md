@@ -511,7 +511,74 @@ import { features } from "../config/features.js";
 export class AppModule {}
 ```
 
-## Step 8 — Quality gates
+## Step 8 — Grant member access to the new resource
+
+If the new resource is project-facing (i.e. a logged-in tenant member
+should be able to CRUD their own rows), wire it into the synthesized
+"Member" role catalog so a fresh sign-up doesn't 403 on every
+`@Can()`-gated route. Two equivalent shapes — pick the one that suits
+the module's lifecycle:
+
+### Option A — `PermissionsModule.forFeature()` from inside the feature module
+
+Idiomatic when the resource is owned end-to-end by the feature module.
+The contribution travels with the import; removing the module also
+removes the grant.
+
+```typescript
+// src/modules/<resource>/<resource>.module.ts
+import { Module } from "@nestjs/common";
+
+import { PermissionsModule } from "../../core/permissions/permissions.module.js";
+import { PrismaModule } from "../../core/prisma/prisma.module.js";
+
+import { <Resource>Controller } from "./<resource>.controller.js";
+import { <Resource>Service } from "./<resource>.service.js";
+
+@Module({
+  imports: [
+    PrismaModule,
+    PermissionsModule.forFeature({ resources: ["<Resource>"] }),
+  ],
+  controllers: [<Resource>Controller],
+  providers: [<Resource>Service],
+})
+export class <Resource>Module {}
+```
+
+For per-user resources (like API keys — bound to the user across
+tenants, not to the active tenant), use `perUserResources` instead:
+
+```typescript
+PermissionsModule.forFeature({ perUserResources: ["UserNote"] }),
+```
+
+### Option B — Single override at AppModule level
+
+Useful when AppModule curates the full extra-resources catalog in one
+place (e.g. for projects that prefer a single source of truth):
+
+```typescript
+// src/app.module.ts
+import { EXTRA_MEMBER_RESOURCES } from "./core/permissions/extra-resources.token.js";
+
+@Module({
+  providers: [
+    { provide: EXTRA_MEMBER_RESOURCES, useValue: [["Todo"], ["Invoice"]] },
+  ],
+})
+export class AppModule {}
+```
+
+The token's value type is `readonly (readonly string[])[]` — one inner
+array per logical contribution. The aggregator flat-maps and dedupes
+against `DEFAULT_MEMBER_RESOURCES` before emitting the rules.
+
+Skip this step entirely if the resource is admin-only (only the
+`/admin/*` UI / a seeded admin Role should reach it) or framework-
+internal (`Role`, `Policy`, `Permission`, `Tenant`, `WebhookEndpoint`).
+
+## Step 9 — Quality gates
 
 ```bash
 bun run lint && bun run format && bun run test:types \
@@ -522,7 +589,7 @@ bun run lint && bun run format && bun run test:types \
 Coverage on `src/modules/` is gated at **≥ 80 %**. New code without a
 story drags the average — write more story tests.
 
-## Step 9 — Commit
+## Step 10 — Commit
 
 ```bash
 git add -A

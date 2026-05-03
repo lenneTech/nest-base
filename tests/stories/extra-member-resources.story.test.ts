@@ -1,4 +1,5 @@
-import { Test, type TestingModule } from "@nestjs/testing";
+import { Module } from "@nestjs/common";
+import { Test } from "@nestjs/testing";
 import { describe, expect, it } from "vitest";
 
 import type { DbPermissionRow } from "../../src/core/permissions/db-rule-resolver.js";
@@ -11,22 +12,32 @@ import {
   DEFAULT_MEMBER_RESOURCES,
 } from "../../src/core/permissions/member-role-rules.js";
 import { PERMISSION_STORAGE } from "../../src/core/permissions/permission-storage.token.js";
+import type { PermissionStorage } from "../../src/core/permissions/permission.service.js";
+import { PermissionsModule } from "../../src/core/permissions/permissions.module.js";
 import { PrismaPermissionStorage } from "../../src/core/permissions/prisma-permission-storage.js";
 
 /**
- * Story · `EXTRA_MEMBER_RESOURCES` multi-provider hook.
+ * Story · `EXTRA_MEMBER_RESOURCES` project-extension hook.
  *
  * Project modules need to grant the implicit Member role access to
  * project-owned resources WITHOUT editing template-owned code. Two
- * multi-provider DI tokens (`EXTRA_MEMBER_RESOURCES` for tenant-scoped
- * subjects and `EXTRA_MEMBER_PER_USER_RESOURCES` for `$CURRENT_USER`-
- * scoped ones) let any module flat-merge its catalogue into the
- * synthesized rules emitted by `PrismaPermissionStorage`.
+ * shapes compose:
  *
- * The tests below exercise the storage in isolation against a fake
- * Prisma client so we can assert exactly which rows are produced;
- * the existing `prisma-permission-storage.story.test.ts` covers the
- * end-to-end Postgres path with the default-only DI shape.
+ *  - `EXTRA_MEMBER_RESOURCES` / `EXTRA_MEMBER_PER_USER_RESOURCES`
+ *    DI tokens for a SINGLE override at the AppModule level.
+ *  - `PermissionsModule.forFeature({ resources, perUserResources })`
+ *    for module-level composition — multiple feature modules
+ *    contribute independently and the storage flat-merges them.
+ *
+ * Why a `forFeature` helper plus single-override tokens (instead of
+ * Angular-style `multi: true` providers): NestJS DI does not
+ * aggregate `multi: true` registrations of the same token. The
+ * helper plus token combination is the Nest-idiomatic equivalent.
+ *
+ * Tests use the storage directly with hand-built FakePrisma plus a
+ * minimal NestJS `Test.createTestingModule` for the DI shapes; the
+ * existing `prisma-permission-storage.story.test.ts` covers the
+ * Postgres-backed default path.
  */
 
 const TEST_USER_ID = "00000000-0000-7000-8000-00000000000a";
@@ -66,83 +77,33 @@ function fakePrismaWithMember(): FakePrismaSubset {
   };
 }
 
-/** Filter rows by resource for assertion convenience. */
 function resourceNames(rows: DbPermissionRow[]): string[] {
   return rows.map((r) => r.resource);
 }
 
-describe("Story · EXTRA_MEMBER_RESOURCES multi-provider hook", () => {
+describe("Story · EXTRA_MEMBER_RESOURCES project-extension hook", () => {
   it("emits ONLY DEFAULT_MEMBER_RESOURCES + DEFAULT_MEMBER_PER_USER_RESOURCES when no extras are provided", async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        {
-          provide: PERMISSION_STORAGE,
-          useFactory: (
-            extraTenant: readonly string[][],
-            extraUser: readonly string[][],
-          ) =>
-            new PrismaPermissionStorage(
-              fakePrismaWithMember() as unknown as ConstructorParameters<
-                typeof PrismaPermissionStorage
-              >[0],
-              {},
-              { extraTenantResources: extraTenant, extraUserResources: extraUser },
-            ),
-          inject: [
-            { token: EXTRA_MEMBER_RESOURCES, optional: true },
-            { token: EXTRA_MEMBER_PER_USER_RESOURCES, optional: true },
-          ],
-        },
-        {
-          provide: EXTRA_MEMBER_RESOURCES,
-          useValue: [],
-          multi: true,
-        },
-        {
-          provide: EXTRA_MEMBER_PER_USER_RESOURCES,
-          useValue: [],
-          multi: true,
-        },
-      ],
-    }).compile();
-
-    const storage = module.get<PrismaPermissionStorage>(PERMISSION_STORAGE);
+    const storage = new PrismaPermissionStorage(
+      fakePrismaWithMember() as unknown as ConstructorParameters<
+        typeof PrismaPermissionStorage
+      >[0],
+    );
     const rows = await storage.findRulesForUser(TEST_USER_ID, TEST_TENANT_ID);
     const names = resourceNames(rows);
 
     expect(names.sort()).toEqual(
       [...DEFAULT_MEMBER_RESOURCES, ...DEFAULT_MEMBER_PER_USER_RESOURCES].sort(),
     );
-    await module.close();
   });
 
-  it("adds a tenant-scoped 'manage' rule when one provider supplies a single resource", async () => {
-    const module = await Test.createTestingModule({
-      providers: [
-        {
-          provide: PERMISSION_STORAGE,
-          useFactory: (
-            extraTenant: readonly string[][],
-            extraUser: readonly string[][],
-          ) =>
-            new PrismaPermissionStorage(
-              fakePrismaWithMember() as unknown as ConstructorParameters<
-                typeof PrismaPermissionStorage
-              >[0],
-              {},
-              { extraTenantResources: extraTenant, extraUserResources: extraUser },
-            ),
-          inject: [
-            { token: EXTRA_MEMBER_RESOURCES, optional: true },
-            { token: EXTRA_MEMBER_PER_USER_RESOURCES, optional: true },
-          ],
-        },
-        { provide: EXTRA_MEMBER_RESOURCES, useValue: ["Todo"], multi: true },
-        { provide: EXTRA_MEMBER_PER_USER_RESOURCES, useValue: [], multi: true },
-      ],
-    }).compile();
-
-    const storage = module.get<PrismaPermissionStorage>(PERMISSION_STORAGE);
+  it("adds a tenant-scoped 'manage' rule when one extra resource is provided", async () => {
+    const storage = new PrismaPermissionStorage(
+      fakePrismaWithMember() as unknown as ConstructorParameters<
+        typeof PrismaPermissionStorage
+      >[0],
+      {},
+      { extraTenantResources: [["Todo"]] },
+    );
     const rows = await storage.findRulesForUser(TEST_USER_ID, TEST_TENANT_ID);
     const todo = rows.find((r) => r.resource === "Todo");
 
@@ -150,123 +111,58 @@ describe("Story · EXTRA_MEMBER_RESOURCES multi-provider hook", () => {
     expect(todo?.action).toBe("MANAGE");
     expect(todo?.itemFilter).toEqual({ tenantId: { _eq: "$CURRENT_TENANT" } });
     expect(todo?.fields).toEqual([]);
-    await module.close();
   });
 
-  it("flat-maps multiple providers — both resources show up", async () => {
+  it("flat-maps multiple forFeature contributions — both resources show up", async () => {
+    @Module({ imports: [PermissionsModule.forFeature({ resources: ["Todo"] })] })
+    class TodoModule {}
+
+    @Module({ imports: [PermissionsModule.forFeature({ resources: ["Invoice"] })] })
+    class InvoiceModule {}
+
     const module = await Test.createTestingModule({
-      providers: [
-        {
-          provide: PERMISSION_STORAGE,
-          useFactory: (
-            extraTenant: readonly string[][],
-            extraUser: readonly string[][],
-          ) =>
-            new PrismaPermissionStorage(
-              fakePrismaWithMember() as unknown as ConstructorParameters<
-                typeof PrismaPermissionStorage
-              >[0],
-              {},
-              { extraTenantResources: extraTenant, extraUserResources: extraUser },
-            ),
-          inject: [
-            { token: EXTRA_MEMBER_RESOURCES, optional: true },
-            { token: EXTRA_MEMBER_PER_USER_RESOURCES, optional: true },
-          ],
-        },
-        { provide: EXTRA_MEMBER_RESOURCES, useValue: ["Todo"], multi: true },
-        { provide: EXTRA_MEMBER_RESOURCES, useValue: ["Invoice"], multi: true },
-        { provide: EXTRA_MEMBER_PER_USER_RESOURCES, useValue: [], multi: true },
-      ],
+      imports: [PermissionsModule, TodoModule, InvoiceModule],
     }).compile();
 
-    const storage = module.get<PrismaPermissionStorage>(PERMISSION_STORAGE);
-    const rows = await storage.findRulesForUser(TEST_USER_ID, TEST_TENANT_ID);
-    const names = resourceNames(rows);
-
-    expect(names).toContain("Todo");
-    expect(names).toContain("Invoice");
+    // After module init the aggregated extras hold both contributions
+    // (one inner array per forFeature).
+    const tenantExtras = module.get<readonly (readonly string[])[]>(EXTRA_MEMBER_RESOURCES);
+    const flat = tenantExtras.flat();
+    expect(flat).toContain("Todo");
+    expect(flat).toContain("Invoice");
     await module.close();
   });
 
   it("scopes per-user extras with $CURRENT_USER, not $CURRENT_TENANT", async () => {
-    const module = await Test.createTestingModule({
-      providers: [
-        {
-          provide: PERMISSION_STORAGE,
-          useFactory: (
-            extraTenant: readonly string[][],
-            extraUser: readonly string[][],
-          ) =>
-            new PrismaPermissionStorage(
-              fakePrismaWithMember() as unknown as ConstructorParameters<
-                typeof PrismaPermissionStorage
-              >[0],
-              {},
-              { extraTenantResources: extraTenant, extraUserResources: extraUser },
-            ),
-          inject: [
-            { token: EXTRA_MEMBER_RESOURCES, optional: true },
-            { token: EXTRA_MEMBER_PER_USER_RESOURCES, optional: true },
-          ],
-        },
-        { provide: EXTRA_MEMBER_RESOURCES, useValue: [], multi: true },
-        {
-          provide: EXTRA_MEMBER_PER_USER_RESOURCES,
-          useValue: ["UserNote"],
-          multi: true,
-        },
-      ],
-    }).compile();
+    const storage = new PrismaPermissionStorage(
+      fakePrismaWithMember() as unknown as ConstructorParameters<
+        typeof PrismaPermissionStorage
+      >[0],
+      {},
+      { extraUserResources: [["UserNote"]] },
+    );
 
-    const storage = module.get<PrismaPermissionStorage>(PERMISSION_STORAGE);
     const rows = await storage.findRulesForUser(TEST_USER_ID, TEST_TENANT_ID);
     const userNote = rows.find((r) => r.resource === "UserNote");
 
     expect(userNote).toBeDefined();
     expect(userNote?.itemFilter).toEqual({ userId: { _eq: "$CURRENT_USER" } });
-    await module.close();
   });
 
-  it("dedupes when two providers list the same extra (Todo appears once)", async () => {
-    const module = await Test.createTestingModule({
-      providers: [
-        {
-          provide: PERMISSION_STORAGE,
-          useFactory: (
-            extraTenant: readonly string[][],
-            extraUser: readonly string[][],
-          ) =>
-            new PrismaPermissionStorage(
-              fakePrismaWithMember() as unknown as ConstructorParameters<
-                typeof PrismaPermissionStorage
-              >[0],
-              {},
-              { extraTenantResources: extraTenant, extraUserResources: extraUser },
-            ),
-          inject: [
-            { token: EXTRA_MEMBER_RESOURCES, optional: true },
-            { token: EXTRA_MEMBER_PER_USER_RESOURCES, optional: true },
-          ],
-        },
-        { provide: EXTRA_MEMBER_RESOURCES, useValue: ["Todo"], multi: true },
-        {
-          provide: EXTRA_MEMBER_RESOURCES,
-          useValue: ["Todo", "Invoice"],
-          multi: true,
-        },
-        { provide: EXTRA_MEMBER_PER_USER_RESOURCES, useValue: [], multi: true },
-      ],
-    }).compile();
-
-    const storage = module.get<PrismaPermissionStorage>(PERMISSION_STORAGE);
+  it("dedupes when two contributions list the same extra (Todo appears once)", async () => {
+    const storage = new PrismaPermissionStorage(
+      fakePrismaWithMember() as unknown as ConstructorParameters<
+        typeof PrismaPermissionStorage
+      >[0],
+      {},
+      { extraTenantResources: [["Todo"], ["Todo", "Invoice"]] },
+    );
     const rows = await storage.findRulesForUser(TEST_USER_ID, TEST_TENANT_ID);
     const todoRows = rows.filter((r) => r.resource === "Todo");
     const invoiceRows = rows.filter((r) => r.resource === "Invoice");
 
     expect(todoRows).toHaveLength(1);
     expect(invoiceRows).toHaveLength(1);
-    await module.close();
   });
 
   it("empty defaults override + empty extras → only per-user rules remain", async () => {
@@ -306,28 +202,19 @@ describe("Story · EXTRA_MEMBER_RESOURCES multi-provider hook", () => {
     expect(userNote?.itemFilter).toEqual({ userId: { _eq: "$CURRENT_USER" } });
   });
 
-  it("PermissionsModule provides the EXTRA_* tokens with empty defaults (consumers don't have to provide them)", async () => {
+  it("PermissionsModule provides empty defaults for both EXTRA_* tokens — consumers don't have to provide them", async () => {
     // Smoke check: a consumer that imports PermissionsModule and never
-    // multi-provides anything still gets a working PermissionService.
-    // The defaults below (empty arrays) are what the module must emit.
-    const module = await Test.createTestingModule({
-      providers: [
-        { provide: EXTRA_MEMBER_RESOURCES, useValue: [], multi: true },
-        { provide: EXTRA_MEMBER_PER_USER_RESOURCES, useValue: [], multi: true },
-      ],
-    }).compile();
-
-    const tenantExtras = module.get<readonly string[][]>(EXTRA_MEMBER_RESOURCES);
-    const userExtras = module.get<readonly string[][]>(EXTRA_MEMBER_PER_USER_RESOURCES);
+    // contributes via forFeature still gets working defaults. The
+    // values below are what the module emits when no project module
+    // contributes.
+    const module = await Test.createTestingModule({ imports: [PermissionsModule] }).compile();
+    const tenantExtras = module.get<readonly (readonly string[])[]>(EXTRA_MEMBER_RESOURCES);
+    const userExtras = module.get<readonly (readonly string[])[]>(EXTRA_MEMBER_PER_USER_RESOURCES);
     expect(Array.isArray(tenantExtras)).toBe(true);
     expect(Array.isArray(userExtras)).toBe(true);
-    // Each multi-provider entry is itself an array.
-    for (const entry of tenantExtras) {
-      expect(Array.isArray(entry)).toBe(true);
-    }
-    for (const entry of userExtras) {
-      expect(Array.isArray(entry)).toBe(true);
-    }
+    // No forFeature contributions yet → empty aggregated lists.
+    expect(tenantExtras.flat()).toEqual([]);
+    expect(userExtras.flat()).toEqual([]);
     await module.close();
   });
 
@@ -341,7 +228,7 @@ describe("Story · EXTRA_MEMBER_RESOURCES multi-provider hook", () => {
         typeof PrismaPermissionStorage
       >[0],
       {},
-      { extraTenantResources: [["ZZZTodo", "AAAInvoice"]], extraUserResources: [] },
+      { extraTenantResources: [["ZZZTodo", "AAAInvoice"]] },
     );
     const rows = await storage.findRulesForUser(TEST_USER_ID, TEST_TENANT_ID);
     const tenantNames = rows
@@ -355,5 +242,58 @@ describe("Story · EXTRA_MEMBER_RESOURCES multi-provider hook", () => {
     // Extras follow, stable-sorted (so two equal-input runs match).
     const extras = tenantNames.slice(DEFAULT_MEMBER_RESOURCES.length);
     expect([...extras].sort()).toEqual(extras);
+  });
+
+  it("a forFeature contribution surfaces in the synthesized rules at runtime", async () => {
+    // End-to-end: register Todo via forFeature, then call into the
+    // wired PERMISSION_STORAGE — Todo must be one of the synthesized
+    // tenant-scoped subjects.
+    @Module({
+      imports: [
+        PermissionsModule.forFeature({
+          resources: ["Todo"],
+          perUserResources: ["UserNote"],
+        }),
+      ],
+    })
+    class TodoModule {}
+
+    const module = await Test.createTestingModule({
+      imports: [PermissionsModule, TodoModule],
+    })
+      // overrideProvider so the prod PrismaService dependency is
+      // skipped — the fake storage is what we want to assert against.
+      .overrideProvider(PERMISSION_STORAGE)
+      .useFactory({
+        factory: (
+          extraTenant: readonly (readonly string[])[],
+          extraUser: readonly (readonly string[])[],
+        ): PermissionStorage =>
+          new PrismaPermissionStorage(
+            fakePrismaWithMember() as unknown as ConstructorParameters<
+              typeof PrismaPermissionStorage
+            >[0],
+            {},
+            { extraTenantResources: extraTenant, extraUserResources: extraUser },
+          ),
+        inject: [EXTRA_MEMBER_RESOURCES, EXTRA_MEMBER_PER_USER_RESOURCES],
+      })
+      .compile();
+
+    const storage = module.get<PermissionStorage>(PERMISSION_STORAGE);
+    const rows = await storage.findRulesForUser(TEST_USER_ID, TEST_TENANT_ID);
+    const tenantSubjects = new Set(
+      rows
+        .filter((r) => r.itemFilter && "tenantId" in (r.itemFilter as Record<string, unknown>))
+        .map((r) => r.resource),
+    );
+    const userSubjects = new Set(
+      rows
+        .filter((r) => r.itemFilter && "userId" in (r.itemFilter as Record<string, unknown>))
+        .map((r) => r.resource),
+    );
+    expect(tenantSubjects.has("Todo")).toBe(true);
+    expect(userSubjects.has("UserNote")).toBe(true);
+    await module.close();
   });
 });
