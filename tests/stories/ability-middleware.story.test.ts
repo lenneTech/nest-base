@@ -4,6 +4,19 @@ import { describe, expect, it, vi } from "vitest";
 import { AbilityMiddleware } from "../../src/core/permissions/ability.middleware.js";
 import { type Ability, buildAbility } from "../../src/core/permissions/casl-ability.js";
 import { PermissionService } from "../../src/core/permissions/permission.service.js";
+import type { PrismaService } from "../../src/core/prisma/prisma.service.js";
+
+/**
+ * Prisma stand-in for cases where the middleware does NOT need to
+ * consult the membership table — `findFirst` is always-null fallback.
+ * The middleware-tenant-header-fallback story covers the path where
+ * the lookup actually matters.
+ */
+function prismaStub(): PrismaService {
+  return {
+    tenantMember: { findFirst: vi.fn(async () => null) },
+  } as unknown as PrismaService;
+}
 
 /**
  * Story · `AbilityMiddleware` (closes blocker — replaces interceptor
@@ -38,7 +51,7 @@ describe("Story · AbilityMiddleware", () => {
   it("attaches the resolved ability for authenticated requests", async () => {
     const ability = buildAbility([{ action: "read", subject: "Example" }]);
     const service = makeService(ability);
-    const mw = new AbilityMiddleware(service);
+    const mw = new AbilityMiddleware(service, prismaStub());
     const req: { user?: { id: string; tenantId: string | null }; ability?: Ability } = {
       user: { id: "u1", tenantId: "t1" },
     };
@@ -52,7 +65,7 @@ describe("Story · AbilityMiddleware", () => {
   it("does not overwrite a pre-seeded ability (TestAbilityMiddleware contract)", async () => {
     const seeded = buildAbility([{ action: "manage", subject: "all" }]);
     const service = makeService(buildAbility([]));
-    const mw = new AbilityMiddleware(service);
+    const mw = new AbilityMiddleware(service, prismaStub());
     const req: { user?: { id: string; tenantId: string | null }; ability?: Ability } = {
       user: { id: "u1", tenantId: "t1" },
       ability: seeded,
@@ -66,7 +79,7 @@ describe("Story · AbilityMiddleware", () => {
 
   it("attaches an empty ability when there is no user", async () => {
     const service = makeService(buildAbility([]));
-    const mw = new AbilityMiddleware(service);
+    const mw = new AbilityMiddleware(service, prismaStub());
     const req: { user?: { id: string; tenantId: string | null }; ability?: Ability } = {};
     const next = nextFn();
     await mw.use(req as never, res, next);
@@ -78,7 +91,7 @@ describe("Story · AbilityMiddleware", () => {
 
   it("attaches an empty ability when the user has no tenantId", async () => {
     const service = makeService(buildAbility([]));
-    const mw = new AbilityMiddleware(service);
+    const mw = new AbilityMiddleware(service, prismaStub());
     const req: { user?: { id: string; tenantId: string | null }; ability?: Ability } = {
       user: { id: "u1", tenantId: null },
     };
@@ -95,7 +108,7 @@ describe("Story · AbilityMiddleware", () => {
         throw new Error("db unavailable");
       }),
     } as unknown as PermissionService;
-    const mw = new AbilityMiddleware(service);
+    const mw = new AbilityMiddleware(service, prismaStub());
     const req: { user?: { id: string; tenantId: string | null }; ability?: Ability } = {
       user: { id: "u1", tenantId: "t1" },
     };
