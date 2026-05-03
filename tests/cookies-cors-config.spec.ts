@@ -100,6 +100,15 @@ describe("Cookie & CORS Config", () => {
       expect(cfg.allowedOrigins.some((origin) => origin.includes("localhost"))).toBe(true);
     });
 
+    it('corsDefaults("development") includes http://localhost:3001 (template frontend port)', () => {
+      // The lt fullstack template's Nuxt frontend runs on :3001 by default
+      // (see projects/app/nuxt.config.ts devServer.port). Without this entry
+      // the freshly-scaffolded SPA cannot call its own API in the browser
+      // due to CORS preflight failure.
+      const cfg = corsDefaults("development");
+      expect(cfg.allowedOrigins).toContain("http://localhost:3001");
+    });
+
     it('corsDefaults("production") returns no origins (must be configured explicitly)', () => {
       const cfg = corsDefaults("production");
       expect(cfg.allowedOrigins).toEqual([]);

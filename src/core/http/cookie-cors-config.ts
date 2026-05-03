@@ -62,6 +62,10 @@ export function corsDefaults(env: AppEnv): CorsConfig {
     return {
       allowedOrigins: [
         "http://localhost:3000",
+        // Default Nuxt dev port for the lt fullstack template's
+        // `projects/app/` frontend — keeps a freshly-scaffolded SPA able
+        // to call its own API without a proxy workaround.
+        "http://localhost:3001",
         "http://localhost:5173",
         "http://app.nst.localhost",
       ],
