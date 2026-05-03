@@ -49,9 +49,15 @@ describe("Story · Test-Containers-Setup", () => {
       expect(read()).toMatch(/DATABASE_URL/);
     });
 
-    it("reuses an existing DATABASE_URL when provided (CI service-container path)", () => {
+    it("delegates the database-strategy decision to the pure planTestDatabaseStrategy() planner", () => {
       const src = read();
-      expect(src).toMatch(/if\s*\(!process\.env\.DATABASE_URL\)/);
+      // Replaces the legacy `if (!process.env.DATABASE_URL)` branch.
+      // The planner is the single source of truth for "spawn vs
+      // reuse"; globalSetup just executes its plan. CI service
+      // containers route through `TEST_DATABASE_URL`; destructive
+      // dev-DB reuse routes through `TEST_REUSE_DEV_DB=1`.
+      expect(src).toMatch(/planTestDatabaseStrategy/);
+      expect(src).toMatch(/strategy === "reuse-existing"/);
     });
 
     it("stops the container in the teardown callback", () => {

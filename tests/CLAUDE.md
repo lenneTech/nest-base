@@ -183,11 +183,28 @@ limitations to know about:
 
 `tests/global-setup.ts` is a Vitest globalSetup hook. It:
 
-1. Sets `NODE_ENV=test`.
-2. Starts a Postgres testcontainer (`postgres:18-alpine`) if
-   `DATABASE_URL` isn't already set (CI passes one in).
-3. Exposes `DATABASE_URL` to every test.
+1. Pins `NODE_ENV=test` via `pinTestNodeEnv()` (the per-worker
+   `setupFiles` entry pins it earlier still, before any user
+   import — the duo is defence-in-depth against Bun's `.env`
+   autoload).
+2. Decides via the pure `planTestDatabaseStrategy()` planner whether
+   to spawn an isolated Postgres testcontainer (`postgres:18-alpine`)
+   or reuse an inherited URL.
+3. Exposes the chosen `DATABASE_URL` to every test.
 4. Tears the container down after the run.
+
+### Test-DB strategy (env hygiene)
+
+The default is **always testcontainer**. Bun auto-loads `.env`, so
+without this rule a fresh consumer's dev `DATABASE_URL` would silently
+route the suite at the dev DB and `bun run test:e2e` would drop rows
+from `localhost:5434/<workspace>`. Two explicit overrides:
+
+| Env var                   | Effect                                                                                |
+| ------------------------- | ------------------------------------------------------------------------------------- |
+| `TEST_DATABASE_URL=<url>` | Reuse the URL (CI service container, no opt-in needed).                               |
+| `TEST_REUSE_DEV_DB=1`     | Reuse the inherited `DATABASE_URL` (DESTRUCTIVE — writes to / drops from the dev DB). |
+| _none_                    | Spawn a fresh testcontainer; clear any inherited URL first.                           |
 
 If your test needs RustFS (file storage), use the
 `buildRustFsContainerConfig` helper from `tests/lib/rustfs-container.ts`
