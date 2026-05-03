@@ -38,6 +38,10 @@ import {
   planTunnelEnvWrite,
 } from '../src/core/dev/cloudflare-tunnel.js';
 import {
+  formatDevSurvivalBanner,
+  formatPortCollisionMessage,
+} from '../src/core/dev/dev-banner-formatter.js';
+import {
   buildPortlessRunCommand,
   decideRegistrationAction,
   isPortlessProxyRunning,
@@ -48,6 +52,7 @@ import {
   isPidAlive,
   readPortlessRouteOwner,
 } from '../src/core/dev/portless-routes-runner.js';
+import { findFreePort, isPortFree } from '../src/core/setup/find-free-port.js';
 import {
   clearTunnelState,
   writeTunnelState,
@@ -277,7 +282,7 @@ if (tunnelArgs.tunnelEnabled) {
   }, 30_000).unref();
 }
 
-function buildSpawnPlan(): SpawnPlan {
+async function buildSpawnPlan(): Promise<SpawnPlan> {
   if (usePortless && proxyAlive) {
     // Defence-in-depth against stale registrations. When a previous
     // `bun --watch` was hard-killed (SIGKILL, OOM, terminal closed),
@@ -304,16 +309,94 @@ function buildSpawnPlan(): SpawnPlan {
       target: ['bun', '--watch', 'src/main.ts'],
       force: decision === 'take-over',
     });
+    // Survival banner — printed *before* the child spawns so the user
+    // always sees the target URL even if a downstream lifecycle hook
+    // crashes during route resolution. Friction 2026-05-03 #14:36.
+    process.stdout.write(
+      formatDevSurvivalBanner({
+        scheme: 'https',
+        host: hostname,
+        port: 443,
+      }),
+    );
     return {
       command: portlessPath!,
       args,
       env: { ...process.env, PORTLESS_ACTIVE: '1' },
     };
   }
-  const port = resolveDevPort({
+  const requestedPort = resolveDevPort({
     env: process.env as { PORT?: string },
     portlessAvailable: false,
   });
+  // Direct-bind path. Pre-flight probe: friction 2026-05-03 #14:36 +
+  // #14:42 — when port 3000 is held by a stale Nuxt from another
+  // workspace, `bun --watch src/main.ts` would silently EADDRINUSE
+  // mid-route-mapping and the runner would exit 144 with no banner.
+  // We probe wildcard binding here; if the port is taken, either
+  // fall back (when PORT was not pinned) or fail loudly with the
+  // three-option recovery hint.
+  const portWasPinned = process.env.PORT !== undefined && process.env.PORT !== '';
+  let port = requestedPort;
+  // Port 0 means "kernel picks". The kernel WILL pick a free port at
+  // bind time, but the runner can't print a useful banner without
+  // knowing the number, so we resolve it here via findFreePort and
+  // then pass the concrete port to the child as PORT=<n>. Starting
+  // from 3000 matches the historical default and `.env.example`.
+  if (port === 0) {
+    try {
+      port = await findFreePort(3000);
+    } catch {
+      process.stderr.write(
+        `${formatPortCollisionMessage({
+          port: 3000,
+          holderHint: 'no free port found in scan window starting at 3000',
+        })}\n`,
+      );
+      process.exit(1);
+    }
+  } else {
+    const free = await isPortFree(port);
+    if (!free) {
+      if (portWasPinned) {
+        process.stderr.write(
+          `${formatPortCollisionMessage({
+            port,
+            holderHint: 'pre-flight probe failed (foreign process or stale dev server)',
+          })}\n`,
+        );
+        process.exit(1);
+      }
+      // PORT not pinned → scan for the next free port. find-free-port
+      // already wildcard-probes (matches Docker / nuxt dev semantics),
+      // so we don't trip the loopback-vs-wildcard trap.
+      try {
+        const fallback = await findFreePort(port + 1);
+        console.log(
+          `[dev] port ${port} held by foreign process — falling back to ${fallback}`,
+        );
+        port = fallback;
+      } catch {
+        process.stderr.write(
+          `${formatPortCollisionMessage({
+            port,
+            holderHint: 'no free port found in scan window',
+          })}\n`,
+        );
+        process.exit(1);
+      }
+    }
+  }
+  // Survival banner — same rationale as the portless branch above.
+  // We bind on the wildcard but advertise `localhost` because that's
+  // what humans paste in the browser.
+  process.stdout.write(
+    formatDevSurvivalBanner({
+      scheme: 'http',
+      host: 'localhost',
+      port,
+    }),
+  );
   return {
     command: 'bun',
     args: ['--watch', 'src/main.ts'],
@@ -333,21 +416,34 @@ if (usePortless && proxyAlive) {
 let child: ChildProcess | undefined;
 let respawning = false;
 
-function spawnChild(): ChildProcess {
-  const plan = buildSpawnPlan();
+async function spawnChild(): Promise<ChildProcess> {
+  const plan = await buildSpawnPlan();
   const proc = spawn(plan.command, plan.args, { stdio: 'inherit', env: plan.env });
-  proc.on('exit', (code) => {
+  proc.on('exit', (code, signal) => {
     // Don't propagate exit during a planned respawn — a new child is coming.
     if (respawning) return;
     if (shuttingDown) {
       process.exit(code ?? 0);
+    }
+    // Friction 2026-05-03 #14:36: a non-zero child exit must NOT be
+    // silent. Signal-terminated exits (SIGTERM from the user, SIGKILL
+    // from OOM) keep the existing behaviour; an exit-code != 0 with no
+    // signal is the case where bootstrap.ts crashed (EADDRINUSE,
+    // missing prisma client, …) and the user got no clue.
+    if (code !== null && code !== 0 && !signal) {
+      process.stderr.write(
+        `[dev] API child exited with code ${code}. Common causes:\n` +
+          '[dev]   - EADDRINUSE on the configured PORT (a previous dev server is still running)\n' +
+          '[dev]   - Prisma client out of date (`bun run prepare:schema && bun run prisma:generate`)\n' +
+          '[dev]   - Missing required env-vars (see the env-prerequisites banner above, if any)\n',
+      );
     }
     process.exit(code ?? 0);
   });
   return proc;
 }
 
-child = spawnChild();
+child = await spawnChild();
 
 // Watch .env so feature toggles in /dev/features force a full process
 // restart (not just a `bun --watch` reload, which keeps the cached env).
@@ -367,7 +463,22 @@ function scheduleRespawn(reason: 'env-change' | 'brand-change'): void {
     const old = child;
     old.once('exit', () => {
       respawning = false;
-      if (!shuttingDown) child = spawnChild();
+      if (!shuttingDown) {
+        // Async respawn — the new spawnChild() runs the pre-flight
+        // probe, so a port that became occupied between the original
+        // boot and this respawn surfaces a clear error instead of a
+        // silent EADDRINUSE inside the child.
+        void spawnChild()
+          .then((next) => {
+            child = next;
+          })
+          .catch((err: unknown) => {
+            process.stderr.write(
+              `[dev] respawn failed: ${(err as Error).message}\n`,
+            );
+            process.exit(1);
+          });
+      }
     });
     old.kill('SIGTERM');
   }, 200);
@@ -405,3 +516,16 @@ const shutdown = (signal: NodeJS.Signals): void => {
 };
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
+
+// Friction 2026-05-03 #14:36: previously a runner-side throw was
+// swallowed (Bun would exit with code 144) and the user saw no clue.
+// Surface it loudly on stderr before letting Node exit naturally.
+process.on('uncaughtException', (err) => {
+  process.stderr.write(`[dev] uncaughtException: ${err.stack ?? err.message}\n`);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  const msg = reason instanceof Error ? (reason.stack ?? reason.message) : String(reason);
+  process.stderr.write(`[dev] unhandledRejection: ${msg}\n`);
+  process.exit(1);
+});
