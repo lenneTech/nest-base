@@ -21,7 +21,6 @@ import { buildDevPortalShellInput, renderDevPortalShell } from "../dx/dev-portal
 import { planPrismaStudio } from "../dx/prisma-studio.js";
 import { buildScalarConfig } from "../dx/scalar-config.js";
 import { planStartupBanner } from "../dx/startup-banner.js";
-import { ProblemDetailsExceptionFilter } from "../errors/problem-details.filter.js";
 import { buildSecurityHeadersConfig } from "../http/security-headers.js";
 import { createLogger } from "../observability/logger.js";
 import { PinoLoggerService } from "../observability/pino-logger.service.js";
@@ -87,7 +86,14 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
     }),
   );
 
-  app.useGlobalFilters(new ProblemDetailsExceptionFilter());
+  // RFC 7807 Problem-Details exception filter is registered via
+  // `APP_FILTER` inside `AppModule` so DI hands it to both the
+  // production boot AND `Test.createTestingModule({ imports:
+  // [AppModule] }).createNestApplication()`. No imperative
+  // `useGlobalFilters(...)` here — the previous explicit attach left
+  // testing-module specs without the filter, returning 500 on
+  // `ZodError` instead of 400 + CORE_VALIDATION (friction-log
+  // 2026-05-03).
 
   // OpenAPI spec generator. The document builder
   // walks every controller registered in DI and produces an OpenAPI

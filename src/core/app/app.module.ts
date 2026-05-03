@@ -1,6 +1,8 @@
 import { type MiddlewareConsumer, Module, type NestModule } from "@nestjs/common";
-import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+
+import { ProblemDetailsExceptionFilter } from "../errors/problem-details.filter.js";
 
 import { AuditLogModule } from "../audit/audit-log.module.js";
 import { ApiKeyModule } from "../auth/api-keys/api-key.module.js";
@@ -120,6 +122,16 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
   providers: [
     RequestContextMiddleware,
     BetterAuthSessionMiddleware,
+    // RFC 7807 Problem-Details exception filter — registered via
+    // APP_FILTER so it activates for BOTH the production
+    // `bootstrap()` chain AND tests booted through
+    // `Test.createTestingModule({ imports: [AppModule] })
+    //   .createNestApplication()`. Previously the filter was only
+    // attached imperatively in `bootstrap.ts` via
+    // `app.useGlobalFilters(...)`, which the testing module skips —
+    // so a `ZodError` raised inside a handler returned 500 instead
+    // of 400 + CORE_VALIDATION (friction-log 2026-05-03).
+    { provide: APP_FILTER, useClass: ProblemDetailsExceptionFilter },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_INTERCEPTOR, useClass: OutputPipelineInterceptor },
     ...(features.multiTenancy.enabled
