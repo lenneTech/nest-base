@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   ConflictException,
   Controller,
@@ -11,9 +10,26 @@ import {
 } from "@nestjs/common";
 import type { Request } from "express";
 
+import {
+  ApiZodBody,
+  ApiZodCreatedResponse,
+  ApiZodOkResponse,
+} from "../openapi/zod-api-decorators.js";
+import { registerZodSchema } from "../openapi/zod-to-openapi.js";
 import { Public } from "../permissions/public.decorator.js";
 import { PrismaService } from "../prisma/prisma.service.js";
+import { ZodValidationPipe } from "../validation/zod-validation.pipe.js";
 import { PrismaTenantSelfServiceStorage } from "./prisma-tenant-self-service-storage.js";
+import {
+  type CreateTenantRequestDto,
+  CreateTenantRequestSchema,
+  type CreateTenantResponseDto,
+  CreateTenantResponseSchema,
+  type MeTenantsResponseDto,
+  type MeTenantsRowDto,
+  MeTenantsRowSchema,
+  MeTenantsResponseSchema,
+} from "./tenant-self-service.dto.js";
 import {
   type CreateTenantInput,
   TenantNameTakenError,
@@ -28,34 +44,15 @@ interface AuthedRequest extends Request {
   user?: { id: string; tenantId: string | null };
 }
 
-interface CreateTenantBody {
-  name?: unknown;
-}
-
-interface CreateTenantResponse {
-  id: string;
-  name: string;
-  createdAt: string;
-  membership: {
-    id: string;
-    role: string;
-    status: string;
-    joinedAt?: string;
-  };
-}
-
-interface MeTenantsResponseRow {
-  tenantId: string;
-  tenantName: string;
-  tenantCreatedAt: string;
-  memberId: string;
-  role: string;
-  status: string;
-  invitedAt?: string;
-  joinedAt?: string;
-}
-
 const TENANT_SELF_SERVICE_STORAGE = Symbol.for("lt:TenantSelfServiceStorage");
+
+// Named OpenAPI components — kubb generates a single typed shape per
+// name and re-uses it across every operation that returns it. Without
+// these, the SDK would inline the row schema on each route (or, when
+// the controller accepted raw `@Body()`, fall back to `unknown`).
+registerZodSchema("CreateTenantRequest", CreateTenantRequestSchema);
+registerZodSchema("CreateTenantResponse", CreateTenantResponseSchema);
+registerZodSchema("MeTenantsRow", MeTenantsRowSchema);
 
 /**
  * `GET /me/tenants` — list memberships for the authenticated user.
@@ -78,7 +75,11 @@ export class MeTenantsController {
   // to call this route to discover they have no tenants yet.
   @Public("/me/tenants — bootstrap; handler scopes by req.user.id (Better-Auth session)")
   @Get()
-  async list(@Req() req: AuthedRequest): Promise<MeTenantsResponseRow[]> {
+  @ApiZodOkResponse({
+    schema: MeTenantsResponseSchema,
+    description: "List of tenant memberships for the authenticated user.",
+  })
+  async list(@Req() req: AuthedRequest): Promise<MeTenantsResponseDto> {
     if (!req.user) throw new ForbiddenException("authentication required");
     const rows = await this.service.listForUser(req.user.id);
     return rows.map(toMeTenantsRow);
@@ -104,13 +105,17 @@ export class TenantSelfServiceController {
   // installs the caller as the new tenant's owner.
   @Public("/tenants — bootstrap; authenticated user creates their first tenant + becomes owner")
   @Post()
+  @ApiZodBody(CreateTenantRequestSchema, "Self-service tenant creation payload.")
+  @ApiZodCreatedResponse({
+    schema: CreateTenantResponseSchema,
+    description: "The created Tenant + the owner membership stamp.",
+  })
   async create(
     @Req() req: AuthedRequest,
-    @Body() body: CreateTenantBody,
-  ): Promise<CreateTenantResponse> {
+    @Body(new ZodValidationPipe(CreateTenantRequestSchema)) body: CreateTenantRequestDto,
+  ): Promise<CreateTenantResponseDto> {
     if (!req.user) throw new ForbiddenException("authentication required");
-    const name = typeof body?.name === "string" ? body.name : "";
-    const input: CreateTenantInput = { name, ownerId: req.user.id };
+    const input: CreateTenantInput = { name: body.name, ownerId: req.user.id };
 
     try {
       const result = await this.service.createForUser(input);
@@ -129,17 +134,19 @@ export class TenantSelfServiceController {
       if (err instanceof TenantNameTakenError) {
         throw new ConflictException(err.message);
       }
-      // The service throws plain Error for empty / blank names. Map to
-      // BadRequest so the consumer gets a 400 instead of a 500.
-      if (err instanceof Error && /required/.test(err.message)) {
-        throw new BadRequestException(err.message);
-      }
+      // The Zod pipe (CreateTenantRequestSchema's `.refine(trim.length>0)`)
+      // already rejects empty / whitespace-only names with a
+      // CORE_VALIDATION 400 before reaching the service. The service's
+      // "name is required" guard remains as a defensive layer; if it
+      // ever fires (it shouldn't), let it bubble — the global filter
+      // logs and 500s, which is the right signal that the boundary
+      // schema drifted from the service contract.
       throw err;
     }
   }
 }
 
-function toMeTenantsRow(row: TenantWithMembership): MeTenantsResponseRow {
+function toMeTenantsRow(row: TenantWithMembership): MeTenantsRowDto {
   return {
     tenantId: row.tenantId,
     tenantName: row.tenantName,
