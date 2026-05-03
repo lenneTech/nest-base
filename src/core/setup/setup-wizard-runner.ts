@@ -1,8 +1,9 @@
 import { spawnSync } from "node:child_process";
 import { randomBytes as nodeRandomBytes } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { planFrontendEnvBridge } from "./frontend-env-bridge.js";
 import { buildDefaultEnvExample } from "./setup-wizard.js";
 
 /**
@@ -211,13 +212,13 @@ export function runSetupWizard(options: RunSetupWizardOptions): SetupWizardResul
   }
 
   let created = false;
+  const projectName = readPackageJsonName(options.projectRoot);
   if (existsSync(envPath)) {
     logger.warn(
       `${envPath} already exists — refusing to overwrite (delete it first to regenerate)`,
     );
   } else {
     const exampleText = readFileSync(examplePath, "utf8");
-    const projectName = readPackageJsonName(options.projectRoot);
     const rendered = planEnvFromExample(exampleText, {
       randomBytes: options.randomBytes ?? ((size) => nodeRandomBytes(size)),
       projectName,
@@ -226,6 +227,20 @@ export function runSetupWizard(options: RunSetupWizardOptions): SetupWizardResul
     writeFileSync(envPath, rendered, "utf8");
     logger.info(`wrote ${envPath} with auto-generated secrets`);
     created = true;
+  }
+
+  // Frontend env-bridge (friction-log #5): mirror the chosen API port
+  // and portless URL into `projects/app/.env` so the upstream Nuxt
+  // starter follows the API automatically. Skipped silently when
+  // `projects/app/` doesn't exist (api-only workspaces). Custom user
+  // values are preserved — only the wizard-default sentinel is updated.
+  if (projectName) {
+    writeFrontendEnvBridge({
+      projectRoot: options.projectRoot,
+      projectName,
+      apiPort: deriveApiPort(envPath),
+      logger,
+    });
   }
 
   // Build the Dev-Portal SPA once so `/dev/static/main.js` exists from
@@ -253,4 +268,64 @@ export function runSetupWizard(options: RunSetupWizardOptions): SetupWizardResul
   }
 
   return { envPath, created, devPortalBuildExit };
+}
+
+interface WriteFrontendEnvBridgeOptions {
+  projectRoot: string;
+  projectName: string;
+  apiPort: number;
+  logger: SetupWizardLogger;
+}
+
+/**
+ * Thin runner around `planFrontendEnvBridge`. Reads the existing
+ * `projects/app/.env` (if any), feeds it to the planner, writes the
+ * result. The planner alone owns the merge logic; this function is
+ * just I/O.
+ */
+function writeFrontendEnvBridge(options: WriteFrontendEnvBridgeOptions): void {
+  const appDir = join(options.projectRoot, "projects/app");
+  const appExists = existsSync(appDir) && safeIsDirectory(appDir);
+  const frontendEnvPath = join(appDir, ".env");
+  const currentEnv = appExists && existsSync(frontendEnvPath)
+    ? readFileSync(frontendEnvPath, "utf8")
+    : undefined;
+
+  const plan = planFrontendEnvBridge({
+    projectName: options.projectName,
+    apiPort: options.apiPort,
+    appExists,
+    currentEnv,
+  });
+
+  if (plan.action === "skip") return;
+
+  writeFileSync(frontendEnvPath, plan.next, "utf8");
+  options.logger.info(
+    `wrote frontend env-bridge to ${frontendEnvPath} (NUXT_PUBLIC_API_URL=https://api.${options.projectName}.localhost)`,
+  );
+}
+
+function safeIsDirectory(path: string): boolean {
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Pull the API port out of the freshly written `.env`. Falls back to
+ * 3000 (the wizard default) when the file is missing or doesn't carry
+ * an explicit `PORT=`. Used to populate `API_PORT` in the frontend
+ * env-bridge so consumers without portless can dial the right port
+ * directly.
+ */
+function deriveApiPort(envPath: string): number {
+  if (!existsSync(envPath)) return 3000;
+  const text = readFileSync(envPath, "utf8");
+  const match = /^PORT=(\d+)$/m.exec(text);
+  if (!match) return 3000;
+  const n = Number(match[1]);
+  return Number.isFinite(n) && Number.isInteger(n) && n > 0 ? n : 3000;
 }

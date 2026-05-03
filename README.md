@@ -319,7 +319,10 @@ bun run prisma:generate       # Generate Prisma client (also wires the pnpm-hois
 bun run prisma:migrate        # Apply migrations
 
 # Project lifecycle
-bun run setup                 # Generate .env with strong random secrets (idempotent)
+bun run setup                 # Generate .env with strong random secrets (idempotent).
+                              # Also writes API port + portless URL into
+                              # projects/app/.env (when present) so the frontend
+                              # follows the API. Custom values are never clobbered.
 bun run onboard               # First-run sanity check (Bun / .env / Postgres-TCP / Prisma)
 bun run doctor                # Comprehensive health check (containers, services, secrets,
                               # disk space, env strength) — JSON output for CI via --json
