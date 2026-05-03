@@ -167,4 +167,51 @@ describe("E2E · /me/tenants + POST /tenants self-service", () => {
       .send({ name: "   " });
     expect(res.status).toBe(400);
   });
+
+  /**
+   * Friction-log blocker (LLM-test 2026-05-03 #4): a freshly signed-up
+   * user who creates a tenant via POST /tenants must immediately be
+   * able to reach @Can()-gated routes for that tenant. Before the fix
+   * `User.tenantId` was never patched, so `AbilityMiddleware`
+   * short-circuited to an empty ability and every route 403'd.
+   */
+  it("fresh sign-up → POST /tenants → POST /examples succeeds (no 403)", async () => {
+    const flowEmail = `me-tenants-flow-${stamp}@example.com`;
+    const agent = request.agent(app.getHttpServer());
+
+    // Sign up a brand-new user — no prior memberships, tenantId=null.
+    const signUp = await agent
+      .post("/api/auth/sign-up/email")
+      .set("content-type", "application/json")
+      .send({ email: flowEmail, password, name: "Fresh User" });
+    expect(signUp.status, JSON.stringify(signUp.body)).toBe(200);
+
+    // Bootstrap their first tenant.
+    const tenantName = `FreshAcme-${stamp}`;
+    const createTenant = await agent
+      .post("/tenants")
+      .set("content-type", "application/json")
+      .send({ name: tenantName });
+    expect([200, 201]).toContain(createTenant.status);
+    const tenantId = createTenant.body.id as string;
+    createdTenantIds.push(tenantId);
+
+    // Now hit a `@Can("create", "Example")` route. The header carries
+    // the freshly-created tenant; if either fix is missing, the
+    // ability resolves to empty and CanGuard returns 403.
+    const createExample = await agent
+      .post("/examples")
+      .set("content-type", "application/json")
+      .set("x-tenant-id", tenantId)
+      .send({ name: "First example", status: "draft" });
+
+    expect(createExample.status, JSON.stringify(createExample.body)).toBe(201);
+
+    // Cleanup the user we created in this scenario.
+    try {
+      await prisma.user.deleteMany({ where: { email: flowEmail } });
+    } catch {
+      // ignore
+    }
+  });
 });

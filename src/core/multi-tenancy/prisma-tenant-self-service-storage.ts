@@ -64,6 +64,12 @@ interface PrismaTxSlice {
       joinedAt: Date | null;
     }>;
   };
+  user: {
+    updateMany(input: {
+      where: { id: string; tenantId: null };
+      data: { tenantId: string };
+    }): Promise<{ count: number }>;
+  };
 }
 
 interface TenantMemberWithTenant {
@@ -83,7 +89,10 @@ interface TenantMemberWithTenant {
 
 export class PrismaTenantSelfServiceStorage implements TenantSelfServiceStorage {
   constructor(
-    private readonly prisma: Pick<PrismaClient, "tenant" | "tenantMember" | "$transaction">,
+    private readonly prisma: Pick<
+      PrismaClient,
+      "tenant" | "tenantMember" | "user" | "$transaction"
+    >,
   ) {}
 
   async findTenantByName(name: string): Promise<TenantPlanRow | null> {
@@ -114,6 +123,20 @@ export class PrismaTenantSelfServiceStorage implements TenantSelfServiceStorage 
           status: member.status,
           joinedAt,
         },
+      });
+      // Promote the just-created tenant to the user's primary
+      // tenant — but only if they don't already have one. The
+      // `tenantId: null` guard makes this a no-op for users who are
+      // creating their second/third tenant: we never silently
+      // re-primary them, otherwise their existing tenant context
+      // would flip on every POST /tenants. Closes friction-log
+      // blocker (LLM-test 2026-05-03 #4): without this update the
+      // session's `user.tenantId` stays null and `AbilityMiddleware`
+      // resolves to an empty ability, 403'ing every `@Can()` route
+      // for the freshly-onboarded user.
+      await tx.user.updateMany({
+        where: { id: member.userId, tenantId: null },
+        data: { tenantId: tenant.id },
       });
       return {
         tenant: {
