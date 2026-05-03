@@ -101,4 +101,109 @@ describe("Story · FakePrisma pagination (skip / take / count)", () => {
     expect(await dynamic.invoice.count()).toBe(2);
     expect(await dynamic.invoice.count({})).toBe(2);
   });
+
+  /**
+   * Story · `where: { col: null }` matches a row whose column was
+   * never assigned (friction-log 2026-05-03 entry "fake-prisma's
+   * `where: { col: null }` doesn't match an undefined column").
+   *
+   * Real Prisma + Postgres treat "column was never assigned on insert"
+   * and `IS NULL` identically because the column defaults to NULL.
+   * The fake's original `row[key] !== value` check returned `false`
+   * for `undefined !== null`, excluding rows with omitted columns —
+   * which silently broke every soft-delete `findMany({ where: {
+   * deletedAt: null } })` call. Fix: normalise so `undefined` and
+   * `null` compare equal for filter equality only.
+   */
+  describe("null/undefined equality (matches real Prisma)", () => {
+    it("matches a row created without `deletedAt` when filtering by `deletedAt: null`", async () => {
+      const dynamic = fake as unknown as Record<
+        string,
+        ReturnType<typeof createFakePrisma>["example"]
+      >;
+      // Create a row WITHOUT a `deletedAt` field — equivalent to a
+      // soft-delete-aware schema where the column defaults to NULL.
+      await dynamic.todo.create({
+        data: { id: "todo-active", title: "Active todo", tenantId: "t-1" } as never,
+      });
+      const rows = await dynamic.todo.findMany({
+        where: { tenantId: "t-1", deletedAt: null } as never,
+      });
+      expect(rows.map((r) => r.id)).toEqual(["todo-active"]);
+    });
+
+    it("excludes rows whose column is explicitly set to a non-null value", async () => {
+      const dynamic = fake as unknown as Record<
+        string,
+        ReturnType<typeof createFakePrisma>["example"]
+      >;
+      // One soft-deleted row, one active row.
+      await dynamic.todo.create({
+        data: { id: "todo-active", title: "Active", tenantId: "t-1" } as never,
+      });
+      await dynamic.todo.create({
+        data: {
+          id: "todo-soft-deleted",
+          title: "Removed",
+          tenantId: "t-1",
+          deletedAt: new Date("2026-01-01"),
+        } as never,
+      });
+      const rows = await dynamic.todo.findMany({
+        where: { tenantId: "t-1", deletedAt: null } as never,
+      });
+      expect(rows.map((r) => r.id)).toEqual(["todo-active"]);
+    });
+
+    it("`count({ where: { deletedAt: null } })` includes rows with the column omitted", async () => {
+      const dynamic = fake as unknown as Record<
+        string,
+        ReturnType<typeof createFakePrisma>["example"] & {
+          count(input?: { where?: Record<string, unknown> }): Promise<number>;
+        }
+      >;
+      await dynamic.todo.create({
+        data: { id: "a", title: "A", tenantId: "t-1" } as never,
+      });
+      await dynamic.todo.create({
+        data: { id: "b", title: "B", tenantId: "t-1" } as never,
+      });
+      await dynamic.todo.create({
+        data: {
+          id: "c",
+          title: "C",
+          tenantId: "t-1",
+          deletedAt: new Date(),
+        } as never,
+      });
+      const total = await dynamic.todo.count({
+        where: { tenantId: "t-1", deletedAt: null } as never,
+      });
+      expect(total).toBe(2);
+    });
+
+    it("symmetric: `findUnique` + `update` honour the same null/undefined equivalence", async () => {
+      const dynamic = fake as unknown as Record<
+        string,
+        ReturnType<typeof createFakePrisma>["example"]
+      >;
+      const created = await dynamic.todo.create({
+        data: { id: "t-1", title: "Foo" } as never,
+      });
+      // findUnique on a where with `deletedAt: null` finds it even though
+      // the row never had `deletedAt` assigned — matches Prisma's
+      // semantics where the column is NULL by default.
+      const found = await dynamic.todo.findUnique({
+        where: { id: created.id, deletedAt: null } as never,
+      });
+      expect(found).not.toBeNull();
+      // Same for update — used by services that gate updates on
+      // "still alive" rows.
+      const updated = await dynamic.todo.update({
+        where: { id: created.id, deletedAt: null } as never,
+        data: { title: "Bar" } as never,
+      });
+      expect(updated.title).toBe("Bar");
+    });
+  });
 });
