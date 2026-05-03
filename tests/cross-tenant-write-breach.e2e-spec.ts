@@ -1,0 +1,195 @@
+import type { INestApplication } from "@nestjs/common";
+import { Test } from "@nestjs/testing";
+import request from "supertest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+import { PrismaService } from "../src/core/prisma/prisma.service.js";
+
+/**
+ * E2E · Cross-tenant write breach (regression for LLM-test 2026-05-03 #20:21)
+ *
+ * Reproduces the exact attack:
+ *   - Bob signs up; `createTenantWithMember` (PR #63) sets
+ *     `User.tenantId = bobTenant`.
+ *   - Alice owns `aliceTenant`; Bob has NO membership in it.
+ *   - Bob calls `POST /examples` with `x-tenant-id: <aliceTenantId>`.
+ *
+ * Before the fix:
+ *   - `TenantInterceptor.parseTenantHeader` blindly trusted the header
+ *     → RLS context = aliceTenantId → row landed in Alice's tenant.
+ *   - `AbilityMiddleware` short-circuited on `req.user.tenantId`
+ *     (= bobTenant) → ability built for Bob's primary tenant grants
+ *     `manage Example` → CASL `@Can('create', 'Example')` PERMITS
+ *     because the type-only check doesn't evaluate the
+ *     `tenantId == $CURRENT_TENANT` condition.
+ *   - Net result: 201 Created, foreign-tenant write.
+ *
+ * After the fix (this PR):
+ *   - Both layers go through `resolveRequestTenantId(req, prisma)`,
+ *     which checks for an ACTIVE TenantMember row when a header is
+ *     present and throws `ForbiddenException` if none exists.
+ *   - Bob hits 403; nothing lands in Alice's tenant.
+ */
+describe("E2E · Cross-tenant write breach", () => {
+  let app: INestApplication;
+  let prisma: PrismaService;
+  const originalSecret = process.env.BETTER_AUTH_SECRET;
+  const originalBaseUrl = process.env.APP_BASE_URL;
+  const stamp = Date.now();
+  const bobEmail = `breach-bob-${stamp}@example.com`;
+  const aliceEmail = `breach-alice-${stamp}@example.com`;
+  const password = "password-12345";
+  let bobTenantId = "";
+  let aliceTenantId = "";
+
+  beforeAll(async () => {
+    process.env.BETTER_AUTH_SECRET = "test-secret-32-chars-minimum-aaaaaaaa";
+    process.env.APP_BASE_URL = "http://localhost:3000";
+
+    const { AppModule } = await import("../src/core/app/app.module.js");
+    const moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+    app = moduleRef.createNestApplication({ logger: false });
+    await app.init();
+    prisma = app.get(PrismaService);
+
+    // Provision Alice's tenant directly — we don't need her to log in;
+    // we only need the tenant id (so Bob can target it via header).
+    const aliceTenant = await prisma.tenant.create({
+      data: { id: crypto.randomUUID(), name: `breach-alice-tenant-${stamp}` },
+    });
+    aliceTenantId = aliceTenant.id;
+
+    // Sign up Alice, pin her to her own tenant + ACTIVE membership.
+    // Not strictly required for the breach repro (the breach is about
+    // Bob targeting *Alice's tenant id*), but keeps the data-shape
+    // realistic — a real Alice with a real tenant.
+    const aliceAgent = request.agent(app.getHttpServer());
+    const aliceSignUp = await aliceAgent
+      .post("/api/auth/sign-up/email")
+      .set("content-type", "application/json")
+      .send({ email: aliceEmail, password, name: "Alice" });
+    expect(aliceSignUp.status, JSON.stringify(aliceSignUp.body)).toBe(200);
+    const aliceUser = await prisma.user.findUnique({ where: { email: aliceEmail } });
+    expect(aliceUser).not.toBeNull();
+    await prisma.user.update({
+      where: { id: aliceUser!.id },
+      data: { tenantId: aliceTenant.id },
+    });
+    await prisma.tenantMember.create({
+      data: {
+        id: crypto.randomUUID(),
+        userId: aliceUser!.id,
+        tenantId: aliceTenant.id,
+        role: "owner",
+        status: "ACTIVE",
+        joinedAt: new Date(),
+      },
+    });
+
+    // Provision Bob's tenant + ACTIVE membership for Bob (he is a
+    // legit user — just NOT a member of Alice's tenant).
+    const bobTenant = await prisma.tenant.create({
+      data: { id: crypto.randomUUID(), name: `breach-bob-tenant-${stamp}` },
+    });
+    bobTenantId = bobTenant.id;
+  });
+
+  afterAll(async () => {
+    try {
+      // Best-effort cleanup. Examples first (FK to tenant).
+      await prisma.example.deleteMany({
+        where: { tenantId: { in: [aliceTenantId, bobTenantId].filter(Boolean) } },
+      });
+      await prisma.tenantMember.deleteMany({
+        where: { tenantId: { in: [aliceTenantId, bobTenantId].filter(Boolean) } },
+      });
+      await prisma.tenant.deleteMany({
+        where: { id: { in: [aliceTenantId, bobTenantId].filter(Boolean) } },
+      });
+      await prisma.user.deleteMany({ where: { email: { in: [bobEmail, aliceEmail] } } });
+    } catch {
+      // ignore — testcontainer is tossed by global-setup anyway
+    }
+    await app.close();
+    if (originalSecret === undefined) delete process.env.BETTER_AUTH_SECRET;
+    else process.env.BETTER_AUTH_SECRET = originalSecret;
+    if (originalBaseUrl === undefined) delete process.env.APP_BASE_URL;
+    else process.env.APP_BASE_URL = originalBaseUrl;
+  });
+
+  it("Bob (no membership in Alice's tenant) is REJECTED when targeting it via x-tenant-id", async () => {
+    // Sign up Bob — Better-Auth creates the User row.
+    const agent = request.agent(app.getHttpServer());
+    const signUp = await agent
+      .post("/api/auth/sign-up/email")
+      .set("content-type", "application/json")
+      .send({ email: bobEmail, password, name: "Bob" });
+    expect(signUp.status, JSON.stringify(signUp.body)).toBe(200);
+    const bob = await prisma.user.findUnique({ where: { email: bobEmail } });
+    expect(bob, "bob must persist after sign-up").not.toBeNull();
+
+    // Pin Bob to his own primary tenant + ACTIVE membership. He is a
+    // real, authenticated user with a real session tenant — he just
+    // has NO right to act in Alice's tenant.
+    await prisma.user.update({
+      where: { id: bob!.id },
+      data: { tenantId: bobTenantId },
+    });
+    await prisma.tenantMember.create({
+      data: {
+        id: crypto.randomUUID(),
+        userId: bob!.id,
+        tenantId: bobTenantId,
+        role: "owner",
+        status: "ACTIVE",
+        joinedAt: new Date(),
+      },
+    });
+
+    // Re-sign-in so the session payload sees `tenantId = bobTenantId`.
+    const bobAgent = request.agent(app.getHttpServer());
+    const signIn = await bobAgent
+      .post("/api/auth/sign-in/email")
+      .set("content-type", "application/json")
+      .send({ email: bobEmail, password });
+    expect(signIn.status, JSON.stringify(signIn.body)).toBe(200);
+
+    // The attack: Bob targets Alice's tenant via header.
+    const breachAttempt = await bobAgent
+      .post("/examples")
+      .set("content-type", "application/json")
+      .set("x-tenant-id", aliceTenantId)
+      .send({ name: "cross-tenant breach", status: "draft" });
+
+    // Critical: must be 403. Before the fix this returned 201.
+    expect(breachAttempt.status, JSON.stringify(breachAttempt.body)).toBe(403);
+
+    // Defense in depth: even if the status code were misreported, NO
+    // row may have landed in Alice's tenant. Query the DB directly
+    // (RLS-bypass is fine here — we're verifying the attacker's input
+    // never reached storage).
+    const leaked = await prisma.example.findFirst({
+      where: { tenantId: aliceTenantId, name: "cross-tenant breach" },
+    });
+    expect(leaked, "no row may exist in Alice's tenant").toBeNull();
+  });
+
+  it("Bob CAN write to his own tenant (positive control — the fix doesn't lock legitimate writes)", async () => {
+    const bobAgent = request.agent(app.getHttpServer());
+    const signIn = await bobAgent
+      .post("/api/auth/sign-in/email")
+      .set("content-type", "application/json")
+      .send({ email: bobEmail, password });
+    expect(signIn.status, JSON.stringify(signIn.body)).toBe(200);
+
+    const ok = await bobAgent
+      .post("/examples")
+      .set("content-type", "application/json")
+      .set("x-tenant-id", bobTenantId)
+      .send({ name: "legit write", status: "draft" });
+
+    expect(ok.status, JSON.stringify(ok.body)).toBe(201);
+  });
+});
