@@ -102,6 +102,76 @@ describe("Story · scaffold-module-planner", () => {
     });
   });
 
+  /**
+   * Friction-log 2026-05-03 entry "add:module scaffold ignores domain
+   * shape": the generated story test passed against the Example
+   * carbon-copy shape, which violates the project's RED-first TDD
+   * discipline (the generated test was already green for the wrong
+   * domain). Pin the structural property: the scaffolded story test
+   * MUST contain a clearly intentional failure marker (`expect.fail`
+   * or a `TODO|RED|placeholder`-marked assertion). The exact bytes are
+   * deliberately not pinned — that would make any non-cosmetic edit
+   * to the placeholder text brittle.
+   */
+  describe("scaffolded story test ships RED-first", () => {
+    it("contains an intentional failure marker (expect.fail OR a clearly wrong placeholder assertion)", () => {
+      const plan = planScaffoldModule({ name: "todo", existingResources: [] });
+      if (plan.action !== "write") throw new Error("expected write plan");
+      const story = plan.files.find((f) =>
+        f.path.includes("stories/todo-module.story.test.ts"),
+      )!.content;
+      const hasExpectFail = /expect\.fail\s*\(/.test(story);
+      // Match uppercase markers only (TODO / RED / FIXME) — the
+      // resource name "todo" itself contains the lowercase substring
+      // and would falsely match a case-insensitive check. Likewise
+      // require the placeholder to be a literal "rename me" string,
+      // not an arbitrary verb.
+      const hasRedMarker =
+        /\bTODO\b|\bRED\b|\bFIXME\b/.test(story) || /["'`]rename me["'`]/i.test(story);
+      expect(hasExpectFail || hasRedMarker).toBe(true);
+    });
+
+    it("explains in a doc-comment that the test is intentionally RED", () => {
+      const plan = planScaffoldModule({ name: "todo", existingResources: [] });
+      if (plan.action !== "write") throw new Error("expected write plan");
+      const story = plan.files.find((f) =>
+        f.path.includes("stories/todo-module.story.test.ts"),
+      )!.content;
+      // The doc-block at the top of the file makes the RED-first
+      // intent obvious to a fresh agent so they don't misread the
+      // failure as a regression.
+      expect(story).toMatch(/intentional(ly)? RED|RED-first|TDD discipline/i);
+    });
+
+    it("scaffolded story test still parses as TypeScript (no syntax errors)", () => {
+      const plan = planScaffoldModule({ name: "todo", existingResources: [] });
+      if (plan.action !== "write") throw new Error("expected write plan");
+      const story = plan.files.find((f) =>
+        f.path.includes("stories/todo-module.story.test.ts"),
+      )!.content;
+      // Light structural sanity — paired braces / parens / backticks
+      // don't drift after the RED-first edit. A real TS parse would be
+      // ideal but adding a runtime ts-parse just for one assertion is
+      // disproportionate; balance check is enough to catch the common
+      // template-edit foot-guns.
+      const balanced = (s: string, open: string, close: string) =>
+        [...s].reduce((acc, ch) => acc + (ch === open ? 1 : ch === close ? -1 : 0), 0) === 0;
+      expect(balanced(story, "{", "}")).toBe(true);
+      expect(balanced(story, "(", ")")).toBe(true);
+      expect(balanced(story, "[", "]")).toBe(true);
+    });
+
+    it("nextSteps mentions the scaffolded story test ships RED on purpose", () => {
+      const plan = planScaffoldModule({ name: "todo", existingResources: [] });
+      if (plan.action !== "write") throw new Error("expected write plan");
+      // Operator-visible printout points new contributors at the
+      // RED-first contract so they don't waste a cycle assuming the
+      // scaffold output is broken.
+      expect(plan.nextSteps).toMatch(/RED|story test.*on purpose|edit assertions/i);
+      expect(plan.nextSteps).toMatch(/tests\/stories\/todo-module\.story\.test\.ts/);
+    });
+  });
+
   describe("idempotency", () => {
     it("aborts with a clear reason when the module folder already exists", () => {
       const plan = planScaffoldModule({
