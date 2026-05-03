@@ -39,6 +39,13 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Lint
         run: bun run lint
+      # Tenant-scoped models (those with a `tenantId` column) MUST be paired
+      # with an `ENABLE ROW LEVEL SECURITY` migration — otherwise the whole
+      # multi-tenant isolation contract is silently bypassed. The audit is
+      # cheap (no DB / no Nest bootstrap), so it lives in the lint job
+      # rather than as its own ~30s checkout-and-install pipeline.
+      - name: RLS coverage audit
+        run: bun run check:rls
 
   format:
     runs-on: ubuntu-latest

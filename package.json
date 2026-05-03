@@ -28,6 +28,7 @@
     "prisma:migrate": "prisma migrate deploy",
     "postinstall": "bun run scripts/postinstall-prisma-symlink.ts",
     "prepare:schema": "bun run scripts/prepare-schema.ts",
+    "check:rls": "bun run scripts/check-rls.ts",
     "doctor": "bun run scripts/doctor.ts",
     "onboard": "bun run scripts/onboard.ts",
     "rename": "bun run scripts/rename-project.ts",

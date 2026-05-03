@@ -124,6 +124,23 @@ Commit the schema diff + the generated SQL migration together.
 It's a build artifact. Treat it as read-only output of
 `prepare:schema`.
 
+## RLS coverage is enforced in CI
+
+Tenant-scoped models (any model with a `tenantId` field) MUST be paired
+with a migration that enables Postgres RLS on the resolved table —
+`ALTER TABLE "<table>" ENABLE ROW LEVEL SECURITY;` plus a
+`CREATE POLICY` matching `tenant_id = current_setting('app.tenant_id')`.
+See `prisma/migrations/20260428000150_rls_tenant_isolation_extended/`
+for the canonical shape.
+
+The CI gate `bun run check:rls` (planner:
+`src/core/permissions/rls-audit-planner.ts`, runner:
+`scripts/check-rls.ts`) walks every model + every migration and fails
+when a tenant-scoped model has no RLS-enabling migration anywhere in
+the tree. Run it locally before commit; the lint job runs it on every
+PR. There's no auto-fix — RLS is a load-bearing security layer, opt-in
+per table is the safer default.
+
 ## Migrations are forward-only
 
 Per `docs/api-stability-promise.md`, we don't rewrite history of an
