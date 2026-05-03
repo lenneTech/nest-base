@@ -117,13 +117,16 @@ into the HTML.
 The composition:
 
 ```
-clients/                  ← React 19 SPA source (TypeScript + react-aria)
+clients/                  ← React 19 SPA source (TypeScript + shadcn/ui + Tailwind 4)
 ├── main.tsx              ← bundle entry; mounted by the shell
 ├── App.tsx               ← lazy-loaded route table
-├── layout/AdminShell.tsx ← sidebar + header + active-nav highlight
+├── layout/AdminShell.tsx ← sidebar + header + active-nav highlight (Tailwind utilities)
 ├── pages/                ← one tsx file per route (admin + dev + errors + openapi)
-├── components/           ← react-aria-component wrappers + JsonViewer
-└── styles/               ← tokens.css, admin-layout.css, components.css
+├── components/
+│   ├── ui/               ← shadcn/ui primitives (Radix-based) — Button, Card, Badge,
+│   │                       Dialog, Sheet, Tabs, Switch, Input, Select, Table, …
+│   └── *.tsx             ← Custom components: JsonViewer, PageState, Sparkline
+└── styles/               ← tokens.css (brand-aware vars) + globals.css (Tailwind 4 + @theme bridge)
 
 dev-portal-shell.ts       ← server-side shell renderer (`<div id="root">`)
 dev-hub.controller.ts     ← /dev/* SPA shell + JSON sidecars
@@ -136,8 +139,14 @@ is mechanically pinned by `tests/stories/dev-portal-pages.story.test.ts`.
 Real verification is visual (open the page).
 
 The theme is **near-black surfaces + electric-lime accent (#c5fb45)**.
-CSS variables in `clients/styles/tokens.css` and `admin-layout.css`
-define every colour, radius, easing. Don't hard-code values.
+CSS variables in `clients/styles/tokens.css` declare every colour /
+radius / easing once, and `clients/styles/globals.css` aliases them
+into Tailwind utilities through Tailwind 4's CSS-first `@theme`
+config (`@theme inline { --color-background: var(--bg); … }`). The
+brand loader (Issue #5) overrides the same `:root` vars at runtime,
+so a single `brand.json` re-paints every page. Don't hard-code
+colours — use `bg-background`, `text-fg-muted`, `border-line`,
+`text-accent`, etc.
 
 ---
 

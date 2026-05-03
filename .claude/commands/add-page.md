@@ -1,5 +1,5 @@
 ---
-description: Add a new dev-hub or admin page to the dark-mode shell (JSON viewer wrap or custom layout).
+description: Add a new dev-hub or admin page to the React 19 + shadcn/ui SPA shell (JSON viewer wrap or custom layout).
 allowed-tools:
   - Read
   - Edit
@@ -11,17 +11,24 @@ allowed-tools:
 
 # /add-page
 
-Adds a new page that lives in the dev-hub or admin sidebar, using
-the shared dark-mode layout. Two flavours:
+Adds a new page that lives in the dev-hub or admin sidebar, served by
+the shared React 19 SPA at `src/core/dx/clients/`. Two flavours:
 
 - **JSON viewer wrap** — for endpoints that return structured data
-  (errors catalog, OpenAPI spec, parsed PostgREST query). One-liner:
-  the controller calls `renderJsonViewerPage()`.
+  (errors catalog, OpenAPI spec, parsed PostgREST query). The React
+  page mounts `<JsonViewer>` over the JSON sidecar; the controller
+  does content-negotiation between `text/html` (returns the SPA
+  shell) and `application/json` (raw payload for SDKs).
 - **Custom layout** — for pages with their own UI (coverage report,
-  log viewer). Write a renderer in `src/core/dx/<page>-ui.ts`.
+  feature toggles, webhook inspector). Compose shadcn/ui primitives
+  (`Card`, `Button`, `Badge`, `Tabs`, `Table`, `Dialog`, `Sheet`,
+  `Switch`, `Input`, `Select`, …) under `<AdminShell>` plus Tailwind
+  4 utility classes that resolve through the `@theme` bridge to the
+  brand-aware tokens.
 
-Read `.claude/skills/extending-dev-hub.md` first — it has the full
-walkthrough. This command sequences the steps under TDD.
+Read [`.claude/skills/extending-dev-hub.md`](../skills/extending-dev-hub.md)
+first — it is the canonical guide. This command sequences the steps
+under TDD.
 
 ## Arguments
 
@@ -44,27 +51,41 @@ Echo the plan back to the user:
 
 > I'll add a `<slug>` page titled "`<title>`" using the `<flavour>`
 > pattern. It'll appear in the sidebar under `<section>` (Übersicht /
-> API & Docs / Admin) and require an `id` of `<slug-as-id>`. Tenant-
-> exempt: yes/no. Sound right?
+> API & Docs / Admin). Tenant-exempt: yes/no. Sound right?
 
-Get explicit confirmation. Pin down: which sidebar section, which icon
-(reuse an existing `ICON_*` or add a new SVG), tenant-exemption (yes
+Get explicit confirmation. Pin down: which sidebar section, which
+icon (reuse an existing lucide-react icon from
+`clients/layout/icons.tsx` or add a new one), tenant-exemption (yes
 for public/dev, no for tenant-scoped business routes).
 
 ### 1 · Red — write the failing tests first
 
-For **json-viewer** flavour, write `tests/<slug>.e2e-spec.ts`:
+Add `<slug>` to the route ↔ sidebar ↔ JSON-endpoint contract test
+first:
 
 ```typescript
-it("returns HTML for browsers", async () => {
-  const res = await request(app.getHttpServer()).get("/<slug>").set("Accept", "text/html");
+// tests/stories/dev-portal-pages.story.test.ts
+expectedRoutes.push("/<slug>");          // SPA route
+expectedJsonEndpoints.push("/<slug>.json"); // JSON sidecar (custom flavour only)
+expectedSidebarItems.push({ id: "<slug>", href: "/<slug>", label: "<Title>" });
+```
+
+For **json-viewer** flavour, write a small `tests/<slug>.e2e-spec.ts`:
+
+```typescript
+it("returns the SPA shell for browsers", async () => {
+  const res = await request(app.getHttpServer())
+    .get("/<slug>")
+    .set("Accept", "text/html");
   expect(res.headers["content-type"]).toMatch(/text\/html/);
-  expect(res.text).toContain("jv__root");
-  expect(res.text).toContain("<title><Title> — nest-server</title>");
+  expect(res.text).toContain('<div id="root"></div>');
+  expect(res.text).toContain("<Title> — nest-server");
 });
 
 it("returns JSON when Accept: application/json", async () => {
-  const res = await request(app.getHttpServer()).get("/<slug>").set("Accept", "application/json");
+  const res = await request(app.getHttpServer())
+    .get("/<slug>")
+    .set("Accept", "application/json");
   expect(res.headers["content-type"]).toMatch(/application\/json/);
 });
 
@@ -76,43 +97,24 @@ it("returns JSON when ?format=json overrides Accept", async () => {
 });
 ```
 
-For **custom** flavour, write `tests/stories/<slug>-ui.story.test.ts`:
+For **custom** flavour, write a story test that pins the JSON sidecar
+shape and any pure planner you extract (the React page itself is
+coverage-excluded — exercise it visually):
 
 ```typescript
-it("rendert vollständiges HTML mit Title und Body-Slot", () => {
-  const html =
-    render <
-    Slug >
-    Page({
-      /* minimal input */
-    });
-  expect(html).toMatch(/^<!doctype html>/i);
-  expect(html).toContain("<title><Title> — nest-server</title>");
+// tests/stories/<slug>.story.test.ts
+it("gathers <slug> data with the expected shape", () => {
+  const data = gather<Slug>Data({ /* fixture */ });
+  expect(data).toMatchObject({ /* … */ });
 });
 
-it("eskapiert XSS in User-Input", () => {
-  const html =
-    render <
-    Slug >
-    Page({
-      /* input with <script> */
-    });
-  expect(html).not.toContain("<script>alert(1)</script>");
-  expect(html).toContain("&lt;script&gt;");
-});
-
-it("hebt aktiven Sidebar-Link hervor", () => {
-  const html =
-    render <
-    Slug >
-    Page({
-      /* ... */
-    });
-  expect(html).toContain("admin-nav__link--active");
+it("escapes user-controlled values in /<slug>.json", async () => {
+  // The JSON sidecar must round-trip safely through JSON.stringify.
 });
 ```
 
-Run `bun run test:e2e <path>` and confirm RED. Commit:
+Run `bun run test:e2e <path>` (or `test:unit` for story tests) and
+confirm RED. Commit:
 
 ```
 test(<slug>): add red tests for the new <slug> page
@@ -120,7 +122,10 @@ test(<slug>): add red tests for the new <slug> page
 
 ### 2 · Green — implement
 
-**JSON viewer flavour** — single controller method:
+**JSON viewer flavour** — controller does content-negotiation, React
+page wraps `<JsonViewer>`.
+
+Controller method (in `src/core/<domain>/<domain>.controller.ts`):
 
 ```typescript
 @Get("<slug>")
@@ -135,12 +140,7 @@ list(
     return;
   }
   res.type("text/html; charset=utf-8").send(
-    renderJsonViewerPage({
-      title: "<Title>",
-      currentNav: "<slug>",
-      value: data,
-      rawJsonHref: "/<slug>?format=json",
-    }),
+    renderDevPortalShell(buildDevPortalShellInput({ title: "<Title>" })),
   );
 }
 ```
@@ -148,40 +148,61 @@ list(
 Make sure `devWantsJson` exists at the bottom of the controller file.
 If not, copy the helper from `dev-hub.controller.ts`.
 
-**Custom flavour** — three steps:
+React page (`src/core/dx/clients/pages/<Slug>Page.tsx`):
 
-1. Write `src/core/dx/<slug>-ui.ts`:
+```tsx
+import { useQuery } from "@tanstack/react-query";
+import { AdminShell } from "../layout/AdminShell.js";
+import { JsonViewer } from "../components/JsonViewer.js";
+import { fetchJson } from "../lib/fetchJson.js";
+import { PageError, PageLoading } from "../components/PageState.js";
 
-   ```typescript
-   import { renderAdminLayout } from "./admin-layout.js";
+export default function <Slug>Page(): JSX.Element {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["<slug>"],
+    queryFn: () => fetchJson("/<slug>?format=json"),
+  });
+  return (
+    <AdminShell title="<Title>" subtitle="…" currentNav="<slug>">
+      {isLoading ? <PageLoading /> :
+       error ? <PageError error={error} /> :
+       <JsonViewer value={data} rawJsonHref="/<slug>?format=json" />}
+    </AdminShell>
+  );
+}
+```
 
-   export interface <Slug>PageInput { /* typed input */ }
+**Custom flavour** — three pieces:
 
-   export function render<Slug>Page(input: <Slug>PageInput): string {
-     const body = `<style>...</style><div class="admin-card">...</div>`;
-     return renderAdminLayout({
-       title: "<Title>",
-       subtitle: "Optional sub-text",
-       currentNav: "<slug>",
-       body,
-     });
-   }
-
-   function escapeHtml(input: string): string { /* five-char table */ }
-   ```
-
-2. Wire the controller method:
+1. **JSON sidecar route** in `dev-hub.controller.ts` (for `/dev/*`)
+   or `admin-spa.controller.ts` (for `/admin/*`):
 
    ```typescript
    @Get("<slug>")
    @Header("content-type", "text/html; charset=utf-8")
    <slug>Page(): string {
-     this.assertDev();   // if dev-only
-     return render<Slug>Page({ /* ... */ });
+     this.assertDev();
+     return renderDevPortalShell(buildDevPortalShellInput({ title: "<Title>" }));
+   }
+
+   @Get("<slug>.json")
+   <slug>Json(): { /* shape */ } {
+     this.assertDev();
+     return this.gather<Slug>Data();
    }
    ```
 
-3. Sidebar entry in `src/core/dx/clients/layout/nav.ts` (`NAV_SECTIONS` + `SPA_ROUTES`):
+2. **React page** (`src/core/dx/clients/pages/<Slug>Page.tsx`).
+   Compose the body from shadcn/ui primitives under
+   `clients/components/ui/` (`Card`, `Badge`, `Button`, `Input`,
+   `Switch`, `Tabs`, `Dialog`, `Sheet`, `Table`, …) plus Tailwind 4
+   utility classes (`bg-surface-2`, `text-fg-muted`, `border-line`,
+   `text-accent`, `bg-ok/15 text-ok`, `grid grid-cols-2 gap-4`, …).
+   Reuse `PageLoading`, `PageError`, `PageEmpty`, `StatTile` from
+   `components/PageState.tsx` for the standard states.
+
+3. **Sidebar entry** in `src/core/dx/clients/layout/nav.ts`
+   (`NAV_SECTIONS` + `SPA_ROUTES`):
 
    ```typescript
    {
@@ -192,8 +213,18 @@ If not, copy the helper from `dev-hub.controller.ts`.
    }
    ```
 
-   If you need a new icon: add an `ICON_<NAME>` constant at the bottom
-   of the file with a 16x16 SVG `<path>` (single-colour, stroke-width 2).
+   If you need a new icon: pick one from
+   [`lucide-react`](https://lucide.dev/icons) and add an
+   `ICON_<NAME>` constant at the bottom of
+   `clients/layout/icons.tsx`.
+
+4. **Route table** in `src/core/dx/clients/App.tsx`:
+
+   ```tsx
+   const <Slug>Page = lazy(() => import("./pages/<Slug>Page.js"));
+   …
+   <Route path="/<slug>" element={<<Slug>Page />} />
+   ```
 
 ### 3 · Tenant-exemption (if public)
 
@@ -206,17 +237,19 @@ const EXEMPT_PREFIXES = ["/health/", ..., "/<slug>/"];
 const EXEMPT_EXACT = new Set(["/", ..., "/<slug>"]);
 ```
 
-Update the test in `tests/tenant-guard.e2e-spec.ts`. Without this,
-the page returns 400 `CORE_VALIDATION` "Tenant Header Required".
+If JWT/session must be skipped, do the same in
+`src/core/auth/jwt-middleware.ts` (`PUBLIC_EXACT` /
+`PUBLIC_PREFIXES`). Update the guard tests accordingly. Without
+this, the page returns 400 `CORE_VALIDATION` "Tenant Header Required"
+or 401 from the JWT middleware.
 
 ### 4 · Six gates
 
 ```bash
 bun run lint && \
-bun run format && \
-bun run test:types && \
 bun run test:unit && \
 bun run test:e2e && \
+bun run test:types && \
 bun run test:coverage && \
 bun run build
 ```
@@ -224,10 +257,12 @@ bun run build
 Common failures:
 
 - **Lint/format**: `bun run lint:fix && bun run format:fix`
-- **Coverage drops**: `*-ui.ts` files are pre-excluded — if your
-  custom-flavour renderer is small, the story test should be enough.
-  Add coverage to any sibling planner you wrote.
+- **Coverage drops**: `clients/` is coverage-excluded — if your
+  custom-flavour page extracts a planner, give that planner its own
+  story test.
 - **Tenant-guard test failing**: re-add the new path to `EXEMPT_*`.
+- **dev-portal-pages.story.test.ts failing**: you forgot to add the
+  route ↔ sidebar ↔ JSON-endpoint triple. Re-read step 1.
 
 ### 5 · Live verify
 
@@ -248,17 +283,33 @@ If it's the json-viewer flavour, also test:
 ```
 feat(<slug>): add /<slug> page with <flavour> layout
 
-- controller method with content-negotiation
+- controller method with content-negotiation (and JSON sidecar for custom flavour)
+- React page under src/core/dx/clients/pages/, composed from shadcn primitives
 - sidebar entry under <section> with <icon> icon
 - tenant-exemption (or n/a)
-- story test pinning structure + XSS escape
+- story test pinning the route ↔ sidebar ↔ JSON contract
 ```
 
 ## Don't
 
-- **Don't roll your own `<html>`/`<head>`** — always go through `renderAdminLayout`.
-- **Don't skip the XSS test** — every renderer needs one.
-- **Don't hard-code colours** — use the CSS variables from `clients/styles/tokens.css`.
-- **Don't add functional logic to `*-ui.ts`** — those are coverage-excluded as glue. Put logic in a sibling planner that gets full coverage.
-- **Don't forget the sidebar entry** — without it, the page is unreachable from navigation.
-- **Don't forget to gate dev-only pages with `assertDev()`** — otherwise they leak in production.
+- **Don't roll your own server-side renderer.** The legacy `*-ui.ts`
+  HTML path is gone. Every page is a React component under
+  `src/core/dx/clients/pages/`.
+- **Don't bypass `<AdminShell>`.** The shell owns the sidebar +
+  header + layout grid; a page that renders without it will look
+  detached.
+- **Don't hard-code colours.** Use Tailwind utilities that resolve
+  through `@theme` (`bg-background`, `text-fg-muted`, `border-line`,
+  `text-accent`, …) so the brand-loader (Issue #5) can override
+  them.
+- **Don't introduce native HTML form inputs in net-new pages.** Use
+  shadcn primitives (`Input`, `Select`, `Switch`, `Checkbox`,
+  `Textarea`, `RadioGroup`) so a11y, keyboard navigation, and dark-
+  mode focus rings come for free.
+- **Don't add functional logic to `clients/`.** It's coverage-
+  excluded. Logic lives in a sibling `src/core/dx/` planner with its
+  own story test.
+- **Don't forget the sidebar entry.** Without it, the page is
+  unreachable from navigation.
+- **Don't forget to gate dev-only pages with `assertDev()`.**
+  Otherwise they leak in production.

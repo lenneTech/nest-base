@@ -46,6 +46,8 @@ for the consumer perspective.
 | Tests | Vitest 4 (Bun test for perf only) | Bigger plugin ecosystem |
 | Lint/format | oxlint + oxfmt | Rust-based, fast |
 | API style | REST | No GraphQL, no subscriptions outside Socket.IO |
+| Dev-Portal SPA | React 19 + react-router-dom 7 | Single SPA, every dev/admin/errors/openapi page |
+| Dev-Portal UI | shadcn/ui (Radix) + Tailwind CSS 4 + lucide-react + sonner | Vendored primitives, CSS-first `@theme`, tree-shaken icons, toasts |
 
 ### Out of scope (do not add)
 
@@ -357,10 +359,12 @@ in any environment because frontends + SDK generators read them.
 | SPA source tree | `src/core/dx/clients/` | Browser-only: `main.tsx` (entry), `App.tsx` (router), `layout/`, `pages/`, `components/`, `lib/`, `styles/` |
 | Layout shell | `src/core/dx/clients/layout/AdminShell.tsx` + `nav.ts` + `icons.tsx` | Sidebar + header + SVG icons + active-state highlight |
 | Pages | `src/core/dx/clients/pages/` | One component per route: `DevHubLandingPage`, `FeaturesPage`, `CoveragePage`, `TestsPage`, `DiagnosticsPage`, `LogsPage`, `TracesPage`, `QueriesPage`, `RoutesPage`, `ErdPage`, `EmailPreviewPage`, `PostgrestParsePage`, `ComponentShowcasePage`, `PermissionTesterPage`, `WebhookInspectorPage`, `RealtimeInspectorPage`, `AuditBrowserPage`, `SearchTesterPage`, `ErrorsPage`, `OpenApiPage` — each lazy-loaded via `React.lazy` |
-| Component library | `src/core/dx/clients/components/` | `react-aria-components` wrappers — Button, TextField, NumberField, Switch, Checkbox, RadioGroup, Select, Combobox, DialogModal, Tabs, Menu, Tooltip, FileTrigger, Toast — plus a `JsonViewer` reused by `/errors`, `/api/openapi`, and `/dev/postgrest-parse` |
-| Design tokens | `src/core/dx/clients/styles/tokens.css` | `:root` custom properties (electric-lime accent, near-black surfaces) |
-| Page chrome CSS | `src/core/dx/clients/styles/admin-layout.css` | Shell + every per-page CSS block; React JSX re-uses the same classnames the legacy renderers produced so the diff vs. the historical HTML is zero |
-| Component styles | `src/core/dx/clients/styles/components.css` | `.dp-*` selectors targeting `react-aria` `data-*` states (input primitives only) |
+| UI primitives | `src/core/dx/clients/components/ui/` | **shadcn/ui** components vendored under this tree (badge, button, card, checkbox, dialog, dropdown-menu, input, label, progress, radio-group, select, separator, sheet, sonner, switch, table, tabs, textarea, tooltip), built on **Radix UI**. To add a primitive: copy the canonical source from <https://ui.shadcn.com/docs/components>, retarget imports to `../../lib/utils.js`, append the `.js` suffix to every relative import. |
+| Custom components | `src/core/dx/clients/components/` | `JsonViewer` (reused by `/errors`, `/api/openapi`, `/dev/postgrest-parse`), `PageState` (Loading / Error / Empty / StatTile helpers), `Sparkline` (Webhook-Inspector trends) |
+| Icons | `src/core/dx/clients/layout/icons.tsx` | Sidebar + page icons via **lucide-react** — single import, tree-shaken to ~3 KB gzipped, consistent stroke-width 1.75 |
+| Toasts | `sonner` | Notification primitive mounted in `main.tsx` + the `<Toaster>` component, used for save / delete confirmations across `/dev/*` |
+| Styling stack | `src/core/dx/clients/styles/globals.css` | **Tailwind CSS 4** with the CSS-first `@theme` config — `@import "tailwindcss"` + `@theme inline { --color-background: var(--bg); … }`. Built via `bun-plugin-tailwind`, hot-reloaded by the dev-portal watcher. |
+| Design tokens | `src/core/dx/clients/styles/tokens.css` | `:root` custom properties (electric-lime accent, near-black surfaces) — declared once, overridden at runtime by `brand.json` (Issue #5), aliased into Tailwind utilities through the `@theme` bridge above |
 | Build script | `scripts/build-dev-portal.ts` | `Bun.build({ target: "browser", splitting: true, minify: true })` → `dist/dev-portal/` |
 | `/dev/*` JSON sidecars | `dev-hub.controller.ts` | `dashboard.json`, `feature-catalog.json`, `coverage.json`, `tests.json`, `diagnostics.json`, `logs.json`, `traces.json`, `queries.json`, `routes.json`, `erd.json`, `email-preview.json`, `email-builder/templates.json` (with `overridesCore`/`overrideExists` flags), `email-builder/blocks.json`, `email-builder/templates/:name/composition.json` (Issue #49 — decompose `.tsx` source back to JSON composition), `migrations.json` |
 | `/dev/email-builder/*` mutating endpoints | `dev-hub.controller.ts` + `src/core/email/email-builder.ts` | `preview.json` (POST — render draft), `save` (POST — codegen `.tsx` to `src/modules/email/templates/`), `templates/:name/override` (DELETE — Issue #49 reset-to-default); defense-in-depth path validation, 404 outside development |
@@ -375,9 +379,12 @@ in any environment because frontends + SDK generators read them.
 ### Build & dev-loop
 
 - `bun run build:dev-portal` produces `dist/dev-portal/main.js` (+
-  code-split chunks + `main.css` + `tokens.css`). Bundle budget: ≤ 400
-  KB gzipped for the Base-SPA (no Monaco, no TipTap). Current size:
-  ~116 KB initial / ~261 KB total (all chunks) gzipped.
+  code-split chunks + `main.css` + `tokens.css`). The Tailwind oxide
+  compiler runs through `bun-plugin-tailwind` so the CSS bundle only
+  contains classes the SPA actually references — Tailwind purge keeps
+  `main.css` lean while shadcn primitives stay first-class. Bundle
+  budget: ≤ 1.2 MB total (all chunks) for the Base-SPA (no Monaco, no
+  TipTap).
 - `bun run dev` runs an awaited initial portal build *before* the API
   child spawns, then starts `bun run build:dev-portal --watch` for
   incremental rebuilds (~80 ms warm). This eliminates the startup
@@ -398,20 +405,26 @@ the trust boundary (server → browser).
 ### Conventions
 
 - **Native HTML inputs in net-new pages are forbidden.** Every
-  interactive primitive on a brand-new page goes through
-  `react-aria-components` via the wrappers in `components/`. The
-  remaining admin-page ports (e.g. `AuditBrowserPage`) intentionally
-  render bare `<input>` / `<select>` inside `form.admin-form` because
-  the legacy CSS targets those selectors — swapping them for `dp-*`
-  wrappers would break the byte-for-byte fidelity contract with the
-  historical server pages. The Webhook-Inspector is the first page to
-  fully adopt the `dp-*` wrappers (issue #19).
+  interactive primitive on a brand-new page comes from
+  `components/ui/` (`Button`, `Input`, `Select`, `Switch`,
+  `Checkbox`, `Tabs`, `Dialog`, `Sheet`, `DropdownMenu`, …) — the
+  shadcn/ui primitives layered on Radix. The page body is composed
+  with **Tailwind utility classes** (`bg-surface-2`, `text-fg-muted`,
+  `border-line`, `text-accent`, `bg-ok/15 text-ok`, …) that resolve
+  through the `@theme` bridge in `styles/globals.css` to the
+  brand-aware tokens in `styles/tokens.css`. The full inventory of
+  available primitives + variants lives in
+  `pages/ComponentShowcasePage.tsx` (`/dev/components`).
 - **No `process.env.*` / Node imports.** This tree is browser-only;
   `tsconfig.client.json` excludes Node types so this fails at compile
   time.
 - **No server-rendered HTML left.** Every `Controller` returning HTML
   returns the dev-portal SPA shell; React + react-router decide what
   to render based on the URL.
+
+The detailed walkthrough (how to add a page, how to add a primitive,
+which Tailwind utilities map to which token, build pipeline) lives in
+[`src/core/dx/clients/CLAUDE.md`](../src/core/dx/clients/CLAUDE.md).
 
 ## Security mechanisms (overview)
 

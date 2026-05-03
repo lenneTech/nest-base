@@ -84,7 +84,7 @@ export function JsonViewer({ value, rawJsonHref }: JsonViewerProps): ReactNode {
           <Value
             value={value}
             depth={0}
-            seen={new WeakSet()}
+            ancestors={EMPTY_ANCESTORS}
             filter={filter.trim().toLowerCase()}
             expandSignal={expandSignal}
           />
@@ -105,12 +105,24 @@ export function JsonViewer({ value, rawJsonHref }: JsonViewerProps): ReactNode {
 interface ValueProps {
   value: unknown;
   depth: number;
-  seen: WeakSet<object>;
+  /**
+   * Immutable chain of ancestor objects on the path from the root to
+   * this node. We pass a per-call snapshot (not a shared mutable
+   * `WeakSet`) so React's StrictMode double-render in dev builds —
+   * which used to flag every node as `[Circular]` because siblings
+   * inherited each other's seen-set — no longer leaks state between
+   * branches. Length is O(depth), and JSON parsed from `fetch().json()`
+   * cannot be circular anyway; this guard exists only to keep the
+   * viewer robust if someone hands it a non-JSON object graph.
+   */
+  ancestors: readonly object[];
   filter: string;
   expandSignal: "all" | "collapse" | "auto";
 }
 
-function Value({ value, depth, seen, filter, expandSignal }: ValueProps): ReactNode {
+const EMPTY_ANCESTORS: readonly object[] = Object.freeze([]);
+
+function Value({ value, depth, ancestors, filter, expandSignal }: ValueProps): ReactNode {
   if (value === null) return <span className="text-fg-muted">null</span>;
   if (value === undefined) return <span className="text-fg-muted">undefined</span>;
   switch (typeof value) {
@@ -131,10 +143,10 @@ function Value({ value, depth, seen, filter, expandSignal }: ValueProps): ReactN
     default:
       return <span className="text-fg-muted">{String(value)}</span>;
   }
-  if (seen.has(value as object)) {
+  if (ancestors.includes(value as object)) {
     return <span className="text-fg-muted">[Circular]</span>;
   }
-  seen.add(value as object);
+  const childAncestors: readonly object[] = [...ancestors, value as object];
 
   if (Array.isArray(value)) {
     if (value.length === 0) return <span className="text-fg-dim">[]</span>;
@@ -153,7 +165,7 @@ function Value({ value, depth, seen, filter, expandSignal }: ValueProps): ReactN
             <Value
               value={item}
               depth={depth + 1}
-              seen={seen}
+              ancestors={childAncestors}
               filter={filter}
               expandSignal={expandSignal}
             />
@@ -193,7 +205,7 @@ function Value({ value, depth, seen, filter, expandSignal }: ValueProps): ReactN
             <Value
               value={v}
               depth={depth + 1}
-              seen={seen}
+              ancestors={childAncestors}
               filter={filter}
               expandSignal={expandSignal}
             />
