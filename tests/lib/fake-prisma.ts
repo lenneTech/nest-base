@@ -76,7 +76,18 @@ function makeTable<T extends Row>(): TableMock<T> {
 
   const matchesWhere = (row: T, where: Partial<T>): boolean => {
     for (const [key, value] of Object.entries(where)) {
-      if (row[key as keyof T] !== value) return false;
+      const rowValue = row[key as keyof T];
+      // Real Prisma + Postgres treat `where: { col: null }` and
+      // "column was never assigned on insert" identically, because the
+      // column defaults to NULL. The naive `!==` check excluded rows
+      // whose column was undefined — silently breaking
+      // `findMany({ where: { deletedAt: null } })` for soft-delete
+      // services. Normalise `undefined → null` for filter comparison
+      // only — the row's stored shape is left untouched. (friction-log
+      // 2026-05-03)
+      const a = rowValue === undefined ? null : rowValue;
+      const b = value === undefined ? null : value;
+      if (a !== b) return false;
     }
     return true;
   };
