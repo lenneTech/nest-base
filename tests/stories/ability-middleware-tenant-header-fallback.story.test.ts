@@ -49,9 +49,7 @@ describe("Story · AbilityMiddleware x-tenant-id fallback", () => {
    * scenario (matches real Prisma semantics — the WHERE clause is
    * applied server-side).
    */
-  function makePrismaWithRow(
-    row: { id: string; status: string } | null,
-  ): PrismaService {
+  function makePrismaWithRow(row: { id: string; status: string } | null): PrismaService {
     const findFirst = vi.fn(async (input: { where?: Record<string, unknown> }) => {
       if (!row) return null;
       const where = input?.where ?? {};
