@@ -5,6 +5,10 @@ import { resolve } from "node:path";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { Client } from "pg";
 
+import {
+  type EnsurePrismaClientPlan,
+  planEnsurePrismaClient,
+} from "../src/core/testing/ensure-prisma-client.js";
 import { pinTestNodeEnv } from "../src/core/testing/pin-test-node-env.js";
 import { planTestDatabaseStrategy } from "../src/core/testing/test-database-strategy.js";
 
@@ -123,6 +127,16 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     throw new Error(`prisma migrate deploy failed (exit ${result.status}):\n${detail}`);
   }
 
+  // Ensure the Prisma client is generated. A pristine `lt fullstack
+  // init --next` workspace runs `bun install → … → bun run prisma:migrate`
+  // without ever invoking `prisma generate`, so the very first
+  // `bun run test:e2e` fails with `Cannot find module '.prisma/client/default'`
+  // when worker forks try to import `@prisma/client`. The pure planner
+  // is in `src/core/testing/ensure-prisma-client.ts`; this runner
+  // executes its `generate` plan via `bunx prisma generate`.
+  // Idempotent: a re-run with the client already present is a `skip`.
+  ensurePrismaClientGenerated();
+
   // Ensure the Dev-Portal SPA bundle is present before any dev-hub e2e
   // spec runs. Fresh clones don't have `dist/dev-portal/` yet, and the
   // `/dev/static/*` controller is wired straight to that directory — so
@@ -140,6 +154,49 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
       container = undefined;
     }
   };
+}
+
+/**
+ * Run `prisma generate` on demand if the package-local Prisma client
+ * is missing. Closes the friction-log gap where a fresh
+ * `lt fullstack init --next` workspace's first `bun run test:e2e`
+ * fails with `Cannot find module '.prisma/client/default'` because no
+ * documented setup step generates the client.
+ *
+ * The decision (run vs skip) is delegated to `planEnsurePrismaClient`
+ * — this runner is just a `spawnSync` shim so the planner stays pure
+ * and unit-testable.
+ *
+ * Failure modes:
+ *   - `bunx`/`prisma` missing → spawnSync returns a non-zero status;
+ *     we surface stdout+stderr in the thrown error so the operator
+ *     can fix their toolchain.
+ *   - schema-not-found inside the subprocess → also non-zero status;
+ *     same surfacing path.
+ */
+function ensurePrismaClientGenerated(): void {
+  const repoRoot = process.cwd();
+  const layout = {
+    packageRoot: repoRoot,
+    packagePrismaClientDefaultExists: existsSync(
+      resolve(repoRoot, "node_modules/.prisma/client/default.js"),
+    ),
+    schemaExists: existsSync(resolve(repoRoot, "prisma/schema.prisma")),
+  };
+  const plan: EnsurePrismaClientPlan = planEnsurePrismaClient(layout);
+  if (plan.kind === "skip") return;
+
+  const result = spawnSync(plan.command, [...plan.args], {
+    cwd: plan.cwd,
+    stdio: "pipe",
+    encoding: "utf8",
+  });
+  if (result.status !== 0) {
+    const detail = `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
+    throw new Error(
+      `${plan.command} ${plan.args.join(" ")} failed (exit ${result.status}):\n${detail}`,
+    );
+  }
 }
 
 /**
