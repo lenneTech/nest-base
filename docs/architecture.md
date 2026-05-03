@@ -209,6 +209,17 @@ The slim-module reference and the user-profile module are the two
 canonical examples — copy their decorator pattern when you scaffold
 a new module.
 
+`/api/openapi.json` is the canonical OpenAPI doc URL.
+`/api-docs-json` is mounted as a **deprecated alias** for legacy
+`nuxt-base-starter` installations whose `openapi-ts.config.ts`
+fallback still hardcodes the path used by older
+`nest-server-starter` releases. The alias returns the same document
+plus `Deprecation` (RFC 8594) and `Link: rel="successor-version"`
+(RFC 8288) headers pointing clients at the canonical URL. It will
+be removed once the upstream fix
+([lenneTech/nuxt-base-starter#13](https://github.com/lenneTech/nuxt-base-starter/issues/13))
+has propagated to all consumer workspaces.
+
 ## Multi-tenancy
 
 Two-layer isolation:

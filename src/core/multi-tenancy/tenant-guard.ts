@@ -8,7 +8,12 @@
  * The actual NestJS Guard wraps this classifier in a future slice.
  */
 
-const EXEMPT_EXACT = new Set(["/", "/errors", "/tenants"]);
+// `/api-docs-json` is the deprecated legacy alias for
+// `/api/openapi.json` — exempt from the tenant header because SDK
+// generators that hit the legacy URL don't carry a tenant context
+// (mirrors the canonical doc's exemption). Removed once
+// lenneTech/nuxt-base-starter#13 has propagated.
+const EXEMPT_EXACT = new Set(["/", "/errors", "/tenants", "/api-docs-json"]);
 // `/me/*` endpoints operate on the authenticated user (req.user.id),
 // not on a specific tenant. `/tenants` is the self-service tenant CRUD
 // surface — a signed-up user creates their first tenant here, so the
