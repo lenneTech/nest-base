@@ -1,7 +1,11 @@
 import type { PrismaClient } from "@prisma/client";
 
 import type { DbPermissionRow } from "./db-rule-resolver.js";
-import { buildMemberRoleRules } from "./member-role-rules.js";
+import {
+  DEFAULT_MEMBER_PER_USER_RESOURCES,
+  DEFAULT_MEMBER_RESOURCES,
+  buildMemberRoleRules,
+} from "./member-role-rules.js";
 import type { PermissionStorage } from "./permission.service.js";
 
 /**
@@ -61,6 +65,23 @@ export interface PrismaPermissionStorageOptions {
   memberPerUserResources?: readonly string[];
 }
 
+/**
+ * Multi-provider extras (`EXTRA_MEMBER_RESOURCES` /
+ * `EXTRA_MEMBER_PER_USER_RESOURCES`) the storage should merge on top
+ * of the (possibly-overridden) defaults. NestJS multi-providers
+ * surface as `T[]` where each `T` is one provider's `useValue` — so
+ * here `string[][]`, one inner array per registration.
+ *
+ * Kept as a separate parameter (instead of folded into
+ * `PrismaPermissionStorageOptions`) so projects that construct the
+ * storage manually for tests don't have to deal with the multi-
+ * provider shape — only the `PermissionsModule` factory wires it.
+ */
+export interface PrismaPermissionStorageExtras {
+  extraTenantResources?: readonly (readonly string[])[];
+  extraUserResources?: readonly (readonly string[])[];
+}
+
 type PrismaSubset = Pick<PrismaClient, "tenantMember" | "permission">;
 
 interface PermissionRow {
@@ -74,14 +95,25 @@ export class PrismaPermissionStorage implements PermissionStorage {
   private readonly synthesize: boolean;
   private readonly memberResources?: readonly string[];
   private readonly memberPerUserResources?: readonly string[];
+  private readonly extraTenantResources: readonly string[];
+  private readonly extraUserResources: readonly string[];
 
   constructor(
     private readonly prisma: PrismaSubset,
     options: PrismaPermissionStorageOptions = {},
+    extras: PrismaPermissionStorageExtras = {},
   ) {
     this.synthesize = options.synthesizeMemberRules ?? true;
     this.memberResources = options.memberResources;
     this.memberPerUserResources = options.memberPerUserResources;
+    // Flat-map the multi-provider arrays once at construction so the
+    // hot path in findRulesForUser stays cheap. Stable-sort the
+    // result so multiple providers contributing the same set produce
+    // a deterministic order (the sort is on the extras only — the
+    // defaults retain their authored order so existing snapshots
+    // / consumers that depend on it stay stable).
+    this.extraTenantResources = stableUniqueSort(extras.extraTenantResources);
+    this.extraUserResources = stableUniqueSort(extras.extraUserResources);
   }
 
   async findRulesForUser(userId: string, tenantId: string): Promise<DbPermissionRow[]> {
@@ -130,13 +162,55 @@ export class PrismaPermissionStorage implements PermissionStorage {
     // entries use `$CURRENT_TENANT`, per-user entries (ApiKey, etc.)
     // use `$CURRENT_USER`. Appended after the explicit rows so the
     // resolver sees both — CASL OR-merges granting rules.
-    const opts: Parameters<typeof buildMemberRoleRules>[0] = {};
-    if (this.memberResources !== undefined) opts.resources = this.memberResources;
-    if (this.memberPerUserResources !== undefined)
-      opts.perUserResources = this.memberPerUserResources;
+    //
+    // Merge order: explicit overrides (memberResources /
+    // memberPerUserResources) take precedence for the "default" slot,
+    // then EXTRA_* multi-provider extras append after, deduped.
+    // Without an override the upstream defaults apply.
+    const tenantBase = this.memberResources ?? DEFAULT_MEMBER_RESOURCES;
+    const userBase = this.memberPerUserResources ?? DEFAULT_MEMBER_PER_USER_RESOURCES;
+    const opts: Parameters<typeof buildMemberRoleRules>[0] = {
+      resources: dedupePreserveOrder(tenantBase, this.extraTenantResources),
+      perUserResources: dedupePreserveOrder(userBase, this.extraUserResources),
+    };
     const synthesized = buildMemberRoleRules(opts);
     return [...explicit, ...synthesized];
   }
+}
+
+/**
+ * Flatten + dedupe + stable-sort a multi-provider extras list. The
+ * sort is intentional: two providers registering the same set must
+ * produce a deterministic order so cached abilities stay stable.
+ *
+ * We do NOT touch the order of the upstream defaults — those are
+ * authored deliberately in `member-role-rules.ts` and merged after
+ * via `dedupePreserveOrder`.
+ */
+function stableUniqueSort(source: readonly (readonly string[])[] | undefined): readonly string[] {
+  if (!source || source.length === 0) return [];
+  return [...new Set(source.flat())].sort();
+}
+
+/**
+ * Concatenate `defaults` then `extras` and dedupe by keeping the
+ * first occurrence. Defaults retain their authored order so
+ * downstream consumers that depend on it (existing tests, the
+ * `/permissions/test` endpoint snapshot) stay stable; extras append
+ * in their stable-sorted order.
+ */
+function dedupePreserveOrder(
+  defaults: readonly string[],
+  extras: readonly string[],
+): readonly string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const value of [...defaults, ...extras]) {
+    if (seen.has(value)) continue;
+    seen.add(value);
+    out.push(value);
+  }
+  return out;
 }
 
 function toDbPermissionRow(row: PermissionRow): DbPermissionRow {
