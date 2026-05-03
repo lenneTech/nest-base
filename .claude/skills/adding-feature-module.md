@@ -272,8 +272,17 @@ exists. Run it locally after `prisma migrate dev` to catch a missed
 sibling migration before pushing:
 
 ```bash
-bun run check:rls   # exits 1 + lists offenders if any
+bun run check:rls           # static (always) + runtime (if DATABASE_URL set)
+bun run check:rls --runtime # force the live pg_class.relrowsecurity check
+bun run check:rls --strict  # fail when runtime check is skipped
 ```
+
+The runtime mode connects to Postgres and asserts
+`pg_class.relrowsecurity = true` per tenant-scoped table — it catches
+the failure mode the static scan can't: a migration file edited
+*after* it has been applied (Prisma records the file's hash but
+doesn't re-run it), leaving the live DB unprotected while the static
+scan stays green.
 
 ## Step 3 — DTOs
 
