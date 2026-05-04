@@ -254,5 +254,17 @@ describe("Story · scaffold-module-planner", () => {
       expect(plan.nextSteps).toMatch(/AppModule|app\.module/);
       expect(plan.nextSteps).toMatch(/RLS|row[- ]level security/i);
     });
+
+    it("tells the operator to regenerate docs/openapi.snapshot.json after wiring the route", () => {
+      // Friction-log entry (LLM-test 2026-05-04 #5 medium): the
+      // openapi-snapshot story test fails on every new route until
+      // the snapshot is regenerated. Without this hint, fresh
+      // contributors lose half an hour chasing what looks like a
+      // module-level test failure.
+      const plan = planScaffoldModule({ name: "todo", existingResources: [] });
+      if (plan.action !== "write") throw new Error("expected write plan");
+      expect(plan.nextSteps).toMatch(/dump:openapi/);
+      expect(plan.nextSteps).toMatch(/openapi\.snapshot\.json/);
+    });
   });
 });

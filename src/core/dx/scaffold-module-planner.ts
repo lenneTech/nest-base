@@ -787,10 +787,20 @@ function renderNextSteps(ctx: NameContext): string {
      import { ${ctx.pascal}Module } from "../../modules/${ctx.kebab}/${ctx.kebab}.module.js";
      // …add ${ctx.pascal}Module to the @Module({ imports: [...] }) array.
 
-  5. (Optional) If non-admin tenant members manage ${ctx.pascal}, add it
+  5. Regenerate docs/openapi.snapshot.json so the snapshot test stays green:
+
+     bun run dump:openapi
+     # OR: UPDATE_OPENAPI_SNAPSHOT=1 bun run test:e2e tests/stories/openapi-snapshot.story.test.ts
+
+     The committed snapshot is the offline contract the frontend SDK
+     targets — adding a route changes it. Skipping this step turns
+     the snapshot-story test red on what looks like a ${ctx.pascal}-
+     related assertion.
+
+  6. (Optional) If non-admin tenant members manage ${ctx.pascal}, add it
      to EXTRA_MEMBER_RESOURCES (PR #66's multi-provider hook).
 
-  6. Story test ships RED on purpose. Edit assertions for your
+  7. Story test ships RED on purpose. Edit assertions for your
      domain, then run
 
      bun run test:e2e tests/stories/${ctx.kebab}-module.story.test.ts
@@ -800,7 +810,7 @@ function renderNextSteps(ctx: NameContext): string {
      past the gate without a deliberate edit — that's the project's
      RED-first TDD discipline.
 
-  7. Run the six quality gates:
+  8. Run the six quality gates:
 
      bun run lint && bun run test:unit && bun run test:e2e \\
        && bun run test:types && bun run test:coverage && bun run build
