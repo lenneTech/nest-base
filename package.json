@@ -114,7 +114,7 @@
     "helmet": "^8.1.0",
     "ipx": "^3.1.1",
     "lucide-react": "^1.14.0",
-    "nodemailer": "^7",
+    "nodemailer": "^8",
     "pg": "^8.20.0",
     "pg-boss": "^12.18.1",
     "pino": "^10.3.1",
