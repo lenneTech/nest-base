@@ -34,6 +34,13 @@ docker compose up -d postgres   # boot Postgres only (others optional)
 bun run dev                     # auto-spawns Prisma Studio + opens /dev
 ```
 
+> **Fresh `lt fullstack init --next` workspace?** Run `bun run setup`
+> first — the CLI ships the API `.env` template but does NOT invoke
+> the wizard, so the frontend env-bridge (which retargets
+> `projects/app/.env` away from the upstream `localhost:3000`
+> literal) has not fired yet. `bun run setup` is idempotent: it
+> refuses to overwrite an existing `.env` but still runs the bridge.
+
 > **Recover from a stale Postgres volume?** `docker compose down -v && docker compose up -d postgres` followed by `bun run prisma:migrate`. Don't delete `.env` first — the existing password initialises the recreated volume.
 
 Server is at the URL the dev runner prints — `https://api.nest-base.localhost`

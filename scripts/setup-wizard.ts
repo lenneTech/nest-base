@@ -38,7 +38,19 @@ const result = runSetupWizard({
   postgresHostPort,
 });
 
+// `.env` already on disk (typical after `lt fullstack init --next`,
+// where the CLI ships the API `.env` from the template). We still
+// reach this branch AFTER `runSetupWizard()` ran — which means the
+// frontend env-bridge has already fired and `projects/app/.env`
+// (when present) is now retargeted away from the upstream
+// `localhost:3000` literal. Surface that to the operator so a
+// re-run of `bun run setup` looks like progress, not a failure.
 if (!result.created) {
+  console.log("");
+  console.log(
+    "[setup] `.env` already exists — leaving it untouched. " +
+      "If `projects/app/` was added later, re-run `bun run setup` to fire the frontend env-bridge.",
+  );
   process.exit(1);
 }
 
@@ -90,6 +102,9 @@ console.log('  1. Review and adjust values in .env');
 console.log('  2. Start dependencies: docker compose up -d');
 console.log('  3. Run migrations:     bun run prisma:migrate');
 console.log('  4. Boot the server:    bun run dev');
+console.log(
+  '     (frontend env-bridge has retargeted projects/app/.env to follow the API automatically)',
+);
 
 function readComposeProjectName(cwd: string): string | undefined {
   // The wizard just wrote `.env`; read the value back rather than
