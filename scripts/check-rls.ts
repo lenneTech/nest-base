@@ -1,4 +1,14 @@
 #!/usr/bin/env bun
+// Force the workspace `.env` to win over inherited shell env. Without
+// this, a stale `DATABASE_URL` exported in the parent shell silently
+// shadows the workspace's `projects/api/.env`, so the runtime scan
+// connects to the wrong DB and reports false missing-tables. Matches
+// the pattern in `prisma.config.ts` + `scripts/dev.ts` so every
+// per-workspace tool agrees on the same DB regardless of shell state.
+import { config as loadEnv } from "dotenv";
+
+loadEnv({ override: true });
+
 /**
  * `bun run check:rls` — fails when a tenant-scoped Prisma model has
  * no `ENABLE ROW LEVEL SECURITY` migration anywhere in the tree
