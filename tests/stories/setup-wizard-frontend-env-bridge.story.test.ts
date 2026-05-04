@@ -274,4 +274,39 @@ describe("Story · setup-wizard runner writes projects/app/.env when present", (
     const frontendEnv = readFileSync(join(workspace, "projects/app/.env"), "utf8");
     expect(frontendEnv).toContain(customLine);
   });
+
+  it("still runs the env-bridge when projects/api/.env already exists (lt fullstack init --next flow)", () => {
+    // Friction-log entry (LLM-test 2026-05-04 #5 medium): in the
+    // `lt fullstack init --next` flow the API `.env` is already on
+    // disk before the user thinks to run `bun run setup`. The wizard
+    // refuses to overwrite the API `.env` (correct), but it must
+    // still fire the frontend env-bridge so the second `bun run
+    // setup` invocation actually retargets `projects/app/.env` away
+    // from the upstream `localhost:3000` literal. Without this
+    // contract, the only path to a working frontend is to delete
+    // `projects/api/.env` first — which destroys the operator's
+    // already-edited values.
+    writeFileSync(
+      join(workspace, "package.json"),
+      '{\n  "name": "my-fs",\n  "version": "0.0.0"\n}\n',
+    );
+    writeFileSync(join(workspace, ".env.example"), "PORT=3000\n");
+    // API .env already exists (lt fullstack init shipped it).
+    writeFileSync(join(workspace, ".env"), "PORT=3000\nDATABASE_URL=postgresql://x\n");
+    mkdirSync(join(workspace, "projects/app"), { recursive: true });
+    // Frontend .env still ships with the upstream sentinel.
+    writeFileSync(
+      join(workspace, "projects/app/.env"),
+      "NUXT_API_URL=http://localhost:3000\nNUXT_PUBLIC_API_URL=http://localhost:3000\n",
+    );
+
+    const result = runSetupWizard({ projectRoot: workspace, logger });
+    expect(result.created).toBe(false);
+
+    // The bridge MUST still have fired despite the wizard refusing to
+    // touch the API `.env`.
+    const frontendEnv = readFileSync(join(workspace, "projects/app/.env"), "utf8");
+    expect(frontendEnv).toMatch(/^NUXT_API_URL=https:\/\/api\.my-fs\.localhost$/m);
+    expect(frontendEnv).toMatch(/^NUXT_PUBLIC_API_URL=https:\/\/api\.my-fs\.localhost$/m);
+  });
 });

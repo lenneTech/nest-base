@@ -597,7 +597,27 @@ Skip this step entirely if the resource is admin-only (only the
 `/admin/*` UI / a seeded admin Role should reach it) or framework-
 internal (`Role`, `Policy`, `Permission`, `Tenant`, `WebhookEndpoint`).
 
-## Step 9 — Quality gates
+## Step 9 — Regenerate the OpenAPI snapshot (after adding a route)
+
+`tests/stories/openapi-snapshot.story.test.ts` diffs the live OpenAPI
+document against the committed `docs/openapi.snapshot.json`. Adding
+any new operation (which a fresh feature module always does) will fail
+the test until you regenerate the snapshot. Without this step the
+six-gates run goes red on what looks like a Todo-related assertion —
+fresh contributors lose half an hour chasing it.
+
+```bash
+bun run dump:openapi
+# OR run the test with the in-place self-update flag:
+UPDATE_OPENAPI_SNAPSHOT=1 bun run test:e2e tests/stories/openapi-snapshot.story.test.ts
+```
+
+The snapshot is the offline contract the frontend SDK targets — see
+[`docs/api-stability-promise.md`](../../docs/api-stability-promise.md).
+Commit the regenerated `docs/openapi.snapshot.json` alongside the
+module so reviewers can see the API surface change.
+
+## Step 10 — Quality gates
 
 ```bash
 bun run lint && bun run format && bun run test:types \
@@ -608,7 +628,7 @@ bun run lint && bun run format && bun run test:types \
 Coverage on `src/modules/` is gated at **≥ 80 %**. New code without a
 story drags the average — write more story tests.
 
-## Step 10 — Commit
+## Step 11 — Commit
 
 ```bash
 git add -A
