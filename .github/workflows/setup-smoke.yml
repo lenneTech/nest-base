@@ -52,7 +52,7 @@ jobs:
       # pg_uuidv7). The build compiles pg_uuidv7 from source, ~2–3 min on
       # first run; subsequent runs hit the layer cache via setup-buildx.
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Boot Postgres (custom image)
         run: |
