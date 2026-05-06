@@ -11,6 +11,9 @@ import { bootstrap } from "../src/core/app/bootstrap.js";
  * endpoint, and shuts down cleanly. This is the smoke-test that proves
  * the project skeleton (Bun + NestJS + Prisma + Postgres) is wired.
  *
+ * Issue #83: `GET /` now serves the Hub SPA shell (HTML). The API
+ * identity endpoint moved to `GET /api/`.
+ *
  * Health-check endpoints (`/health/live`, `/health/ready`) are a separate
  * Phase 1 slice and live in a different test file.
  */
@@ -25,8 +28,14 @@ describe("Server boot smoke", () => {
     await app?.close();
   });
 
-  it("GET / returns 200 with the server metadata", async () => {
+  it("GET / serves the Hub SPA shell (HTML)", async () => {
     const response = await request(app.getHttpServer()).get("/").expect(200);
+    expect(response.headers["content-type"]).toMatch(/text\/html/);
+    expect(response.text).toContain('<div id="root"></div>');
+  });
+
+  it("GET /api/ returns 200 with the server metadata JSON", async () => {
+    const response = await request(app.getHttpServer()).get("/api/").expect(200);
 
     expect(response.body).toMatchObject({
       name: expect.any(String),
@@ -35,8 +44,8 @@ describe("Server boot smoke", () => {
     expect(response.body.name.length).toBeGreaterThan(0);
   });
 
-  it("GET / responds with JSON content-type", async () => {
-    const response = await request(app.getHttpServer()).get("/");
+  it("GET /api/ responds with JSON content-type", async () => {
+    const response = await request(app.getHttpServer()).get("/api/");
     expect(response.headers["content-type"]).toMatch(/application\/json/);
   });
 

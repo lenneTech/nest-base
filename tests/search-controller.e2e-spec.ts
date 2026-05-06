@@ -26,7 +26,7 @@ describe("SearchController · GET /search", () => {
 
   it("403s when no ability is attached (CanGuard rejects empty ability)", async () => {
     const res = await request(app.getHttpServer())
-      .get("/search")
+      .get("/api/search")
       .set("x-tenant-id", TENANT)
       .query({ q: "hello" });
     expect(res.status).toBe(403);
@@ -34,7 +34,7 @@ describe("SearchController · GET /search", () => {
 
   it("returns an empty result set when no executors are registered (with test-ability seeded)", async () => {
     const res = await request(app.getHttpServer())
-      .get("/search")
+      .get("/api/search")
       .set("x-tenant-id", TENANT)
       .set("x-test-ability", "full")
       .query({ q: "hello" });
@@ -44,7 +44,7 @@ describe("SearchController · GET /search", () => {
 
   it("400s when q is missing", async () => {
     const res = await request(app.getHttpServer())
-      .get("/search")
+      .get("/api/search")
       .set("x-tenant-id", TENANT)
       .set("x-test-ability", "full");
     expect(res.status).toBe(400);
@@ -52,7 +52,7 @@ describe("SearchController · GET /search", () => {
 
   it("accepts a custom limit and an `only` allowlist", async () => {
     const res = await request(app.getHttpServer())
-      .get("/search")
+      .get("/api/search")
       .set("x-tenant-id", TENANT)
       .set("x-test-ability", "full")
       .query({ q: "foo", limit: "10", only: "users,projects" });

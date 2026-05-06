@@ -27,12 +27,12 @@ describe("GdprController · /me/*", () => {
   });
 
   it("GET /me/export 403s when unauthenticated", async () => {
-    const res = await request(app.getHttpServer()).get("/me/export").set("x-tenant-id", TENANT);
+    const res = await request(app.getHttpServer()).get("/api/me/export").set("x-tenant-id", TENANT);
     expect(res.status).toBe(403);
   });
 
   it("DELETE /me/account 403s when unauthenticated", async () => {
-    const res = await request(app.getHttpServer()).delete("/me/account").set("x-tenant-id", TENANT);
+    const res = await request(app.getHttpServer()).delete("/api/me/account").set("x-tenant-id", TENANT);
     expect(res.status).toBe(403);
   });
 

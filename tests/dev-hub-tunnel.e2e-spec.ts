@@ -62,7 +62,7 @@ describe("Dev-Hub · GET /dev/tunnel.json", () => {
   });
 
   it("returns active=false when no tunnel state file exists", async () => {
-    const res = await request(app.getHttpServer()).get("/dev/tunnel.json");
+    const res = await request(app.getHttpServer()).get("/api/dev/tunnel.json");
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ active: false });
   });
@@ -78,7 +78,7 @@ describe("Dev-Hub · GET /dev/tunnel.json", () => {
       }),
       "utf8",
     );
-    const res = await request(app.getHttpServer()).get("/dev/tunnel.json");
+    const res = await request(app.getHttpServer()).get("/api/dev/tunnel.json");
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       active: true,
@@ -91,7 +91,7 @@ describe("Dev-Hub · GET /dev/tunnel.json", () => {
     const path = tunnelStateLockPath(process.cwd());
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, "{not-valid-json", "utf8");
-    const res = await request(app.getHttpServer()).get("/dev/tunnel.json");
+    const res = await request(app.getHttpServer()).get("/api/dev/tunnel.json");
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ active: false });
   });

@@ -27,7 +27,7 @@ describe("PowerSyncController · POST /powersync/crud", () => {
 
   it("403s when no ability is attached (CanGuard rejects empty ability)", async () => {
     const res = await request(app.getHttpServer())
-      .post("/powersync/crud")
+      .post("/api/powersync/crud")
       .set("x-tenant-id", TENANT)
       .send({ batch: [{ op: "PUT", type: "widgets", id: "w1", data: {} }] });
     expect(res.status).toBe(403);
@@ -35,7 +35,7 @@ describe("PowerSyncController · POST /powersync/crud", () => {
 
   it("accepts a valid batch and returns 204 (with test-ability seeded)", async () => {
     const res = await request(app.getHttpServer())
-      .post("/powersync/crud")
+      .post("/api/powersync/crud")
       .set("x-tenant-id", TENANT)
       .set("x-test-ability", "full")
       .send({
@@ -46,7 +46,7 @@ describe("PowerSyncController · POST /powersync/crud", () => {
 
   it("400s on a malformed batch (unknown op)", async () => {
     const res = await request(app.getHttpServer())
-      .post("/powersync/crud")
+      .post("/api/powersync/crud")
       .set("x-tenant-id", TENANT)
       .set("x-test-ability", "full")
       .send({ batch: [{ op: "NUKE", type: "x", id: "y", data: {} }] });
@@ -55,7 +55,7 @@ describe("PowerSyncController · POST /powersync/crud", () => {
 
   it("400s on missing batch field", async () => {
     const res = await request(app.getHttpServer())
-      .post("/powersync/crud")
+      .post("/api/powersync/crud")
       .set("x-tenant-id", TENANT)
       .set("x-test-ability", "full")
       .send({});

@@ -51,6 +51,12 @@ describe("E2E · Cross-tenant write breach", () => {
       imports: [AppModule],
     }).compile();
     app = moduleRef.createNestApplication({ logger: false });
+    // Mirror bootstrap.ts: set the global /api/ prefix so BetterAuth
+    // routes (e.g. /api/auth/sign-up/email) are reachable without
+    // bootstrap(). Hub + health paths stay at root.
+    app.setGlobalPrefix("api", {
+      exclude: ["/", "hub/login", "hub/logout", "health", "health/(.*)"],
+    });
     await app.init();
     prisma = app.get(PrismaService);
 
@@ -158,7 +164,7 @@ describe("E2E · Cross-tenant write breach", () => {
 
     // The attack: Bob targets Alice's tenant via header.
     const breachAttempt = await bobAgent
-      .post("/examples")
+      .post("/api/examples")
       .set("content-type", "application/json")
       .set("x-tenant-id", aliceTenantId)
       .send({ name: "cross-tenant breach", status: "draft" });
@@ -185,7 +191,7 @@ describe("E2E · Cross-tenant write breach", () => {
     expect(signIn.status, JSON.stringify(signIn.body)).toBe(200);
 
     const ok = await bobAgent
-      .post("/examples")
+      .post("/api/examples")
       .set("content-type", "application/json")
       .set("x-tenant-id", bobTenantId)
       .send({ name: "legit write", status: "draft" });

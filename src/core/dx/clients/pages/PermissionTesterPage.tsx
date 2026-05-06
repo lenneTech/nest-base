@@ -46,7 +46,7 @@ export function PermissionTesterPage(): ReactNode {
   const tenantId = params.get("tenantId") ?? "";
   const hasInputs = userId.length > 0 && tenantId.length > 0;
 
-  const url = `/admin/permissions/test.json?userId=${encodeURIComponent(userId)}&tenantId=${encodeURIComponent(tenantId)}`;
+  const url = `/api/admin/permissions/test.json?userId=${encodeURIComponent(userId)}&tenantId=${encodeURIComponent(tenantId)}`;
 
   const data = useQuery({
     queryKey: ["admin", "permissions", "test", userId, tenantId],
@@ -72,7 +72,7 @@ export function PermissionTesterPage(): ReactNode {
             */}
             <form
               method="get"
-              action="/admin/permissions/test"
+              action="/api/admin/permissions/test"
               className="flex flex-wrap items-end gap-3"
             >
               <div className="flex flex-1 min-w-48 flex-col gap-1.5">

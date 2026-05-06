@@ -51,12 +51,12 @@ export function PermissionsAdminPage(): ReactNode {
 
   const list = useQuery({
     queryKey: ["admin", "permissions"],
-    queryFn: () => fetchJson<PermissionRecord[]>("/admin/permissions"),
+    queryFn: () => fetchJson<PermissionRecord[]>("/api/admin/permissions"),
   });
 
   const create = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/admin/permissions", {
+      const res = await fetch("/api/admin/permissions", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({

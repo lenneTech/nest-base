@@ -36,6 +36,15 @@ import { PinoLoggerService } from "../observability/pino-logger.service.js";
 import { applyZodSchemaRegistry } from "../openapi/zod-openapi-bridge.js";
 import { serverConfigFromEnv } from "../server/server-config.js";
 import { checkEnvPrerequisites, renderEnvBanner } from "../setup/env-prerequisites.js";
+import { buildHubAuthConfig } from "../hub/hub-auth-planner.js";
+import { HubSessionService } from "../hub/hub-session.service.js";
+import { generateRequestId } from "../request-context/request-context.js";
+import {
+  formatTraceparent,
+  generateSpanId,
+  generateTraceId,
+  parseTraceparent,
+} from "../request-context/traceparent.js";
 import { AppModule } from "./app.module.js";
 
 export interface BootstrapOptions {
@@ -128,6 +137,34 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   }
   app.disable("x-powered-by");
 
+  // Issue #83: all API endpoints live under `/api/*`. Paths excluded
+  // from the prefix are those that intentionally sit at root level:
+  //   - `hub/login`    — Hub password login (no API prefix needed)
+  //   - `hub/logout`   — Hub logout (no API prefix needed)
+  //   - `health/(.*)`  — k8s liveness/readiness probes
+  //
+  // NOTE: `GET /` is NOT in this list. The Hub SPA at root is handled
+  // by an Express-level middleware (below) so AppController's empty-path
+  // handler can safely receive the global prefix → `GET /api/`.
+  //
+  // Note: the exclude values are plain path strings; NestJS matches
+  // them against the raw controller path before the prefix is applied.
+  // Wildcard routes use the Express-style `(.*)` suffix.
+  app.setGlobalPrefix("api", {
+    exclude: [
+      "hub/login",
+      "hub/logout",
+      "health",
+      "health/(.*)",
+      // IPX cache-busting DELETE sits under /_ipx/ (root-level namespace
+      // shared with the Express-mounted IPX GET handler). Keeping it
+      // prefix-free makes the route /_ipx/cache/:key stay consistent
+      // with /_ipx/<modifiers>/<source> (which is also root-level).
+      "_ipx/cache",
+      "_ipx/cache/(.*)",
+    ],
+  });
+
   const security = buildSecurityHeadersConfig(cfg.env);
   app.use(
     helmet({
@@ -135,6 +172,105 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
       ...(security.hsts ? { hsts: security.hsts } : { hsts: false }),
     }),
   );
+
+  // Hub SPA root handler — registered as Express route handler AFTER
+  // helmet so Helmet's security headers are applied to all responses
+  // including the Hub HTML. DI services are safe to call here because
+  // by the time any request arrives, app.init() has already completed
+  // and all providers are resolved.
+  //
+  // This avoids the path-collision between HubController @Controller()
+  // and AppController @Controller() — both have an empty base path that
+  // NestJS normalises to "/" and we cannot distinguish them in the
+  // global-prefix exclude list. Using an Express handler removes the
+  // ambiguity: AppController (at GET /api/) is unaffected.
+  {
+    const HUB_COOKIE_NAME = "hub.session";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const expressApp = app.getHttpAdapter().getInstance() as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expressApp.get("/", (req: any, res: any): void => {
+      // Mirror RequestContextMiddleware: set x-request-id + traceparent on
+      // every response from this Express-level handler (which bypasses
+      // the NestJS middleware pipeline). Without this, the security
+      // and request-context e2e tests that assert on these headers for
+      // GET / would fail.
+      {
+        const traceparentHeader = (req.headers as Record<string, string | undefined>)["traceparent"];
+        const parsed = traceparentHeader ? parseTraceparent(traceparentHeader) : null;
+        const requestId = generateRequestId();
+        const traceId = parsed ? parsed.traceId : generateTraceId();
+        const parentId = parsed ? parsed.parentId : generateSpanId();
+        const sampled = parsed ? parsed.sampled : false;
+        res.setHeader("x-request-id", requestId);
+        res.setHeader("traceparent", formatTraceparent({ traceId, parentId, sampled }));
+      }
+
+      const cfg = serverConfigFromEnv(process.env);
+      // AppEnv is "development" | "staging" | "production"; the Hub stage
+      // includes "local" and "test" as additional values for test tooling.
+      const stage = (
+        cfg.env === "development" ? "local"
+        : cfg.env === "production" ? "production"
+        : "staging"
+      ) as "local" | "production" | "test" | "staging";
+      const authCfg = buildHubAuthConfig({ stage });
+
+      if (authCfg.requireAuth) {
+        // Parse cookie header manually — cookie-parser is not a dependency.
+        // The hub.session value is a plain signed token (no URL encoding needed).
+        const rawCookieHeader = (req.headers as Record<string, string | undefined>)["cookie"] ?? "";
+        const cookie = rawCookieHeader
+          .split(";")
+          .map((c: string) => c.trim())
+          .find((c: string) => c.startsWith(`${HUB_COOKIE_NAME}=`))
+          ?.slice(HUB_COOKIE_NAME.length + 1);
+        if (!cookie) {
+          res
+            .status(200)
+            .type("text/html; charset=utf-8")
+            .send(
+              renderDevPortalShell(
+                buildDevPortalShellInput({ title: "Hub Login", brand: "central" }),
+              ),
+            );
+          return;
+        }
+
+        const sessions = app.get(HubSessionService);
+        const result = sessions.verifyAndRefresh(cookie);
+        if (!result.valid) {
+          res.clearCookie(HUB_COOKIE_NAME);
+          res
+            .status(200)
+            .type("text/html; charset=utf-8")
+            .send(
+              renderDevPortalShell(
+                buildDevPortalShellInput({ title: "Hub Login", brand: "central" }),
+              ),
+            );
+          return;
+        }
+
+        if (result.refreshedToken) {
+          res.cookie(HUB_COOKIE_NAME, result.refreshedToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: authCfg.cookie.maxAgeMs,
+            path: "/",
+          });
+        }
+      }
+
+      res
+        .status(200)
+        .type("text/html; charset=utf-8")
+        .send(
+          renderDevPortalShell(buildDevPortalShellInput({ title: "Hub", brand: "central" })),
+        );
+    });
+  }
 
   // Path-aware CSP override — JSON responses always carry the strict
   // PROD-shape CSP regardless of env. The dev CSP keeps `unsafe-inline`
@@ -426,13 +562,13 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
       await new Promise((resolve) => setTimeout(resolve, 150));
       process.stdout.write(`${banner.text}\n`);
 
-      // Auto-open the Dev Hub the first time `bun run dev` runs in this
+      // Auto-open the Hub the first time `bun run dev` runs in this
       // session. Skipped on watch-restarts (the lock file remembers
       // `devHubOpened=true` across `bun --watch` re-execs, which reset
       // process.env).
       if (session.shouldOpenBrowser) {
         const openPlan = planBrowserOpen({
-          url: `${effective.publicUrl}/dev`,
+          url: `${effective.publicUrl}/`,
           platform: detectBrowserOpenPlatform(),
           env: cfg.env,
           isTTY: Boolean(process.stdout.isTTY),

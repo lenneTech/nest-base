@@ -28,7 +28,7 @@ export function PostgrestParsePage(): ReactNode {
   // forward the user's other filter params verbatim.
   const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
   params.set("format", "json");
-  const fetchUrl = `/dev/postgrest-parse?${params.toString()}`;
+  const fetchUrl = `/api/dev/postgrest-parse?${params.toString()}`;
   const filterParams = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
   filterParams.delete("format");
   const filterCount = Array.from(filterParams.keys()).length;
@@ -49,7 +49,7 @@ export function PostgrestParsePage(): ReactNode {
           Try{" "}
           <a
             className="text-accent underline-offset-4 hover:underline"
-            href="/dev/postgrest-parse?status=eq.draft&age=gte.18"
+            href="/api/dev/postgrest-parse?status=eq.draft&age=gte.18"
           >
             ?status=eq.draft&age=gte.18
           </a>{" "}

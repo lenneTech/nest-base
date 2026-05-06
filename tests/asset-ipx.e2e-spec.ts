@@ -84,7 +84,7 @@ describe("Asset · IPX endpoint", () => {
     // Upload a fixture PNG once for all subsequent IPX queries.
     const bytes = emerald8x8Png();
     const upload = await request(app.getHttpServer())
-      .post("/files/upload")
+      .post("/api/files/upload")
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
@@ -163,7 +163,7 @@ describe("Asset · IPX endpoint", () => {
 
   it("GET /assets/:key?width=4&format=webp keeps the legacy URL contract", async () => {
     const res = await request(app.getHttpServer())
-      .get(`/assets/${encodeURIComponent(storageKey)}?width=4&format=webp`)
+      .get(`/api/assets/${encodeURIComponent(storageKey)}?width=4&format=webp`)
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
@@ -176,7 +176,7 @@ describe("Asset · IPX endpoint", () => {
     // into the cache adapter (the IPX endpoint itself bypasses our
     // cache; see asset.controller comments).
     await request(app.getHttpServer())
-      .get(`/assets/${encodeURIComponent(storageKey)}?width=4&format=webp`)
+      .get(`/api/assets/${encodeURIComponent(storageKey)}?width=4&format=webp`)
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
@@ -199,7 +199,7 @@ describe("Asset · IPX endpoint", () => {
     // for the targeted source.
     const siblingBytes = emerald8x8Png();
     const siblingUpload = await request(app.getHttpServer())
-      .post("/files/upload")
+      .post("/api/files/upload")
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
@@ -215,10 +215,10 @@ describe("Asset · IPX endpoint", () => {
     const siblingKey = siblingUpload.body.storageKey as string;
     expect(siblingKey).not.toBe(storageKey);
 
-    // Prime cache for both sources via the legacy /assets endpoint.
+    // Prime cache for both sources via the legacy /api/assets endpoint.
     for (const key of [storageKey, siblingKey]) {
       await request(app.getHttpServer())
-        .get(`/assets/${encodeURIComponent(key)}?width=4&format=webp`)
+        .get(`/api/assets/${encodeURIComponent(key)}?width=4&format=webp`)
         .set("x-tenant-id", tenantId)
         .set("cookie", sessionCookie)
         .set("x-test-ability", "full")
@@ -238,7 +238,7 @@ describe("Asset · IPX endpoint", () => {
     // The next GET on the sibling MUST report `x-cache: HIT`; if the
     // cascade had wiped everything, we'd see MISS instead.
     const siblingHit = await request(app.getHttpServer())
-      .get(`/assets/${encodeURIComponent(siblingKey)}?width=4&format=webp`)
+      .get(`/api/assets/${encodeURIComponent(siblingKey)}?width=4&format=webp`)
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
@@ -247,7 +247,7 @@ describe("Asset · IPX endpoint", () => {
 
     // The original source MUST report MISS (next request re-renders).
     const originalMiss = await request(app.getHttpServer())
-      .get(`/assets/${encodeURIComponent(storageKey)}?width=4&format=webp`)
+      .get(`/api/assets/${encodeURIComponent(storageKey)}?width=4&format=webp`)
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");

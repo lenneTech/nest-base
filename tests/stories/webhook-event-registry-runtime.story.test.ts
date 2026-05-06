@@ -149,7 +149,7 @@ describe("Story · @WebhookEvent registry hooked into runtime", () => {
     });
   });
 
-  describe("GET /dev/webhook-events.json surfaces the registry", () => {
+  describe("GET /api/dev/webhook-events.json surfaces the registry", () => {
     let app: INestApplication;
     let previousNodeEnv: string | undefined;
 
@@ -167,7 +167,7 @@ describe("Story · @WebhookEvent registry hooked into runtime", () => {
     });
 
     it("returns the @WebhookEvent registry as a JSON array", async () => {
-      const res = await request(app.getHttpServer()).get("/dev/webhook-events.json");
+      const res = await request(app.getHttpServer()).get("/api/dev/webhook-events.json");
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body.events)).toBe(true);
       const names = (res.body.events as Array<{ name: string }>).map((e) => e.name);
@@ -176,7 +176,7 @@ describe("Story · @WebhookEvent registry hooked into runtime", () => {
     });
 
     it("each entry carries name + description + version", async () => {
-      const res = await request(app.getHttpServer()).get("/dev/webhook-events.json");
+      const res = await request(app.getHttpServer()).get("/api/dev/webhook-events.json");
       const entry = (
         res.body.events as Array<{ name: string; description?: string; version: number }>
       ).find((e) => e.name === "test.user.created");

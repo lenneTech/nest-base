@@ -36,8 +36,9 @@ describe("Story · FileManagerPage bulk-action UI contract", () => {
     expect(PAGE_SRC).toMatch(/data-action="bulk-delete"/);
   });
 
-  it("bulk-zip mutation POSTs /files/zip with the selected ids and triggers a download", () => {
-    expect(PAGE_SRC).toMatch(/fetch\("\/files\/zip", \{[\s\S]*?method: "POST"/);
+  it("bulk-zip mutation POSTs /api/files/zip with the selected ids and triggers a download", () => {
+    // Issue #83: global /api/ prefix moves the ZIP endpoint to /api/files/zip.
+    expect(PAGE_SRC).toMatch(/fetch\("\/api\/files\/zip", \{[\s\S]*?method: "POST"/);
     expect(PAGE_SRC).toMatch(/JSON\.stringify\(\{ ids \}\)/);
     expect(PAGE_SRC).toMatch(/document\.createElement\("a"\)/);
     expect(PAGE_SRC).toMatch(/link\.download = "files\.zip"/);

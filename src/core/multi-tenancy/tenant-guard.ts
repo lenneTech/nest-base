@@ -13,24 +13,39 @@
 // generators that hit the legacy URL don't carry a tenant context
 // (mirrors the canonical doc's exemption). Removed once
 // lenneTech/nuxt-base-starter#13 has propagated.
-const EXEMPT_EXACT = new Set(["/", "/errors", "/tenants", "/api-docs-json", "/metrics"]);
-// `/me/*` endpoints operate on the authenticated user (req.user.id),
-// not on a specific tenant. `/tenants` is the self-service tenant CRUD
+//
+// Issue #83: all API routes are now under `/api/*`. Paths that remain
+// at root level are: Hub (`/`, `/hub/*`) and health (`/health/*`).
+// The domain paths below have been updated to include the `/api/` prefix.
+const EXEMPT_EXACT = new Set([
+  "/",
+  // API identity endpoint (AppController at GET /api/ — no tenant context needed).
+  "/api/",
+  "/api",
+  "/api/errors",
+  "/api/tenants",
+  "/api-docs-json",
+  "/api/metrics",
+]);
+// `/api/me/*` endpoints operate on the authenticated user (req.user.id),
+// not on a specific tenant. `/api/tenants` is the self-service tenant CRUD
 // surface — a signed-up user creates their first tenant here, so the
 // header cannot be required at the bootstrap step.
 const EXEMPT_PREFIXES = [
   "/health/",
   "/api/auth/",
   "/docs/",
-  "/dev/",
-  "/admin/",
-  "/errors/",
-  "/me/",
-  "/tenants/",
+  "/api/dev/",
+  "/api/admin/",
+  "/api/errors/",
+  "/api/me/",
+  "/api/tenants/",
   // Share-token endpoints — the token's HMAC envelope encodes the
   // file id; the controller resolves the file and the storage layer
   // applies tenant filtering at read time.
-  "/files/share/",
+  "/api/files/share/",
+  // Hub SPA routes.
+  "/hub/",
 ];
 
 export function isTenantExempt(path: string): boolean {

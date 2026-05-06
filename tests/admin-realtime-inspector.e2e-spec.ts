@@ -35,7 +35,7 @@ describe("Admin Realtime Inspector · /admin/realtime*", () => {
 
     it("GET /admin/realtime.json returns sockets + channels + events arrays", async () => {
       const res = await request(app.getHttpServer())
-        .get("/admin/realtime.json")
+        .get("/api/admin/realtime.json")
         .set("x-tenant-id", TENANT);
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
@@ -47,7 +47,7 @@ describe("Admin Realtime Inspector · /admin/realtime*", () => {
 
     it("GET /admin/realtime/channels.json returns the aggregated channel list", async () => {
       const res = await request(app.getHttpServer())
-        .get("/admin/realtime/channels.json")
+        .get("/api/admin/realtime/channels.json")
         .set("x-tenant-id", TENANT);
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
@@ -56,7 +56,7 @@ describe("Admin Realtime Inspector · /admin/realtime*", () => {
 
     it("POST /admin/realtime/sockets/:id/disconnect 404s on an unknown socket", async () => {
       const res = await request(app.getHttpServer())
-        .post("/admin/realtime/sockets/no-such-socket/disconnect")
+        .post("/api/admin/realtime/sockets/no-such-socket/disconnect")
         .set("x-tenant-id", TENANT)
         .send({});
       expect(res.status).toBe(404);
@@ -74,14 +74,14 @@ describe("Admin Realtime Inspector · /admin/realtime*", () => {
         userAgent: "vitest",
       });
       const res = await request(app.getHttpServer())
-        .post("/admin/realtime/sockets/fake-1/disconnect")
+        .post("/api/admin/realtime/sockets/fake-1/disconnect")
         .set("x-tenant-id", TENANT)
         .send({});
       expect(res.status).toBe(200);
       expect(res.body.id).toBe("fake-1");
       // The state has been cleaned up.
       const json = await request(app.getHttpServer())
-        .get("/admin/realtime.json")
+        .get("/api/admin/realtime.json")
         .set("x-tenant-id", TENANT);
       const found = (json.body.sockets as Array<{ id: string }>).find((s) => s.id === "fake-1");
       expect(found).toBeUndefined();
@@ -91,7 +91,7 @@ describe("Admin Realtime Inspector · /admin/realtime*", () => {
       const gateway = app.get(RealtimeGateway);
       gateway.recordTestSocket({ id: "fake-2", userId: "u1", tenantId: TENANT });
       const res = await request(app.getHttpServer())
-        .post("/admin/realtime/sockets/fake-2/send")
+        .post("/api/admin/realtime/sockets/fake-2/send")
         .set("x-tenant-id", TENANT)
         .send({});
       expect(res.status).toBe(400);
@@ -101,7 +101,7 @@ describe("Admin Realtime Inspector · /admin/realtime*", () => {
       const gateway = app.get(RealtimeGateway);
       gateway.recordTestSocket({ id: "fake-3", userId: "u1", tenantId: TENANT });
       const res = await request(app.getHttpServer())
-        .post("/admin/realtime/sockets/fake-3/send")
+        .post("/api/admin/realtime/sockets/fake-3/send")
         .set("x-tenant-id", TENANT)
         .send({ eventType: "debug.ping", payload: { hello: "world" } });
       expect(res.status).toBe(200);
@@ -110,7 +110,7 @@ describe("Admin Realtime Inspector · /admin/realtime*", () => {
 
     it("POST /admin/realtime/events/replay rebroadcasts the supplied event", async () => {
       const res = await request(app.getHttpServer())
-        .post("/admin/realtime/events/replay")
+        .post("/api/admin/realtime/events/replay")
         .set("x-tenant-id", TENANT)
         .send({
           channel: "Project:tenant:t1",
@@ -123,7 +123,7 @@ describe("Admin Realtime Inspector · /admin/realtime*", () => {
 
     it("POST /admin/realtime/events/replay rejects malformed bodies", async () => {
       const res = await request(app.getHttpServer())
-        .post("/admin/realtime/events/replay")
+        .post("/api/admin/realtime/events/replay")
         .set("x-tenant-id", TENANT)
         .send({ eventType: "x" });
       expect(res.status).toBe(400);
@@ -149,14 +149,14 @@ describe("Admin Realtime Inspector · /admin/realtime*", () => {
 
     it("GET /admin/realtime/channels.json 404s in production", async () => {
       const res = await request(app.getHttpServer())
-        .get("/admin/realtime/channels.json")
+        .get("/api/admin/realtime/channels.json")
         .set("x-tenant-id", TENANT);
       expect(res.status).toBe(404);
     });
 
     it("POST /admin/realtime/sockets/:id/disconnect 404s in production", async () => {
       const res = await request(app.getHttpServer())
-        .post("/admin/realtime/sockets/x/disconnect")
+        .post("/api/admin/realtime/sockets/x/disconnect")
         .set("x-tenant-id", TENANT)
         .send({});
       expect(res.status).toBe(404);
@@ -164,7 +164,7 @@ describe("Admin Realtime Inspector · /admin/realtime*", () => {
 
     it("POST /admin/realtime/events/replay 404s in production", async () => {
       const res = await request(app.getHttpServer())
-        .post("/admin/realtime/events/replay")
+        .post("/api/admin/realtime/events/replay")
         .set("x-tenant-id", TENANT)
         .send({});
       expect(res.status).toBe(404);

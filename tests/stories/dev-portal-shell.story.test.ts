@@ -96,8 +96,9 @@ describe("Story · Dev-Portal Shell", () => {
   it("buildDevPortalShellInput defaults the static base path and title", () => {
     const built = buildDevPortalShellInput({});
     expect(built.title).toBe("Dev Portal");
-    expect(built.scriptUrl).toBe("/dev/static/main.js");
-    expect(built.tokenCssUrl).toBe("/dev/static/tokens.css");
+    // Issue #83: all API routes (including dev static assets) live under /api/*
+    expect(built.scriptUrl).toBe("/api/dev/static/main.js");
+    expect(built.tokenCssUrl).toBe("/api/dev/static/tokens.css");
   });
 
   it("buildDevPortalShellInput respects custom title overrides", () => {

@@ -73,7 +73,7 @@ describe("Files · share-link round-trip", () => {
 
     const bytes = emerald8x8Png();
     const upload = await request(app.getHttpServer())
-      .post("/files/upload")
+      .post("/api/files/upload")
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
@@ -109,7 +109,7 @@ describe("Files · share-link round-trip", () => {
 
   it("POST /files/:id/share-link issues a token + URL + ISO expiry", async () => {
     const res = await request(app.getHttpServer())
-      .post(`/files/${fileId}/share-link`)
+      .post(`/api/files/${fileId}/share-link`)
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
@@ -117,14 +117,14 @@ describe("Files · share-link round-trip", () => {
     expect(res.status).toBe(201);
     expect(typeof res.body.shareToken).toBe("string");
     expect(res.body.shareToken.split(".")).toHaveLength(4);
-    expect(res.body.url).toBe(`/files/share/${res.body.shareToken}`);
+    expect(res.body.url).toBe(`/api/files/share/${res.body.shareToken}`);
     expect(typeof res.body.expiresAt).toBe("string");
     expect(new Date(res.body.expiresAt).getTime()).toBeGreaterThan(Date.now());
   });
 
   it("GET /files/share/:token resolves the file metadata without auth", async () => {
     const issue = await request(app.getHttpServer())
-      .post(`/files/${fileId}/share-link`)
+      .post(`/api/files/${fileId}/share-link`)
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
@@ -132,7 +132,7 @@ describe("Files · share-link round-trip", () => {
     expect(issue.status).toBe(201);
 
     // No cookie, no x-tenant-id — the share token is the auth.
-    const fetch = await request(app.getHttpServer()).get(`/files/share/${issue.body.shareToken}`);
+    const fetch = await request(app.getHttpServer()).get(`/api/files/share/${issue.body.shareToken}`);
     expect(fetch.status).toBe(200);
     expect(fetch.body.id).toBe(fileId);
     expect(fetch.body.filename).toBe("shared.png");
@@ -145,7 +145,7 @@ describe("Files · share-link round-trip", () => {
       expiresAtMs: Date.now() - 60_000,
       secret: "iter-112-share-link-secret",
     });
-    const res = await request(app.getHttpServer()).get(`/files/share/${expiredToken}`);
+    const res = await request(app.getHttpServer()).get(`/api/files/share/${expiredToken}`);
     expect(res.status).toBe(404);
   });
 
@@ -158,7 +158,7 @@ describe("Files · share-link round-trip", () => {
     });
     const parts = valid.split(".");
     const tampered = `${parts[0]}.${parts[1]}.${parts[2]}.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA`;
-    const res = await request(app.getHttpServer()).get(`/files/share/${tampered}`);
+    const res = await request(app.getHttpServer()).get(`/api/files/share/${tampered}`);
     expect(res.status).toBe(400);
   });
 });

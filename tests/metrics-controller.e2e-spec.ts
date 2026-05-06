@@ -34,7 +34,7 @@ describe("E2E · /metrics — Prometheus exposition (CF.OBS.12 + TR.BE.17)", () 
   });
 
   it("GET /metrics returns 200 with the prom-client text-format content-type", async () => {
-    const res = await request(app.getHttpServer()).get("/metrics");
+    const res = await request(app.getHttpServer()).get("/api/metrics");
     expect(res.status).toBe(200);
     // prom-client default: `text/plain; version=0.0.4; charset=utf-8`.
     // Don't pin the exact suffix — content-type negotiation in
@@ -43,7 +43,7 @@ describe("E2E · /metrics — Prometheus exposition (CF.OBS.12 + TR.BE.17)", () 
   });
 
   it("GET /metrics body contains the standard Node.js process metrics", async () => {
-    const res = await request(app.getHttpServer()).get("/metrics");
+    const res = await request(app.getHttpServer()).get("/api/metrics");
     expect(res.status).toBe(200);
     const body = res.text;
     // collectDefaultMetrics() registers these under the Registry.
@@ -54,7 +54,7 @@ describe("E2E · /metrics — Prometheus exposition (CF.OBS.12 + TR.BE.17)", () 
   });
 
   it("GET /metrics body has the canonical OpenMetrics comment headers", async () => {
-    const res = await request(app.getHttpServer()).get("/metrics");
+    const res = await request(app.getHttpServer()).get("/api/metrics");
     expect(res.status).toBe(200);
     const body = res.text;
     // Every metric in the prom-client exposition has matching # HELP
@@ -67,7 +67,7 @@ describe("E2E · /metrics — Prometheus exposition (CF.OBS.12 + TR.BE.17)", () 
   it("the endpoint is reachable without auth (Public(): scrape jobs gate via network)", async () => {
     // No cookie / Authorization header / x-tenant-id sent. A 401/403
     // would mean the @Public() decorator didn't take effect.
-    const res = await request(app.getHttpServer()).get("/metrics");
+    const res = await request(app.getHttpServer()).get("/api/metrics");
     expect(res.status).toBe(200);
   });
 });

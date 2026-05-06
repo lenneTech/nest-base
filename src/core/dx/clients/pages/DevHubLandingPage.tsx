@@ -128,7 +128,7 @@ function computeOverallHealth(input: DashboardJson, probesDown: number): Overall
 export function DevHubLandingPage(): ReactNode {
   const dashboard = useQuery({
     queryKey: ["dev", "dashboard"],
-    queryFn: () => fetchJson<DashboardJson>("/dev/dashboard.json"),
+    queryFn: () => fetchJson<DashboardJson>("/api/dev/dashboard.json"),
     refetchInterval: 5_000,
   });
 
@@ -401,7 +401,7 @@ function ServicesGrid({ probes }: { probes: ServiceProbe[] }): ReactNode {
     let cancelled = false;
     async function tick(): Promise<void> {
       try {
-        const next = await fetchJson<ServiceProbe[]>("/dev/status.json");
+        const next = await fetchJson<ServiceProbe[]>("/api/dev/status.json");
         if (cancelled) return;
         queryClient.setQueryData<DashboardJson | undefined>(["dev", "dashboard"], (prev) =>
           prev ? { ...prev, probes: next } : prev,

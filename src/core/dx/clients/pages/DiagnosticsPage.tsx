@@ -31,7 +31,7 @@ interface DiagnosticsReport {
 export function DiagnosticsPage(): ReactNode {
   const data = useQuery({
     queryKey: ["dev", "diagnostics"],
-    queryFn: () => fetchJson<DiagnosticsReport>("/dev/diagnostics.json"),
+    queryFn: () => fetchJson<DiagnosticsReport>("/api/dev/diagnostics.json"),
     refetchInterval: 5_000,
   });
 

@@ -60,7 +60,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
     });
 
     it("GET /dev/email-builder serves the SPA shell with the correct title", async () => {
-      const res = await request(app.getHttpServer()).get("/dev/email-builder");
+      const res = await request(app.getHttpServer()).get("/api/dev/email-builder");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/text\/html/);
       expect(res.text).toContain('<div id="root"></div>');
@@ -68,7 +68,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
     });
 
     it("GET /dev/email-builder/templates.json returns discovered templates", async () => {
-      const res = await request(app.getHttpServer()).get("/dev/email-builder/templates.json");
+      const res = await request(app.getHttpServer()).get("/api/dev/email-builder/templates.json");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
       expect(Array.isArray(res.body.templates)).toBe(true);
@@ -89,7 +89,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
     });
 
     it("GET /dev/email-builder/blocks.json returns the block library + props", async () => {
-      const res = await request(app.getHttpServer()).get("/dev/email-builder/blocks.json");
+      const res = await request(app.getHttpServer()).get("/api/dev/email-builder/blocks.json");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
       expect(Array.isArray(res.body.blocks)).toBe(true);
@@ -121,7 +121,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
         ],
       };
       const res = await request(app.getHttpServer())
-        .post("/dev/email-builder/preview.json")
+        .post("/api/dev/email-builder/preview.json")
         .send({
           composition,
           vars: {
@@ -140,7 +140,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
 
     it("POST /dev/email-builder/preview.json returns 400 for invalid composition", async () => {
       const res = await request(app.getHttpServer())
-        .post("/dev/email-builder/preview.json")
+        .post("/api/dev/email-builder/preview.json")
         .send({ composition: { layout: "DoesNotExist", subject: "x", children: [] }, vars: {} });
       expect(res.status).toBe(400);
     });
@@ -157,7 +157,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
         ],
       };
       const res = await request(app.getHttpServer())
-        .post("/dev/email-builder/save")
+        .post("/api/dev/email-builder/save")
         .send({ slug, composition });
       expect(res.status).toBe(200);
       expect(res.body.relativePath).toBe(`src/modules/email/templates/${slug}.tsx`);
@@ -174,7 +174,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
 
     it("POST /dev/email-builder/save rejects path-traversal slugs with 400", async () => {
       const res = await request(app.getHttpServer())
-        .post("/dev/email-builder/save")
+        .post("/api/dev/email-builder/save")
         .send({
           slug: "../../../../../../tmp/evil",
           composition: {
@@ -190,7 +190,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
 
     it("POST /dev/email-builder/save rejects invalid slug shapes with 400", async () => {
       const res = await request(app.getHttpServer())
-        .post("/dev/email-builder/save")
+        .post("/api/dev/email-builder/save")
         .send({
           slug: "InvalidSlug",
           composition: {
@@ -204,7 +204,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
 
     it("POST /dev/email-builder/save rejects invalid compositions with 400", async () => {
       const res = await request(app.getHttpServer())
-        .post("/dev/email-builder/save")
+        .post("/api/dev/email-builder/save")
         .send({
           slug: "e2e-builder-test",
           composition: {
@@ -222,7 +222,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
     describe("GET /dev/email-builder/templates/:name/composition.json", () => {
       it("returns a decomposable composition for the welcome core template", async () => {
         const res = await request(app.getHttpServer()).get(
-          "/dev/email-builder/templates/welcome/composition.json",
+          "/api/dev/email-builder/templates/welcome/composition.json",
         );
         expect(res.status).toBe(200);
         expect(res.headers["content-type"]).toMatch(/application\/json/);
@@ -240,7 +240,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
       it("returns the password-reset and email-verification compositions", async () => {
         for (const name of ["password-reset", "email-verification"]) {
           const res = await request(app.getHttpServer()).get(
-            `/dev/email-builder/templates/${name}/composition.json`,
+            `/api/dev/email-builder/templates/${name}/composition.json`,
           );
           expect(res.status).toBe(200);
           expect(res.body.decomposable).toBe(true);
@@ -254,7 +254,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
         // render the source view instead of opening the composer.
         for (const name of ["invitation", "new-device"]) {
           const res = await request(app.getHttpServer()).get(
-            `/dev/email-builder/templates/${name}/composition.json`,
+            `/api/dev/email-builder/templates/${name}/composition.json`,
           );
           expect(res.status).toBe(200);
           expect(res.body.decomposable).toBe(false);
@@ -266,14 +266,14 @@ describe("Dev-Hub · /dev/email-builder", () => {
 
       it("returns 404 for unknown template names", async () => {
         const res = await request(app.getHttpServer()).get(
-          "/dev/email-builder/templates/this-does-not-exist/composition.json",
+          "/api/dev/email-builder/templates/this-does-not-exist/composition.json",
         );
         expect(res.status).toBe(404);
       });
 
       it("returns 400 for invalid template name shapes", async () => {
         const res = await request(app.getHttpServer()).get(
-          "/dev/email-builder/templates/..%2F..%2Fetc/composition.json",
+          "/api/dev/email-builder/templates/..%2F..%2Fetc/composition.json",
         );
         expect([400, 404]).toContain(res.status);
       });
@@ -299,14 +299,14 @@ describe("Dev-Hub · /dev/email-builder", () => {
           children: [{ type: "paragraph", props: { text: "Hi {{recipientName}}!" } }],
         };
         const save = await request(app.getHttpServer())
-          .post("/dev/email-builder/save")
+          .post("/api/dev/email-builder/save")
           .send({ slug, composition });
         expect(save.status).toBe(200);
         expect(existsSync(overrideAbs)).toBe(true);
 
         // Now delete it.
         const res = await request(app.getHttpServer()).delete(
-          `/dev/email-builder/templates/${slug}/override`,
+          `/api/dev/email-builder/templates/${slug}/override`,
         );
         expect(res.status).toBe(200);
         expect(res.body.acted).toBe(true);
@@ -315,14 +315,14 @@ describe("Dev-Hub · /dev/email-builder", () => {
 
       it("returns 404 when no override exists", async () => {
         const res = await request(app.getHttpServer()).delete(
-          `/dev/email-builder/templates/${slug}/override`,
+          `/api/dev/email-builder/templates/${slug}/override`,
         );
         expect(res.status).toBe(404);
       });
 
       it("rejects invalid name shapes with 400", async () => {
         const res = await request(app.getHttpServer()).delete(
-          "/dev/email-builder/templates/..%2Fetc/override",
+          "/api/dev/email-builder/templates/..%2Fetc/override",
         );
         expect([400, 404]).toContain(res.status);
       });
@@ -330,7 +330,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
       it("never touches the core template file", async () => {
         const corePath = resolve(repoRoot, `src/core/email/templates/${slug}.tsx`);
         expect(existsSync(corePath)).toBe(true);
-        await request(app.getHttpServer()).delete(`/dev/email-builder/templates/${slug}/override`);
+        await request(app.getHttpServer()).delete(`/api/dev/email-builder/templates/${slug}/override`);
         expect(existsSync(corePath)).toBe(true);
       });
     });
@@ -347,10 +347,10 @@ describe("Dev-Hub · /dev/email-builder", () => {
           children: [{ type: "paragraph", props: { text: "Hi" } }],
         };
         await request(app.getHttpServer())
-          .post("/dev/email-builder/save")
+          .post("/api/dev/email-builder/save")
           .send({ slug, composition });
 
-        const res = await request(app.getHttpServer()).get("/dev/email-builder/templates.json");
+        const res = await request(app.getHttpServer()).get("/api/dev/email-builder/templates.json");
         expect(res.status).toBe(200);
         // The list reflects discovery order. Find the *active* welcome
         // entry — module wins over core for the same name + locale.
@@ -388,13 +388,13 @@ describe("Dev-Hub · /dev/email-builder", () => {
     });
 
     it("GET /dev/email-builder/templates.json returns 404", async () => {
-      const res = await request(app.getHttpServer()).get("/dev/email-builder/templates.json");
+      const res = await request(app.getHttpServer()).get("/api/dev/email-builder/templates.json");
       expect(res.status).toBe(404);
     });
 
     it("POST /dev/email-builder/save returns 404", async () => {
       const res = await request(app.getHttpServer())
-        .post("/dev/email-builder/save")
+        .post("/api/dev/email-builder/save")
         .send({
           slug: "anything",
           composition: { layout: "Barebone", subject: "x", children: [] },
@@ -404,14 +404,14 @@ describe("Dev-Hub · /dev/email-builder", () => {
 
     it("GET /dev/email-builder/templates/:name/composition.json returns 404", async () => {
       const res = await request(app.getHttpServer()).get(
-        "/dev/email-builder/templates/welcome/composition.json",
+        "/api/dev/email-builder/templates/welcome/composition.json",
       );
       expect(res.status).toBe(404);
     });
 
     it("DELETE /dev/email-builder/templates/:name/override returns 404", async () => {
       const res = await request(app.getHttpServer()).delete(
-        "/dev/email-builder/templates/welcome/override",
+        "/api/dev/email-builder/templates/welcome/override",
       );
       expect(res.status).toBe(404);
     });

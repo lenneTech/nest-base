@@ -58,6 +58,11 @@ describe("Better-Auth · Session middleware (req.user)", () => {
       controllers: [WhoAmIController],
     }).compile();
     app = moduleRef.createNestApplication({ logger: false });
+    // Mirror bootstrap.ts: set the global /api/ prefix so BetterAuth
+    // routes and probe controllers register under /api/... .
+    app.setGlobalPrefix("api", {
+      exclude: ["/", "hub/login", "hub/logout", "health", "health/(.*)"],
+    });
     await app.init();
     prisma = app.get(PrismaService);
   });
@@ -82,7 +87,7 @@ describe("Better-Auth · Session middleware (req.user)", () => {
 
   it("anonymous request to a protected route → 401 (auth required) — not 403 / not 200", async () => {
     const res = await request(app.getHttpServer())
-      .get("/test-session/me")
+      .get("/api/test-session/me")
       .set("x-tenant-id", TENANT_HEADER);
     expect(res.status).toBe(401);
   });
@@ -127,7 +132,7 @@ describe("Better-Auth · Session middleware (req.user)", () => {
 
     // 2. probe `/test-session/me` with the same agent — the cookie
     //    rides on the request.
-    const me = await agent.get("/test-session/me").set("x-tenant-id", TENANT_HEADER);
+    const me = await agent.get("/api/test-session/me").set("x-tenant-id", TENANT_HEADER);
     expect(me.status, JSON.stringify(me.body)).toBe(200);
     expect(me.body.user).toBeDefined();
     expect(me.body.user.id).toBeTruthy();
@@ -142,7 +147,7 @@ describe("Better-Auth · Session middleware (req.user)", () => {
     // First confirm the anonymous case still 401s (auth-required
     // before guard).
     const anon = await request(app.getHttpServer())
-      .get("/test-session/can-restricted")
+      .get("/api/test-session/can-restricted")
       .set("x-tenant-id", TENANT_HEADER);
     expect(anon.status).toBe(401);
 
@@ -155,7 +160,7 @@ describe("Better-Auth · Session middleware (req.user)", () => {
       .send({ email, password });
     expect(signIn.status, JSON.stringify(signIn.body)).toBe(200);
 
-    const res = await agent.get("/test-session/can-restricted").set("x-tenant-id", TENANT_HEADER);
+    const res = await agent.get("/api/test-session/can-restricted").set("x-tenant-id", TENANT_HEADER);
     expect(res.status).toBe(403);
   });
 });

@@ -37,7 +37,7 @@ describe("GeoController · /geo/* + /places/nearby", () => {
 
   it("GET /geo/geocode 403s when no ability is attached", async () => {
     const res = await request(app.getHttpServer())
-      .get("/geo/geocode")
+      .get("/api/geo/geocode")
       .set("x-tenant-id", TENANT)
       .query({ q: "Berlin" });
     expect(res.status).toBe(403);
@@ -45,7 +45,7 @@ describe("GeoController · /geo/* + /places/nearby", () => {
 
   it("GET /geo/geocode returns 200 with empty/null body when no fixture matches (with test-ability)", async () => {
     const res = await request(app.getHttpServer())
-      .get("/geo/geocode")
+      .get("/api/geo/geocode")
       .set("x-tenant-id", TENANT)
       .set("x-test-ability", "full")
       .query({ q: "nonsense-place-12345" });
@@ -62,7 +62,7 @@ describe("GeoController · /geo/* + /places/nearby", () => {
 
   it("GET /geo/geocode 400s when q is missing", async () => {
     const res = await request(app.getHttpServer())
-      .get("/geo/geocode")
+      .get("/api/geo/geocode")
       .set("x-tenant-id", TENANT)
       .set("x-test-ability", "full");
     expect(res.status).toBe(400);
@@ -70,7 +70,7 @@ describe("GeoController · /geo/* + /places/nearby", () => {
 
   it("GET /geo/reverse-geocode validates lat/lng", async () => {
     const res = await request(app.getHttpServer())
-      .get("/geo/reverse-geocode")
+      .get("/api/geo/reverse-geocode")
       .set("x-tenant-id", TENANT)
       .set("x-test-ability", "full")
       .query({ lat: "abc", lng: "xyz" });
@@ -79,7 +79,7 @@ describe("GeoController · /geo/* + /places/nearby", () => {
 
   it("POST /places/nearby returns the SQL builder output for a valid request", async () => {
     const res = await request(app.getHttpServer())
-      .post("/places/nearby")
+      .post("/api/places/nearby")
       .set("x-tenant-id", TENANT)
       .set("x-test-ability", "full")
       .send({ lat: 52.5, lng: 13.4, radiusMeters: 1000 });
@@ -90,7 +90,7 @@ describe("GeoController · /geo/* + /places/nearby", () => {
 
   it("POST /places/nearby 400s on bad input (e.g. radius 0)", async () => {
     const res = await request(app.getHttpServer())
-      .post("/places/nearby")
+      .post("/api/places/nearby")
       .set("x-tenant-id", TENANT)
       .set("x-test-ability", "full")
       .send({ lat: 52.5, lng: 13.4, radiusMeters: 0 });
@@ -99,7 +99,7 @@ describe("GeoController · /geo/* + /places/nearby", () => {
 
   it("POST /places/nearby 400s without an x-tenant-id header (iter-205 reviewer-G5)", async () => {
     const res = await request(app.getHttpServer())
-      .post("/places/nearby")
+      .post("/api/places/nearby")
       .set("x-test-ability", "full")
       .send({ lat: 52.5, lng: 13.4, radiusMeters: 1000 });
     expect(res.status).toBe(400);
@@ -114,7 +114,7 @@ describe("GeoController · /geo/* + /places/nearby", () => {
 
   it("POST /places/nearby emitted SQL contains a tenantId predicate (iter-205 reviewer-G5)", async () => {
     const res = await request(app.getHttpServer())
-      .post("/places/nearby")
+      .post("/api/places/nearby")
       .set("x-tenant-id", TENANT)
       .set("x-test-ability", "full")
       .send({ lat: 52.5, lng: 13.4, radiusMeters: 1000 });

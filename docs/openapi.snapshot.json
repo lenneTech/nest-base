@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.0",
   "paths": {
-    "/": {
+    "/api": {
       "get": {
         "operationId": "AppController_index",
         "parameters": [],
@@ -43,7 +43,35 @@
         ]
       }
     },
-    "/dev/files": {
+    "/hub/login": {
+      "post": {
+        "operationId": "HubController_login",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hub"
+        ]
+      }
+    },
+    "/hub/logout": {
+      "post": {
+        "operationId": "HubController_logout",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hub"
+        ]
+      }
+    },
+    "/api/dev/files": {
       "get": {
         "operationId": "DevFilesController_page",
         "parameters": [],
@@ -57,7 +85,7 @@
         ]
       }
     },
-    "/dev/files/tree.json": {
+    "/api/dev/files/tree.json": {
       "get": {
         "operationId": "DevFilesController_tree",
         "parameters": [],
@@ -71,7 +99,7 @@
         ]
       }
     },
-    "/dev/files/list.json": {
+    "/api/dev/files/list.json": {
       "get": {
         "operationId": "DevFilesController_list",
         "parameters": [],
@@ -85,7 +113,7 @@
         ]
       }
     },
-    "/dev/files/breadcrumb.json": {
+    "/api/dev/files/breadcrumb.json": {
       "get": {
         "operationId": "DevFilesController_breadcrumb",
         "parameters": [],
@@ -99,7 +127,7 @@
         ]
       }
     },
-    "/admin/permissions/test": {
+    "/api/admin/permissions/test": {
       "get": {
         "operationId": "AdminSpaController_permissionsTestPage",
         "parameters": [],
@@ -125,7 +153,7 @@
         ]
       }
     },
-    "/admin/permissions/test.json": {
+    "/api/admin/permissions/test.json": {
       "get": {
         "operationId": "AdminSpaController_permissionsTestJson",
         "parameters": [],
@@ -139,7 +167,7 @@
         ]
       }
     },
-    "/admin/webhooks": {
+    "/api/admin/webhooks": {
       "get": {
         "operationId": "AdminSpaController_webhookInspectorPage",
         "parameters": [],
@@ -153,7 +181,7 @@
         ]
       }
     },
-    "/admin/webhooks.json": {
+    "/api/admin/webhooks.json": {
       "get": {
         "operationId": "AdminSpaController_webhookInspectorJson",
         "parameters": [],
@@ -167,7 +195,7 @@
         ]
       }
     },
-    "/admin/webhooks/aggregates.json": {
+    "/api/admin/webhooks/aggregates.json": {
       "get": {
         "operationId": "AdminSpaController_webhookAggregatesJson",
         "parameters": [],
@@ -181,7 +209,7 @@
         ]
       }
     },
-    "/admin/webhooks/{id}.json": {
+    "/api/admin/webhooks/{id}.json": {
       "get": {
         "operationId": "AdminSpaController_webhookDeliveryDetailJson",
         "parameters": [
@@ -204,7 +232,7 @@
         ]
       }
     },
-    "/admin/webhooks/{id}/redeliver": {
+    "/api/admin/webhooks/{id}/redeliver": {
       "post": {
         "operationId": "AdminSpaController_redeliverWebhook",
         "parameters": [
@@ -227,7 +255,7 @@
         ]
       }
     },
-    "/admin/realtime": {
+    "/api/admin/realtime": {
       "get": {
         "operationId": "AdminSpaController_realtimeInspectorPage",
         "parameters": [],
@@ -241,7 +269,7 @@
         ]
       }
     },
-    "/admin/realtime.json": {
+    "/api/admin/realtime.json": {
       "get": {
         "operationId": "AdminSpaController_realtimeInspectorJson",
         "parameters": [],
@@ -255,7 +283,7 @@
         ]
       }
     },
-    "/admin/realtime/channels.json": {
+    "/api/admin/realtime/channels.json": {
       "get": {
         "operationId": "AdminSpaController_realtimeChannelsJson",
         "parameters": [],
@@ -269,7 +297,7 @@
         ]
       }
     },
-    "/admin/realtime/sockets/{id}/disconnect": {
+    "/api/admin/realtime/sockets/{id}/disconnect": {
       "post": {
         "operationId": "AdminSpaController_realtimeDisconnectSocket",
         "parameters": [
@@ -292,7 +320,7 @@
         ]
       }
     },
-    "/admin/realtime/sockets/{id}/send": {
+    "/api/admin/realtime/sockets/{id}/send": {
       "post": {
         "operationId": "AdminSpaController_realtimeSendToSocket",
         "parameters": [
@@ -315,7 +343,7 @@
         ]
       }
     },
-    "/admin/realtime/events/replay": {
+    "/api/admin/realtime/events/replay": {
       "post": {
         "operationId": "AdminSpaController_realtimeReplayEvent",
         "parameters": [],
@@ -329,7 +357,7 @@
         ]
       }
     },
-    "/admin/audit": {
+    "/api/admin/audit": {
       "get": {
         "operationId": "AdminSpaController_auditBrowserPage",
         "parameters": [],
@@ -343,7 +371,7 @@
         ]
       }
     },
-    "/admin/audit.json": {
+    "/api/admin/audit.json": {
       "get": {
         "operationId": "AdminSpaController_auditBrowserJson",
         "parameters": [],
@@ -357,7 +385,7 @@
         ]
       }
     },
-    "/admin/jobs": {
+    "/api/admin/jobs": {
       "get": {
         "operationId": "AdminSpaController_adminJobsPage",
         "parameters": [],
@@ -371,7 +399,7 @@
         ]
       }
     },
-    "/admin/search": {
+    "/api/admin/search": {
       "get": {
         "operationId": "AdminSpaController_searchTesterPage",
         "parameters": [],
@@ -385,7 +413,7 @@
         ]
       }
     },
-    "/admin/search.json": {
+    "/api/admin/search.json": {
       "get": {
         "operationId": "AdminSpaController_searchTesterJson",
         "parameters": [],
@@ -399,7 +427,7 @@
         ]
       }
     },
-    "/dev": {
+    "/api/dev": {
       "get": {
         "operationId": "DevHubController_index",
         "parameters": [],
@@ -413,7 +441,7 @@
         ]
       }
     },
-    "/dev/components": {
+    "/api/dev/components": {
       "get": {
         "operationId": "DevHubController_componentsPage",
         "parameters": [],
@@ -427,7 +455,7 @@
         ]
       }
     },
-    "/dev/static/{filename}": {
+    "/api/dev/static/{filename}": {
       "get": {
         "operationId": "DevHubController_serveStatic",
         "parameters": [
@@ -450,7 +478,7 @@
         ]
       }
     },
-    "/dev/dashboard.json": {
+    "/api/dev/dashboard.json": {
       "get": {
         "operationId": "DevHubController_dashboardJson",
         "parameters": [],
@@ -464,7 +492,7 @@
         ]
       }
     },
-    "/dev/tunnel.json": {
+    "/api/dev/tunnel.json": {
       "get": {
         "operationId": "DevHubController_tunnelJson",
         "parameters": [],
@@ -478,7 +506,7 @@
         ]
       }
     },
-    "/dev/brand.json": {
+    "/api/dev/brand.json": {
       "get": {
         "operationId": "DevHubController_brandJson",
         "parameters": [],
@@ -492,7 +520,7 @@
         ]
       }
     },
-    "/dev/brand": {
+    "/api/dev/brand": {
       "get": {
         "operationId": "DevHubController_brandPage",
         "parameters": [],
@@ -518,7 +546,7 @@
         ]
       }
     },
-    "/dev/brand/reset": {
+    "/api/dev/brand/reset": {
       "post": {
         "operationId": "DevHubController_resetBrand",
         "parameters": [],
@@ -532,7 +560,7 @@
         ]
       }
     },
-    "/dev/status.json": {
+    "/api/dev/status.json": {
       "get": {
         "operationId": "DevHubController_statusJson",
         "parameters": [],
@@ -546,7 +574,7 @@
         ]
       }
     },
-    "/dev/features": {
+    "/api/dev/features": {
       "get": {
         "operationId": "DevHubController_features",
         "parameters": [],
@@ -560,7 +588,7 @@
         ]
       }
     },
-    "/dev/features.json": {
+    "/api/dev/features.json": {
       "get": {
         "operationId": "DevHubController_featuresJson",
         "parameters": [],
@@ -574,7 +602,7 @@
         ]
       }
     },
-    "/dev/feature-catalog.json": {
+    "/api/dev/feature-catalog.json": {
       "get": {
         "operationId": "DevHubController_featureCatalogJson",
         "parameters": [],
@@ -588,7 +616,7 @@
         ]
       }
     },
-    "/dev/scheduled-jobs.json": {
+    "/api/dev/scheduled-jobs.json": {
       "get": {
         "operationId": "DevHubController_scheduledJobsJson",
         "parameters": [],
@@ -602,7 +630,7 @@
         ]
       }
     },
-    "/dev/webhook-events.json": {
+    "/api/dev/webhook-events.json": {
       "get": {
         "operationId": "DevHubController_webhookEventsJson",
         "parameters": [],
@@ -616,7 +644,7 @@
         ]
       }
     },
-    "/dev/features/{key}/toggle": {
+    "/api/dev/features/{key}/toggle": {
       "post": {
         "operationId": "DevHubController_toggleFeature",
         "parameters": [
@@ -639,7 +667,7 @@
         ]
       }
     },
-    "/dev/postgrest-parse": {
+    "/api/dev/postgrest-parse": {
       "get": {
         "operationId": "DevHubController_postgrestParse",
         "parameters": [],
@@ -653,7 +681,7 @@
         ]
       }
     },
-    "/dev/coverage": {
+    "/api/dev/coverage": {
       "get": {
         "operationId": "DevHubController_coverage",
         "parameters": [],
@@ -667,7 +695,7 @@
         ]
       }
     },
-    "/dev/coverage.json": {
+    "/api/dev/coverage.json": {
       "get": {
         "operationId": "DevHubController_coverageJson",
         "parameters": [],
@@ -681,7 +709,7 @@
         ]
       }
     },
-    "/dev/logs": {
+    "/api/dev/logs": {
       "get": {
         "operationId": "DevHubController_logsPage",
         "parameters": [],
@@ -695,7 +723,7 @@
         ]
       }
     },
-    "/dev/logs.json": {
+    "/api/dev/logs.json": {
       "get": {
         "operationId": "DevHubController_logsJson",
         "parameters": [],
@@ -709,7 +737,7 @@
         ]
       }
     },
-    "/dev/tests": {
+    "/api/dev/tests": {
       "get": {
         "operationId": "DevHubController_tests",
         "parameters": [],
@@ -723,7 +751,7 @@
         ]
       }
     },
-    "/dev/tests.json": {
+    "/api/dev/tests.json": {
       "get": {
         "operationId": "DevHubController_testsJson",
         "parameters": [],
@@ -737,7 +765,7 @@
         ]
       }
     },
-    "/dev/diagnostics": {
+    "/api/dev/diagnostics": {
       "get": {
         "operationId": "DevHubController_diagnostics",
         "parameters": [],
@@ -751,7 +779,7 @@
         ]
       }
     },
-    "/dev/diagnostics.json": {
+    "/api/dev/diagnostics.json": {
       "get": {
         "operationId": "DevHubController_diagnosticsJson",
         "parameters": [],
@@ -765,7 +793,7 @@
         ]
       }
     },
-    "/dev/routes": {
+    "/api/dev/routes": {
       "get": {
         "operationId": "DevHubController_routesPage",
         "parameters": [],
@@ -779,7 +807,7 @@
         ]
       }
     },
-    "/dev/routes.json": {
+    "/api/dev/routes.json": {
       "get": {
         "operationId": "DevHubController_routesJson",
         "parameters": [],
@@ -793,7 +821,7 @@
         ]
       }
     },
-    "/dev/erd": {
+    "/api/dev/erd": {
       "get": {
         "operationId": "DevHubController_erdPage",
         "parameters": [],
@@ -807,7 +835,7 @@
         ]
       }
     },
-    "/dev/json": {
+    "/api/dev/json": {
       "get": {
         "operationId": "DevHubController_jsonViewerPage",
         "parameters": [],
@@ -821,7 +849,7 @@
         ]
       }
     },
-    "/dev/erd.json": {
+    "/api/dev/erd.json": {
       "get": {
         "operationId": "DevHubController_erdJson",
         "parameters": [],
@@ -835,7 +863,7 @@
         ]
       }
     },
-    "/dev/traces": {
+    "/api/dev/traces": {
       "get": {
         "operationId": "DevHubController_tracesPage",
         "parameters": [],
@@ -849,7 +877,7 @@
         ]
       }
     },
-    "/dev/traces.json": {
+    "/api/dev/traces.json": {
       "get": {
         "operationId": "DevHubController_tracesJson",
         "parameters": [
@@ -880,7 +908,7 @@
         ]
       }
     },
-    "/dev/queries": {
+    "/api/dev/queries": {
       "get": {
         "operationId": "DevHubController_queriesPage",
         "parameters": [],
@@ -894,7 +922,7 @@
         ]
       }
     },
-    "/dev/queries.json": {
+    "/api/dev/queries.json": {
       "get": {
         "operationId": "DevHubController_queriesJson",
         "parameters": [
@@ -925,7 +953,7 @@
         ]
       }
     },
-    "/dev/email-preview": {
+    "/api/dev/email-preview": {
       "get": {
         "operationId": "DevHubController_emailPreviewPage",
         "parameters": [],
@@ -939,7 +967,7 @@
         ]
       }
     },
-    "/dev/email-preview.json": {
+    "/api/dev/email-preview.json": {
       "get": {
         "operationId": "DevHubController_emailPreviewJson",
         "parameters": [],
@@ -953,7 +981,7 @@
         ]
       }
     },
-    "/dev/email-builder": {
+    "/api/dev/email-builder": {
       "get": {
         "operationId": "DevHubController_emailBuilderPage",
         "parameters": [],
@@ -967,7 +995,7 @@
         ]
       }
     },
-    "/dev/email-builder/templates.json": {
+    "/api/dev/email-builder/templates.json": {
       "get": {
         "operationId": "DevHubController_emailBuilderTemplatesJson",
         "parameters": [],
@@ -981,7 +1009,7 @@
         ]
       }
     },
-    "/dev/email-builder/templates/{name}/composition.json": {
+    "/api/dev/email-builder/templates/{name}/composition.json": {
       "get": {
         "operationId": "DevHubController_emailBuilderTemplateComposition",
         "parameters": [
@@ -1004,7 +1032,7 @@
         ]
       }
     },
-    "/dev/email-builder/templates/{name}/override": {
+    "/api/dev/email-builder/templates/{name}/override": {
       "delete": {
         "operationId": "DevHubController_emailBuilderDeleteOverride",
         "parameters": [
@@ -1027,7 +1055,7 @@
         ]
       }
     },
-    "/dev/email-builder/blocks.json": {
+    "/api/dev/email-builder/blocks.json": {
       "get": {
         "operationId": "DevHubController_emailBuilderBlocksJson",
         "parameters": [],
@@ -1041,7 +1069,7 @@
         ]
       }
     },
-    "/dev/email-builder/preview.json": {
+    "/api/dev/email-builder/preview.json": {
       "post": {
         "operationId": "DevHubController_emailBuilderPreview",
         "parameters": [],
@@ -1055,7 +1083,7 @@
         ]
       }
     },
-    "/dev/email-builder/save": {
+    "/api/dev/email-builder/save": {
       "post": {
         "operationId": "DevHubController_emailBuilderSave",
         "parameters": [],
@@ -1069,7 +1097,7 @@
         ]
       }
     },
-    "/dev/migrations": {
+    "/api/dev/migrations": {
       "get": {
         "operationId": "DevHubController_migrationsPage",
         "parameters": [],
@@ -1083,7 +1111,7 @@
         ]
       }
     },
-    "/dev/migrations.json": {
+    "/api/dev/migrations.json": {
       "get": {
         "operationId": "DevHubController_migrationsJson",
         "parameters": [],
@@ -1097,7 +1125,7 @@
         ]
       }
     },
-    "/dev/migrations/preview/{name}": {
+    "/api/dev/migrations/preview/{name}": {
       "get": {
         "operationId": "DevHubController_migrationsPreview",
         "parameters": [
@@ -1120,7 +1148,7 @@
         ]
       }
     },
-    "/dev/migrations/diff": {
+    "/api/dev/migrations/diff": {
       "get": {
         "operationId": "DevHubController_migrationsDiff",
         "parameters": [],
@@ -1134,7 +1162,7 @@
         ]
       }
     },
-    "/dev/migrations/deploy": {
+    "/api/dev/migrations/deploy": {
       "post": {
         "operationId": "DevHubController_migrationsDeploy",
         "parameters": [],
@@ -1148,7 +1176,7 @@
         ]
       }
     },
-    "/dev/migrations/apply-one": {
+    "/api/dev/migrations/apply-one": {
       "post": {
         "operationId": "DevHubController_migrationsApplyOne",
         "parameters": [],
@@ -1162,7 +1190,7 @@
         ]
       }
     },
-    "/dev/migrations/dry-run": {
+    "/api/dev/migrations/dry-run": {
       "post": {
         "operationId": "DevHubController_migrationsDryRun",
         "parameters": [],
@@ -1176,7 +1204,7 @@
         ]
       }
     },
-    "/dev/migrations/retry": {
+    "/api/dev/migrations/retry": {
       "post": {
         "operationId": "DevHubController_migrationsRetry",
         "parameters": [],
@@ -1190,7 +1218,7 @@
         ]
       }
     },
-    "/dev/migrations/create": {
+    "/api/dev/migrations/create": {
       "post": {
         "operationId": "DevHubController_migrationsCreate",
         "parameters": [],
@@ -1204,7 +1232,7 @@
         ]
       }
     },
-    "/dev/migrations/apply-draft": {
+    "/api/dev/migrations/apply-draft": {
       "post": {
         "operationId": "DevHubController_migrationsApplyDraft",
         "parameters": [],
@@ -1218,7 +1246,7 @@
         ]
       }
     },
-    "/dev/migrations/draft/{name}": {
+    "/api/dev/migrations/draft/{name}": {
       "delete": {
         "operationId": "DevHubController_migrationsDiscardDraft",
         "parameters": [
@@ -1241,7 +1269,7 @@
         ]
       }
     },
-    "/dev/jobs": {
+    "/api/dev/jobs": {
       "get": {
         "operationId": "DevHubController_jobsPage",
         "parameters": [],
@@ -1255,7 +1283,7 @@
         ]
       }
     },
-    "/dev/jobs/queues.json": {
+    "/api/dev/jobs/queues.json": {
       "get": {
         "operationId": "DevHubController_jobsQueuesJson",
         "parameters": [],
@@ -1269,7 +1297,7 @@
         ]
       }
     },
-    "/dev/jobs/jobs.json": {
+    "/api/dev/jobs/jobs.json": {
       "get": {
         "operationId": "DevHubController_jobsListJson",
         "parameters": [],
@@ -1283,7 +1311,7 @@
         ]
       }
     },
-    "/dev/jobs/jobs/{id}.json": {
+    "/api/dev/jobs/jobs/{id}.json": {
       "get": {
         "operationId": "DevHubController_jobDetailJson",
         "parameters": [
@@ -1306,7 +1334,7 @@
         ]
       }
     },
-    "/dev/jobs/jobs/{id}/retry": {
+    "/api/dev/jobs/jobs/{id}/retry": {
       "post": {
         "operationId": "DevHubController_retryJob",
         "parameters": [
@@ -1329,7 +1357,7 @@
         ]
       }
     },
-    "/dev/email-outbox": {
+    "/api/dev/email-outbox": {
       "get": {
         "operationId": "DevHubController_emailOutboxPage",
         "parameters": [],
@@ -1343,7 +1371,7 @@
         ]
       }
     },
-    "/dev/cron": {
+    "/api/dev/cron": {
       "get": {
         "operationId": "DevHubController_cronPage",
         "parameters": [],
@@ -1357,7 +1385,7 @@
         ]
       }
     },
-    "/dev/outbox.json": {
+    "/api/dev/outbox.json": {
       "get": {
         "operationId": "DevHubController_outboxJson",
         "parameters": [],
@@ -1371,7 +1399,7 @@
         ]
       }
     },
-    "/dev/{splat}": {
+    "/api/dev/{splat}": {
       "get": {
         "operationId": "DevHubController_spaCatchAll",
         "parameters": [],
@@ -1483,7 +1511,7 @@
         ]
       }
     },
-    "/errors": {
+    "/api/errors": {
       "get": {
         "operationId": "ErrorCodeController_list",
         "parameters": [],
@@ -1497,7 +1525,7 @@
         ]
       }
     },
-    "/errors/{code}": {
+    "/api/errors/{code}": {
       "get": {
         "operationId": "ErrorCodeController_resolve",
         "parameters": [
@@ -1528,7 +1556,7 @@
         ]
       }
     },
-    "/me/export": {
+    "/api/me/export": {
       "get": {
         "operationId": "GdprController_export",
         "parameters": [],
@@ -1542,7 +1570,7 @@
         ]
       }
     },
-    "/me/export/{jobId}": {
+    "/api/me/export/{jobId}": {
       "get": {
         "operationId": "GdprController_exportStatus",
         "parameters": [
@@ -1565,7 +1593,7 @@
         ]
       }
     },
-    "/me/account": {
+    "/api/me/account": {
       "delete": {
         "operationId": "GdprController_deleteAccount",
         "parameters": [],
@@ -1579,7 +1607,7 @@
         ]
       }
     },
-    "/tenant-members/{tenantId}": {
+    "/api/tenant-members/{tenantId}": {
       "get": {
         "operationId": "TenantMemberController_list",
         "parameters": [
@@ -1602,7 +1630,7 @@
         ]
       }
     },
-    "/tenant-members": {
+    "/api/tenant-members": {
       "post": {
         "operationId": "TenantMemberController_add",
         "parameters": [],
@@ -1616,7 +1644,7 @@
         ]
       }
     },
-    "/tenant-members/{id}/status": {
+    "/api/tenant-members/{id}/status": {
       "put": {
         "operationId": "TenantMemberController_updateStatus",
         "parameters": [
@@ -1639,7 +1667,7 @@
         ]
       }
     },
-    "/tenant-members/{id}": {
+    "/api/tenant-members/{id}": {
       "delete": {
         "operationId": "TenantMemberController_remove",
         "parameters": [
@@ -1662,7 +1690,7 @@
         ]
       }
     },
-    "/me/tenants": {
+    "/api/me/tenants": {
       "get": {
         "operationId": "MeTenantsController_list",
         "parameters": [],
@@ -1730,7 +1758,7 @@
         ]
       }
     },
-    "/tenants": {
+    "/api/tenants": {
       "post": {
         "operationId": "TenantSelfServiceController_create",
         "parameters": [],
@@ -1822,7 +1850,7 @@
         ]
       }
     },
-    "/api-keys/{userId}": {
+    "/api/api-keys/{userId}": {
       "get": {
         "operationId": "ApiKeyController_list",
         "parameters": [
@@ -1845,7 +1873,7 @@
         ]
       }
     },
-    "/api-keys": {
+    "/api/api-keys": {
       "post": {
         "operationId": "ApiKeyController_create",
         "parameters": [],
@@ -1859,7 +1887,7 @@
         ]
       }
     },
-    "/api-keys/{id}/rotate": {
+    "/api/api-keys/{id}/rotate": {
       "post": {
         "operationId": "ApiKeyController_rotate",
         "parameters": [
@@ -1882,7 +1910,7 @@
         ]
       }
     },
-    "/api-keys/{id}": {
+    "/api/api-keys/{id}": {
       "delete": {
         "operationId": "ApiKeyController_remove",
         "parameters": [
@@ -1905,7 +1933,7 @@
         ]
       }
     },
-    "/admin/sessions": {
+    "/api/admin/sessions": {
       "get": {
         "operationId": "SessionsAdminController_sessionsAdminPage",
         "parameters": [],
@@ -1919,7 +1947,7 @@
         ]
       }
     },
-    "/admin/sessions/list.json": {
+    "/api/admin/sessions/list.json": {
       "get": {
         "operationId": "SessionsAdminController_sessionsListJson",
         "parameters": [],
@@ -1933,7 +1961,7 @@
         ]
       }
     },
-    "/admin/sessions/{sessionId}": {
+    "/api/admin/sessions/{sessionId}": {
       "delete": {
         "operationId": "SessionsAdminController_revokeSingle",
         "parameters": [
@@ -1956,7 +1984,7 @@
         ]
       }
     },
-    "/admin/sessions/revoke-bulk-by-user": {
+    "/api/admin/sessions/revoke-bulk-by-user": {
       "post": {
         "operationId": "SessionsAdminController_revokeBulkByUser",
         "parameters": [],
@@ -1970,7 +1998,7 @@
         ]
       }
     },
-    "/admin/sessions/revoke-others": {
+    "/api/admin/sessions/revoke-others": {
       "post": {
         "operationId": "SessionsAdminController_revokeOthers",
         "parameters": [],
@@ -1984,7 +2012,7 @@
         ]
       }
     },
-    "/admin/impersonation/stop": {
+    "/api/admin/impersonation/stop": {
       "post": {
         "operationId": "ImpersonationController_stop",
         "parameters": [],
@@ -1998,7 +2026,7 @@
         ]
       }
     },
-    "/admin/roles": {
+    "/api/admin/roles": {
       "get": {
         "operationId": "RoleAdminController_list",
         "parameters": [],
@@ -2024,7 +2052,7 @@
         ]
       }
     },
-    "/admin/roles/{id}": {
+    "/api/admin/roles/{id}": {
       "get": {
         "operationId": "RoleAdminController_get",
         "parameters": [
@@ -2068,7 +2096,7 @@
         ]
       }
     },
-    "/admin/policies": {
+    "/api/admin/policies": {
       "get": {
         "operationId": "PolicyAdminController_list",
         "parameters": [],
@@ -2094,7 +2122,7 @@
         ]
       }
     },
-    "/admin/policies/{id}": {
+    "/api/admin/policies/{id}": {
       "get": {
         "operationId": "PolicyAdminController_get",
         "parameters": [
@@ -2138,7 +2166,7 @@
         ]
       }
     },
-    "/admin/permissions": {
+    "/api/admin/permissions": {
       "get": {
         "operationId": "PermissionAdminController_list",
         "parameters": [],
@@ -2164,7 +2192,7 @@
         ]
       }
     },
-    "/admin/permissions/{id}": {
+    "/api/admin/permissions/{id}": {
       "get": {
         "operationId": "PermissionAdminController_get",
         "parameters": [
@@ -2208,7 +2236,7 @@
         ]
       }
     },
-    "/admin/permissions/attach": {
+    "/api/admin/permissions/attach": {
       "post": {
         "operationId": "PermissionAdminController_attach",
         "parameters": [],
@@ -2222,7 +2250,7 @@
         ]
       }
     },
-    "/admin/permissions/attach/{roleId}/{policyId}": {
+    "/api/admin/permissions/attach/{roleId}/{policyId}": {
       "delete": {
         "operationId": "PermissionAdminController_detach",
         "parameters": [
@@ -2253,7 +2281,7 @@
         ]
       }
     },
-    "/metrics": {
+    "/api/metrics": {
       "get": {
         "operationId": "MetricsController_expose",
         "parameters": [],
@@ -2267,7 +2295,7 @@
         ]
       }
     },
-    "/files": {
+    "/api/files": {
       "get": {
         "operationId": "FileController_list",
         "parameters": [
@@ -2302,7 +2330,7 @@
         ]
       }
     },
-    "/files/share/{token}": {
+    "/api/files/share/{token}": {
       "get": {
         "operationId": "FileController_fetchByShareToken",
         "parameters": [
@@ -2325,7 +2353,7 @@
         ]
       }
     },
-    "/files/{id}": {
+    "/api/files/{id}": {
       "get": {
         "operationId": "FileController_get",
         "parameters": [
@@ -2369,7 +2397,7 @@
         ]
       }
     },
-    "/files/upload": {
+    "/api/files/upload": {
       "post": {
         "operationId": "FileController_upload",
         "parameters": [],
@@ -2383,7 +2411,7 @@
         ]
       }
     },
-    "/files/{id}/visibility": {
+    "/api/files/{id}/visibility": {
       "patch": {
         "operationId": "FileController_setVisibility",
         "parameters": [
@@ -2406,7 +2434,7 @@
         ]
       }
     },
-    "/files/zip": {
+    "/api/files/zip": {
       "post": {
         "operationId": "FileController_downloadZip",
         "parameters": [],
@@ -2420,7 +2448,7 @@
         ]
       }
     },
-    "/files/{id}/share-link": {
+    "/api/files/{id}/share-link": {
       "post": {
         "operationId": "FileController_issueShareLink",
         "parameters": [
@@ -2443,7 +2471,7 @@
         ]
       }
     },
-    "/folders": {
+    "/api/folders": {
       "get": {
         "operationId": "FolderController_list",
         "parameters": [
@@ -2478,7 +2506,7 @@
         ]
       }
     },
-    "/folders/{id}": {
+    "/api/folders/{id}": {
       "delete": {
         "operationId": "FolderController_remove",
         "parameters": [
@@ -2501,7 +2529,7 @@
         ]
       }
     },
-    "/assets/{key}": {
+    "/api/assets/{key}": {
       "get": {
         "operationId": "AssetController_get",
         "parameters": [
@@ -2547,7 +2575,7 @@
         ]
       }
     },
-    "/examples": {
+    "/api/examples": {
       "post": {
         "operationId": "ExampleController_create",
         "parameters": [],
@@ -2747,7 +2775,7 @@
         ]
       }
     },
-    "/examples/{id}": {
+    "/api/examples/{id}": {
       "get": {
         "operationId": "ExampleController_findOne",
         "parameters": [
@@ -2938,7 +2966,7 @@
         ]
       }
     },
-    "/me/profile": {
+    "/api/me/profile": {
       "get": {
         "operationId": "UserProfileController_getMine",
         "parameters": [],

@@ -47,6 +47,11 @@ describe("Permissions · default Prisma storage end-to-end", () => {
       controllers: [ProbeController],
     }).compile();
     app = moduleRef.createNestApplication({ logger: false });
+    // Mirror bootstrap.ts: set the global /api/ prefix so BetterAuth
+    // routes and probe controllers register under /api/... .
+    app.setGlobalPrefix("api", {
+      exclude: ["/", "hub/login", "hub/logout", "health", "health/(.*)"],
+    });
     await app.init();
     prisma = app.get(PrismaService);
   });
@@ -123,7 +128,7 @@ describe("Permissions · default Prisma storage end-to-end", () => {
     //    grants `manage:Example` for the user's tenant — `manage`
     //    covers `read`, so CanGuard passes.
     const res = await memberAgent
-      .get("/perm-default-probe/members-only")
+      .get("/api/perm-default-probe/members-only")
       .set("x-tenant-id", tenant.id);
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body).toEqual({ status: "ok" });

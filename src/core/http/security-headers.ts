@@ -134,13 +134,23 @@ export interface PathAwareCspInput {
 
 export function isJsonShapedResponse(input: PathAwareCspInput): boolean {
   const path = input.path;
-  if (path.startsWith("/api/")) return true;
+  // `/api/dev/*` and `/api/admin/*` paths are HTML pages in the dev-hub
+  // SPA (they return the shell HTML, not JSON). Their `*.json` companion
+  // paths are caught below by the `.json` suffix branch. Applying the
+  // strict CSP here would strip `unsafe-inline` and break the SPA.
+  if (
+    path.startsWith("/api/") &&
+    !path.startsWith("/api/dev/") &&
+    !path.startsWith("/api/admin/")
+  ) {
+    return true;
+  }
   if (path.endsWith(".json")) return true;
   // Allow-list a small set of well-known JSON paths. We deliberately
   // don't include `/admin/` or `/dev/` (those are HTML by default;
   // their `.json` siblings hit the suffix branch above).
   if (path === "/health/live" || path === "/health/ready") return true;
-  if (path === "/errors") return true;
+  if (path === "/api/errors" || path === "/errors") return true;
 
   const accept = (input.acceptHeader ?? "").toLowerCase();
   const contentType = (input.responseContentType ?? "").toLowerCase();

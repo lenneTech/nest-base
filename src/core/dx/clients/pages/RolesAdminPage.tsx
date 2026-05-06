@@ -42,12 +42,12 @@ export function RolesAdminPage(): ReactNode {
 
   const list = useQuery({
     queryKey: ["admin", "roles"],
-    queryFn: () => fetchJson<RoleRecord[]>("/admin/roles"),
+    queryFn: () => fetchJson<RoleRecord[]>("/api/admin/roles"),
   });
 
   const create = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/admin/roles", {
+      const res = await fetch("/api/admin/roles", {
         method: "POST",
         headers: { "content-type": "application/json", "x-tenant-id": tenantId },
         body: JSON.stringify({ name, tenantId, description: description || null }),
