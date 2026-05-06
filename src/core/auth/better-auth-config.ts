@@ -31,9 +31,24 @@ export function betterAuthConfigDefaults(): BetterAuthConfig {
 
 const DEFAULT_MOUNT_PATH = "/api/auth";
 
-/** Validate + normalize the Better-Auth handler mount path. */
+/**
+ * The default Better-Auth handler mount path, exported so middleware and
+ * guards that hard-code the path in their static allowlists can reference
+ * the same constant. Dynamic runtime reconfiguration of those allowlists
+ * is handled by reading `BETTER_AUTH_BASE_PATH` in the factory instead.
+ */
+export const BETTER_AUTH_DEFAULT_MOUNT_PATH = DEFAULT_MOUNT_PATH;
+
+/**
+ * Validate + normalize the Better-Auth handler mount path.
+ *
+ * Resolution order (first wins):
+ * 1. `custom` argument — explicit caller-supplied value (e.g. tests, module factory).
+ * 2. `BETTER_AUTH_BASE_PATH` environment variable — operator override at deploy time.
+ * 3. Hard-coded default `/api/auth` — backward-compatible fallback.
+ */
 export function resolveBetterAuthMountPath(custom?: string): string {
-  const candidate = custom ?? DEFAULT_MOUNT_PATH;
+  const candidate = custom ?? process.env.BETTER_AUTH_BASE_PATH ?? DEFAULT_MOUNT_PATH;
   if (!candidate.startsWith("/")) {
     throw new Error(`mount path must start with "/" (received: ${candidate})`);
   }

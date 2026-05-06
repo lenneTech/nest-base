@@ -9,7 +9,28 @@
  * at root level are: Hub (`/`, `/hub/*`), health (`/health/*`), and
  * the legacy `/api-docs-json` alias. All `/dev/*` and `/admin/*` paths
  * are now under `/api/hub/*` and `/api/admin/*`.
+ *
+ * Issue #101: the Better-Auth prefix entry is derived from
+ * `BETTER_AUTH_BASE_PATH` at server-boot time so operators can mount
+ * Better-Auth under a custom path without code changes. The static
+ * `/api/auth/` default is always included as a fallback so the
+ * allowlist never becomes empty.
  */
+
+import { BETTER_AUTH_DEFAULT_MOUNT_PATH } from "./better-auth-config.js";
+
+/**
+ * Resolve the Better-Auth prefix that should be treated as public by
+ * the JWT middleware. Reads `BETTER_AUTH_BASE_PATH` at call time so
+ * the value is fresh even in test scenarios where env vars are mutated
+ * between test cases.
+ */
+function resolveAuthPrefix(): string {
+  const raw = process.env.BETTER_AUTH_BASE_PATH ?? BETTER_AUTH_DEFAULT_MOUNT_PATH;
+  // Ensure the prefix ends with "/" so startsWith() matches sub-paths
+  // but not unrelated paths that share a prefix (e.g. `/api/authoring`).
+  return raw.endsWith("/") ? raw : `${raw}/`;
+}
 
 /**
  * Public paths — no JWT required.
@@ -25,9 +46,8 @@
  * the upstream `nuxt-base-starter` fix
  * (lenneTech/nuxt-base-starter#13) has propagated.
  */
-const PUBLIC_PREFIXES = [
+const STATIC_PUBLIC_PREFIXES = [
   "/health/",
-  "/api/auth/",
   "/docs/",
   "/api/hub/",
   "/api/admin/",
@@ -53,7 +73,11 @@ const PUBLIC_EXACT = new Set([
 export function isPathProtected(path: string): boolean {
   if (!path) throw new Error("isPathProtected: path is required");
   if (PUBLIC_EXACT.has(path)) return false;
-  for (const prefix of PUBLIC_PREFIXES) {
+  // Derive the auth prefix dynamically so BETTER_AUTH_BASE_PATH is
+  // honoured without a server restart side-effect on the static list.
+  const authPrefix = resolveAuthPrefix();
+  if (path.startsWith(authPrefix) || path === authPrefix.slice(0, -1)) return false;
+  for (const prefix of STATIC_PUBLIC_PREFIXES) {
     if (path.startsWith(prefix) || path === prefix.slice(0, -1)) return false;
   }
   return true;
