@@ -21,6 +21,8 @@ export interface DeliveryListEntry {
   latencyMs?: number;
   occurredAt: string;
   errorMessage?: string;
+  /** True when this delivery was triggered via the inspector test-event button. */
+  isTest?: boolean;
 }
 
 export interface InspectorListFilter {
@@ -68,4 +70,14 @@ export interface WebhookDeliveryDetailResponse {
 
 export interface WebhookRedeliverResponse {
   delivery: DeliveryListEntry;
+}
+
+export interface WebhookTestEventResponse {
+  /** The delivery ID recorded in the inspector buffer for this test event. */
+  deliveryId: string;
+}
+
+export interface WebhookEventTypesResponse {
+  /** All event types declared via @WebhookEvent in the project registry. */
+  eventTypes: string[];
 }

@@ -232,6 +232,43 @@
         ]
       }
     },
+    "/api/admin/webhooks/event-types.json": {
+      "get": {
+        "operationId": "AdminSpaController_webhookEventTypesJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminSpa"
+        ]
+      }
+    },
+    "/api/admin/webhooks/{id}/test": {
+      "post": {
+        "operationId": "AdminSpaController_sendTestEvent",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminSpa"
+        ]
+      }
+    },
     "/api/admin/webhooks/{id}/redeliver": {
       "post": {
         "operationId": "AdminSpaController_redeliverWebhook",
