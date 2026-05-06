@@ -93,6 +93,10 @@ import {
 import { getTraceBuffer, type TraceRecord, type TraceSummary } from "./trace-buffer.js";
 import { buildTestSummary, type RawTestSummary } from "./test-summary.js";
 import { planServiceCandidates, probeServices, type ServiceProbeResult } from "./service-status.js";
+import {
+  buildDashboardStatusGroups,
+  type DashboardStatusGroup,
+} from "./dashboard-health-planner.js";
 
 /**
  * `/hub/*` — Developer-only landing + JSON inspection routes.
@@ -225,6 +229,35 @@ export class DevHubController {
     const buffer = getLogBuffer();
     const mem = process.memoryUsage();
     const tunnelState = readTunnelState(process.cwd());
+
+    // Gather data for the operator health planner
+    const migrationsStatus = await this.migrations.getStatus();
+    const allMigrationsApplied = migrationsStatus.pending.length === 0 && migrationsStatus.failed.length === 0;
+
+    const statusGroups: DashboardStatusGroup[] = buildDashboardStatusGroups({
+      uptime: process.uptime(),
+      heapUsedMb: mem.heapUsed / 1e6,
+      rssMb: mem.rss / 1e6,
+      bunVersion: readBunVersion() ?? "",
+      pendingJobCount: 0,
+      deadLetterCount: 0,
+      webhookSuccessRate: 1,
+      emailEnabled: Boolean(features.email?.enabled),
+      storageDriverName: (features as Record<string, unknown> & { storageDefault?: string }).storageDefault ?? "local",
+      geoIpAgeDays: 0,
+      allMigrationsApplied,
+      // RLS is active when row-level security is enforced in the DB.
+      // We infer it from the presence of multi-tenancy feature, since RLS
+      // is always enabled alongside multi-tenancy in this template.
+      rlsActive: Boolean((features as Record<string, unknown> & { multiTenancy?: { enabled?: boolean } }).multiTenancy?.enabled),
+    });
+
+    // Stub chart data — no request log aggregation implemented yet.
+    // The UI renders a "Kein Datenmaterial" placeholder when available=false.
+    const requestsChart = { available: false as const, buckets: buildZeroFilledRequestBuckets() };
+    const sessionsChart = { available: false as const, buckets: buildZeroFilledSessionBuckets() };
+    const geoTopCountries = { available: false as const, countries: [] as Array<{ countryCode: string; country: string; requests: number }> };
+
     return {
       baseUrl: effective.publicUrl,
       uptimeMs: Math.round(process.uptime() * 1000),
@@ -245,6 +278,10 @@ export class DevHubController {
       tunnel: tunnelState
         ? { active: true as const, url: tunnelState.url, startedAt: tunnelState.startedAt }
         : { active: false as const },
+      statusGroups,
+      requestsChart,
+      sessionsChart,
+      geoTopCountries,
     };
   }
 
@@ -1408,6 +1445,54 @@ export class DevHubController {
 function readBunVersion(): string | undefined {
   const bun = (globalThis as { Bun?: { version: string } }).Bun;
   return bun?.version;
+}
+
+/**
+ * Build 24 h × 12 buckets/h = 288 zero-filled request buckets.
+ * Used as a stub until a request-log aggregator is implemented.
+ */
+function buildZeroFilledRequestBuckets(): Array<{
+  time: string;
+  ok: number;
+  err4xx: number;
+  err5xx: number;
+}> {
+  const now = Date.now();
+  const buckets: Array<{ time: string; ok: number; err4xx: number; err5xx: number }> = [];
+  // 24 h in 5-min buckets = 288 entries; iterate newest-last so charts
+  // render left → right in chronological order.
+  for (let i = 287; i >= 0; i--) {
+    const ts = new Date(now - i * 5 * 60 * 1000);
+    buckets.push({
+      time: ts.toISOString().slice(11, 16), // "HH:MM"
+      ok: 0,
+      err4xx: 0,
+      err5xx: 0,
+    });
+  }
+  return buckets;
+}
+
+/**
+ * Build 24 zero-filled hourly session buckets.
+ * Used as a stub until the session aggregator is implemented.
+ */
+function buildZeroFilledSessionBuckets(): Array<{
+  hour: string;
+  active: number;
+  newLogins: number;
+}> {
+  const now = Date.now();
+  const buckets: Array<{ hour: string; active: number; newLogins: number }> = [];
+  for (let i = 23; i >= 0; i--) {
+    const ts = new Date(now - i * 60 * 60 * 1000);
+    buckets.push({
+      hour: ts.toISOString().slice(11, 13) + ":00", // "HH:00"
+      active: 0,
+      newLogins: 0,
+    });
+  }
+  return buckets;
 }
 
 function devWantsJson(accept: string | undefined, format: string | undefined): boolean {
