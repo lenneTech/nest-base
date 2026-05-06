@@ -48,7 +48,7 @@ describe("Dev-Hub · GET /dev", () => {
     it("loads the bundled SPA script as type=module from /api/hub/static/main.js", async () => {
       const res = await request(app.getHttpServer()).get("/api/hub");
       expect(res.text).toMatch(
-        /<script\s+type="module"\s+src="\/api\/dev\/static\/main\.js"><\/script>/,
+        /<script\s+type="module"\s+src="\/api\/hub\/static\/main\.js"><\/script>/,
       );
     });
 

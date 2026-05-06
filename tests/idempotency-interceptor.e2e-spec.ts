@@ -27,7 +27,7 @@ import { Public } from "../src/core/permissions/public.decorator.js";
 
 let invocations = 0;
 
-@Controller("dev/idempotency-probe")
+@Controller("hub/idempotency-probe")
 class IdempotencyProbeController {
   @Post()
   @Public("test-only idempotency probe — exercises the interceptor")
@@ -54,8 +54,8 @@ describe("E2E · Idempotency-Key interceptor through HTTP layer", () => {
       controllers: [IdempotencyProbeController],
     }).compile();
     app = moduleRef.createNestApplication({ logger: false });
-    // Mirror bootstrap.ts so routes register under /api/hub/... rather
-    // than /dev/... — the probe controller is @Controller("dev/...").
+    // Mirror bootstrap.ts so routes register under /api/hub/... —
+    // the probe controller is @Controller("hub/...").
     app.setGlobalPrefix("api", {
       exclude: ["/", "hub/login", "hub/logout", "health", "health/(.*)"],
     });

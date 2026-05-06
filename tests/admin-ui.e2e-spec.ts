@@ -89,7 +89,7 @@ describe("Admin SPA · /admin/* shell + JSON sidecars", () => {
         expect(res.headers["content-type"]).toMatch(/text\/html/);
         expect(res.text).toContain('<div id="root"></div>');
         expect(res.text).toContain(`${page.title} — nest-server`);
-        expect(res.text).toMatch(/<script\s+type="module"\s+src="\/api\/dev\/static\/main\.js"/);
+        expect(res.text).toMatch(/<script\s+type="module"\s+src="\/api\/hub\/static\/main\.js"/);
       });
     }
 

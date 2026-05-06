@@ -71,7 +71,7 @@
         ]
       }
     },
-    "/api/dev/files": {
+    "/api/hub/files": {
       "get": {
         "operationId": "DevFilesController_page",
         "parameters": [],
@@ -85,7 +85,7 @@
         ]
       }
     },
-    "/api/dev/files/tree.json": {
+    "/api/hub/files/tree.json": {
       "get": {
         "operationId": "DevFilesController_tree",
         "parameters": [],
@@ -99,7 +99,7 @@
         ]
       }
     },
-    "/api/dev/files/list.json": {
+    "/api/hub/files/list.json": {
       "get": {
         "operationId": "DevFilesController_list",
         "parameters": [],
@@ -113,7 +113,7 @@
         ]
       }
     },
-    "/api/dev/files/breadcrumb.json": {
+    "/api/hub/files/breadcrumb.json": {
       "get": {
         "operationId": "DevFilesController_breadcrumb",
         "parameters": [],
@@ -427,7 +427,7 @@
         ]
       }
     },
-    "/api/dev": {
+    "/api/hub": {
       "get": {
         "operationId": "DevHubController_index",
         "parameters": [],
@@ -441,7 +441,7 @@
         ]
       }
     },
-    "/api/dev/components": {
+    "/api/hub/components": {
       "get": {
         "operationId": "DevHubController_componentsPage",
         "parameters": [],
@@ -455,7 +455,7 @@
         ]
       }
     },
-    "/api/dev/static/{filename}": {
+    "/api/hub/static/{filename}": {
       "get": {
         "operationId": "DevHubController_serveStatic",
         "parameters": [
@@ -478,7 +478,7 @@
         ]
       }
     },
-    "/api/dev/dashboard.json": {
+    "/api/hub/dashboard.json": {
       "get": {
         "operationId": "DevHubController_dashboardJson",
         "parameters": [],
@@ -492,7 +492,7 @@
         ]
       }
     },
-    "/api/dev/tunnel.json": {
+    "/api/hub/tunnel.json": {
       "get": {
         "operationId": "DevHubController_tunnelJson",
         "parameters": [],
@@ -506,7 +506,7 @@
         ]
       }
     },
-    "/api/dev/brand.json": {
+    "/api/hub/brand.json": {
       "get": {
         "operationId": "DevHubController_brandJson",
         "parameters": [],
@@ -520,7 +520,7 @@
         ]
       }
     },
-    "/api/dev/brand": {
+    "/api/hub/brand": {
       "get": {
         "operationId": "DevHubController_brandPage",
         "parameters": [],
@@ -546,7 +546,7 @@
         ]
       }
     },
-    "/api/dev/brand/reset": {
+    "/api/hub/brand/reset": {
       "post": {
         "operationId": "DevHubController_resetBrand",
         "parameters": [],
@@ -560,7 +560,7 @@
         ]
       }
     },
-    "/api/dev/status.json": {
+    "/api/hub/status.json": {
       "get": {
         "operationId": "DevHubController_statusJson",
         "parameters": [],
@@ -574,7 +574,7 @@
         ]
       }
     },
-    "/api/dev/features": {
+    "/api/hub/features": {
       "get": {
         "operationId": "DevHubController_features",
         "parameters": [],
@@ -588,7 +588,7 @@
         ]
       }
     },
-    "/api/dev/features.json": {
+    "/api/hub/features.json": {
       "get": {
         "operationId": "DevHubController_featuresJson",
         "parameters": [],
@@ -602,7 +602,7 @@
         ]
       }
     },
-    "/api/dev/feature-catalog.json": {
+    "/api/hub/feature-catalog.json": {
       "get": {
         "operationId": "DevHubController_featureCatalogJson",
         "parameters": [],
@@ -616,7 +616,7 @@
         ]
       }
     },
-    "/api/dev/scheduled-jobs.json": {
+    "/api/hub/scheduled-jobs.json": {
       "get": {
         "operationId": "DevHubController_scheduledJobsJson",
         "parameters": [],
@@ -630,7 +630,7 @@
         ]
       }
     },
-    "/api/dev/webhook-events.json": {
+    "/api/hub/webhook-events.json": {
       "get": {
         "operationId": "DevHubController_webhookEventsJson",
         "parameters": [],
@@ -644,7 +644,7 @@
         ]
       }
     },
-    "/api/dev/features/{key}/toggle": {
+    "/api/hub/features/{key}/toggle": {
       "post": {
         "operationId": "DevHubController_toggleFeature",
         "parameters": [
@@ -667,7 +667,7 @@
         ]
       }
     },
-    "/api/dev/postgrest-parse": {
+    "/api/hub/postgrest-parse": {
       "get": {
         "operationId": "DevHubController_postgrestParse",
         "parameters": [],
@@ -681,7 +681,7 @@
         ]
       }
     },
-    "/api/dev/coverage": {
+    "/api/hub/coverage": {
       "get": {
         "operationId": "DevHubController_coverage",
         "parameters": [],
@@ -695,7 +695,7 @@
         ]
       }
     },
-    "/api/dev/coverage.json": {
+    "/api/hub/coverage.json": {
       "get": {
         "operationId": "DevHubController_coverageJson",
         "parameters": [],
@@ -709,7 +709,7 @@
         ]
       }
     },
-    "/api/dev/logs": {
+    "/api/hub/logs": {
       "get": {
         "operationId": "DevHubController_logsPage",
         "parameters": [],
@@ -723,7 +723,7 @@
         ]
       }
     },
-    "/api/dev/logs.json": {
+    "/api/hub/logs.json": {
       "get": {
         "operationId": "DevHubController_logsJson",
         "parameters": [],
@@ -737,7 +737,7 @@
         ]
       }
     },
-    "/api/dev/tests": {
+    "/api/hub/tests": {
       "get": {
         "operationId": "DevHubController_tests",
         "parameters": [],
@@ -751,7 +751,7 @@
         ]
       }
     },
-    "/api/dev/tests.json": {
+    "/api/hub/tests.json": {
       "get": {
         "operationId": "DevHubController_testsJson",
         "parameters": [],
@@ -765,7 +765,7 @@
         ]
       }
     },
-    "/api/dev/diagnostics": {
+    "/api/hub/diagnostics": {
       "get": {
         "operationId": "DevHubController_diagnostics",
         "parameters": [],
@@ -779,7 +779,7 @@
         ]
       }
     },
-    "/api/dev/diagnostics.json": {
+    "/api/hub/diagnostics.json": {
       "get": {
         "operationId": "DevHubController_diagnosticsJson",
         "parameters": [],
@@ -793,7 +793,7 @@
         ]
       }
     },
-    "/api/dev/routes": {
+    "/api/hub/routes": {
       "get": {
         "operationId": "DevHubController_routesPage",
         "parameters": [],
@@ -807,7 +807,7 @@
         ]
       }
     },
-    "/api/dev/routes.json": {
+    "/api/hub/routes.json": {
       "get": {
         "operationId": "DevHubController_routesJson",
         "parameters": [],
@@ -821,7 +821,7 @@
         ]
       }
     },
-    "/api/dev/erd": {
+    "/api/hub/erd": {
       "get": {
         "operationId": "DevHubController_erdPage",
         "parameters": [],
@@ -835,7 +835,7 @@
         ]
       }
     },
-    "/api/dev/json": {
+    "/api/hub/json": {
       "get": {
         "operationId": "DevHubController_jsonViewerPage",
         "parameters": [],
@@ -849,7 +849,7 @@
         ]
       }
     },
-    "/api/dev/erd.json": {
+    "/api/hub/erd.json": {
       "get": {
         "operationId": "DevHubController_erdJson",
         "parameters": [],
@@ -863,7 +863,7 @@
         ]
       }
     },
-    "/api/dev/traces": {
+    "/api/hub/traces": {
       "get": {
         "operationId": "DevHubController_tracesPage",
         "parameters": [],
@@ -877,7 +877,7 @@
         ]
       }
     },
-    "/api/dev/traces.json": {
+    "/api/hub/traces.json": {
       "get": {
         "operationId": "DevHubController_tracesJson",
         "parameters": [
@@ -908,7 +908,7 @@
         ]
       }
     },
-    "/api/dev/queries": {
+    "/api/hub/queries": {
       "get": {
         "operationId": "DevHubController_queriesPage",
         "parameters": [],
@@ -922,7 +922,7 @@
         ]
       }
     },
-    "/api/dev/queries.json": {
+    "/api/hub/queries.json": {
       "get": {
         "operationId": "DevHubController_queriesJson",
         "parameters": [
@@ -953,7 +953,7 @@
         ]
       }
     },
-    "/api/dev/email-preview": {
+    "/api/hub/email-preview": {
       "get": {
         "operationId": "DevHubController_emailPreviewPage",
         "parameters": [],
@@ -967,7 +967,7 @@
         ]
       }
     },
-    "/api/dev/email-preview.json": {
+    "/api/hub/email-preview.json": {
       "get": {
         "operationId": "DevHubController_emailPreviewJson",
         "parameters": [],
@@ -981,7 +981,7 @@
         ]
       }
     },
-    "/api/dev/email-builder": {
+    "/api/hub/email-builder": {
       "get": {
         "operationId": "DevHubController_emailBuilderPage",
         "parameters": [],
@@ -995,7 +995,7 @@
         ]
       }
     },
-    "/api/dev/email-builder/templates.json": {
+    "/api/hub/email-builder/templates.json": {
       "get": {
         "operationId": "DevHubController_emailBuilderTemplatesJson",
         "parameters": [],
@@ -1009,7 +1009,7 @@
         ]
       }
     },
-    "/api/dev/email-builder/templates/{name}/composition.json": {
+    "/api/hub/email-builder/templates/{name}/composition.json": {
       "get": {
         "operationId": "DevHubController_emailBuilderTemplateComposition",
         "parameters": [
@@ -1032,7 +1032,7 @@
         ]
       }
     },
-    "/api/dev/email-builder/templates/{name}/override": {
+    "/api/hub/email-builder/templates/{name}/override": {
       "delete": {
         "operationId": "DevHubController_emailBuilderDeleteOverride",
         "parameters": [
@@ -1055,7 +1055,7 @@
         ]
       }
     },
-    "/api/dev/email-builder/blocks.json": {
+    "/api/hub/email-builder/blocks.json": {
       "get": {
         "operationId": "DevHubController_emailBuilderBlocksJson",
         "parameters": [],
@@ -1069,7 +1069,7 @@
         ]
       }
     },
-    "/api/dev/email-builder/preview.json": {
+    "/api/hub/email-builder/preview.json": {
       "post": {
         "operationId": "DevHubController_emailBuilderPreview",
         "parameters": [],
@@ -1083,7 +1083,7 @@
         ]
       }
     },
-    "/api/dev/email-builder/save": {
+    "/api/hub/email-builder/save": {
       "post": {
         "operationId": "DevHubController_emailBuilderSave",
         "parameters": [],
@@ -1097,7 +1097,7 @@
         ]
       }
     },
-    "/api/dev/migrations": {
+    "/api/hub/migrations": {
       "get": {
         "operationId": "DevHubController_migrationsPage",
         "parameters": [],
@@ -1111,7 +1111,7 @@
         ]
       }
     },
-    "/api/dev/migrations.json": {
+    "/api/hub/migrations.json": {
       "get": {
         "operationId": "DevHubController_migrationsJson",
         "parameters": [],
@@ -1125,7 +1125,7 @@
         ]
       }
     },
-    "/api/dev/migrations/preview/{name}": {
+    "/api/hub/migrations/preview/{name}": {
       "get": {
         "operationId": "DevHubController_migrationsPreview",
         "parameters": [
@@ -1148,7 +1148,7 @@
         ]
       }
     },
-    "/api/dev/migrations/diff": {
+    "/api/hub/migrations/diff": {
       "get": {
         "operationId": "DevHubController_migrationsDiff",
         "parameters": [],
@@ -1162,7 +1162,7 @@
         ]
       }
     },
-    "/api/dev/migrations/deploy": {
+    "/api/hub/migrations/deploy": {
       "post": {
         "operationId": "DevHubController_migrationsDeploy",
         "parameters": [],
@@ -1176,7 +1176,7 @@
         ]
       }
     },
-    "/api/dev/migrations/apply-one": {
+    "/api/hub/migrations/apply-one": {
       "post": {
         "operationId": "DevHubController_migrationsApplyOne",
         "parameters": [],
@@ -1190,7 +1190,7 @@
         ]
       }
     },
-    "/api/dev/migrations/dry-run": {
+    "/api/hub/migrations/dry-run": {
       "post": {
         "operationId": "DevHubController_migrationsDryRun",
         "parameters": [],
@@ -1204,7 +1204,7 @@
         ]
       }
     },
-    "/api/dev/migrations/retry": {
+    "/api/hub/migrations/retry": {
       "post": {
         "operationId": "DevHubController_migrationsRetry",
         "parameters": [],
@@ -1218,7 +1218,7 @@
         ]
       }
     },
-    "/api/dev/migrations/create": {
+    "/api/hub/migrations/create": {
       "post": {
         "operationId": "DevHubController_migrationsCreate",
         "parameters": [],
@@ -1232,7 +1232,7 @@
         ]
       }
     },
-    "/api/dev/migrations/apply-draft": {
+    "/api/hub/migrations/apply-draft": {
       "post": {
         "operationId": "DevHubController_migrationsApplyDraft",
         "parameters": [],
@@ -1246,7 +1246,7 @@
         ]
       }
     },
-    "/api/dev/migrations/draft/{name}": {
+    "/api/hub/migrations/draft/{name}": {
       "delete": {
         "operationId": "DevHubController_migrationsDiscardDraft",
         "parameters": [
@@ -1269,7 +1269,7 @@
         ]
       }
     },
-    "/api/dev/jobs": {
+    "/api/hub/jobs": {
       "get": {
         "operationId": "DevHubController_jobsPage",
         "parameters": [],
@@ -1283,7 +1283,7 @@
         ]
       }
     },
-    "/api/dev/jobs/queues.json": {
+    "/api/hub/jobs/queues.json": {
       "get": {
         "operationId": "DevHubController_jobsQueuesJson",
         "parameters": [],
@@ -1297,7 +1297,7 @@
         ]
       }
     },
-    "/api/dev/jobs/jobs.json": {
+    "/api/hub/jobs/jobs.json": {
       "get": {
         "operationId": "DevHubController_jobsListJson",
         "parameters": [],
@@ -1311,7 +1311,7 @@
         ]
       }
     },
-    "/api/dev/jobs/jobs/{id}.json": {
+    "/api/hub/jobs/jobs/{id}.json": {
       "get": {
         "operationId": "DevHubController_jobDetailJson",
         "parameters": [
@@ -1334,7 +1334,7 @@
         ]
       }
     },
-    "/api/dev/jobs/jobs/{id}/retry": {
+    "/api/hub/jobs/jobs/{id}/retry": {
       "post": {
         "operationId": "DevHubController_retryJob",
         "parameters": [
@@ -1357,7 +1357,7 @@
         ]
       }
     },
-    "/api/dev/email-outbox": {
+    "/api/hub/email-outbox": {
       "get": {
         "operationId": "DevHubController_emailOutboxPage",
         "parameters": [],
@@ -1371,7 +1371,7 @@
         ]
       }
     },
-    "/api/dev/cron": {
+    "/api/hub/cron": {
       "get": {
         "operationId": "DevHubController_cronPage",
         "parameters": [],
@@ -1385,7 +1385,7 @@
         ]
       }
     },
-    "/api/dev/outbox.json": {
+    "/api/hub/outbox.json": {
       "get": {
         "operationId": "DevHubController_outboxJson",
         "parameters": [],
@@ -1399,7 +1399,7 @@
         ]
       }
     },
-    "/api/dev/{splat}": {
+    "/api/hub/{splat}": {
       "get": {
         "operationId": "DevHubController_spaCatchAll",
         "parameters": [],
