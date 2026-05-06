@@ -7,37 +7,17 @@ import {
   type OnModuleInit,
 } from "@nestjs/common";
 
+import { PrismaModule } from "../prisma/prisma.module.js";
+
+import { PrismaAdminProvisioningStorage } from "./admin-storage.prisma.js";
 import {
   type AdminProvisioningStorage,
-  type AdminRecord,
   type ProvisionResult,
   SystemSetupService,
 } from "./system-setup.service.js";
 import { systemSetupConfigFromEnv } from "./system-setup-config.js";
 
 const ADMIN_PROVISIONING_STORAGE = Symbol.for("lt:AdminProvisioningStorage");
-
-/**
- * In-memory admin storage fake. Replaced with a Better-Auth-backed
- * adapter once Better-Auth's Prisma schema lands. For now: a single
- * Map<email, AdminRecord> that tracks the bootstrap admin within the
- * process lifetime — enough to make `provisionInitialAdmin()` exercise
- * its full path during boot.
- */
-class InMemoryAdminStorage implements AdminProvisioningStorage {
-  private readonly admins = new Map<string, AdminRecord>();
-
-  async findAdminByEmail(email: string): Promise<AdminRecord | null> {
-    return this.admins.get(email) ?? null;
-  }
-
-  async createAdmin(input: { email: string; password: string }): Promise<AdminRecord> {
-    void input.password; // password is hashed by the future Better-Auth adapter
-    const record: AdminRecord = { email: input.email };
-    this.admins.set(record.email, record);
-    return record;
-  }
-}
 
 @Injectable()
 class SystemSetupBootstrap implements OnModuleInit {
@@ -74,13 +54,18 @@ class SystemSetupBootstrap implements OnModuleInit {
  * and cached on `SystemSetupBootstrap.getLastResult()` for the
  * `/dev/system-setup` diagnostics endpoint.
  *
- * Storage is currently a process-local fake. Once Better-Auth's
- * Prisma adapter lands, the storage provider here swaps to a
- * Better-Auth-backed adapter without touching the bootstrap.
+ * Iter-211 CF.SETUP.01 closure: the storage provider is now
+ * `PrismaAdminProvisioningStorage` which writes to Better-Auth's
+ * `users` + `accounts` tables. The previous `InMemoryAdminStorage`
+ * stub re-provisioned on every cold start because the Map was
+ * process-local — now the row persists across restarts and the
+ * provisioning path is idempotent (existing-email check via
+ * `findAdminByEmail`).
  */
 @Module({
+  imports: [PrismaModule],
   providers: [
-    { provide: ADMIN_PROVISIONING_STORAGE, useClass: InMemoryAdminStorage },
+    { provide: ADMIN_PROVISIONING_STORAGE, useClass: PrismaAdminProvisioningStorage },
     {
       provide: SystemSetupService,
       useFactory: (storage: AdminProvisioningStorage) => new SystemSetupService(storage),
