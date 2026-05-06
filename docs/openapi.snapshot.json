@@ -2804,6 +2804,253 @@
         ]
       }
     },
+    "/api/admin/rate-limits": {
+      "get": {
+        "operationId": "RateLimitAdminController_rateLimitsPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RateLimitAdmin"
+        ]
+      }
+    },
+    "/api/admin/rate-limits/inspector.json": {
+      "get": {
+        "operationId": "RateLimitAdminController_inspectorJson",
+        "parameters": [
+          {
+            "name": "scope",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RateLimitAdmin"
+        ]
+      }
+    },
+    "/api/admin/rate-limits/config.json": {
+      "get": {
+        "operationId": "RateLimitAdminController_configJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RateLimitAdmin"
+        ]
+      }
+    },
+    "/api/admin/rate-limits/config/{scope}": {
+      "put": {
+        "operationId": "RateLimitAdminController_putConfig",
+        "parameters": [
+          {
+            "name": "scope",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RateLimitAdmin"
+        ]
+      },
+      "delete": {
+        "operationId": "RateLimitAdminController_deleteConfig",
+        "parameters": [
+          {
+            "name": "scope",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RateLimitAdmin"
+        ]
+      }
+    },
+    "/api/admin/rate-limits/decisions.json": {
+      "get": {
+        "operationId": "RateLimitAdminController_decisionsJson",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endpoint",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decision",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RateLimitAdmin"
+        ]
+      }
+    },
+    "/api/admin/rate-limits/keys/{key}/reset": {
+      "post": {
+        "operationId": "RateLimitAdminController_resetKey",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RateLimitAdmin"
+        ]
+      }
+    },
+    "/api/admin/rate-limits/endpoints/{name}/reset-all": {
+      "post": {
+        "operationId": "RateLimitAdminController_resetEndpointAll",
+        "parameters": [
+          {
+            "name": "name",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RateLimitAdmin"
+        ]
+      }
+    },
+    "/api/admin/rate-limits/allowlist.json": {
+      "get": {
+        "operationId": "RateLimitAdminController_allowlistJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RateLimitAdmin"
+        ]
+      }
+    },
+    "/api/admin/rate-limits/allowlist": {
+      "post": {
+        "operationId": "RateLimitAdminController_addToAllowlist",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RateLimitAdmin"
+        ]
+      }
+    },
+    "/api/admin/rate-limits/allowlist/{userId}": {
+      "delete": {
+        "operationId": "RateLimitAdminController_removeFromAllowlist",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RateLimitAdmin"
+        ]
+      }
+    },
     "/api/examples": {
       "post": {
         "operationId": "ExampleController_create",

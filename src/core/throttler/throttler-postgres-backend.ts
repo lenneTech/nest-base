@@ -91,6 +91,117 @@ export class PostgresThrottlerBackend implements ThrottlerBackend {
   }
 }
 
+export interface ThrottlerRecord {
+  key: string;
+  count: number;
+  expiresAt: Date;
+}
+
+interface ThrottlerRecordRow {
+  key: string;
+  count: number | bigint;
+  expires_at: Date;
+}
+
+/**
+ * List active (non-expired) throttler records.
+ *
+ * Used by the `/admin/rate-limits/inspector.json` endpoint so operators can
+ * see live throttle state without a DB console.
+ */
+export async function listActiveThrottlerRecords(
+  prisma: PrismaThrottlerClient,
+  opts: { now: Date; limit: number; offset?: number },
+): Promise<{ rows: ThrottlerRecord[]; total: number }> {
+  const isoNow = opts.now.toISOString();
+  const offset = opts.offset ?? 0;
+  const rows = (await prisma.$queryRawUnsafe(
+    `SELECT "key", "count", "expires_at" FROM "throttler_records" WHERE "expires_at" > $1 ORDER BY "expires_at" ASC LIMIT $2 OFFSET $3`,
+    isoNow,
+    opts.limit,
+    offset,
+  )) as ThrottlerRecordRow[];
+
+  const countResult = (await prisma.$queryRawUnsafe(
+    `SELECT COUNT(*)::int AS "total" FROM "throttler_records" WHERE "expires_at" > $1`,
+    isoNow,
+  )) as Array<{ total: number }>;
+
+  return {
+    rows: rows.map((r) => ({ key: r.key, count: Number(r.count), expiresAt: r.expires_at })),
+    total: countResult[0]?.total ?? 0,
+  };
+}
+
+/**
+ * List active throttler records with optional filters.
+ */
+export async function listFilteredThrottlerRecords(
+  prisma: PrismaThrottlerClient,
+  opts: { scope?: string; blockedOnly?: boolean; now: Date; limit: number },
+): Promise<ThrottlerRecord[]> {
+  const isoNow = opts.now.toISOString();
+  // Build WHERE clauses dynamically — parameterised to prevent injection.
+  const conditions: string[] = [`"expires_at" > $1`];
+  const params: unknown[] = [isoNow];
+
+  if (opts.scope) {
+    params.push(`%${opts.scope}%`);
+    conditions.push(`"key" ILIKE $${params.length}`);
+  }
+
+  const whereClause = conditions.join(" AND ");
+  const rows = (await prisma.$queryRawUnsafe(
+    `SELECT "key", "count", "expires_at" FROM "throttler_records" WHERE ${whereClause} ORDER BY "expires_at" ASC LIMIT $${params.length + 1}`,
+    ...params,
+    opts.limit,
+  )) as ThrottlerRecordRow[];
+
+  const mapped = rows.map((r) => ({
+    key: r.key,
+    count: Number(r.count),
+    expiresAt: r.expires_at,
+  }));
+
+  if (opts.blockedOnly) {
+    // We can't filter by "blocked" at SQL level without knowing the per-scope limit;
+    // the inspector will apply this filter after resolving the limit from config.
+    return mapped;
+  }
+  return mapped;
+}
+
+/**
+ * Delete a single throttler row by key (manually unblock a specific bucket).
+ * Returns true if a row existed and was deleted.
+ */
+export async function resetThrottlerKey(
+  prisma: PrismaThrottlerClient,
+  key: string,
+): Promise<boolean> {
+  const result = (await prisma.$queryRawUnsafe(
+    `DELETE FROM "throttler_records" WHERE "key" = $1 RETURNING "key"`,
+    key,
+  )) as Array<{ key: string }>;
+  return result.length > 0;
+}
+
+/**
+ * Delete all throttler rows whose key starts with `prefix`
+ * (bulk-reset all windows for a given endpoint name).
+ * Returns the count of deleted rows.
+ */
+export async function resetThrottlerByEndpointPrefix(
+  prisma: PrismaThrottlerClient,
+  prefix: string,
+): Promise<number> {
+  const result = (await prisma.$queryRawUnsafe(
+    `DELETE FROM "throttler_records" WHERE "key" LIKE $1 RETURNING "key"`,
+    `${prefix}%`,
+  )) as Array<{ key: string }>;
+  return result.length;
+}
+
 /**
  * Pure planner — extracts the upsert SQL contract for unit-test
  * pinning. Real binding goes through `PostgresThrottlerBackend`
