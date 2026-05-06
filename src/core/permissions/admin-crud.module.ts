@@ -187,10 +187,17 @@ class RoleAdminService {
       where: { id },
       data: {
         ...(typeof body.name === "string" && body.name.length > 0 ? { name: body.name } : {}),
-        ...(body.description !== undefined ? { description: asOptionalString(body.description) } : {}),
+        ...(body.description !== undefined
+          ? { description: asOptionalString(body.description) }
+          : {}),
         // Allow clearing parentId by passing null explicitly.
         ...(body.parentId !== undefined
-          ? { parentId: typeof body.parentId === "string" && body.parentId.length > 0 ? body.parentId : null }
+          ? {
+              parentId:
+                typeof body.parentId === "string" && body.parentId.length > 0
+                  ? body.parentId
+                  : null,
+            }
           : {}),
       },
     });

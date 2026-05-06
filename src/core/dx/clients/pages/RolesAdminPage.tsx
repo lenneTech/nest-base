@@ -433,7 +433,9 @@ function RoleDetail({ role, allRoles, tenantId, onClose }: RoleDetailProps): Rea
         {role.parentId ? (
           <p className="text-xs text-fg-muted">
             Aktuell:{" "}
-            <span className="font-mono">{allRoles.find((r) => r.id === role.parentId)?.name ?? role.parentId}</span>
+            <span className="font-mono">
+              {allRoles.find((r) => r.id === role.parentId)?.name ?? role.parentId}
+            </span>
           </p>
         ) : null}
       </section>
@@ -510,11 +512,7 @@ function RoleDetail({ role, allRoles, tenantId, onClose }: RoleDetailProps): Rea
           </div>
           <Button
             size="sm"
-            disabled={
-              attach.isPending ||
-              !attachPolicyId ||
-              tenantId.trim().length === 0
-            }
+            disabled={attach.isPending || !attachPolicyId || tenantId.trim().length === 0}
             onClick={() => attach.mutate()}
           >
             {attach.isPending ? "Anfügen…" : "Anfügen"}

@@ -175,11 +175,7 @@ export function PoliciesAdminPage(): ReactNode {
                       </TableCell>
                       <TableCell className="text-xs">{p.permissions?.length ?? 0}</TableCell>
                       <TableCell>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setUsagePolicy(p)}
-                        >
+                        <Button variant="outline" size="sm" onClick={() => setUsagePolicy(p)}>
                           Rollen anzeigen
                         </Button>
                       </TableCell>
@@ -210,7 +206,12 @@ export function PoliciesAdminPage(): ReactNode {
         )}
       </div>
 
-      <Dialog open={usagePolicy !== null} onOpenChange={(open) => { if (!open) setUsagePolicy(null); }}>
+      <Dialog
+        open={usagePolicy !== null}
+        onOpenChange={(open) => {
+          if (!open) setUsagePolicy(null);
+        }}
+      >
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Rollen für Policy „{usagePolicy?.name}"</DialogTitle>
@@ -218,9 +219,7 @@ export function PoliciesAdminPage(): ReactNode {
               Diese Rollen verwenden die Richtlinie direkt über einen RolePolicy-Eintrag.
             </DialogDescription>
           </DialogHeader>
-          {usagePolicy ? (
-            <PolicyRolesPanel policyId={usagePolicy.id} />
-          ) : null}
+          {usagePolicy ? <PolicyRolesPanel policyId={usagePolicy.id} /> : null}
         </DialogContent>
       </Dialog>
     </AdminShell>
@@ -235,7 +234,8 @@ function PolicyRolesPanel({ policyId }: { policyId: string }): ReactNode {
 
   if (roles.isPending) return <PageLoading>Lade Rollen…</PageLoading>;
   if (roles.isError) return <PageError>Konnte Rollen nicht laden.</PageError>;
-  if ((roles.data ?? []).length === 0) return <PageEmpty>Keine Rollen verwenden diese Policy.</PageEmpty>;
+  if ((roles.data ?? []).length === 0)
+    return <PageEmpty>Keine Rollen verwenden diese Policy.</PageEmpty>;
 
   return (
     <Table>
