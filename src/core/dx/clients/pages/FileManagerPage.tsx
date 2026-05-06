@@ -97,7 +97,7 @@ export function FileManagerPage(): ReactNode {
 
   const treeQuery = useQuery({
     queryKey: ["dev", "files", "tree", tenantId],
-    queryFn: () => fetchJson<TreeResponse>(`/api/dev/files/tree.json?tenantId=${tenantId}`),
+    queryFn: () => fetchJson<TreeResponse>(`/api/hub/files/tree.json?tenantId=${tenantId}`),
     enabled: tenantValid,
   });
 
@@ -108,7 +108,7 @@ export function FileManagerPage(): ReactNode {
     if (search) p.set("search", search);
     p.set("sortBy", sortBy);
     p.set("sortDirection", sortDirection);
-    return `/api/dev/files/list.json?${p.toString()}`;
+    return `/api/hub/files/list.json?${p.toString()}`;
   }, [tenantId, activeFolderId, search, sortBy, sortDirection]);
 
   const listQuery = useQuery({
@@ -121,7 +121,7 @@ export function FileManagerPage(): ReactNode {
     const p = new URLSearchParams();
     p.set("tenantId", tenantId);
     if (activeFolderId) p.set("folderId", activeFolderId);
-    return `/api/dev/files/breadcrumb.json?${p.toString()}`;
+    return `/api/hub/files/breadcrumb.json?${p.toString()}`;
   }, [tenantId, activeFolderId]);
 
   const breadcrumbQuery = useQuery({

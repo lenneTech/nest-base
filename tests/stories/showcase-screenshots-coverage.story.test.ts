@@ -58,7 +58,7 @@ describe("Story · docs:screenshots covers every App.tsx route", () => {
     // ship via Nest controllers, not React routes. Only fail if a
     // dev-portal /dev/* or /admin/* path is missing from App.tsx.
     const orphans = screenshots.filter(
-      (s) => (s.startsWith("/dev") || s.startsWith("/admin")) && !routes.includes(s),
+      (s) => (s.startsWith("/hub") || s.startsWith("/admin")) && !routes.includes(s),
     );
     expect(orphans).toEqual([]);
   });

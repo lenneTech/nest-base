@@ -87,7 +87,7 @@ async function postJson<T>(url: string, body?: unknown): Promise<T> {
 export function MigrationsPage(): ReactNode {
   const status = useQuery({
     queryKey: ["dev", "migrations", "status"],
-    queryFn: () => fetchJson<MigrationsStatus>("/api/dev/migrations.json"),
+    queryFn: () => fetchJson<MigrationsStatus>("/api/hub/migrations.json"),
     refetchInterval: 30_000,
   });
 
@@ -270,7 +270,7 @@ function StatusTab({ data }: { data: MigrationsStatus }): ReactNode {
   const [confirm, setConfirm] = useState<{ name: string; logs: string | null } | null>(null);
   const retry = useMutation({
     mutationFn: (name: string) =>
-      postJson<{ success: boolean; stderr: string }>("/api/dev/migrations/retry", { name }),
+      postJson<{ success: boolean; stderr: string }>("/api/hub/migrations/retry", { name }),
     onSettled: () => queryClient.invalidateQueries({ queryKey: ["dev", "migrations", "status"] }),
   });
 
@@ -369,22 +369,22 @@ function PendingTab({ data }: { data: MigrationsStatus }): ReactNode {
     queryClient.invalidateQueries({ queryKey: ["dev", "migrations", "status"] });
 
   const deployAll = useMutation({
-    mutationFn: () => postJson<{ success: boolean; stderr: string }>("/api/dev/migrations/deploy"),
+    mutationFn: () => postJson<{ success: boolean; stderr: string }>("/api/hub/migrations/deploy"),
     onSettled: refresh,
   });
   const applyOne = useMutation({
     mutationFn: (name: string) =>
-      postJson<{ success: boolean; stderr: string }>("/api/dev/migrations/apply-one", { name }),
+      postJson<{ success: boolean; stderr: string }>("/api/hub/migrations/apply-one", { name }),
     onSettled: refresh,
   });
   const dryRun = useMutation({
     mutationFn: (name: string) =>
-      postJson<{ success: boolean; error?: string }>("/api/dev/migrations/dry-run", { name }),
+      postJson<{ success: boolean; error?: string }>("/api/hub/migrations/dry-run", { name }),
   });
 
   const loadPreview = async (name: string) => {
     const result = await fetchJson<{ name: string; sql: string }>(
-      `/api/dev/migrations/preview/${encodeURIComponent(name)}`,
+      `/api/hub/migrations/preview/${encodeURIComponent(name)}`,
     );
     setPreview(result);
   };
@@ -498,7 +498,7 @@ function DiffTab(): ReactNode {
   const diff = useQuery({
     queryKey: ["dev", "migrations", "diff"],
     queryFn: () =>
-      fetchJson<{ sql: string; success: boolean; stderr: string }>("/api/dev/migrations/diff"),
+      fetchJson<{ sql: string; success: boolean; stderr: string }>("/api/hub/migrations/diff"),
   });
   return (
     <Card>
@@ -567,7 +567,7 @@ function CreateNewTab(): ReactNode {
   const create = useMutation({
     mutationFn: (n: string) =>
       postJson<{ success: boolean; folder?: string; sql?: string; stderr: string; name: string }>(
-        "/api/dev/migrations/create",
+        "/api/hub/migrations/create",
         { name: n },
       ),
     onSuccess: (res) => {
@@ -578,7 +578,7 @@ function CreateNewTab(): ReactNode {
 
   const apply = useMutation({
     mutationFn: (folder: string) =>
-      postJson<{ success: boolean }>("/api/dev/migrations/apply-draft", { name: folder }),
+      postJson<{ success: boolean }>("/api/hub/migrations/apply-draft", { name: folder }),
     onSettled: () => {
       setCreated(null);
       setName("");
@@ -588,7 +588,7 @@ function CreateNewTab(): ReactNode {
 
   const discard = useMutation({
     mutationFn: (folder: string) =>
-      fetch(`/api/dev/migrations/draft/${encodeURIComponent(folder)}`, { method: "DELETE" }).then(
+      fetch(`/api/hub/migrations/draft/${encodeURIComponent(folder)}`, { method: "DELETE" }).then(
         (r) => {
           if (!r.ok) throw new Error(`discard failed: ${r.status}`);
           return r.json();

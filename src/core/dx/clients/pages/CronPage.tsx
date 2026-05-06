@@ -29,7 +29,7 @@ interface ScheduledJobEntry {
 export function CronPage(): ReactNode {
   const query = useQuery({
     queryKey: ["dev", "cron"],
-    queryFn: () => fetchJson<{ jobs: ScheduledJobEntry[] }>("/api/dev/scheduled-jobs.json"),
+    queryFn: () => fetchJson<{ jobs: ScheduledJobEntry[] }>("/api/hub/scheduled-jobs.json"),
   });
 
   return (

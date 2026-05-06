@@ -119,27 +119,27 @@ export function App(): ReactNode {
   return (
     <Suspense fallback={<PageFallback />}>
       <Routes>
-        <Route path="/dev" element={<DevHubLandingPage />} />
-        <Route path="/dev/components" element={<ComponentShowcasePage />} />
-        <Route path="/dev/features" element={<FeaturesPage />} />
-        <Route path="/dev/brand" element={<BrandPage />} />
-        <Route path="/dev/coverage" element={<CoveragePage />} />
-        <Route path="/dev/tests" element={<TestsPage />} />
-        <Route path="/dev/diagnostics" element={<DiagnosticsPage />} />
-        <Route path="/dev/logs" element={<LogsPage />} />
-        <Route path="/dev/traces" element={<TracesPage />} />
-        <Route path="/dev/queries" element={<QueriesPage />} />
-        <Route path="/dev/migrations" element={<MigrationsPage />} />
-        <Route path="/dev/jobs" element={<JobsPage />} />
-        <Route path="/dev/routes" element={<RoutesPage />} />
-        <Route path="/dev/erd" element={<ErdPage />} />
-        <Route path="/dev/email-preview" element={<EmailPreviewPage />} />
-        <Route path="/dev/email-builder" element={<EmailBuilderPage />} />
-        <Route path="/dev/postgrest-parse" element={<PostgrestParsePage />} />
-        <Route path="/dev/json" element={<JsonViewerPage />} />
-        <Route path="/dev/files" element={<FileManagerPage />} />
-        <Route path="/dev/email-outbox" element={<EmailOutboxPage />} />
-        <Route path="/dev/cron" element={<CronPage />} />
+        <Route path="/hub" element={<DevHubLandingPage />} />
+        <Route path="/hub/components" element={<ComponentShowcasePage />} />
+        <Route path="/hub/features" element={<FeaturesPage />} />
+        <Route path="/hub/brand" element={<BrandPage />} />
+        <Route path="/hub/coverage" element={<CoveragePage />} />
+        <Route path="/hub/tests" element={<TestsPage />} />
+        <Route path="/hub/diagnostics" element={<DiagnosticsPage />} />
+        <Route path="/hub/logs" element={<LogsPage />} />
+        <Route path="/hub/traces" element={<TracesPage />} />
+        <Route path="/hub/queries" element={<QueriesPage />} />
+        <Route path="/hub/migrations" element={<MigrationsPage />} />
+        <Route path="/hub/jobs" element={<JobsPage />} />
+        <Route path="/hub/routes" element={<RoutesPage />} />
+        <Route path="/hub/erd" element={<ErdPage />} />
+        <Route path="/hub/email-preview" element={<EmailPreviewPage />} />
+        <Route path="/hub/email-builder" element={<EmailBuilderPage />} />
+        <Route path="/hub/postgrest-parse" element={<PostgrestParsePage />} />
+        <Route path="/hub/json" element={<JsonViewerPage />} />
+        <Route path="/hub/files" element={<FileManagerPage />} />
+        <Route path="/hub/email-outbox" element={<EmailOutboxPage />} />
+        <Route path="/hub/cron" element={<CronPage />} />
         <Route path="/admin/sessions" element={<SessionsAdminPage />} />
         <Route path="/admin/jobs" element={<AdminJobsPage />} />
         <Route path="/admin/roles" element={<RolesAdminPage />} />

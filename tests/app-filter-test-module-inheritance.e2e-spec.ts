@@ -68,7 +68,7 @@ describe("E2E · APP_FILTER inheritance via Test.createTestingModule({ imports: 
     }).compile();
     app = moduleRef.createNestApplication({ logger: false });
     // Mirror bootstrap.ts: set the global /api/ prefix so the probe
-    // controller at @Controller("dev/...") registers under /api/dev/...
+    // controller at @Controller("dev/...") registers under /api/hub/...
     app.setGlobalPrefix("api", {
       exclude: ["/", "hub/login", "hub/logout", "health", "health/(.*)"],
     });
@@ -84,7 +84,7 @@ describe("E2E · APP_FILTER inheritance via Test.createTestingModule({ imports: 
   });
 
   it("returns 400 + CORE_VALIDATION + problem+json content-type for an in-handler ZodError", async () => {
-    const res = await request(app.getHttpServer()).get("/api/dev/filter-inheritance-probe/zod");
+    const res = await request(app.getHttpServer()).get("/api/hub/filter-inheritance-probe/zod");
     // Was 500 + plain JSON before the AppModule APP_FILTER edit.
     expect(res.status).toBe(400);
     expect(res.headers["content-type"]).toMatch(/application\/problem\+json/);

@@ -87,7 +87,7 @@ export class RouteInventoryService {
         // BetterAuthController uses @Controller("auth") — raw path is /auth/
         { prefix: "/auth/", kind: "public" },
         { prefix: "/errors", kind: "public" },
-        { prefix: "/dev", kind: "dev-only" },
+        { prefix: "/hub", kind: "dev-only" },
         { prefix: "/admin", kind: "dev-only" },
       ],
     });

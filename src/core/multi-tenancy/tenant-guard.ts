@@ -35,7 +35,7 @@ const EXEMPT_PREFIXES = [
   "/health/",
   "/api/auth/",
   "/docs/",
-  "/api/dev/",
+  "/api/hub/",
   "/api/admin/",
   "/api/errors/",
   "/api/me/",

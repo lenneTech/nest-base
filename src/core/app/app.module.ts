@@ -105,7 +105,7 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
                   ignore: (req) =>
                     !!req.url?.startsWith("/health") ||
                     req.url === "/" ||
-                    !!req.url?.startsWith("/api/dev/"),
+                    !!req.url?.startsWith("/api/hub/"),
                 },
             quietReqLogger: isTest,
             customLogLevel: (_req, res) => {

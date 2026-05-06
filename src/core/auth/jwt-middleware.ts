@@ -8,7 +8,7 @@
  * Issue #83: all API routes are now under `/api/*`. Paths that remain
  * at root level are: Hub (`/`, `/hub/*`), health (`/health/*`), and
  * the legacy `/api-docs-json` alias. All `/dev/*` and `/admin/*` paths
- * are now under `/api/dev/*` and `/api/admin/*`.
+ * are now under `/api/hub/*` and `/api/admin/*`.
  */
 
 /**
@@ -29,7 +29,7 @@ const PUBLIC_PREFIXES = [
   "/health/",
   "/api/auth/",
   "/docs/",
-  "/api/dev/",
+  "/api/hub/",
   "/api/admin/",
   "/api/errors/",
   "/api/openapi",

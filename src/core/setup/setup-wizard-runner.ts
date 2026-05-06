@@ -283,7 +283,7 @@ export function runSetupWizard(options: RunSetupWizardOptions): SetupWizardResul
     });
   }
 
-  // Build the Dev-Portal SPA once so `/dev/static/main.js` exists from
+  // Build the Dev-Portal SPA once so `/hub/static/main.js` exists from
   // the very first `bun run dev`. Skipped silently when the entry file
   // is absent (some downstream projects may strip the dev surface).
   let devPortalBuildExit: number | null = null;

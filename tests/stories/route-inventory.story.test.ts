@@ -172,7 +172,7 @@ describe("Story · buildRouteInventory", () => {
     // exposed in development.
     it("classifies dev-only entries with kind=`dev-only` (not `public`)", () => {
       const stack = [
-        { method: "GET", path: "/dev/diagnostics", controller: "D", handler: "d" },
+        { method: "GET", path: "/hub/diagnostics", controller: "D", handler: "d" },
         { method: "GET", path: "/admin/audit", controller: "A", handler: "a" },
         { method: "GET", path: "/health/live", controller: "H", handler: "h" },
       ];
@@ -180,20 +180,20 @@ describe("Story · buildRouteInventory", () => {
         routes: stack,
         publicAllowlist: [
           { prefix: "/health/", kind: "public" },
-          { prefix: "/dev", kind: "dev-only" },
+          { prefix: "/hub", kind: "dev-only" },
           { prefix: "/admin", kind: "dev-only" },
         ],
       });
       const byPath: Record<string, RouteRecord> = {};
       for (const r of inventory.routes) byPath[r.path] = r;
-      expect(byPath["/dev/diagnostics"]?.guards).toEqual([{ kind: "dev-only" }]);
+      expect(byPath["/hub/diagnostics"]?.guards).toEqual([{ kind: "dev-only" }]);
       expect(byPath["/admin/audit"]?.guards).toEqual([{ kind: "dev-only" }]);
       expect(byPath["/health/live"]?.guards).toEqual([{ kind: "public" }]);
     });
 
     it("includes dev-only count in the summary alongside public/guarded/unguarded", () => {
       const stack = [
-        { method: "GET", path: "/dev/x", controller: "D", handler: "h" },
+        { method: "GET", path: "/hub/x", controller: "D", handler: "h" },
         { method: "GET", path: "/admin/y", controller: "A", handler: "h" },
         { method: "GET", path: "/health/live", controller: "H", handler: "h" },
         {
@@ -208,7 +208,7 @@ describe("Story · buildRouteInventory", () => {
       const inventory = buildRouteInventory({
         routes: stack,
         publicAllowlist: [
-          { prefix: "/dev", kind: "dev-only" },
+          { prefix: "/hub", kind: "dev-only" },
           { prefix: "/admin", kind: "dev-only" },
           { prefix: "/health/", kind: "public" },
         ],

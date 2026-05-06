@@ -61,7 +61,7 @@ function HealthBadge({ level }: { level: "ok" | "warn" | "crit" }): ReactNode {
 export function EmailOutboxPage(): ReactNode {
   const query = useQuery({
     queryKey: ["dev", "email-outbox"],
-    queryFn: () => fetchJson<EmailOutboxJson>("/api/dev/outbox.json"),
+    queryFn: () => fetchJson<EmailOutboxJson>("/api/hub/outbox.json"),
     refetchInterval: 5_000,
   });
 

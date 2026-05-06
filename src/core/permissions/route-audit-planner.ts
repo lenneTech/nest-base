@@ -36,7 +36,7 @@ const HTTP_METHOD_DECORATORS = new Set(["Get", "Post", "Put", "Patch", "Delete",
 
 /**
  * Default public-allowlist. Mirrors `jwt-middleware.ts`'s `PUBLIC_PREFIXES`
- * + `PUBLIC_EXACT` plus the `/admin/` and `/dev/` prefixes that the dev-
+ * + `PUBLIC_EXACT` plus the `/admin/` and `/hub/` prefixes that the dev-
  * hub treats as `dev-only` (404 outside `NODE_ENV=development`).
  *
  * Keep this in sync with the runtime middleware allowlist; the audit
@@ -50,8 +50,8 @@ const HTTP_METHOD_DECORATORS = new Set(["Get", "Post", "Put", "Patch", "Delete",
 //   (a) carry `@Public("<reason>")` on each handler (preferred), or
 //   (b) have their raw path prefix listed here.
 //
-// Concretely: `@Controller("dev")` → raw path `/dev/*`, deployed at
-// `/api/dev/*` due to global prefix. The planner sees `/dev/*`.
+// Concretely: `@Controller("hub")` → raw path `/hub/*`, deployed at
+// `/api/hub/*` due to global prefix. The planner sees `/hub/*`.
 export const DEFAULT_PUBLIC_PREFIXES: readonly string[] = [
   "/health/",
   // Better-Auth: raw path is /auth/* (controller uses @Public() anyway).
@@ -59,7 +59,7 @@ export const DEFAULT_PUBLIC_PREFIXES: readonly string[] = [
   "/docs/",
   // Dev-Hub and Admin SPA are dev-only (404 in production); the planner
   // treats them as public-by-design since assertDev() is the runtime gate.
-  "/dev/",
+  "/hub/",
   "/admin/",
   "/errors/",
   "/api/openapi",

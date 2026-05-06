@@ -65,7 +65,7 @@ describe("Story · path-aware CSP (no unsafe-inline on JSON APIs)", () => {
     // Accept header + the response Content-Type so JSON-shaped
     // responses always emit the strict CSP regardless of route prefix.
     const res = await request(app.getHttpServer())
-      .get("/api/dev/outbox.json")
+      .get("/api/hub/outbox.json")
       .set("Accept", "application/json");
     if (res.status === 200 || res.status === 401 || res.status === 403) {
       const csp = res.headers["content-security-policy"];

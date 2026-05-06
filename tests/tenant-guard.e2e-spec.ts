@@ -58,7 +58,7 @@ describe("Tenant Guard", () => {
     expect(isTenantExempt("/api/errors?format=json")).toBe(true);
     expect(isTenantExempt("/health/live?ts=1")).toBe(true);
     expect(isTenantExempt("/api/auth/sign-in?next=/x")).toBe(true);
-    expect(isTenantExempt("/api/dev?source=banner")).toBe(true);
+    expect(isTenantExempt("/api/hub?source=banner")).toBe(true);
   });
 
   it("strips fragments before matching", () => {
