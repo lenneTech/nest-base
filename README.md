@@ -381,6 +381,11 @@ APP_BASE_URL=https://api.your-project.localhost   # or http://localhost:3000
 DATABASE_URL=postgresql://user:pass@localhost:5432/db
 BETTER_AUTH_SECRET=<32 bytes>
 
+# Better-Auth rate-limiter for /api/auth/* (credential-stuffing protection).
+# Default: false in test/development, true in production.
+# Override: BETTER_AUTH_RATE_LIMIT_ENABLED=true|false
+# BETTER_AUTH_RATE_LIMIT_ENABLED=false
+
 # Optional but useful in dev
 MAILPIT_WEB_URL=http://localhost:8025
 POWERSYNC_URL=http://localhost:8080

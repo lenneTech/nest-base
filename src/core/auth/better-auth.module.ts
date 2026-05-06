@@ -29,6 +29,7 @@ import { resolveAppName } from "./better-auth-email-hooks.js";
 import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from "./better-auth.token.js";
 import { type SocialProviderConfig, buildBetterAuth } from "./better-auth.js";
 import { defaultAuthRateLimits } from "./rate-limit.js";
+import { isBetterAuthRateLimitEnabled } from "./rate-limit-flag.js";
 
 const MIN_SECRET_LEN = 32;
 
@@ -152,6 +153,10 @@ const MIN_SECRET_LEN = 32;
           // on `/api/auth/sign-in/*` rides on this surface alongside
           // the global @nestjs/throttler.
           authRateLimits: defaultAuthRateLimits(),
+          // BETTER_AUTH_RATE_LIMIT_ENABLED: defaults false in test/dev
+          // (rapid runs exhaust the window and generate spurious 429s),
+          // true in production and staging. Explicit env override wins.
+          rateLimitEnabled: isBetterAuthRateLimitEnabled(process.env as Record<string, string | undefined>),
           // Password policy enforcement is opt-in via env. The
           // service exposes the policy validator (entropy + optional
           // HIBP breach check) so signup / change-password run the

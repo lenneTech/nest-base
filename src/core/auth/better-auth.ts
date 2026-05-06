@@ -172,6 +172,14 @@ export interface BuildBetterAuthInput {
    * for the auth surface where brute-force resistance matters most.
    */
   authRateLimits?: AuthRateLimitsInput;
+  /**
+   * When `false`, the `authRateLimits` block is not forwarded to
+   * Better-Auth even if `authRateLimits` is set. Driven by
+   * `BETTER_AUTH_RATE_LIMIT_ENABLED` in `BetterAuthModule`; defaults
+   * to `true` so callers that omit this field keep the existing
+   * behaviour unchanged.
+   */
+  rateLimitEnabled?: boolean;
 }
 
 export interface AuthRateLimitWindow {
@@ -562,7 +570,10 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
     ...(input.socialProviders && Object.keys(input.socialProviders).length > 0
       ? { socialProviders: input.socialProviders as BetterAuthOptions["socialProviders"] }
       : {}),
-    ...(input.authRateLimits
+    // `rateLimitEnabled` defaults to true when absent — only suppress the
+    // block when the caller has explicitly set it to false (driven by the
+    // BETTER_AUTH_RATE_LIMIT_ENABLED env flag in BetterAuthModule).
+    ...(input.authRateLimits && input.rateLimitEnabled !== false
       ? {
           rateLimit: {
             // The global rate-limit defaults (window/max) cover every
