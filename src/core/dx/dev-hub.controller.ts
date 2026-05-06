@@ -232,7 +232,8 @@ export class DevHubController {
 
     // Gather data for the operator health planner
     const migrationsStatus = await this.migrations.getStatus();
-    const allMigrationsApplied = migrationsStatus.pending.length === 0 && migrationsStatus.failed.length === 0;
+    const allMigrationsApplied =
+      migrationsStatus.pending.length === 0 && migrationsStatus.failed.length === 0;
 
     const statusGroups: DashboardStatusGroup[] = buildDashboardStatusGroups({
       uptime: process.uptime(),
@@ -243,20 +244,28 @@ export class DevHubController {
       deadLetterCount: 0,
       webhookSuccessRate: 1,
       emailEnabled: Boolean(features.email?.enabled),
-      storageDriverName: (features as Record<string, unknown> & { storageDefault?: string }).storageDefault ?? "local",
+      storageDriverName:
+        (features as Record<string, unknown> & { storageDefault?: string }).storageDefault ??
+        "local",
       geoIpAgeDays: 0,
       allMigrationsApplied,
       // RLS is active when row-level security is enforced in the DB.
       // We infer it from the presence of multi-tenancy feature, since RLS
       // is always enabled alongside multi-tenancy in this template.
-      rlsActive: Boolean((features as Record<string, unknown> & { multiTenancy?: { enabled?: boolean } }).multiTenancy?.enabled),
+      rlsActive: Boolean(
+        (features as Record<string, unknown> & { multiTenancy?: { enabled?: boolean } })
+          .multiTenancy?.enabled,
+      ),
     });
 
     // Stub chart data — no request log aggregation implemented yet.
     // The UI renders a "Kein Datenmaterial" placeholder when available=false.
     const requestsChart = { available: false as const, buckets: buildZeroFilledRequestBuckets() };
     const sessionsChart = { available: false as const, buckets: buildZeroFilledSessionBuckets() };
-    const geoTopCountries = { available: false as const, countries: [] as Array<{ countryCode: string; country: string; requests: number }> };
+    const geoTopCountries = {
+      available: false as const,
+      countries: [] as Array<{ countryCode: string; country: string; requests: number }>,
+    };
 
     return {
       baseUrl: effective.publicUrl,

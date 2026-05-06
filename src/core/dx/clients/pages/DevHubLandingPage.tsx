@@ -232,10 +232,7 @@ function DashboardBody({ data }: { data: DashboardJson }): ReactNode {
       ) : null}
 
       {/* Charts row — requests, error rate, sessions */}
-      <ChartsRow
-        requestsChart={data.requestsChart}
-        sessionsChart={data.sessionsChart}
-      />
+      <ChartsRow requestsChart={data.requestsChart} sessionsChart={data.sessionsChart} />
 
       {/* Geographic request distribution */}
       <GeoSection geoTopCountries={data.geoTopCountries} />
@@ -458,11 +455,7 @@ function SessionsChart({ buckets }: { buckets: SessionBucket[] }): ReactNode {
     <ResponsiveContainer width="100%" height={180}>
       <LineChart data={buckets} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--line, #333)" opacity={0.5} />
-        <XAxis
-          dataKey="hour"
-          tick={{ fontSize: 10, fill: "var(--fg-muted, #888)" }}
-          interval={5}
-        />
+        <XAxis dataKey="hour" tick={{ fontSize: 10, fill: "var(--fg-muted, #888)" }} interval={5} />
         <YAxis tick={{ fontSize: 10, fill: "var(--fg-muted, #888)" }} />
         <Tooltip
           contentStyle={{
@@ -539,8 +532,7 @@ function GeoTable({ countries }: { countries: GeoCountry[] }): ReactNode {
           return (
             <tr key={c.countryCode} className="border-b border-line/40">
               <td className="py-1.5 pr-4">
-                <span className="font-mono text-xs text-fg-muted">{c.countryCode}</span>{" "}
-                {c.country}
+                <span className="font-mono text-xs text-fg-muted">{c.countryCode}</span> {c.country}
               </td>
               <td className="py-1.5 pr-4 tabular-nums">{c.requests.toLocaleString()}</td>
               <td className="py-1.5 tabular-nums text-fg-muted">{pct} %</td>
@@ -562,7 +554,9 @@ function TunnelCard({ url, startedAt }: { url: string; startedAt?: string }): Re
       void navigator.clipboard.writeText(url);
     }
   }
-  const startedLabel = startedAt ? `gestartet ${new Date(startedAt).toLocaleTimeString()}` : "aktiv";
+  const startedLabel = startedAt
+    ? `gestartet ${new Date(startedAt).toLocaleTimeString()}`
+    : "aktiv";
   return (
     <Card>
       <CardHeader className="flex-row flex-wrap items-center gap-3">
@@ -588,7 +582,8 @@ function TunnelCard({ url, startedAt }: { url: string; startedAt?: string }): Re
           </Button>
         </div>
         <p className="text-xs text-fg-muted">
-          Diese URL in Stripe / GitHub / Slack Webhook-Konfigurationen eintragen. Die URL ist öffentlich — nie einen Tunnel mit echten Nutzerdaten betreiben.
+          Diese URL in Stripe / GitHub / Slack Webhook-Konfigurationen eintragen. Die URL ist
+          öffentlich — nie einen Tunnel mit echten Nutzerdaten betreiben.
         </p>
       </CardContent>
     </Card>
@@ -720,9 +715,7 @@ function StatsGrid({
       </StatCard>
       <StatCard label="Aktuelle Logs" value={data.logs.length} href="/hub/logs">
         {errorLogs > 0 ? (
-          <Badge variant="err">
-            {errorLogs} Fehler
-          </Badge>
+          <Badge variant="err">{errorLogs} Fehler</Badge>
         ) : warnLogs > 0 ? (
           <Badge variant="warn">
             {warnLogs} Warnung{warnLogs === 1 ? "" : "en"}
@@ -865,11 +858,7 @@ function LogPreview({
         <span className="text-[0.7rem] uppercase tracking-widest text-fg-dim">
           letzte 10 von {records.length}/{capacity}
         </span>
-        {errorLogs > 0 ? (
-          <Badge variant="err">
-            {errorLogs} Fehler
-          </Badge>
-        ) : null}
+        {errorLogs > 0 ? <Badge variant="err">{errorLogs} Fehler</Badge> : null}
         {warnLogs > 0 && errorLogs === 0 ? (
           <Badge variant="warn">
             {warnLogs} Warnung{warnLogs === 1 ? "" : "en"}

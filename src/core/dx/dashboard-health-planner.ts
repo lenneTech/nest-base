@@ -77,11 +77,7 @@ function buildAsyncGroup(input: DashboardHealthInput): DashboardStatusGroup {
 
   // Webhook success-rate thresholds: ≥0.95 ok, 0.8–0.95 warn, <0.8 error
   const webhookStatus: StatusLevel =
-    input.webhookSuccessRate >= 0.95
-      ? "ok"
-      : input.webhookSuccessRate >= 0.8
-        ? "warn"
-        : "error";
+    input.webhookSuccessRate >= 0.95 ? "ok" : input.webhookSuccessRate >= 0.8 ? "warn" : "error";
 
   const items: DashboardStatusItem[] = [
     {
@@ -136,8 +132,7 @@ function buildRuntimeGroup(input: DashboardHealthInput): DashboardStatusGroup {
     input.heapUsedMb > 800 ? "error" : input.heapUsedMb > 500 ? "warn" : "ok";
 
   // RSS same scale — typically higher than heap, so thresholds shifted
-  const rssStatus: StatusLevel =
-    input.rssMb > 1200 ? "error" : input.rssMb > 700 ? "warn" : "ok";
+  const rssStatus: StatusLevel = input.rssMb > 1200 ? "error" : input.rssMb > 700 ? "warn" : "ok";
 
   const items: DashboardStatusItem[] = [
     {
