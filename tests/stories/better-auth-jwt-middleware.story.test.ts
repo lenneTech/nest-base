@@ -11,16 +11,20 @@ import { isPathProtected } from "../../src/core/auth/jwt-middleware.js";
  * enabled). Everything else requires a session or scoped API key.
  */
 describe("Story · Better-Auth JWT middleware", () => {
+  // Issue #83: all API routes are under /api/*. The Hub SPA sits at /,
+  // and health probes remain at /health/*. Error catalogue moved to /api/errors/*.
   const publicPaths = [
     "/",
     "/health/live",
     "/health/ready",
     "/api/auth/sign-in",
     "/api/auth/sign-up",
-    "/errors",
-    "/errors/CORE_NOT_FOUND",
+    "/api/errors",
+    "/api/errors/CORE_NOT_FOUND",
     "/api/openapi",
     "/api/openapi.json",
+    "/hub/login",
+    "/hub/logout",
   ];
 
   it.each(publicPaths)("treats %s as public (no JWT required)", (path) => {

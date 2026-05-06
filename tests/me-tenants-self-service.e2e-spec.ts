@@ -45,6 +45,12 @@ describe("E2E · /me/tenants + POST /tenants self-service", () => {
     // `Test.createTestingModule()` does not). Register it so the
     // malformed-body assertion below sees the production-shaped 400.
     app.useGlobalFilters(new ProblemDetailsExceptionFilter());
+    // Mirror bootstrap.ts: set the global /api/ prefix so BetterAuth
+    // routes (e.g. /api/auth/sign-up/email) are reachable without
+    // bootstrap(). Hub + health paths stay at root.
+    app.setGlobalPrefix("api", {
+      exclude: ["/", "hub/login", "hub/logout", "health", "health/(.*)"],
+    });
     Object.assign(SILENT_LOGGER, {});
     await app.init();
     prisma = app.get(PrismaService);
@@ -70,13 +76,13 @@ describe("E2E · /me/tenants + POST /tenants self-service", () => {
   });
 
   it("anonymous → GET /me/tenants is 401 (auth required, NOT a tenant-header miss)", async () => {
-    const res = await request(app.getHttpServer()).get("/me/tenants");
+    const res = await request(app.getHttpServer()).get("/api/me/tenants");
     expect(res.status).toBe(401);
   });
 
   it("anonymous → POST /tenants is 401", async () => {
     const res = await request(app.getHttpServer())
-      .post("/tenants")
+      .post("/api/tenants")
       .set("content-type", "application/json")
       .send({ name: "Anonymous Inc." });
     expect(res.status).toBe(401);
@@ -90,7 +96,7 @@ describe("E2E · /me/tenants + POST /tenants self-service", () => {
       .send({ email, password, name: "Self-Service User" });
     expect(signUp.status, JSON.stringify(signUp.body)).toBe(200);
 
-    const res = await agent.get("/me/tenants");
+    const res = await agent.get("/api/me/tenants");
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body).toEqual([]);
@@ -106,7 +112,7 @@ describe("E2E · /me/tenants + POST /tenants self-service", () => {
 
     const tenantName = `Acme-${stamp}`;
     const res = await agent
-      .post("/tenants")
+      .post("/api/tenants")
       .set("content-type", "application/json")
       .send({ name: tenantName });
 
@@ -136,7 +142,7 @@ describe("E2E · /me/tenants + POST /tenants self-service", () => {
       .set("content-type", "application/json")
       .send({ email, password });
 
-    const res = await agent.get("/me/tenants");
+    const res = await agent.get("/api/me/tenants");
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body.length).toBeGreaterThanOrEqual(1);
     const found = (res.body as Array<{ tenantName: string; role: string; status: string }>).find(
@@ -155,7 +161,7 @@ describe("E2E · /me/tenants + POST /tenants self-service", () => {
       .send({ email, password });
 
     const res = await agent
-      .post("/tenants")
+      .post("/api/tenants")
       .set("content-type", "application/json")
       .send({ name: `Acme-${stamp}` });
     expect(res.status).toBe(409);
@@ -169,7 +175,7 @@ describe("E2E · /me/tenants + POST /tenants self-service", () => {
       .send({ email, password });
 
     const res = await agent
-      .post("/tenants")
+      .post("/api/tenants")
       .set("content-type", "application/json")
       .send({ name: "   " });
     expect(res.status).toBe(400);
@@ -197,7 +203,7 @@ describe("E2E · /me/tenants + POST /tenants self-service", () => {
       .send({ email, password });
 
     const res = await agent
-      .post("/tenants")
+      .post("/api/tenants")
       .set("content-type", "application/json")
       // `name` MUST be a string; sending a number is the canonical
       // shape-violation Zod catches at the boundary.
@@ -234,7 +240,7 @@ describe("E2E · /me/tenants + POST /tenants self-service", () => {
     // Bootstrap their first tenant.
     const tenantName = `FreshAcme-${stamp}`;
     const createTenant = await agent
-      .post("/tenants")
+      .post("/api/tenants")
       .set("content-type", "application/json")
       .send({ name: tenantName });
     expect([200, 201]).toContain(createTenant.status);
@@ -245,7 +251,7 @@ describe("E2E · /me/tenants + POST /tenants self-service", () => {
     // the freshly-created tenant; if either fix is missing, the
     // ability resolves to empty and CanGuard returns 403.
     const createExample = await agent
-      .post("/examples")
+      .post("/api/examples")
       .set("content-type", "application/json")
       .set("x-tenant-id", tenantId)
       .send({ name: "First example", status: "draft" });

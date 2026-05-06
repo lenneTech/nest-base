@@ -320,7 +320,9 @@ class FileController {
     });
     return {
       shareToken,
-      url: `/files/share/${shareToken}`,
+      // Global /api/ prefix applies to @Controller("files") — the
+      // share link URL must reflect the full public path.
+      url: `/api/files/share/${shareToken}`,
       expiresAt: new Date(expiresAtMs).toISOString(),
     };
   }

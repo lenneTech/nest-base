@@ -70,7 +70,7 @@ describe("Files · visibility toggle", () => {
 
     const bytes = emerald8x8Png();
     const upload = await request(app.getHttpServer())
-      .post("/files/upload")
+      .post("/api/files/upload")
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
@@ -106,7 +106,7 @@ describe("Files · visibility toggle", () => {
 
   it("uploads default to PRIVATE visibility", async () => {
     const res = await request(app.getHttpServer())
-      .get(`/files/${fileId}`)
+      .get(`/api/files/${fileId}`)
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
@@ -116,7 +116,7 @@ describe("Files · visibility toggle", () => {
 
   it("PATCH /files/:id/visibility flips PRIVATE → PUBLIC", async () => {
     const res = await request(app.getHttpServer())
-      .patch(`/files/${fileId}/visibility`)
+      .patch(`/api/files/${fileId}/visibility`)
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
@@ -125,7 +125,7 @@ describe("Files · visibility toggle", () => {
     expect(res.body.visibility).toBe("PUBLIC");
 
     const after = await request(app.getHttpServer())
-      .get(`/files/${fileId}`)
+      .get(`/api/files/${fileId}`)
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
@@ -134,7 +134,7 @@ describe("Files · visibility toggle", () => {
 
   it("rejects an unknown visibility value with 400", async () => {
     const res = await request(app.getHttpServer())
-      .patch(`/files/${fileId}/visibility`)
+      .patch(`/api/files/${fileId}/visibility`)
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
@@ -144,7 +144,7 @@ describe("Files · visibility toggle", () => {
 
   it("PATCH on an unknown file id returns 404", async () => {
     const res = await request(app.getHttpServer())
-      .patch(`/files/00000000-0000-0000-0000-000000000999/visibility`)
+      .patch(`/api/files/00000000-0000-0000-0000-000000000999/visibility`)
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")

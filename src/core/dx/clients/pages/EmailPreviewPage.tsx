@@ -32,7 +32,7 @@ interface EmailPreviewResponse {
 export function EmailPreviewPage(): ReactNode {
   const data = useQuery({
     queryKey: ["dev", "email-preview"],
-    queryFn: () => fetchJson<EmailPreviewResponse>("/dev/email-preview.json"),
+    queryFn: () => fetchJson<EmailPreviewResponse>("/api/hub/email-preview.json"),
   });
 
   const subtitle = data.data ? (

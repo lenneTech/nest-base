@@ -135,7 +135,7 @@ describe("E2E · Device-handling", () => {
     expect(cookies).toBeDefined();
 
     const res = await request(app.getHttpServer())
-      .get("/me/devices")
+      .get("/api/me/devices")
       .set("user-agent", UA_CHROME)
       .set("x-tenant-id", TENANT)
       .set("cookie", joinCookies(cookies));
@@ -158,7 +158,7 @@ describe("E2E · Device-handling", () => {
     const cookies = signIn.headers["set-cookie"];
 
     const list = await request(app.getHttpServer())
-      .get("/me/devices")
+      .get("/api/me/devices")
       .set("user-agent", UA_CHROME)
       .set("x-tenant-id", TENANT)
       .set("cookie", joinCookies(cookies));
@@ -169,7 +169,7 @@ describe("E2E · Device-handling", () => {
     if (!target) return;
 
     const del = await request(app.getHttpServer())
-      .delete(`/me/devices/${target.id}`)
+      .delete(`/api/me/devices/${target.id}`)
       .set("user-agent", UA_CHROME)
       .set("x-tenant-id", TENANT)
       .set("cookie", joinCookies(cookies));

@@ -64,12 +64,12 @@ describe("Story · ScheduledJob DiscoveryService walk", () => {
     await expect(registry.runOnce("does-not-exist")).rejects.toThrow(/scheduled job/i);
   });
 
-  it("GET /dev/scheduled-jobs.json surfaces the registry", async () => {
+  it("GET /api/hub/scheduled-jobs.json surfaces the registry", async () => {
     const { default: request } = await import("supertest");
     const previousNodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = "development";
     try {
-      const res = await request(app.getHttpServer()).get("/dev/scheduled-jobs.json");
+      const res = await request(app.getHttpServer()).get("/api/hub/scheduled-jobs.json");
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body.jobs)).toBe(true);
       const names = (res.body.jobs as Array<{ name: string }>).map((j) => j.name).sort();

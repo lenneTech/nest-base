@@ -167,11 +167,17 @@ describe("Story · Route-audit planner — parseControllerSource", () => {
     expect(first?.classification).toBe("ungated-bug");
   });
 
-  it("normalises a base-path with no leading slash", () => {
+  it("normalises a base-path with no leading slash (deprecated api/auth pattern)", () => {
+    // Issue #83: BetterAuthController changed from @Controller("api/auth") to
+    // @Controller("auth") (global /api/ prefix handles the /api/ segment).
+    // The handler carries @Public() so the route-audit planner classifies it
+    // as public-by-design regardless of the prefix. We test the old
+    // api/auth pattern still works for reference.
     const source = `
       @Controller("api/auth")
       class BetterAuthController {
         @All("*splat")
+        @Public("Better-Auth sign-in / sign-up — inherently public")
         handle() {}
       }
     `;

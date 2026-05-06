@@ -89,7 +89,7 @@ describe("OpenAPI Zod bridge — `/api/openapi.json` carries Zod-derived schemas
   }
 
   it("POST /examples carries a typed request body schema (not `never`)", () => {
-    const op = pathOp("/examples", "post");
+    const op = pathOp("/api/examples", "post");
     const schema = op.requestBody?.content["application/json"]?.schema;
     expect(schema).toBeDefined();
     if (schema?.$ref) {
@@ -106,7 +106,7 @@ describe("OpenAPI Zod bridge — `/api/openapi.json` carries Zod-derived schemas
   });
 
   it("POST /examples carries a typed 201 response schema (not `unknown`)", () => {
-    const op = pathOp("/examples", "post");
+    const op = pathOp("/api/examples", "post");
     const schema = op.responses?.["201"]?.content?.["application/json"]?.schema;
     expect(schema).toBeDefined();
     if (schema?.$ref) {
@@ -120,14 +120,14 @@ describe("OpenAPI Zod bridge — `/api/openapi.json` carries Zod-derived schemas
   });
 
   it("GET /examples carries query parameters derived from the Zod schema", () => {
-    const op = pathOp("/examples", "get");
+    const op = pathOp("/api/examples", "get");
     const params = op.parameters ?? [];
     const names = params.map((p) => p.name);
     expect(names).toEqual(expect.arrayContaining(["cursor", "limit"]));
   });
 
   it("GET /examples/{id} carries a typed 200 response schema", () => {
-    const op = pathOp("/examples/{id}", "get");
+    const op = pathOp("/api/examples/{id}", "get");
     const schema = op.responses?.["200"]?.content?.["application/json"]?.schema;
     expect(schema).toBeDefined();
     if (schema?.$ref) {

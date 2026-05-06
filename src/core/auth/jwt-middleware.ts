@@ -4,12 +4,17 @@
  * Allowlist-driven: by default every API path requires a valid session
  * or scoped API key. The `PUBLIC_PREFIXES` set is the only escape hatch
  * — it covers diagnostics, the Better-Auth handler, and the docs UI.
+ *
+ * Issue #83: all API routes are now under `/api/*`. Paths that remain
+ * at root level are: Hub (`/`, `/hub/*`), health (`/health/*`), and
+ * the legacy `/api-docs-json` alias. All `/dev/*` and `/admin/*` paths
+ * are now under `/api/hub/*` and `/api/admin/*`.
  */
 
 /**
  * Public paths — no JWT required.
  *
- * `/errors` is the public error-code catalogue — frontends + SDK
+ * `/api/errors` is the public error-code catalogue — frontends + SDK
  * generators consume it without authenticating. `/api/openapi` and
  * `/api/openapi.json` serve the OpenAPI spec the SDK generators read.
  * Both are dev-friendly (they expose error codes / route shapes only,
@@ -24,13 +29,26 @@ const PUBLIC_PREFIXES = [
   "/health/",
   "/api/auth/",
   "/docs/",
-  "/dev/",
-  "/errors/",
+  "/api/hub/",
+  "/api/admin/",
+  "/api/errors/",
   "/api/openapi",
   // HMAC-signed share links — the token is the auth.
-  "/files/share/",
+  "/api/files/share/",
+  // Hub SPA routes (login/logout) are public.
+  "/hub/",
 ];
-const PUBLIC_EXACT = new Set(["/", "/errors", "/api/openapi", "/api-docs-json"]);
+const PUBLIC_EXACT = new Set([
+  "/",
+  // API identity endpoint (AppController @Get() under the global /api/ prefix).
+  "/api/",
+  "/api",
+  "/api/errors",
+  "/api/openapi",
+  "/api-docs-json",
+  "/hub/login",
+  "/hub/logout",
+]);
 
 export function isPathProtected(path: string): boolean {
   if (!path) throw new Error("isPathProtected: path is required");

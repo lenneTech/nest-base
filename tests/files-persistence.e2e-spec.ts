@@ -114,7 +114,7 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
     const bytes = await makePng();
     const sha = createHash("sha256").update(bytes).digest("hex");
     const res = await request(app.getHttpServer())
-      .post("/files/upload")
+      .post("/api/files/upload")
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
@@ -141,7 +141,7 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
   it("GET /files/:id resolves a freshly-uploaded record", async () => {
     const bytes = await makePng();
     const upload = await request(app.getHttpServer())
-      .post("/files/upload")
+      .post("/api/files/upload")
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
@@ -157,7 +157,7 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
     const id = upload.body.id;
 
     const get = await request(app.getHttpServer())
-      .get(`/files/${id}`)
+      .get(`/api/files/${id}`)
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
@@ -170,7 +170,7 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
     const bytes = await makePng();
     const sha = createHash("sha256").update(bytes).digest("hex");
     const upload = await request(app.getHttpServer())
-      .post("/files/upload")
+      .post("/api/files/upload")
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
@@ -191,7 +191,7 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
     // StorageAdapter pipeline. With no transform requested, the bytes
     // should match the upload exactly.
     const res = await request(app.getHttpServer())
-      .get(`/assets/${encodeURIComponent(storageKey)}`)
+      .get(`/api/assets/${encodeURIComponent(storageKey)}`)
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
@@ -206,7 +206,7 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
   it("GET /assets/:key with width transform writes a cache entry (HIT on second call)", async () => {
     const bytes = await makePng();
     const upload = await request(app.getHttpServer())
-      .post("/files/upload")
+      .post("/api/files/upload")
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
@@ -223,7 +223,7 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
 
     // First call: cache miss (bytes go through sharp).
     const first = await request(app.getHttpServer())
-      .get(`/assets/${encodeURIComponent(storageKey)}?width=4&format=webp`)
+      .get(`/api/assets/${encodeURIComponent(storageKey)}?width=4&format=webp`)
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
@@ -233,7 +233,7 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
 
     // Second call: cache hit (no transformer invocation).
     const second = await request(app.getHttpServer())
-      .get(`/assets/${encodeURIComponent(storageKey)}?width=4&format=webp`)
+      .get(`/api/assets/${encodeURIComponent(storageKey)}?width=4&format=webp`)
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
@@ -244,7 +244,7 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
   it("metadata survives a fresh boot (Prisma persistence is wired, not in-memory)", async () => {
     const bytes = await makePng();
     const upload = await request(app.getHttpServer())
-      .post("/files/upload")
+      .post("/api/files/upload")
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")

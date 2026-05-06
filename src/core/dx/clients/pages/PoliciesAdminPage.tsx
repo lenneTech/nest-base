@@ -43,12 +43,12 @@ export function PoliciesAdminPage(): ReactNode {
 
   const list = useQuery({
     queryKey: ["admin", "policies"],
-    queryFn: () => fetchJson<PolicyRecord[]>("/admin/policies"),
+    queryFn: () => fetchJson<PolicyRecord[]>("/api/admin/policies"),
   });
 
   const create = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/admin/policies", {
+      const res = await fetch("/api/admin/policies", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ name, description: description || null }),

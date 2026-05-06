@@ -1,15 +1,15 @@
 /**
- * `/dev/files*` — JSON sidecars for the Dev-Portal File-Manager (issue #18).
+ * `/hub/files*` — JSON sidecars for the Dev-Portal File-Manager (issue #18).
  *
- * The React page at `/dev/files` reads three sidecar endpoints to
+ * The React page at `/hub/files` reads three sidecar endpoints to
  * populate its two-column layout:
- *   - `/dev/files/tree.json`        — recursive folder hierarchy (left rail)
- *   - `/dev/files/list.json`        — files in the active folder (grid)
- *   - `/dev/files/breadcrumb.json`  — root-to-active path (header)
+ *   - `/hub/files/tree.json`        — recursive folder hierarchy (left rail)
+ *   - `/hub/files/list.json`        — files in the active folder (grid)
+ *   - `/hub/files/breadcrumb.json`  — root-to-active path (header)
  *
  * Every endpoint 404s outside `NODE_ENV=development`, identical to
  * the rest of the dev-hub. The controller is mounted unconditionally
- * by `DevHubModule` so route discovery (`/dev/routes`) sees it on the
+ * by `DevHubModule` so route discovery (`/hub/routes`) sees it on the
  * inventory. The `assertDev()` short-circuit keeps the surface from
  * leaking in a production build.
  *
@@ -18,7 +18,7 @@
  * backstop, but we explicitly scope all reads by tenant id so a
  * misconfigured RLS policy can never cross-leak.
  *
- * The page itself (`GET /dev/files`) is served by the existing
+ * The page itself (`GET /hub/files`) is served by the existing
  * splat-catchall on `DevHubController` — react-router takes over from
  * the SPA shell.
  */
@@ -69,16 +69,16 @@ interface BreadcrumbResponse {
   segments: BreadcrumbSegment[];
 }
 
-@Controller("dev/files")
+@Controller("hub/files")
 export class DevFilesController {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * `GET /dev/files` — SPA shell HTML.
+   * `GET /hub/files` — SPA shell HTML.
    *
    * Mirrors the other dev-portal pages: emits the same shell that
    * `DevHubController.spaCatchAll` would have produced. Listing it
-   * explicitly here means route inventory shows `/dev/files` as a
+   * explicitly here means route inventory shows `/hub/files` as a
    * first-class route instead of "covered by splat".
    */
   @Get()
@@ -214,7 +214,7 @@ export class DevFilesController {
   }
 
   /**
-   * `/dev/*` paths are exempt from the TenantInterceptor (see
+   * `/hub/*` paths are exempt from the TenantInterceptor (see
    * `tenant-guard.ts`'s `EXEMPT_PREFIXES`), so the AsyncLocalStorage
    * is empty for these handlers. We read the header directly and let
    * the caller override via `?tenantId=` for ease of debugging from

@@ -94,36 +94,64 @@ interface PageSpec {
 // entry.
 const PAGES: PageSpec[] = [
   // Dev portal
-  { slug: "dev-landing", path: "/dev", waitFor: ["Dev Hub", "Cockpit"] },
-  { slug: "dev-components", path: "/dev/components", waitFor: ["Components", "shadcn"] },
-  { slug: "dev-features", path: "/dev/features", waitFor: ["Multi-Tenancy", "Feature flags"] },
-  { slug: "dev-brand", path: "/dev/brand", waitFor: ["Brand"] },
-  { slug: "dev-coverage", path: "/dev/coverage", waitFor: ["Coverage", "no run yet", "Lines"] },
-  { slug: "dev-tests", path: "/dev/tests", waitFor: ["Tests"] },
-  { slug: "dev-diagnostics", path: "/dev/diagnostics", waitFor: ["Diagnostics"] },
-  { slug: "dev-logs", path: "/dev/logs", waitFor: ["Logs"] },
-  { slug: "dev-traces", path: "/dev/traces", waitFor: ["Traces"] },
-  { slug: "dev-queries", path: "/dev/queries", waitFor: ["Queries"] },
-  { slug: "dev-migrations", path: "/dev/migrations", waitFor: ["Migrations", "Status"] },
-  { slug: "dev-jobs", path: "/dev/jobs", waitFor: ["Jobs", "Queues"] },
-  { slug: "dev-routes", path: "/dev/routes", waitFor: ["Routes"] },
-  { slug: "dev-erd", path: "/dev/erd", waitFor: ["ERD"] },
-  { slug: "dev-email-preview", path: "/dev/email-preview", waitFor: ["Email Preview", "verification"] },
-  { slug: "dev-email-builder", path: "/dev/email-builder", waitFor: ["Email Builder", "Templates"] },
-  { slug: "dev-postgrest-parse", path: "/dev/postgrest-parse", waitFor: ["PostgREST"] },
-  { slug: "dev-json", path: "/dev/json", waitFor: ["JSON Viewer"] },
-  { slug: "dev-files", path: "/dev/files", waitFor: ["File Manager"] },
-  { slug: "dev-cron", path: "/dev/cron", waitFor: ["Cron"] },
-  { slug: "dev-email-outbox", path: "/dev/email-outbox", waitFor: ["Email Outbox"] },
+  { slug: "hub-landing", path: "/hub", waitFor: ["Hub", "Cockpit"] },
+  { slug: "hub-components", path: "/hub/components", waitFor: ["Components", "shadcn"] },
+  { slug: "hub-features", path: "/hub/features", waitFor: ["Multi-Tenancy", "Feature flags"] },
+  { slug: "hub-brand", path: "/hub/brand", waitFor: ["Brand"] },
+  { slug: "hub-coverage", path: "/hub/coverage", waitFor: ["Coverage", "no run yet", "Lines"] },
+  { slug: "hub-tests", path: "/hub/tests", waitFor: ["Tests"] },
+  { slug: "hub-diagnostics", path: "/hub/diagnostics", waitFor: ["Diagnostics"] },
+  { slug: "hub-logs", path: "/hub/logs", waitFor: ["Logs"] },
+  { slug: "hub-traces", path: "/hub/traces", waitFor: ["Traces"] },
+  { slug: "hub-queries", path: "/hub/queries", waitFor: ["Queries"] },
+  { slug: "hub-migrations", path: "/hub/migrations", waitFor: ["Migrations", "Status"] },
+  { slug: "hub-jobs", path: "/hub/jobs", waitFor: ["Jobs", "Queues"] },
+  { slug: "hub-routes", path: "/hub/routes", waitFor: ["Routes"] },
+  { slug: "hub-erd", path: "/hub/erd", waitFor: ["ERD"] },
+  {
+    slug: "hub-email-preview",
+    path: "/hub/email-preview",
+    waitFor: ["Email Preview", "verification"],
+  },
+  {
+    slug: "hub-email-builder",
+    path: "/hub/email-builder",
+    waitFor: ["Email Builder", "Templates"],
+  },
+  { slug: "hub-postgrest-parse", path: "/hub/postgrest-parse", waitFor: ["PostgREST"] },
+  { slug: "hub-json", path: "/hub/json", waitFor: ["JSON Viewer"] },
+  { slug: "hub-files", path: "/hub/files", waitFor: ["File Manager"] },
+  { slug: "hub-cron", path: "/hub/cron", waitFor: ["Cron"] },
+  { slug: "hub-email-outbox", path: "/hub/email-outbox", waitFor: ["Email Outbox"] },
   // Admin pages (require auth)
   { slug: "admin-roles", path: "/admin/roles", waitFor: ["Roles"], requiresAuth: true },
   { slug: "admin-policies", path: "/admin/policies", waitFor: ["Policies"], requiresAuth: true },
-  { slug: "admin-permissions", path: "/admin/permissions", waitFor: ["Permissions"], requiresAuth: true },
-  { slug: "admin-permissions-test", path: "/admin/permissions/test", waitFor: ["Permission Tester"], requiresAuth: true },
+  {
+    slug: "admin-permissions",
+    path: "/admin/permissions",
+    waitFor: ["Permissions"],
+    requiresAuth: true,
+  },
+  {
+    slug: "admin-permissions-test",
+    path: "/admin/permissions/test",
+    waitFor: ["Permission Tester"],
+    requiresAuth: true,
+  },
   { slug: "admin-sessions", path: "/admin/sessions", waitFor: ["Sessions"], requiresAuth: true },
   { slug: "admin-jobs", path: "/admin/jobs", waitFor: ["Jobs"], requiresAuth: true },
-  { slug: "admin-webhooks", path: "/admin/webhooks", waitFor: ["Webhook Inspector", "Endpoints"], requiresAuth: true },
-  { slug: "admin-realtime", path: "/admin/realtime", waitFor: ["Realtime Inspector", "Sockets"], requiresAuth: true },
+  {
+    slug: "admin-webhooks",
+    path: "/admin/webhooks",
+    waitFor: ["Webhook Inspector", "Endpoints"],
+    requiresAuth: true,
+  },
+  {
+    slug: "admin-realtime",
+    path: "/admin/realtime",
+    waitFor: ["Realtime Inspector", "Sockets"],
+    requiresAuth: true,
+  },
   { slug: "admin-audit", path: "/admin/audit", waitFor: ["Audit Browser"], requiresAuth: true },
   { slug: "admin-search", path: "/admin/search", waitFor: ["Search Tester"], requiresAuth: true },
   // Public catalogues
@@ -217,7 +245,9 @@ async function capture(context: BrowserContext, spec: PageSpec, suffix: string):
     const url = `${BASE_URL}${spec.path}`;
     await page.goto(url, { waitUntil: "domcontentloaded" });
     await Promise.race([
-      ...spec.waitFor.map((text) => page.getByText(text, { exact: false }).first().waitFor({ timeout: 10_000 })),
+      ...spec.waitFor.map((text) =>
+        page.getByText(text, { exact: false }).first().waitFor({ timeout: 10_000 }),
+      ),
     ]);
     // Allow lazy chunks + JSON sidecars to settle. 250 ms is enough
     // for everything except `/dev/coverage` on a cold start; we accept

@@ -47,8 +47,10 @@ describe("Story · TUS upload config", () => {
   });
 
   describe("tusUploadConfigDefaults()", () => {
-    it("default mountPath is /api/files/upload", () => {
-      expect(tusUploadConfigDefaults().mountPath).toBe("/api/files/upload");
+    it("default mountPath is /api/files/tus", () => {
+      // Issue #83: TUS path moved from /api/files/upload to /api/files/tus
+      // to avoid collision with the simple JSON upload POST handler.
+      expect(tusUploadConfigDefaults().mountPath).toBe("/api/files/tus");
     });
 
     it("default maxUploadBytes is at least 50 MB (typical avatar / doc upload)", () => {
@@ -62,7 +64,7 @@ describe("Story · TUS upload config", () => {
 
   describe("resolveTusMountPath()", () => {
     it("returns the default when no override is given", () => {
-      expect(resolveTusMountPath()).toBe("/api/files/upload");
+      expect(resolveTusMountPath()).toBe("/api/files/tus");
     });
 
     it("honors a custom path", () => {

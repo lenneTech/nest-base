@@ -97,7 +97,7 @@ export function FileManagerPage(): ReactNode {
 
   const treeQuery = useQuery({
     queryKey: ["dev", "files", "tree", tenantId],
-    queryFn: () => fetchJson<TreeResponse>(`/dev/files/tree.json?tenantId=${tenantId}`),
+    queryFn: () => fetchJson<TreeResponse>(`/api/hub/files/tree.json?tenantId=${tenantId}`),
     enabled: tenantValid,
   });
 
@@ -108,7 +108,7 @@ export function FileManagerPage(): ReactNode {
     if (search) p.set("search", search);
     p.set("sortBy", sortBy);
     p.set("sortDirection", sortDirection);
-    return `/dev/files/list.json?${p.toString()}`;
+    return `/api/hub/files/list.json?${p.toString()}`;
   }, [tenantId, activeFolderId, search, sortBy, sortDirection]);
 
   const listQuery = useQuery({
@@ -121,7 +121,7 @@ export function FileManagerPage(): ReactNode {
     const p = new URLSearchParams();
     p.set("tenantId", tenantId);
     if (activeFolderId) p.set("folderId", activeFolderId);
-    return `/dev/files/breadcrumb.json?${p.toString()}`;
+    return `/api/hub/files/breadcrumb.json?${p.toString()}`;
   }, [tenantId, activeFolderId]);
 
   const breadcrumbQuery = useQuery({
@@ -132,7 +132,7 @@ export function FileManagerPage(): ReactNode {
 
   const createFolder = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/folders", {
+      const res = await fetch("/api/folders", {
         method: "POST",
         headers: { "content-type": "application/json", "x-tenant-id": tenantId },
         body: JSON.stringify({
@@ -153,7 +153,7 @@ export function FileManagerPage(): ReactNode {
 
   const deleteFile = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/files/${id}`, {
+      const res = await fetch(`/api/files/${id}`, {
         method: "DELETE",
         headers: { "x-tenant-id": tenantId },
       });
@@ -167,7 +167,7 @@ export function FileManagerPage(): ReactNode {
 
   const toggleVisibility = useMutation({
     mutationFn: async (input: { id: string; next: "PRIVATE" | "PUBLIC" }) => {
-      const res = await fetch(`/files/${input.id}/visibility`, {
+      const res = await fetch(`/api/files/${input.id}/visibility`, {
         method: "PATCH",
         headers: { "content-type": "application/json", "x-tenant-id": tenantId },
         body: JSON.stringify({ visibility: input.next }),
@@ -184,7 +184,7 @@ export function FileManagerPage(): ReactNode {
 
   const bulkZip = useMutation({
     mutationFn: async (ids: readonly string[]) => {
-      const res = await fetch("/files/zip", {
+      const res = await fetch("/api/files/zip", {
         method: "POST",
         headers: { "content-type": "application/json", "x-tenant-id": tenantId },
         body: JSON.stringify({ ids }),
@@ -209,7 +209,7 @@ export function FileManagerPage(): ReactNode {
     mutationFn: async (ids: readonly string[]) => {
       const results = await Promise.all(
         ids.map(async (id) => {
-          const res = await fetch(`/files/${id}`, {
+          const res = await fetch(`/api/files/${id}`, {
             method: "DELETE",
             headers: { "x-tenant-id": tenantId },
           });
@@ -796,7 +796,7 @@ function ShareLinkDialog({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/files/${file.id}/share-link`, {
+      const res = await fetch(`/api/files/${file.id}/share-link`, {
         method: "POST",
         headers: { "content-type": "application/json", "x-tenant-id": tenantId },
         body: JSON.stringify({ ttlSeconds: ttlHours * 3600 }),

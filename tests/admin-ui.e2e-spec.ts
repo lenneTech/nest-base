@@ -14,16 +14,16 @@ const TENANT = "11111111-1111-1111-1111-111111111111";
  * `NODE_ENV=development` every route 404s — same gating as the Dev-Hub.
  */
 const SPA_PAGES: Array<{ url: string; title: string }> = [
-  { url: "/admin/permissions/test", title: "Permission Tester" },
-  { url: "/admin/webhooks", title: "Webhook Inspector" },
-  { url: "/admin/realtime", title: "Realtime Inspector" },
-  { url: "/admin/audit", title: "Audit Browser" },
-  { url: "/admin/search", title: "Search Tester" },
+  { url: "/api/admin/permissions/test", title: "Permission Tester" },
+  { url: "/api/admin/webhooks", title: "Webhook Inspector" },
+  { url: "/api/admin/realtime", title: "Realtime Inspector" },
+  { url: "/api/admin/audit", title: "Audit Browser" },
+  { url: "/api/admin/search", title: "Search Tester" },
 ];
 
 const JSON_ENDPOINTS: Array<{ url: string; assert: (body: unknown) => void }> = [
   {
-    url: "/admin/permissions/test.json",
+    url: "/api/admin/permissions/test.json",
     assert: (body) => {
       const b = body as { report: unknown; submitted: { userId: string; tenantId: string } };
       expect(b.submitted).toBeDefined();
@@ -32,7 +32,7 @@ const JSON_ENDPOINTS: Array<{ url: string; assert: (body: unknown) => void }> = 
     },
   },
   {
-    url: "/admin/webhooks.json",
+    url: "/api/admin/webhooks.json",
     assert: (body) => {
       const b = body as { deliveries: unknown[]; filter?: { status?: string } };
       expect(Array.isArray(b.deliveries)).toBe(true);
@@ -40,7 +40,7 @@ const JSON_ENDPOINTS: Array<{ url: string; assert: (body: unknown) => void }> = 
     },
   },
   {
-    url: "/admin/realtime.json",
+    url: "/api/admin/realtime.json",
     assert: (body) => {
       const b = body as { sockets: unknown[]; events: unknown[] };
       expect(Array.isArray(b.sockets)).toBe(true);
@@ -48,7 +48,7 @@ const JSON_ENDPOINTS: Array<{ url: string; assert: (body: unknown) => void }> = 
     },
   },
   {
-    url: "/admin/audit.json",
+    url: "/api/admin/audit.json",
     assert: (body) => {
       const b = body as { entries: unknown[]; filter: Record<string, unknown> };
       expect(Array.isArray(b.entries)).toBe(true);
@@ -56,7 +56,7 @@ const JSON_ENDPOINTS: Array<{ url: string; assert: (body: unknown) => void }> = 
     },
   },
   {
-    url: "/admin/search.json",
+    url: "/api/admin/search.json",
     assert: (body) => {
       const b = body as { hits: unknown[]; query?: string };
       expect(Array.isArray(b.hits)).toBe(true);
@@ -89,7 +89,7 @@ describe("Admin SPA · /admin/* shell + JSON sidecars", () => {
         expect(res.headers["content-type"]).toMatch(/text\/html/);
         expect(res.text).toContain('<div id="root"></div>');
         expect(res.text).toContain(`${page.title} — nest-server`);
-        expect(res.text).toMatch(/<script\s+type="module"\s+src="\/dev\/static\/main\.js"/);
+        expect(res.text).toMatch(/<script\s+type="module"\s+src="\/api\/hub\/static\/main\.js"/);
       });
     }
 
@@ -104,7 +104,7 @@ describe("Admin SPA · /admin/* shell + JSON sidecars", () => {
 
     it("GET /admin/permissions/test.json with userId+tenantId returns a report", async () => {
       const res = await request(app.getHttpServer())
-        .get("/admin/permissions/test.json?userId=u1&tenantId=t1")
+        .get("/api/admin/permissions/test.json?userId=u1&tenantId=t1")
         .set("x-tenant-id", TENANT);
       expect(res.status).toBe(200);
       expect(res.body.report).toMatchObject({ userId: "u1", tenantId: "t1", byResource: {} });
@@ -112,7 +112,7 @@ describe("Admin SPA · /admin/* shell + JSON sidecars", () => {
 
     it("GET /admin/webhooks.json?status=DELIVERED echoes the filter", async () => {
       const res = await request(app.getHttpServer())
-        .get("/admin/webhooks.json?status=DELIVERED")
+        .get("/api/admin/webhooks.json?status=DELIVERED")
         .set("x-tenant-id", TENANT);
       expect(res.status).toBe(200);
       expect(res.body.filter.status).toBe("DELIVERED");
@@ -138,14 +138,14 @@ describe("Admin SPA · /admin/* shell + JSON sidecars", () => {
 
     it("GET /admin/permissions/test 404s in production", async () => {
       const res = await request(app.getHttpServer())
-        .get("/admin/permissions/test")
+        .get("/api/admin/permissions/test")
         .set("x-tenant-id", TENANT);
       expect(res.status).toBe(404);
     });
 
     it("GET /admin/webhooks.json 404s in production", async () => {
       const res = await request(app.getHttpServer())
-        .get("/admin/webhooks.json")
+        .get("/api/admin/webhooks.json")
         .set("x-tenant-id", TENANT);
       expect(res.status).toBe(404);
     });

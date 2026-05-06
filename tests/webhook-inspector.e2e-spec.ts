@@ -33,7 +33,7 @@ describe("Webhook Inspector · admin endpoints", () => {
 
     it("GET /admin/webhooks.json returns deliveries + a CSRF token", async () => {
       const res = await request(app.getHttpServer())
-        .get("/admin/webhooks.json")
+        .get("/api/admin/webhooks.json")
         .set("x-tenant-id", TENANT);
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body.deliveries)).toBe(true);
@@ -44,7 +44,7 @@ describe("Webhook Inspector · admin endpoints", () => {
 
     it("GET /admin/webhooks.json honours endpoint, eventType, and search filters", async () => {
       const res = await request(app.getHttpServer())
-        .get("/admin/webhooks.json?endpointId=ep-demo-1&eventType=user.created&search=demo")
+        .get("/api/admin/webhooks.json?endpointId=ep-demo-1&eventType=user.created&search=demo")
         .set("x-tenant-id", TENANT);
       expect(res.status).toBe(200);
       expect(res.body.filter.endpointId).toBe("ep-demo-1");
@@ -54,7 +54,7 @@ describe("Webhook Inspector · admin endpoints", () => {
 
     it("GET /admin/webhooks.json returns a cursor when there are more rows", async () => {
       const res = await request(app.getHttpServer())
-        .get("/admin/webhooks.json?limit=1")
+        .get("/api/admin/webhooks.json?limit=1")
         .set("x-tenant-id", TENANT);
       expect(res.status).toBe(200);
       expect(res.body.deliveries.length).toBeLessThanOrEqual(1);
@@ -63,7 +63,7 @@ describe("Webhook Inspector · admin endpoints", () => {
 
     it("GET /admin/webhooks/aggregates.json returns endpoint stats with a sparkline", async () => {
       const res = await request(app.getHttpServer())
-        .get("/admin/webhooks/aggregates.json")
+        .get("/api/admin/webhooks/aggregates.json")
         .set("x-tenant-id", TENANT);
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body.endpoints)).toBe(true);
@@ -81,12 +81,12 @@ describe("Webhook Inspector · admin endpoints", () => {
 
     it("GET /admin/webhooks/:id.json returns a delivery detail or 404", async () => {
       const list = await request(app.getHttpServer())
-        .get("/admin/webhooks.json")
+        .get("/api/admin/webhooks.json")
         .set("x-tenant-id", TENANT);
       const first = list.body.deliveries[0];
       if (first) {
         const res = await request(app.getHttpServer())
-          .get(`/admin/webhooks/${encodeURIComponent(first.id)}.json`)
+          .get(`/api/admin/webhooks/${encodeURIComponent(first.id)}.json`)
           .set("x-tenant-id", TENANT);
         expect(res.status).toBe(200);
         expect(res.body.delivery.id).toBe(first.id);
@@ -94,19 +94,19 @@ describe("Webhook Inspector · admin endpoints", () => {
         expect(res.body.curl).toContain("curl ");
       }
       const missing = await request(app.getHttpServer())
-        .get("/admin/webhooks/does-not-exist.json")
+        .get("/api/admin/webhooks/does-not-exist.json")
         .set("x-tenant-id", TENANT);
       expect(missing.status).toBe(404);
     });
 
     it("POST /admin/webhooks/:id/redeliver requires a CSRF token", async () => {
       const list = await request(app.getHttpServer())
-        .get("/admin/webhooks.json")
+        .get("/api/admin/webhooks.json")
         .set("x-tenant-id", TENANT);
       const first = list.body.deliveries[0];
       if (!first) return;
       const res = await request(app.getHttpServer())
-        .post(`/admin/webhooks/${encodeURIComponent(first.id)}/redeliver`)
+        .post(`/api/admin/webhooks/${encodeURIComponent(first.id)}/redeliver`)
         .set("x-tenant-id", TENANT)
         .send({});
       expect(res.status).toBe(403);
@@ -114,13 +114,13 @@ describe("Webhook Inspector · admin endpoints", () => {
 
     it("POST /admin/webhooks/:id/redeliver succeeds with a valid CSRF token", async () => {
       const list = await request(app.getHttpServer())
-        .get("/admin/webhooks.json")
+        .get("/api/admin/webhooks.json")
         .set("x-tenant-id", TENANT);
       const first = list.body.deliveries[0];
       const csrf = list.body.csrfToken;
       if (!first) return;
       const res = await request(app.getHttpServer())
-        .post(`/admin/webhooks/${encodeURIComponent(first.id)}/redeliver`)
+        .post(`/api/admin/webhooks/${encodeURIComponent(first.id)}/redeliver`)
         .set("x-tenant-id", TENANT)
         .send({ csrfToken: csrf });
       expect(res.status).toBe(200);
@@ -130,12 +130,12 @@ describe("Webhook Inspector · admin endpoints", () => {
 
     it("POST /admin/webhooks/:id/redeliver rejects a tampered CSRF token", async () => {
       const list = await request(app.getHttpServer())
-        .get("/admin/webhooks.json")
+        .get("/api/admin/webhooks.json")
         .set("x-tenant-id", TENANT);
       const first = list.body.deliveries[0];
       if (!first) return;
       const res = await request(app.getHttpServer())
-        .post(`/admin/webhooks/${encodeURIComponent(first.id)}/redeliver`)
+        .post(`/api/admin/webhooks/${encodeURIComponent(first.id)}/redeliver`)
         .set("x-tenant-id", TENANT)
         .send({ csrfToken: "tampered.signature" });
       expect(res.status).toBe(403);
@@ -143,11 +143,11 @@ describe("Webhook Inspector · admin endpoints", () => {
 
     it("POST /admin/webhooks/:id/redeliver returns 404 for unknown ids", async () => {
       const list = await request(app.getHttpServer())
-        .get("/admin/webhooks.json")
+        .get("/api/admin/webhooks.json")
         .set("x-tenant-id", TENANT);
       const csrf = list.body.csrfToken;
       const res = await request(app.getHttpServer())
-        .post("/admin/webhooks/does-not-exist/redeliver")
+        .post("/api/admin/webhooks/does-not-exist/redeliver")
         .set("x-tenant-id", TENANT)
         .send({ csrfToken: csrf });
       expect(res.status).toBe(404);
@@ -172,14 +172,14 @@ describe("Webhook Inspector · admin endpoints", () => {
 
     it("GET /admin/webhooks/aggregates.json 404s in production", async () => {
       const res = await request(app.getHttpServer())
-        .get("/admin/webhooks/aggregates.json")
+        .get("/api/admin/webhooks/aggregates.json")
         .set("x-tenant-id", TENANT);
       expect(res.status).toBe(404);
     });
 
     it("POST /admin/webhooks/:id/redeliver 404s in production", async () => {
       const res = await request(app.getHttpServer())
-        .post("/admin/webhooks/some-id/redeliver")
+        .post("/api/admin/webhooks/some-id/redeliver")
         .set("x-tenant-id", TENANT)
         .send({});
       expect(res.status).toBe(404);

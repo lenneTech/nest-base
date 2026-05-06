@@ -46,7 +46,7 @@ interface CoverageReport {
 export function CoveragePage(): ReactNode {
   const data = useQuery({
     queryKey: ["dev", "coverage"],
-    queryFn: () => fetchJson<CoverageReport>("/dev/coverage.json"),
+    queryFn: () => fetchJson<CoverageReport>("/api/hub/coverage.json"),
   });
 
   const subtitle = data.data

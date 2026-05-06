@@ -634,6 +634,22 @@ model IdempotencyRecord {
   @@map("idempotency_records")
 }
 
+// ---------- SystemSecrets (Hub auth — issue #83) ----------
+
+// Stores server-managed key/value secrets. Currently used for the Hub
+// password hash (key = "hub_password_hash"). The table intentionally
+// avoids foreign-key constraints — it is a system-level record store,
+// not a domain entity. The `key` column acts as a named slot; the
+// `value` column stores an opaque string (e.g. an argon2 hash).
+// `updatedAt` lets operators audit when the hash was last rotated.
+model SystemSecret {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_secrets")
+}
+
 /// Asset-variant cache index (CF.STORAGE.01 closure — iter-183).
 ///
 /// Discoverable index over the asset variant cache. The matching

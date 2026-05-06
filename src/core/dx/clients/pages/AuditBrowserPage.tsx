@@ -57,7 +57,7 @@ export function AuditBrowserPage(): ReactNode {
     if (v) filter[key] = v;
   }
 
-  const url = `/admin/audit.json?${params.toString()}`;
+  const url = `/api/admin/audit.json?${params.toString()}`;
   const data = useQuery({
     queryKey: ["admin", "audit", url],
     queryFn: () => fetchJson<AuditBrowserResponse>(url),
@@ -78,7 +78,7 @@ export function AuditBrowserPage(): ReactNode {
             <form
               className="grid grid-cols-1 gap-3 md:grid-cols-3 lg:grid-cols-6"
               method="get"
-              action="/admin/audit"
+              action="/api/admin/audit"
             >
               <FilterField
                 label="Action"

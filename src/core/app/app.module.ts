@@ -15,6 +15,7 @@ import { BetterAuthSessionMiddleware } from "../auth/session-middleware.js";
 import { ConfigModule } from "../config/config.module.js";
 import { DeviceModule } from "../devices/device.module.js";
 import { DevHubModule } from "../dx/dev-hub.module.js";
+import { HubModule } from "../hub/hub.module.js";
 import { EmailModule } from "../email/email.module.js";
 import { EmailOutboxModule } from "../email/email-outbox.module.js";
 import { EncryptionModule } from "../encryption/encryption.module.js";
@@ -103,8 +104,8 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
               : {
                   ignore: (req) =>
                     !!req.url?.startsWith("/health") ||
-                    req.url === "/dev" ||
-                    !!req.url?.startsWith("/dev/"),
+                    req.url === "/" ||
+                    !!req.url?.startsWith("/api/hub/"),
                 },
             quietReqLogger: isTest,
             customLogLevel: (_req, res) => {
@@ -122,6 +123,9 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     }),
     PrismaModule,
     HealthModule,
+    // HubModule mounts the Hub SPA at `/` with stage-aware auth (issue #83).
+    // Loaded before DevHubModule so the `/` route registration wins.
+    HubModule,
     DevHubModule,
     BetterAuthModule,
     ErrorCodesModule,

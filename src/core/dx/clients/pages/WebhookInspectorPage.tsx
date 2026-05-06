@@ -103,7 +103,7 @@ export function WebhookInspectorPage(): ReactNode {
 
   const aggregatesQuery = useQuery({
     queryKey: ["admin", "webhooks", "aggregates"],
-    queryFn: () => fetchJson<AggregatesResponse>("/admin/webhooks/aggregates.json"),
+    queryFn: () => fetchJson<AggregatesResponse>("/api/admin/webhooks/aggregates.json"),
   });
 
   const handleSelectEndpoint = useCallback(
@@ -173,7 +173,7 @@ function buildListUrl(filter: FilterState): string {
   if (filter.endpointId) params.set("endpointId", filter.endpointId);
   if (filter.eventType) params.set("eventType", filter.eventType);
   if (filter.search) params.set("search", filter.search);
-  return `/admin/webhooks.json?${params.toString()}`;
+  return `/api/admin/webhooks.json?${params.toString()}`;
 }
 
 interface EndpointSidebarProps {
@@ -416,14 +416,16 @@ function DetailDrawer({ deliveryId, csrfToken }: DetailDrawerProps): ReactNode {
   const detailQuery = useQuery({
     queryKey: ["admin", "webhooks", "detail", deliveryId],
     queryFn: () =>
-      fetchJson<DeliveryDetailResponse>(`/admin/webhooks/${encodeURIComponent(deliveryId!)}.json`),
+      fetchJson<DeliveryDetailResponse>(
+        `/api/admin/webhooks/${encodeURIComponent(deliveryId!)}.json`,
+      ),
     enabled: deliveryId !== null,
   });
 
   const queryClient = useQueryClient();
   const redeliverMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/admin/webhooks/${encodeURIComponent(id)}/redeliver`, {
+      const res = await fetch(`/api/admin/webhooks/${encodeURIComponent(id)}/redeliver`, {
         method: "POST",
         headers: { "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify({ csrfToken: csrfToken ?? "" }),

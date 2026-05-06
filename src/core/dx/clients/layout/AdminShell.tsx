@@ -179,7 +179,7 @@ function Sidebar({ currentNav }: SidebarProps): ReactNode {
 function NavItemBrand(): ReactNode {
   return (
     <Link
-      to="/dev"
+      to="/hub"
       className="flex items-center gap-3 border-b border-line px-4 py-4 text-fg hover:text-accent"
     >
       <span

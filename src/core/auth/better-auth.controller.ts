@@ -3,6 +3,7 @@ import { toNodeHandler } from "better-auth/node";
 import type { Request, Response } from "express";
 
 import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from "./better-auth.token.js";
+import { Public } from "../permissions/public.decorator.js";
 
 /**
  * Mounts Better-Auth's handler under `/api/auth/*`. The catch-all
@@ -15,12 +16,21 @@ import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from "./better-auth.tok
  *
  * If `BETTER_AUTH_SECRET` is not configured the injected instance is
  * `null` and every auth request returns `503 Service Unavailable`.
+ *
+ * The controller prefix is `"auth"` (not `"api/auth"`) because the
+ * global `/api/` prefix (added in issue #83) already provides the
+ * `/api/` segment. Final path: `/api/auth/*`.
  */
-@Controller("api/auth")
+@Controller("auth")
 export class BetterAuthController {
   constructor(@Inject(BETTER_AUTH_INSTANCE) private readonly auth: BetterAuthInstance | null) {}
 
   @All("*splat")
+  @Public(
+    "Better-Auth sign-in / sign-up / get-session / 2FA / passkey / OAuth endpoints — " +
+      "inherently public (un-authenticated users must be able to sign in). " +
+      "Access control is enforced by Better-Auth internally.",
+  )
   async handle(@Req() req: Request, @Res() res: Response): Promise<void> {
     if (!this.auth) {
       res.status(503).json({

@@ -54,7 +54,7 @@ interface QueriesResponse {
 export function TracesPage(): ReactNode {
   const initial = useQuery({
     queryKey: ["dev", "traces"],
-    queryFn: () => fetchJson<TracesResponse>(`/dev/traces.json?limit=${INITIAL_ROW_CAP}`),
+    queryFn: () => fetchJson<TracesResponse>(`/api/hub/traces.json?limit=${INITIAL_ROW_CAP}`),
   });
 
   return (
@@ -89,7 +89,7 @@ function TracesBody({ initial }: { initial: TracesResponse }): ReactNode {
     let cursor = initialCursor;
     async function tick(): Promise<void> {
       try {
-        const next = await fetchJson<TracesResponse>(`/dev/traces.json?since=${cursor}`);
+        const next = await fetchJson<TracesResponse>(`/api/hub/traces.json?since=${cursor}`);
         if (cancelled) return;
         setSummary(next.summary);
         const fresh = (next.traces || []).filter((t) => Number(t.seq || 0) > cursor);
@@ -125,7 +125,7 @@ function TracesBody({ initial }: { initial: TracesResponse }): ReactNode {
     if (!drillCache[reqId]) {
       try {
         const r = await fetchJson<QueriesResponse>(
-          `/dev/queries.json?requestId=${encodeURIComponent(reqId)}`,
+          `/api/hub/queries.json?requestId=${encodeURIComponent(reqId)}`,
         );
         setDrillCache((prev) => ({ ...prev, [reqId]: r.recent ?? [] }));
       } catch {

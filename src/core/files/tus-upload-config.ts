@@ -7,7 +7,10 @@ import { z } from "zod";
  * is wired. This module owns the config schema + sensible defaults.
  */
 
-const DEFAULT_MOUNT = "/api/files/upload";
+// Issue #83: the global `/api/` prefix moved the simple JSON upload
+// controller to `POST /api/files/upload`. TUS (resumable) has been
+// separated to `/api/files/tus` to avoid the collision.
+const DEFAULT_MOUNT = "/api/files/tus";
 const DEFAULT_MAX_BYTES = 50 * 1024 * 1024; // 50 MB
 const DEFAULT_CHUNK_TTL_SECONDS = 60 * 60 * 24; // 24 h
 

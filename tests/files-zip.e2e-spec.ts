@@ -70,7 +70,7 @@ describe("Files · bulk-zip download", () => {
 
     async function uploadOne(name: string, payload: Uint8Array, mime: string): Promise<string> {
       const res = await request(app.getHttpServer())
-        .post("/files/upload")
+        .post("/api/files/upload")
         .set("x-tenant-id", tenantId)
         .set("cookie", sessionCookie)
         .set("x-test-ability", "full")
@@ -110,7 +110,7 @@ describe("Files · bulk-zip download", () => {
 
   it("POST /files/zip streams an application/zip body containing both files", async () => {
     const res = await request(app.getHttpServer())
-      .post("/files/zip")
+      .post("/api/files/zip")
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
@@ -142,7 +142,7 @@ describe("Files · bulk-zip download", () => {
 
   it("rejects an empty id list with 400", async () => {
     const res = await request(app.getHttpServer())
-      .post("/files/zip")
+      .post("/api/files/zip")
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
@@ -152,7 +152,7 @@ describe("Files · bulk-zip download", () => {
 
   it("returns 404 if any id is not found", async () => {
     const res = await request(app.getHttpServer())
-      .post("/files/zip")
+      .post("/api/files/zip")
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")

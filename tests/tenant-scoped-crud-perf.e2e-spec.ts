@@ -53,6 +53,12 @@ describe("E2E · Tenant-scoped CRUD median latency (SC.PERF.03)", () => {
     }).compile();
     app = moduleRef.createNestApplication({ logger: false });
     app.useGlobalFilters(new ProblemDetailsExceptionFilter());
+    // Mirror bootstrap.ts: set the global /api/ prefix so BetterAuth
+    // routes (e.g. /api/auth/sign-up/email) are reachable without
+    // bootstrap(). Hub + health paths stay at root.
+    app.setGlobalPrefix("api", {
+      exclude: ["/", "hub/login", "hub/logout", "health", "health/(.*)"],
+    });
     await app.init();
     prisma = app.get(PrismaService);
 
@@ -67,7 +73,7 @@ describe("E2E · Tenant-scoped CRUD median latency (SC.PERF.03)", () => {
     expect(signUp.status, JSON.stringify(signUp.body)).toBe(200);
 
     const tenantRes = await agent
-      .post("/tenants")
+      .post("/api/tenants")
       .set("content-type", "application/json")
       .send({ name: `CrudPerf-${stamp}` });
     expect([200, 201]).toContain(tenantRes.status);
@@ -100,12 +106,12 @@ describe("E2E · Tenant-scoped CRUD median latency (SC.PERF.03)", () => {
     expect(signIn.status, JSON.stringify(signIn.body)).toBe(200);
 
     // Discard the first call — its duration absorbs JIT + first-route lookup.
-    await agent.get("/me/tenants").expect(200);
+    await agent.get("/api/me/tenants").expect(200);
 
     const samples: number[] = [];
     for (let i = 0; i < SAMPLE_SIZE; i++) {
       const start = process.hrtime.bigint();
-      const res = await agent.get("/me/tenants");
+      const res = await agent.get("/api/me/tenants");
       const end = process.hrtime.bigint();
       expect(res.status).toBe(200);
       samples.push(Number(end - start) / 1_000_000);

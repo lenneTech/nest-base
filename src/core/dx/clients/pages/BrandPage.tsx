@@ -37,12 +37,12 @@ export function BrandPage(): ReactNode {
   const queryClient = useQueryClient();
   const { data, isLoading, isError } = useQuery<BrandConfig>({
     queryKey: ["brand"],
-    queryFn: () => fetchJson<BrandConfig>("/dev/brand.json"),
+    queryFn: () => fetchJson<BrandConfig>("/api/hub/brand.json"),
   });
 
   const reset = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/dev/brand/reset", { method: "POST" });
+      const res = await fetch("/api/hub/brand/reset", { method: "POST" });
       if (!res.ok) throw new Error(`reset failed: ${res.status}`);
       return res.json();
     },

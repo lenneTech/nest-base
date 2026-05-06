@@ -95,16 +95,16 @@ import { buildTestSummary, type RawTestSummary } from "./test-summary.js";
 import { planServiceCandidates, probeServices, type ServiceProbeResult } from "./service-status.js";
 
 /**
- * `/dev/*` — Developer-only landing + JSON inspection routes.
+ * `/hub/*` — Developer-only landing + JSON inspection routes.
  *
  * - `GET /dev`             — HTML landing page (categorised tool links)
- * - `GET /dev/features`    — active Features object as JSON
- * - `GET /dev/diagnostics` — runtime + memory + features report
+ * - `GET /hub/features`    — active Features object as JSON
+ * - `GET /hub/diagnostics` — runtime + memory + features report
  *
  * Every route 404s outside `NODE_ENV=development` so the surface can
  * never leak in production.
  */
-@Controller("dev")
+@Controller("hub")
 export class DevHubController {
   constructor(
     private readonly routes: RouteInventoryService,
@@ -124,8 +124,8 @@ export class DevHubController {
   }
 
   /**
-   * `/dev/components` — react-aria-components living style guide. Same
-   * SPA shell as `/dev`; client-side router decides which page to render.
+   * `/hub/components` — react-aria-components living style guide. Same
+   * SPA shell as `/hub`; client-side router decides which page to render.
    */
   @Get("components")
   @Header("content-type", "text/html; charset=utf-8")
@@ -137,7 +137,7 @@ export class DevHubController {
   }
 
   /**
-   * `/dev/static/:filename` — serves the bundled SPA assets from
+   * `/hub/static/:filename` — serves the bundled SPA assets from
    * `dist/dev-portal/`. `assertDev()` ensures the route 404s outside
    * development (no production-leak risk for the source-mapped bundle).
    */
@@ -187,7 +187,7 @@ export class DevHubController {
   }
 
   /**
-   * `/dev/dashboard.json` — aggregate the React `/dev` landing needs.
+   * `/hub/dashboard.json` — aggregate the React `/hub` landing needs.
    * One request → all the data the hero / stats grid / services / log
    * preview / feature overview need, so the SPA never fans out into
    * 8 sibling fetches on the first paint.
@@ -249,7 +249,7 @@ export class DevHubController {
   }
 
   /**
-   * `/dev/tunnel.json` — surfaces the active Cloudflare-Tunnel URL
+   * `/hub/tunnel.json` — surfaces the active Cloudflare-Tunnel URL
    * the dev runner discovered. Reads the JSON state file at
    * `node_modules/.cache/nest-base/tunnel.json`, which `scripts/dev.ts`
    * writes when `--tunnel` is set and `cloudflared` reports a public
@@ -265,7 +265,7 @@ export class DevHubController {
   }
 
   /**
-   * `/dev/brand.json` — returns the effective brand config (project
+   * `/hub/brand.json` — returns the effective brand config (project
    * overlay → template default → schema built-in). The dev-portal
    * SPA fetches this lazily; the shell HTML inlines the same value
    * as `window.__BRAND__` for first-paint correctness.
@@ -279,9 +279,9 @@ export class DevHubController {
   }
 
   /**
-   * `/dev/brand` — SPA shell for the brand editor page. The React
-   * route fetches `/dev/brand.json` to populate the form and posts
-   * back to `/dev/brand` to write `src/modules/branding/brand.json`.
+   * `/hub/brand` — SPA shell for the brand editor page. The React
+   * route fetches `/hub/brand.json` to populate the form and posts
+   * back to `/hub/brand` to write `src/modules/branding/brand.json`.
    */
   @Get("brand")
   @Header("content-type", "text/html; charset=utf-8")
@@ -291,7 +291,7 @@ export class DevHubController {
   }
 
   /**
-   * `POST /dev/brand` — writes the project overlay
+   * `POST /hub/brand` — writes the project overlay
    * `src/modules/branding/brand.json`. The body must validate
    * against `BrandConfigSchema`; on success the brand-loader cache
    * is dropped so the next read reflects the new value.
@@ -323,7 +323,7 @@ export class DevHubController {
   }
 
   /**
-   * `POST /dev/brand/reset` — deletes the project overlay so the
+   * `POST /hub/brand/reset` — deletes the project overlay so the
    * brand falls back to the template default. Idempotent: missing
    * file is a no-op (HTTP 200 + acted: false).
    */
@@ -376,10 +376,10 @@ export class DevHubController {
   @Header("content-type", "text/html; charset=utf-8")
   features(): string {
     this.assertDev();
-    // SPA shell — the React `/dev/features` page fetches
-    // `/dev/feature-catalog.json` and renders the same DOM the
+    // SPA shell — the React `/hub/features` page fetches
+    // `/hub/feature-catalog.json` and renders the same DOM the
     // legacy `renderFeaturesPage` produced. The legacy renderer
-    // remains available at `/dev/features.html` as the pixel-fidelity
+    // remains available at `/hub/features.html` as the pixel-fidelity
     // reference but is no longer the canonical surface.
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Features", brand: "central" }));
   }
@@ -391,8 +391,8 @@ export class DevHubController {
   }
 
   /**
-   * `/dev/feature-catalog.json` — feature roster + descriptions used
-   * by the React `/dev/features` page. Server-rendered HTML inlines
+   * `/hub/feature-catalog.json` — feature roster + descriptions used
+   * by the React `/hub/features` page. Server-rendered HTML inlines
    * `FEATURE_CATALOG`; the SPA needs an API for it. The shape mirrors
    * `FEATURE_CATALOG` directly so a UI change requires no protocol
    * negotiation — add a field there, surface it here.
@@ -404,7 +404,7 @@ export class DevHubController {
   }
 
   /**
-   * `/dev/scheduled-jobs.json` — surfaces the runtime
+   * `/hub/scheduled-jobs.json` — surfaces the runtime
    * `ScheduledJobRegistry` (CF.JOBS.02). Each entry mirrors the
    * registry's contract: `name`, `cron`, `source`
    * (`<ClassName>.<methodName>`). The DiscoveryService walk happens at
@@ -425,7 +425,7 @@ export class DevHubController {
   }
 
   /**
-   * `/dev/webhook-events.json` — surfaces the @WebhookEvent registry
+   * `/hub/webhook-events.json` — surfaces the @WebhookEvent registry
    * (CF.WH.04). The dev-portal "Available webhook events" panel
    * consumes this so a project administrator can see which events
    * are emit-able without grepping the source. Each entry mirrors
@@ -502,7 +502,7 @@ export class DevHubController {
       return;
     }
     // The HTML branch is now served by the SPA shell — the React
-    // `/dev/postgrest-parse` page fetches the same handler with
+    // `/hub/postgrest-parse` page fetches the same handler with
     // `?format=json` and renders the parsed where-clause through the
     // JSON viewer component (still pixel-faithful to the legacy
     // `renderJsonViewerPage`). This keeps the dev-portal SPA the
@@ -523,7 +523,7 @@ export class DevHubController {
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Coverage", brand: "central" }));
   }
 
-  /** JSON sibling for the React `/dev/coverage` page. */
+  /** JSON sibling for the React `/hub/coverage` page. */
   @Get("coverage.json")
   async coverageJson(): Promise<unknown> {
     this.assertDev();
@@ -552,7 +552,7 @@ export class DevHubController {
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Tests", brand: "central" }));
   }
 
-  /** JSON sibling for the React `/dev/tests` page. */
+  /** JSON sibling for the React `/hub/tests` page. */
   @Get("tests.json")
   async testsJson(): Promise<unknown> {
     this.assertDev();
@@ -595,7 +595,7 @@ export class DevHubController {
   }
 
   /**
-   * `/dev/json` — paste-text-render JSON viewer (PRD line 145). The
+   * `/hub/json` — paste-text-render JSON viewer (PRD line 145). The
    * SPA-side `JsonViewerPage` lets developers paste arbitrary JSON
    * and inspect the parsed structure through the same `JsonViewer`
    * component the rest of the dev portal uses. No JSON endpoint —
@@ -690,7 +690,7 @@ export class DevHubController {
     rendered: Record<string, EmailPreviewResult>;
   }> {
     this.assertDev();
-    // PRD § Out of Scope bans EJS — `/dev/email-preview` runs the
+    // PRD § Out of Scope bans EJS — `/hub/email-preview` runs the
     // ReactEmailTemplateRenderer (the same path production code uses
     // through `EmailService.sendTemplate`) so the preview reflects
     // the real rendering pipeline. Brand config is resolved once per
@@ -713,7 +713,7 @@ export class DevHubController {
   // /dev/email-builder · Issue #9 — Layout-Designer + Children-Composer
   // -----------------------------------------------------------------
 
-  /** SPA shell for `/dev/email-builder`. */
+  /** SPA shell for `/hub/email-builder`. */
   @Get("email-builder")
   @Header("content-type", "text/html; charset=utf-8")
   emailBuilderPage(): string {
@@ -722,7 +722,7 @@ export class DevHubController {
   }
 
   /**
-   * `/dev/email-builder/templates.json` — discovered templates with
+   * `/hub/email-builder/templates.json` — discovered templates with
    * sample-rendered subjects so the Gallery can render thumbnails
    * without a second round-trip.
    */
@@ -791,7 +791,7 @@ export class DevHubController {
   }
 
   /**
-   * `GET /dev/email-builder/templates/:name/composition.json` — read
+   * `GET /hub/email-builder/templates/:name/composition.json` — read
    * a discovered template's `.tsx` source and decompose it back into
    * the JSON composition the builder UI consumes. Issue #49.
    *
@@ -881,7 +881,7 @@ export class DevHubController {
   }
 
   /**
-   * `DELETE /dev/email-builder/templates/:name/override` — remove a
+   * `DELETE /hub/email-builder/templates/:name/override` — remove a
    * module-overlay copy of a template so the core file becomes
    * authoritative again. Issue #49 ("Reset to default").
    *
@@ -931,7 +931,7 @@ export class DevHubController {
   }
 
   /**
-   * `/dev/email-builder/blocks.json` — block library + props schema +
+   * `/hub/email-builder/blocks.json` — block library + props schema +
    * available layouts. The composer reads this to render the
    * properties panel without a per-block code change.
    */
@@ -962,9 +962,9 @@ export class DevHubController {
   }
 
   /**
-   * `/dev/email-builder/preview.json` — render a draft composition to
+   * `/hub/email-builder/preview.json` — render a draft composition to
    * HTML+text+subject. No filesystem write; the saved-template path
-   * is `POST /dev/email-builder/save`.
+   * is `POST /hub/email-builder/save`.
    */
   @Post("email-builder/preview.json")
   @HttpCode(200)
@@ -987,7 +987,7 @@ export class DevHubController {
   }
 
   /**
-   * `/dev/email-builder/save` — codegen a composition into a `.tsx`
+   * `/hub/email-builder/save` — codegen a composition into a `.tsx`
    * file under `src/modules/email/templates/`. Defense-in-depth path
    * validation: `resolveEmailTemplateTarget` rejects bad slugs and
    * traversal; the runner double-checks the resolved path is inside
@@ -1063,7 +1063,7 @@ export class DevHubController {
   // /dev/migrations · Issue #10 — Migration Handler
   // -----------------------------------------------------------------
 
-  /** SPA shell for `/dev/migrations` — React decides which tab to show. */
+  /** SPA shell for `/hub/migrations` — React decides which tab to show. */
   @Get("migrations")
   @Header("content-type", "text/html; charset=utf-8")
   migrationsPage(): string {
@@ -1206,8 +1206,8 @@ export class DevHubController {
   }
 
   /**
-   * `/dev/jobs` — Jobs-Dashboard SPA shell. Same SPA bundle as the
-   * rest of `/dev/*`; react-router resolves to `JobsPage`.
+   * `/hub/jobs` — Jobs-Dashboard SPA shell. Same SPA bundle as the
+   * rest of `/hub/*`; react-router resolves to `JobsPage`.
    */
   @Get("jobs")
   @Header("content-type", "text/html; charset=utf-8")
@@ -1217,7 +1217,7 @@ export class DevHubController {
   }
 
   /**
-   * `/dev/jobs/queues.json` — aggregate snapshot for the Queues tab.
+   * `/hub/jobs/queues.json` — aggregate snapshot for the Queues tab.
    * Per-queue counts + p95 latency + failure rate are computed by the
    * pure planner (`buildJobAggregates`); this endpoint is just the
    * thin runner that hands the queue's history to it.
@@ -1229,7 +1229,7 @@ export class DevHubController {
   }
 
   /**
-   * `/dev/jobs/jobs.json` — paginated, filterable job listing for the
+   * `/hub/jobs/jobs.json` — paginated, filterable job listing for the
    * Jobs tab. The in-memory adapter caps `limit` at 500 to keep the
    * response sized for the React table; the React page asks for
    * 100 per page.
@@ -1267,7 +1267,7 @@ export class DevHubController {
   }
 
   /**
-   * `/dev/jobs/jobs/:id.json` — full record for the drawer detail view.
+   * `/hub/jobs/jobs/:id.json` — full record for the drawer detail view.
    * Validates the id shape before the lookup so a malformed path-param
    * surfaces as a clean 400 instead of leaking through to the
    * Map-lookup path.
@@ -1284,7 +1284,7 @@ export class DevHubController {
   }
 
   /**
-   * `POST /dev/jobs/jobs/:id/retry` — re-enqueue a failed job. Returns
+   * `POST /hub/jobs/jobs/:id/retry` — re-enqueue a failed job. Returns
    * `{ id }` of the new attempt; the original record stays in history.
    * 404 on unknown ids, 409 on jobs that are not in the failed state.
    */
@@ -1306,16 +1306,16 @@ export class DevHubController {
   }
 
   /**
-   * `/dev/outbox.json` — snapshot of the email-outbox subsystem
+   * `/hub/outbox.json` — snapshot of the email-outbox subsystem
    * (issue #11). Returns lag classification + the most recent
    * records (capped at 100) so operators can spot stuck mails. The
    * JSON is the only surface; visibility happens via the existing
    * Jobs Dashboard (the worker tick aggregates as a job entry).
    */
   /**
-   * `/dev/email-outbox` — SPA HTML shell for the email-outbox
+   * `/hub/email-outbox` — SPA HTML shell for the email-outbox
    * dashboard (issue #11). The React page consumes the existing
-   * `/dev/outbox.json` payload — the controller stays a single
+   * `/hub/outbox.json` payload — the controller stays a single
    * source of data for both the legacy JSON-only consumer and the
    * new SPA page.
    */
@@ -1329,9 +1329,9 @@ export class DevHubController {
   }
 
   /**
-   * `/dev/cron` — SPA HTML shell for the cron-schedule dashboard
+   * `/hub/cron` — SPA HTML shell for the cron-schedule dashboard
    * (CF.JOBS.02). The React page reads the existing
-   * `/dev/scheduled-jobs.json` payload and renders the registry's
+   * `/hub/scheduled-jobs.json` payload and renders the registry's
    * inventory: every `@ScheduledJob`-decorated method, its cron
    * expression, and the source class.method.
    */
@@ -1375,7 +1375,7 @@ export class DevHubController {
   }
 
   /**
-   * Catch-all for `/dev/*` paths that don't match a more specific
+   * Catch-all for `/hub/*` paths that don't match a more specific
    * handler. Always returns the SPA shell — react-router on the client
    * decides what to render. NestJS dispatches to the most specific
    * route first, so the explicit `@Get('features')`, `@Get('logs')`,
@@ -1421,7 +1421,7 @@ function devWantsJson(accept: string | undefined, format: string | undefined): b
 }
 
 /**
- * Whitelist filenames that the `/dev/static/*` handler is allowed to
+ * Whitelist filenames that the `/hub/static/*` handler is allowed to
  * serve — bundle outputs (main.js, main.css, tokens.css, plus any
  * `chunks/*.js` Bun emits with content-hashed names).
  *
@@ -1490,7 +1490,7 @@ function mimeForExtension(name: string): string {
 }
 
 /**
- * Block-descriptor metadata for the `/dev/email-builder/blocks.json`
+ * Block-descriptor metadata for the `/hub/email-builder/blocks.json`
  * endpoint. Hand-rolled — the typed JSX components (`Greeting`,
  * `Paragraph`, etc.) accept `children`, but the composer needs
  * named, scalar `props` so the editor can render text inputs without

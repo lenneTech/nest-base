@@ -22,8 +22,8 @@ describe("Story · Dev-Portal Shell", () => {
   function input(overrides: Partial<DevPortalShellInput> = {}): DevPortalShellInput {
     return {
       title: "Dev Portal",
-      scriptUrl: "/dev/static/main.js",
-      tokenCssUrl: "/dev/static/tokens.css",
+      scriptUrl: "/hub/static/main.js",
+      tokenCssUrl: "/hub/static/tokens.css",
       ...overrides,
     };
   }
@@ -43,12 +43,12 @@ describe("Story · Dev-Portal Shell", () => {
 
   it("loads the bundle as type=module", () => {
     const html = renderDevPortalShell(input());
-    expect(html).toMatch(/<script\s+type="module"\s+src="\/dev\/static\/main\.js"><\/script>/);
+    expect(html).toMatch(/<script\s+type="module"\s+src="\/hub\/static\/main\.js"><\/script>/);
   });
 
   it("includes the design-token stylesheet via <link rel=stylesheet>", () => {
     const html = renderDevPortalShell(input());
-    expect(html).toMatch(/<link\s+rel="stylesheet"\s+href="\/dev\/static\/tokens\.css">/);
+    expect(html).toMatch(/<link\s+rel="stylesheet"\s+href="\/hub\/static\/tokens\.css">/);
   });
 
   it("uses the supplied title in <title>", () => {
@@ -66,8 +66,8 @@ describe("Story · Dev-Portal Shell", () => {
   it("HTML-escapes scriptUrl and tokenCssUrl quote characters", () => {
     const html = renderDevPortalShell(
       input({
-        scriptUrl: '/dev/static/main.js" onload="x',
-        tokenCssUrl: '/dev/static/tokens.css" onload="y',
+        scriptUrl: '/hub/static/main.js" onload="x',
+        tokenCssUrl: '/hub/static/tokens.css" onload="y',
       }),
     );
     expect(html).not.toContain('onload="x');
@@ -96,8 +96,9 @@ describe("Story · Dev-Portal Shell", () => {
   it("buildDevPortalShellInput defaults the static base path and title", () => {
     const built = buildDevPortalShellInput({});
     expect(built.title).toBe("Dev Portal");
-    expect(built.scriptUrl).toBe("/dev/static/main.js");
-    expect(built.tokenCssUrl).toBe("/dev/static/tokens.css");
+    // Issue #83: all API routes (including dev static assets) live under /api/*
+    expect(built.scriptUrl).toBe("/api/hub/static/main.js");
+    expect(built.tokenCssUrl).toBe("/api/hub/static/tokens.css");
   });
 
   it("buildDevPortalShellInput respects custom title overrides", () => {
