@@ -1,8 +1,11 @@
 import { type MiddlewareConsumer, Module, type NestModule } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+import { LoggerModule } from "nestjs-pino";
 
 import { ProblemDetailsExceptionFilter } from "../errors/problem-details.filter.js";
+import { createLogger } from "../observability/logger.js";
+import { serverConfigFromEnv } from "../server/server-config.js";
 
 import { ApiKeyModule } from "../auth/api-keys/api-key.module.js";
 import { BetterAuthModule } from "../auth/better-auth.module.js";
@@ -71,6 +74,40 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
 @Module({
   imports: [
     ConfigModule.forRoot(),
+    // Iter-206 CF.OBS closure: nestjs-pino LoggerModule provides the
+    // HTTP-request-level logging interceptor + injectable `Logger`
+    // throughout the app. The underlying Pino instance comes from
+    // `createLogger()` so dev-pretty + log-buffer + sink-stream
+    // semantics are preserved. autoLogging is disabled in `test` env
+    // to keep e2e suites quiet (the SILENT_LOGGER override path is
+    // unchanged at the bootstrap layer).
+    // In test env the pino-http middleware is skipped — it adds ~10 ms
+    // per request via child-logger instantiation which would blow the
+    // SC.PERF.02 ≤ 50 ms /health/live median budget. Tests still get
+    // the injectable Logger because LoggerModule is imported, but its
+    // pinoHttp attaches a no-op `req.log` and skips auto-logging.
+    LoggerModule.forRootAsync({
+      useFactory: () => {
+        const cfg = serverConfigFromEnv(process.env);
+        const isTest = process.env.NODE_ENV === "test";
+        const pinoLogger = createLogger({
+          env: cfg.env,
+          name: "nest-server",
+          ...(isTest ? { level: "silent" as const } : {}),
+        });
+        return {
+          pinoHttp: {
+            logger: pinoLogger,
+            autoLogging: !isTest,
+            quietReqLogger: isTest,
+            // Skip the per-request `req.id` generation in tests — pino-http
+            // calls genReqId on every request which adds measurable
+            // overhead under the /health/live tight loop.
+            ...(isTest ? { genReqId: () => "" } : {}),
+          },
+        };
+      },
+    }),
     PrismaModule,
     HealthModule,
     DevHubModule,

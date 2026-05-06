@@ -16,7 +16,7 @@ datasource db {
 // ---------- Diagnostic ----------
 
 model HealthPing {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("_health_ping")
@@ -25,7 +25,7 @@ model HealthPing {
 // ---------- Domain v1 ----------
 
 model Tenant {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   name      String   @unique
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -48,7 +48,7 @@ enum TenantMemberStatus {
 }
 
 model TenantMember {
-  id        String             @id @default(uuid()) @db.Uuid
+  id        String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   userId    String             @map("user_id") @db.Uuid
   tenantId  String             @map("tenant_id") @db.Uuid
   role      String
@@ -81,7 +81,7 @@ model TenantMember {
 //    (set on first membership-activate or by the system-setup admin
 //    bootstrap).
 model User {
-  id               String   @id @default(uuid()) @db.Uuid
+  id               String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   email            String   @unique
   /// Blind-index companion column for `email` (CF.SEC.03). Populated
   /// automatically by the `userEmailBlindIndexExtension` on every
@@ -122,7 +122,7 @@ model User {
 // stay empty.
 
 model Session {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   userId    String   @map("user_id") @db.Uuid
   token     String   @unique
   expiresAt DateTime @map("expires_at")
@@ -144,7 +144,7 @@ model Session {
 }
 
 model Account {
-  id                    String    @id @default(uuid()) @db.Uuid
+  id                    String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   userId                String    @map("user_id") @db.Uuid
   accountId             String    @map("account_id")
   providerId            String    @map("provider_id")
@@ -165,7 +165,7 @@ model Account {
 }
 
 model Verification {
-  id         String   @id @default(uuid()) @db.Uuid
+  id         String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   identifier String
   value      String
   expiresAt  DateTime @map("expires_at")
@@ -178,7 +178,7 @@ model Verification {
 }
 
 model Jwks {
-  id         String    @id @default(uuid()) @db.Uuid
+  id         String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   publicKey  String    @map("public_key")
   privateKey String    @map("private_key")
   createdAt  DateTime  @default(now()) @map("created_at")
@@ -188,7 +188,7 @@ model Jwks {
 }
 
 model TwoFactor {
-  id          String  @id @default(uuid()) @db.Uuid
+  id          String  @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   userId      String  @map("user_id") @db.Uuid
   secret      String
   backupCodes String  @map("backup_codes")
@@ -202,7 +202,7 @@ model TwoFactor {
 }
 
 model Passkey {
-  id           String    @id @default(uuid()) @db.Uuid
+  id           String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   userId       String    @map("user_id") @db.Uuid
   name         String?
   publicKey    String    @map("public_key")
@@ -222,7 +222,7 @@ model Passkey {
 }
 
 model ApiKey {
-  id             String    @id @default(uuid()) @db.Uuid
+  id             String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   lookupId       String    @unique @map("lookup_id") @db.Uuid
   hash           String
   name           String
@@ -246,7 +246,7 @@ model ApiKey {
 }
 
 model FileBlob {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   tenantId  String   @map("tenant_id") @db.Uuid
   key       String
   mimeType  String   @map("mime_type")
@@ -262,7 +262,7 @@ model FileBlob {
 }
 
 model Folder {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   tenantId  String   @map("tenant_id") @db.Uuid
   parentId  String?  @map("parent_id") @db.Uuid
   name      String
@@ -284,7 +284,7 @@ enum FileVisibility {
 }
 
 model File {
-  id            String         @id @default(uuid()) @db.Uuid
+  id            String         @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   tenantId      String         @map("tenant_id") @db.Uuid
   folderId      String?        @map("folder_id") @db.Uuid
   filename      String
@@ -317,7 +317,7 @@ enum WebhookDeliveryStatus {
 }
 
 model WebhookEndpoint {
-  id                  String                @id @default(uuid()) @db.Uuid
+  id                  String                @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   tenantId            String                @map("tenant_id") @db.Uuid
   url                 String
   secret              String
@@ -334,7 +334,7 @@ model WebhookEndpoint {
 }
 
 model WebhookDelivery {
-  id           String                @id @default(uuid()) @db.Uuid
+  id           String                @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   endpointId   String                @map("endpoint_id") @db.Uuid
   eventId      String                @map("event_id")
   status       WebhookDeliveryStatus @default(PENDING)
@@ -373,7 +373,7 @@ enum EmailOutboxKind {
 // worker decides to send; stale claims (> STALE_CLAIM_THRESHOLD_MS)
 // are picked up by the next tick — see email-outbox-planner.ts.
 model EmailOutbox {
-  id              String            @id @default(uuid()) @db.Uuid
+  id              String            @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   kind            EmailOutboxKind
   payload         Json
   idempotencyKey  String?           @unique @map("idempotency_key")
@@ -394,7 +394,7 @@ model EmailOutbox {
 }
 
 model Role {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   name        String
   description String?
   isSystem    Boolean  @default(false) @map("is_system")
@@ -414,7 +414,7 @@ model Role {
 }
 
 model Policy {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   name        String   @unique
   description String?
   createdAt   DateTime @default(now()) @map("created_at")
@@ -446,7 +446,7 @@ enum PermissionAction {
 }
 
 model Permission {
-  id         String           @id @default(uuid()) @db.Uuid
+  id         String           @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   policyId   String           @map("policy_id") @db.Uuid
   resource   String
   action     PermissionAction
@@ -468,7 +468,7 @@ model Permission {
 // Backs the `src/modules/example/` reference implementation. Real
 // projects rename this to their actual resource.
 model Example {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   tenantId    String   @map("tenant_id") @db.Uuid
   name        String
   description String?
@@ -488,7 +488,7 @@ model Example {
 // `user_id` foreign key; `tenant_id` is denormalised so RLS
 // policies fire without joining `users`.
 model UserProfile {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   userId      String   @unique @map("user_id") @db.Uuid
   tenantId    String   @map("tenant_id") @db.Uuid
   displayName String?  @map("display_name")
@@ -537,7 +537,7 @@ enum AuditAction {
 // across restarts. Survives restart by definition (this is what
 // makes the outbox at-least-once).
 model OutboxEntry {
-  id          String    @id @default(uuid()) @db.Uuid
+  id          String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   seq         Int       @default(autoincrement())
   tenantId    String    @map("tenant_id") @db.Uuid
   type        String
@@ -558,7 +558,7 @@ model OutboxEntry {
 // NULL. `completed_at` is the idempotency watermark — the next tick
 // skips rows where it is set.
 model PendingErasure {
-  id          String    @id @default(uuid()) @db.Uuid
+  id          String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   userId      String    @map("user_id") @db.Uuid
   requestedAt DateTime  @default(now()) @map("requested_at")
   cancelledAt DateTime? @map("cancelled_at")
@@ -582,7 +582,7 @@ model PendingErasure {
 // whether the table exists. This avoids the migrate-time skew of a
 // feature-gated table that some installs have and others don't.
 model AuditLog {
-  id          String      @id @default(uuid()) @db.Uuid
+  id          String      @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   tenantId    String      @map("tenant_id") @db.Uuid
   actorUserId String?     @map("actor_user_id") @db.Uuid
   targetModel String      @map("target_model")

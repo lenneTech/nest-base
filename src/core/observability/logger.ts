@@ -3,7 +3,7 @@ import pino, { type Logger as PinoBase, type LoggerOptions, multistream } from "
 import { getLogBuffer } from "../dx/log-buffer.js";
 import type { AppEnv } from "../http/cookie-cors-config.js";
 
-export type LogLevel = "fatal" | "error" | "warn" | "info" | "debug" | "trace";
+export type LogLevel = "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
 
 /**
  * Plain shape of a Pino log record (subset). Used by tests and by the

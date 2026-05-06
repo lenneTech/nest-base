@@ -226,7 +226,7 @@ if want_category QG; then
   # someone reintroduces a divergence without recording it.
   if [[ -f docs/prd-deviations.md ]]; then
     deviation_count=$(grep -cE '^### ' docs/prd-deviations.md || echo "0")
-    expected_deviations="${EXPECTED_DEVIATION_COUNT:-12}"
+    expected_deviations="${EXPECTED_DEVIATION_COUNT:-7}"
     if [[ "$deviation_count" == "$expected_deviations" ]]; then
       pass SC.QG.15 "prd deviations register: $deviation_count documented"
     else

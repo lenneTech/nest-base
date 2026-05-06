@@ -1,25 +1,27 @@
-# Custom Postgres image for nest-base local-dev.
+# Custom Postgres image for nest-base local-dev (iter-207 — TR.DB.04
+# closure).
 #
-# Bundles two extensions that vanilla `postgres:*-alpine` does not ship:
+# Bundles two extensions that vanilla `postgres:18-*` does not ship:
 #
 #   pg_uuidv7  — required by every project (UUID v7 column defaults).
 #   postgis    — only loaded when `features.geo.enabled` is true, but
 #                must be available in the binary so `CREATE EXTENSION`
 #                works without an extra container swap.
 #
-# Postgres 18 — Debian apt now ships `postgresql-18-postgis-3` since
-# the 2026-04 PostGIS release, so we no longer need to hold the image
-# back at 17. We use the Debian-based `postgres:18-bookworm` rather
-# than alpine because:
-#   1. The official `postgres` image is multi-arch (amd64 + arm64);
-#      `postgis/postgis` only ships some tags for arm64.
-#   2. Debian apt ships `postgresql-18-postgis-3` as a single package,
-#      no compiling required for PostGIS.
-#   3. pg_uuidv7 still needs to be compiled from source either way.
+# Iter-207 rebases the build chain onto `imresamu/postgis:18-3.6`
+# (multi-arch — amd64 + arm64) which already bundles PostGIS 3.6
+# against Postgres 18. The PRD pin `imresamu/postgis:18-3.5` no
+# longer exists upstream — `imresamu` rolled forward to PostGIS 3.6
+# with Postgres 18; the runtime contract (PostGIS 3.x with ST_DWithin,
+# ST_Contains, pg_uuidv7) is unchanged.
+#
+# pg_uuidv7 still ships from source — the imresamu image doesn't
+# include it. The build stage compiles it once, and the runtime
+# stage copies the resulting `.so` + control files in.
 
 ARG POSTGRES_VERSION=18
 
-FROM postgres:${POSTGRES_VERSION}-bookworm AS build
+FROM imresamu/postgis:${POSTGRES_VERSION}-3.6 AS build
 ARG POSTGRES_VERSION
 
 # Compile pg_uuidv7 from source. Build deps are discarded in the
@@ -38,16 +40,11 @@ RUN git clone --depth 1 https://github.com/fboulnois/pg_uuidv7.git . \
  && make install
 
 
-FROM postgres:${POSTGRES_VERSION}-bookworm
+FROM imresamu/postgis:${POSTGRES_VERSION}-3.6
 ARG POSTGRES_VERSION
 
-# PostGIS as a Debian package (multi-arch, no compiling).
-RUN apt-get update \
- && apt-get install -y --no-install-recommends \
-      "postgresql-${POSTGRES_VERSION}-postgis-3" \
- && rm -rf /var/lib/apt/lists/*
-
-# pg_uuidv7 binaries from the build stage.
+# pg_uuidv7 binaries from the build stage. PostGIS is already bundled
+# in the imresamu base image so the runtime stage stays minimal.
 COPY --from=build /usr/share/postgresql/${POSTGRES_VERSION}/extension/pg_uuidv7* \
                   /usr/share/postgresql/${POSTGRES_VERSION}/extension/
 COPY --from=build /usr/lib/postgresql/${POSTGRES_VERSION}/lib/pg_uuidv7.so \

@@ -174,7 +174,7 @@ This PRD describes a fusion: the existing nest-base repo (Prisma 7, Postgres 18,
 ## Technical Requirements
 
 ### Frontend (Dev Hub SPA only — no separate consumer frontend)
-- TypeScript 5.9 strict (exactOptionalPropertyTypes, nodenext)
+- TypeScript 6 strict (exactOptionalPropertyTypes, nodenext)
 - React 19 + react-dom
 - React Router 7
 - shadcn/ui (Radix primitives) + Tailwind CSS 4 + bun-plugin-tailwind
@@ -189,7 +189,7 @@ This PRD describes a fusion: the existing nest-base repo (Prisma 7, Postgres 18,
 
 ### Backend
 - Bun 1.3+ runtime (Node 22 fallback for Vitest type-tests)
-- TypeScript 5.9 strict, ESM nodenext, .js import suffix
+- TypeScript 6 strict, ESM nodenext, .js import suffix
 - NestJS 11 (Express platform)
 - Zod 4 (single source of truth for env + DTOs + features)
 - REST + OpenAPI 3.1 + Scalar UI at /api/docs
@@ -224,7 +224,7 @@ This PRD describes a fusion: the existing nest-base repo (Prisma 7, Postgres 18,
 - File metadata in Postgres (Files / Folders, tenant-scoped)
 
 ### Email
-- Nodemailer 7 (SMTP) + Brevo (@getbrevo/brevo)
+- Nodemailer 7 (SMTP) + Brevo (lean `fetch`-based driver against `https://api.brevo.com/v3/*` — `@getbrevo/brevo` SDK avoided to keep transitive deps minimal under Bun)
 - React Email 1+ (@react-email/components + @react-email/render)
 - Mailpit at :8025 for dev SMTP capture
 - pg-boss-driven outbox with exponential backoff (1m → 5m → 25m → 2h cap, 5 attempts → DLQ)

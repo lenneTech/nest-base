@@ -28,6 +28,8 @@ import {
   serializeCsp,
   strictCspDirectives,
 } from "../http/security-headers.js";
+import { Logger } from "nestjs-pino";
+
 import { createLogger } from "../observability/logger.js";
 import { createOtelSdk, planOtelBootstrap } from "../observability/otel-sdk-bootstrap.js";
 import { PinoLoggerService } from "../observability/pino-logger.service.js";
@@ -79,6 +81,13 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   }
 
   const cfg = serverConfigFromEnv(process.env);
+  // Iter-206 CF.OBS closure: when no test override is supplied, the
+  // app uses `nestjs-pino`'s `Logger` which is wired via `LoggerModule`
+  // in `AppModule` (HTTP-request middleware + injectable Pino). The
+  // PinoLoggerService bootstrap fallback below stays as the early
+  // logger Nest uses BEFORE the module DI graph is built — it logs
+  // `NestFactory.create` lifecycle messages, then `app.useLogger` swaps
+  // it for the DI-resolved nestjs-pino logger when no override is set.
   const logger =
     options.logger ?? new PinoLoggerService(createLogger({ env: cfg.env, name: "nest-server" }));
 
@@ -110,6 +119,13 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   }
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { logger });
+  // After the DI graph is built, swap NestJS' active LoggerService to
+  // the nestjs-pino-resolved Logger (unless a test override is set —
+  // in which case the early bootstrap logger above is what the caller
+  // wants for the entire app lifetime).
+  if (!options.logger) {
+    app.useLogger(app.get(Logger));
+  }
   app.disable("x-powered-by");
 
   const security = buildSecurityHeadersConfig(cfg.env);
