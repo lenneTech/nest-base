@@ -269,11 +269,7 @@ export function CommandPalette(): ReactNode {
                     )
                     .slice(0, 10)
                     .map((item) => (
-                      <CommandItem
-                        key={item.id}
-                        value={item.id}
-                        onSelect={() => navigateTo(item)}
-                      >
+                      <CommandItem key={item.id} value={item.id} onSelect={() => navigateTo(item)}>
                         <CategoryIcon category={item.category} />
                         <span className="flex-1 truncate">{item.title}</span>
                         <span className="ml-2 shrink-0 text-[0.65rem] text-fg-faint">

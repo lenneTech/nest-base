@@ -74,8 +74,8 @@ function editDistance(a: string, b: string): number {
     for (let j = 1; j <= b.length; j++) {
       const cost = a[i - 1] === b[j - 1] ? 0 : 1;
       d[i]![j] = Math.min(
-        d[i - 1]![j]! + 1,      // deletion
-        d[i]![j - 1]! + 1,      // insertion
+        d[i - 1]![j]! + 1, // deletion
+        d[i]![j - 1]! + 1, // insertion
         d[i - 1]![j - 1]! + cost, // substitution
       );
       // Transposition

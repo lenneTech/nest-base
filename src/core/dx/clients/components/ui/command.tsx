@@ -118,11 +118,7 @@ export const CommandEmpty = forwardRef<
   ElementRef<typeof CommandPrimitive.Empty>,
   ComponentPropsWithoutRef<typeof CommandPrimitive.Empty>
 >((props, ref) => (
-  <CommandPrimitive.Empty
-    ref={ref}
-    className="py-8 text-center text-sm text-fg-muted"
-    {...props}
-  />
+  <CommandPrimitive.Empty ref={ref} className="py-8 text-center text-sm text-fg-muted" {...props} />
 ));
 CommandEmpty.displayName = CommandPrimitive.Empty.displayName;
 
@@ -177,10 +173,7 @@ CommandItem.displayName = CommandPrimitive.Item.displayName;
 // ------------------------------------------------------------------ shortcut
 export function CommandShortcut({ className, ...props }: HTMLAttributes<HTMLSpanElement>) {
   return (
-    <span
-      className={cn("ml-auto text-xs tracking-widest text-fg-faint", className)}
-      {...props}
-    />
+    <span className={cn("ml-auto text-xs tracking-widest text-fg-faint", className)} {...props} />
   );
 }
 CommandShortcut.displayName = "CommandShortcut";

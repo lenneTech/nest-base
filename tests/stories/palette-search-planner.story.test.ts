@@ -20,15 +20,57 @@ import {
 
 const PAGES: readonly PalettePageEntry[] = [
   { id: "dev-hub", title: "Dev Hub", href: "/hub", aliases: [], category: "Übersicht" },
-  { id: "logs", title: "Logs", href: "/hub/logs", aliases: ["Protokolle", "logging"], category: "Übersicht" },
-  { id: "migrations", title: "Migrations", href: "/hub/migrations", aliases: ["schema", "migrate"], category: "Übersicht" },
-  { id: "diagnostics", title: "Diagnostics", href: "/hub/diagnostics", aliases: ["health", "memory"], category: "Übersicht" },
-  { id: "features", title: "Features", href: "/hub/features", aliases: ["flags", "toggles"], category: "Übersicht" },
-  { id: "routes", title: "Routes", href: "/hub/routes", aliases: ["endpoints"], category: "API & Docs" },
+  {
+    id: "logs",
+    title: "Logs",
+    href: "/hub/logs",
+    aliases: ["Protokolle", "logging"],
+    category: "Übersicht",
+  },
+  {
+    id: "migrations",
+    title: "Migrations",
+    href: "/hub/migrations",
+    aliases: ["schema", "migrate"],
+    category: "Übersicht",
+  },
+  {
+    id: "diagnostics",
+    title: "Diagnostics",
+    href: "/hub/diagnostics",
+    aliases: ["health", "memory"],
+    category: "Übersicht",
+  },
+  {
+    id: "features",
+    title: "Features",
+    href: "/hub/features",
+    aliases: ["flags", "toggles"],
+    category: "Übersicht",
+  },
+  {
+    id: "routes",
+    title: "Routes",
+    href: "/hub/routes",
+    aliases: ["endpoints"],
+    category: "API & Docs",
+  },
   { id: "errors", title: "Error Codes", href: "/errors", aliases: [], category: "API & Docs" },
-  { id: "erd", title: "ERD", href: "/hub/erd", aliases: ["entity-relation", "schema"], category: "API & Docs" },
+  {
+    id: "erd",
+    title: "ERD",
+    href: "/hub/erd",
+    aliases: ["entity-relation", "schema"],
+    category: "API & Docs",
+  },
   { id: "sessions", title: "Sessions", href: "/admin/sessions", aliases: [], category: "Admin" },
-  { id: "permissions", title: "Permission Tester", href: "/admin/permissions/test", aliases: ["casl"], category: "Admin" },
+  {
+    id: "permissions",
+    title: "Permission Tester",
+    href: "/admin/permissions/test",
+    aliases: ["casl"],
+    category: "Admin",
+  },
 ];
 
 describe("Story · searchPalettePages (palette-search-planner)", () => {
