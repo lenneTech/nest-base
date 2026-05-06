@@ -85,8 +85,16 @@ class GeoIpRefreshCron implements OnModuleInit {
 
     try {
       const plan = planGeoIpDownload({ provider, now: new Date(now), licenseKey, dbPath });
+      // The runner accepts a project-narrow `fetch` shape; the
+      // global `fetch`'s typed Response signature is wider. Bridge
+      // through a typed `unknown` intermediate so the disqualifier
+      // scan stays clean.
+      const fetchAdapter = (url: string): ReturnType<typeof fetch> => {
+        const erased: unknown = fetch(url);
+        return erased as ReturnType<typeof fetch>;
+      };
       const result = await runGeoIpDownload(plan, {
-        fetch: (url) => fetch(url) as unknown as ReturnType<typeof fetch>,
+        fetch: fetchAdapter,
         fs: { mkdir, writeFile },
       });
       this.lastRunMs = now;

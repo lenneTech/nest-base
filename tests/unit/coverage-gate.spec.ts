@@ -28,24 +28,22 @@ describe("Coverage-Gate", () => {
       expect(typeof coverageThresholds["src/core/**"]?.lines).toBe("number");
     });
 
-    it("src/core has a meaningful line-coverage floor (≥ 70 %, ideally ≥ 80)", () => {
+    it("src/core threshold matches the PRD floor (≥ 80 % lines)", () => {
       const core = coverageThresholds["src/core/**"];
-      // Floor — anything looser stops being a useful regression
-      // gate. Tuned to leave ample margin above the current tree.
-      expect(core.lines).toBeGreaterThanOrEqual(70);
-      expect(core.statements).toBeGreaterThanOrEqual(60);
-      expect(core.functions).toBeGreaterThanOrEqual(70);
-      expect(core.branches).toBeGreaterThanOrEqual(50);
+      // PRD § Success Criteria pins src/core/** ≥ 80 % lines.
+      expect(core.lines).toBeGreaterThanOrEqual(80);
+      expect(core.statements).toBeGreaterThanOrEqual(75);
+      expect(core.functions).toBeGreaterThanOrEqual(80);
+      expect(core.branches).toBeGreaterThanOrEqual(70);
     });
 
-    it("src/modules has a slightly looser floor than core", () => {
+    it("src/modules threshold matches the PRD floor (≥ 75 % lines)", () => {
       const modules = coverageThresholds["src/modules/**"];
       const core = coverageThresholds["src/core/**"];
-      // Modules are project-specific — looser numbers are fine but
-      // they should never exceed core, otherwise the gate is
-      // miscalibrated.
+      // PRD § Success Criteria pins src/modules/** ≥ 75 % lines.
+      // Modules are project-specific — slightly looser than core.
+      expect(modules.lines).toBeGreaterThanOrEqual(75);
       expect(modules.lines).toBeLessThanOrEqual(core.lines);
-      expect(modules.lines).toBeGreaterThanOrEqual(60);
     });
   });
 

@@ -122,7 +122,7 @@ export function planFrontendEnvBridge(input: FrontendEnvBridgeInputs): FrontendE
 
 /**
  * Sentinel detection per key. A "sentinel" is a value the wizard knows
- * it owns: either the upstream-default placeholder, or one of its own
+ * it owns: either the upstream-default sample, or one of its own
  * past outputs for this project. Anything else is a custom user value
  * and must not be overwritten.
  */

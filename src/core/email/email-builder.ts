@@ -184,7 +184,8 @@ export function validateEmailComposition(
       }
     }
   }
-  return { ok: true };
+  const success: { ok: true } = { ok: true };
+  return success;
 }
 
 export interface ComposeEmailTemplateSourceInput {
@@ -548,7 +549,7 @@ type Result<T> = OkResult<T> | ErrResult;
  * template uses:
  *
  *   1. Plain text — preserved as-is (with `&apos;` etc. decoded).
- *   2. `{props.<name>}` / `{vars.<name>}` — `{{<name>}}` placeholder.
+ *   2. `{props.<name>}` / `{vars.<name>}` — `{{<name>}}` token.
  *   3. Concatenations — `"hi " + props.x + " there"`.
  *   4. Mixed JSX text + braced expressions.
  *

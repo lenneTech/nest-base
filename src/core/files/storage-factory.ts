@@ -17,6 +17,7 @@ import { resolve } from "node:path";
 
 import { LocalStorageAdapter } from "./local-storage-adapter.js";
 import { PostgresStorageAdapter } from "./postgres-storage-adapter.js";
+import { RustFsStorageAdapter } from "./rustfs-storage-adapter.js";
 import {
   S3StorageAdapter,
   type S3Operations,
@@ -24,7 +25,7 @@ import {
 } from "./s3-storage-adapter.js";
 import type { StorageAdapter } from "./storage-adapter.js";
 
-export type StorageDriver = "s3" | "local" | "postgres";
+export type StorageDriver = "s3" | "local" | "postgres" | "rustfs";
 
 export interface StorageFactoryEnv {
   STORAGE_LOCAL_ROOT?: string;
@@ -36,6 +37,12 @@ export interface StorageFactoryEnv {
   S3_SECRET_KEY?: string;
   S3_FORCE_PATH_STYLE?: string;
   S3_MAX_TTL_SECONDS?: string;
+  /** RustFS-specific endpoint override; falls back to S3_ENDPOINT. */
+  RUSTFS_ENDPOINT?: string;
+  /** Mirror of RUSTFS_ENDPOINT under the STORAGE_ prefix consumers expect. */
+  STORAGE_RUSTFS_ENDPOINT?: string;
+  /** RustFS presigned-URL TTL ceiling override (defaults to 600s). */
+  RUSTFS_MAX_TTL_SECONDS?: string;
   APP_BASE_URL?: string;
 }
 
@@ -69,6 +76,8 @@ export async function createStorageAdapter(
       return createPostgresAdapter(options);
     case "s3":
       return createS3Adapter(options);
+    case "rustfs":
+      return createRustFsAdapter(options);
     default: {
       const exhaustive: never = options.driver;
       throw new Error(`storage-factory: unknown driver "${String(exhaustive)}"`);
@@ -103,6 +112,38 @@ async function createS3Adapter(options: StorageFactoryOptions): Promise<S3Storag
     adapterOptions.maxTtlSeconds = Number.parseInt(options.env.S3_MAX_TTL_SECONDS, 10);
   }
   return new S3StorageAdapter(ops, adapterOptions);
+}
+
+/**
+ * RustFS adapter wires the same `S3Operations` factory but with
+ * RustFS-tuned defaults: lower TTL ceiling (600s vs 1h), endpoint
+ * resolved from `RUSTFS_ENDPOINT` / `STORAGE_RUSTFS_ENDPOINT`, and
+ * `forcePathStyle: true` (RustFS doesn't support virtual-host
+ * style URLs). The bucket can come from `S3_BUCKET` (consumers
+ * usually set it once for both drivers).
+ */
+async function createRustFsAdapter(options: StorageFactoryOptions): Promise<RustFsStorageAdapter> {
+  const env = options.env;
+  // Re-use the same S3 operations factory but override the endpoint
+  // resolution so RustFS-specific env vars take precedence.
+  const baseFactory = options.s3OperationsFactory ?? defaultS3OperationsFactory;
+  const rustfsEndpoint = env.STORAGE_RUSTFS_ENDPOINT ?? env.RUSTFS_ENDPOINT ?? env.S3_ENDPOINT;
+  if (!rustfsEndpoint) {
+    throw new Error(
+      "storage-factory: driver=rustfs requires RUSTFS_ENDPOINT or STORAGE_RUSTFS_ENDPOINT (or S3_ENDPOINT as fallback)",
+    );
+  }
+  const ops = await baseFactory({
+    ...env,
+    S3_ENDPOINT: rustfsEndpoint,
+    // Force path-style — RustFS bucket-vs-virtual-host addressing mismatch
+    // is the most common config bug. Override env to make it deterministic.
+    S3_FORCE_PATH_STYLE: "true",
+  });
+  const adapterOptions = env.RUSTFS_MAX_TTL_SECONDS
+    ? { maxTtlSeconds: Number.parseInt(env.RUSTFS_MAX_TTL_SECONDS, 10) }
+    : {};
+  return new RustFsStorageAdapter(ops, adapterOptions);
 }
 
 /**

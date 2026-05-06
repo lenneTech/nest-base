@@ -11,8 +11,8 @@ import { PrismaService } from "../src/core/prisma/prisma.service.js";
 class ProbeController {
   @Get("members-only")
   @Can("read", "Example")
-  protectedRoute(): { ok: true } {
-    return { ok: true };
+  protectedRoute(): { status: "ok" } {
+    return { status: "ok" };
   }
 }
 
@@ -126,7 +126,7 @@ describe("Permissions · default Prisma storage end-to-end", () => {
       .get("/perm-default-probe/members-only")
       .set("x-tenant-id", tenant.id);
     expect(res.status, JSON.stringify(res.body)).toBe(200);
-    expect(res.body).toEqual({ ok: true });
+    expect(res.body).toEqual({ status: "ok" });
 
     // Cleanup the tenant we created (cascade removes member row).
     await prisma.tenantMember.deleteMany({ where: { tenantId: tenant.id } });

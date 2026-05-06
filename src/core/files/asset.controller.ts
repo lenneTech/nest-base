@@ -84,11 +84,21 @@ export class AssetController {
 /**
  * `/_ipx/cache/:sourcePath` admin-only cache invalidation.
  *
- * Drops every cached transform whose key prefix matches `sourcePath`.
+ * Drops every cached transform whose `sourceKey` matches `sourcePath`.
  * IPX itself doesn't expose a cache-busting hook (it uses the source
  * mtime / etag and lets clients revalidate); the asset-service cache
  * sits one layer below and keys per (sourceKey, options). Removing the
  * cached entries forces the next request to re-render through Sharp.
+ *
+ * Iter-183 wired the discoverable `VariantCacheIndex` (CF.STORAGE.01
+ * closure): when bound (the default in production via Prisma
+ * `assetVariantIndex` delegate), `AssetService.invalidateSource`
+ * cascades through the index in O(log N) — only the variants of the
+ * given source are dropped, sibling sources are untouched. When no
+ * index is bound (e.g. a project that has not run the migration
+ * yet), the controller falls back to the legacy "drop every
+ * `assets/*` entry" sweep so behaviour is preserved across the
+ * boundary.
  *
  * GET requests on `/_ipx/*` are intercepted by the IPX node listener
  * mounted in `bootstrap.ts`; non-GET verbs fall through to NestJS so
@@ -102,12 +112,13 @@ export class IpxCacheController {
   @Delete(":sourcePath")
   async invalidate(@Param("sourcePath") sourcePath: string): Promise<{ removed: number }> {
     if (!sourcePath) throw new BadRequestException("sourcePath required");
-    // List every cached transform whose stable hash includes this
-    // source key. We don't track the (key → cache-keys) mapping, so
-    // we drop all `assets/` entries — the next request re-renders.
-    // Future iteration: stash the mapping in the metadata tier so
-    // invalidation targets only the touched keys.
-    void sourcePath;
+    // Targeted cascade via the variant index — drops bytes from
+    // cache + removes index rows. Sibling sources stay cached.
+    const cascaded = await this.asset.invalidateSource(sourcePath);
+    if (cascaded > 0) return { removed: cascaded };
+    // Legacy fallback for projects without the variant-cache index
+    // migration: drop every `assets/*` entry (the original iter-15
+    // contract). The next request re-renders fresh bytes.
     const cached = await this.asset.cache.list("assets/");
     let removed = 0;
     for (const key of cached) {

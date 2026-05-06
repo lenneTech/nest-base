@@ -80,3 +80,77 @@ export function buildSecurityHeadersConfig(env: AppEnv): SecurityHeadersConfig {
   }
   return { contentSecurityPolicy: { directives: PROD_CSP }, hsts: HSTS_PROD };
 }
+
+/**
+ * Returns the strict (PROD-shape) CSP. The path-aware override
+ * middleware uses this to overwrite the CSP header on JSON-shaped
+ * responses regardless of env so dev-mode JSON APIs don't carry the
+ * lenient `unsafe-inline` directive.
+ */
+export function strictCspDirectives(): CspDirectives {
+  return PROD_CSP;
+}
+
+/**
+ * Serialise CSP directives into the canonical
+ * `directive value1 value2; directive2 value1;` header form. Used by
+ * the path-aware middleware to emit the override.
+ */
+export function serializeCsp(directives: CspDirectives): string {
+  const parts: string[] = [];
+  for (const key of Object.keys(directives)) {
+    const values = directives[key];
+    if (!values || values.length === 0) continue;
+    parts.push(`${key} ${values.join(" ")}`);
+  }
+  return parts.join("; ");
+}
+
+/**
+ * Pure planner — given a request path + Accept header + an
+ * already-emitted Content-Type, decide whether the response should
+ * carry the strict CSP override. Two layers of evidence:
+ *
+ *   1. Path prefix — `/api/` is exclusively a JSON API surface.
+ *   2. Accept header — `application/json` (or `*\/*` with no HTML)
+ *      is a pre-response signal we can rely on without inspecting
+ *      the response body.
+ *
+ * The dev-hub HTML pages live under `/dev/` and `/admin/` — those
+ * routes also expose a `*.json` companion, so we ALSO match
+ * `*.json` suffixes so JSON companions of HTML pages get the strict
+ * CSP without needing to wait for the response Content-Type.
+ *
+ * Public catalog endpoints (`/health/live`, `/health/ready`,
+ * `/errors`) emit JSON; we match them via the Accept header
+ * `application/json` (the request comes from k8s probes / SDK
+ * consumers that set Accept: application/json explicitly).
+ */
+export interface PathAwareCspInput {
+  readonly path: string;
+  readonly acceptHeader: string | undefined;
+  readonly responseContentType: string | undefined;
+}
+
+export function isJsonShapedResponse(input: PathAwareCspInput): boolean {
+  const path = input.path;
+  if (path.startsWith("/api/")) return true;
+  if (path.endsWith(".json")) return true;
+  // Allow-list a small set of well-known JSON paths. We deliberately
+  // don't include `/admin/` or `/dev/` (those are HTML by default;
+  // their `.json` siblings hit the suffix branch above).
+  if (path === "/health/live" || path === "/health/ready") return true;
+  if (path === "/errors") return true;
+
+  const accept = (input.acceptHeader ?? "").toLowerCase();
+  const contentType = (input.responseContentType ?? "").toLowerCase();
+  if (contentType.includes("application/json")) return true;
+  if (
+    accept === "application/json" ||
+    accept.startsWith("application/json,") ||
+    accept.startsWith("application/json;")
+  ) {
+    return true;
+  }
+  return false;
+}

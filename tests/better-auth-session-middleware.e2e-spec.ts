@@ -21,8 +21,8 @@ class WhoAmIController {
 
   @Get("can-restricted")
   @Can("read", "Project")
-  restricted(): { ok: true } {
-    return { ok: true };
+  restricted(): { status: "ok" } {
+    return { status: "ok" };
   }
 }
 

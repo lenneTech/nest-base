@@ -99,7 +99,8 @@ Live overview of the running server: health verdict, uptime, heap, 4 stat tiles 
 
 ### Feature Toggles — `/dev/features`
 
-14 feature flags grouped by category. Each card shows description, exposed surfaces, and the matching `FEATURE_*` env-var. **Flip the switch → `.env` is patched → server respawns → page reloads.** No manual restarts.
+23 feature flags grouped by category (PRD § Success Criteria pin —
+verified by `verify-spec.sh` SC.FUSION.04). Each card shows description, exposed surfaces, and the matching `FEATURE_*` env-var. **Flip the switch → `.env` is patched → server respawns → page reloads.** No manual restarts.
 
 ![Feature Toggles](docs/showcase/screenshots/dev-features-desktop.png)
 
@@ -113,7 +114,7 @@ Reads `coverage/test-summary.json` (populated by `bun run test:summary`). Failed
 
 ### Coverage Report — `/dev/coverage`
 
-Reads `reports/coverage/coverage-summary.json` (populated by `bun run test:coverage`). Per-tier gate badges (core ≥ 70% / modules ≥ 60%), per-file table sorted worst-first.
+Reads `reports/coverage/coverage-summary.json` (populated by `bun run test:coverage`). Per-tier gate badges (core ≥ 80% lines / modules ≥ 75% lines), per-file table sorted worst-first.
 
 ![Coverage](docs/showcase/screenshots/dev-coverage-desktop.png)
 
@@ -233,7 +234,7 @@ The realtime inspector at `/admin/realtime` ships with three tabs (Sockets / Cha
 | | Asset transforms via IPX (Nuxt-Image-compatible `/_ipx/*`) | ✓ | follows `FEATURE_FILES_ENABLED` |
 | | Full-Text Search (Postgres FTS) | ✗ | `FEATURE_SEARCH_ENABLED` |
 | | PowerSync (offline-first) | ✗ | `FEATURE_POWERSYNC_ENABLED` |
-| | Field Encryption (AES-256-GCM) | ✗ | `FEATURE_FIELD_ENCRYPTION_ENABLED` |
+| | Field Encryption (AES-256-GCM, per-field keyed via `FIELD_ENCRYPTION_KEK`; KEK rotation via comma-separated `FIELD_ENCRYPTION_LEGACY_KEKS` legacy slots) | ✗ | `FEATURE_FIELD_ENCRYPTION_ENABLED` |
 | | Geo / Places (geocoding cache) | ✗ | `FEATURE_GEO_ENABLED` |
 | | GeoIP (offline IP→country/city via .mmdb) | ✗ | `FEATURE_GEO_IP_ENABLED` |
 | **Communication** | Email (Nodemailer + Brevo) | ✓ | `FEATURE_EMAIL_ENABLED` |
@@ -252,10 +253,10 @@ Each toggleable feature drives module imports, controller registration, and midd
 src/
 ├── core/                ← Template-owned. Synced via `bun run sync:from-template`.
 │   ├── app/             ← Bootstrap + AppModule + dev-tab auto-open
-│   ├── auth/            ← Better-Auth wiring + API keys + PowerSync JWT
+│   ├── auth/            ← Better-Auth wiring + API keys + PowerSync JWT + 24h verifications-cleanup cron
 │   ├── concurrency/     ← ETag + If-Match optimistic concurrency
 │   ├── dx/              ← /dev + /admin + /errors + /api/openapi (React SPA shell + JSON sidecars)
-│   ├── email/           ← EmailService + EJS templates
+│   ├── email/           ← EmailService + React Email .tsx templates
 │   ├── encryption/      ← AES-256-GCM field encryption
 │   ├── errors/          ← CORE_* error codes + RFC 7807 filter
 │   ├── features/        ← FeaturesSchema (Zod) — single source of truth

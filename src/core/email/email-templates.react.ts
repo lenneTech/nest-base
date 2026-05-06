@@ -140,6 +140,18 @@ export class ReactEmailTemplateRenderer implements EmailTemplateRenderer {
   private readonly projectRoot: string;
   private readonly coreDir: string;
   private readonly moduleDir: string;
+  /**
+   * Per-file in-flight import promise cache (iter-149). The natural
+   * ESM module cache deduplicates by URL once a module is fully
+   * loaded, but Node's dynamic-import resolver can race across
+   * concurrent first-time loads of the same URL when many test
+   * workers hit the same template path simultaneously. Holding a
+   * promise per resolved file path makes the dedup explicit and
+   * eliminates the residual flake observed in iter-148. Keyed by
+   * the resolved URL string so dev-mode cache-bust queries don't
+   * collapse onto each other.
+   */
+  private readonly importCache = new Map<string, Promise<TemplateModule>>();
 
   constructor(options: ReactEmailTemplateRendererOptions = {}) {
     this.brand = options.brand ?? defaultBrandConfig();
@@ -169,7 +181,13 @@ export class ReactEmailTemplateRenderer implements EmailTemplateRenderer {
     const element = Component(props);
     const html = await render(element);
     const text = toPlainText(html);
-    const subject = meta.subject(vars as never);
+    // The meta.subject factory is typed against a per-template Vars
+    // shape; the renderer holds `vars` as the open `Record<string,
+    // unknown>`. Bridge through a typed `unknown` intermediate to
+    // the factory's parameter shape.
+    type SubjectArg = Parameters<typeof meta.subject>[0];
+    const subjectArgErased: unknown = vars;
+    const subject = meta.subject(subjectArgErased as SubjectArg);
     return { subject, html, text };
   }
 
@@ -192,13 +210,31 @@ export class ReactEmailTemplateRenderer implements EmailTemplateRenderer {
   }
 
   private async importTemplate(file: string): Promise<TemplateModule> {
-    // Append a cache-buster so subsequent renders pick up edits when
-    // `bun --watch` reloads the source. The runtime caches by URL —
-    // a unique query string forces a fresh import per call. The cost
-    // is one re-evaluation per render; templates are tiny.
-    const url = `${pathToFileURL(file).href}?t=${Date.now()}`;
-    const mod = (await import(url)) as TemplateModule;
-    return mod;
+    // Only cache-bust in development so `bun --watch` reloads pick up
+    // template edits. In production / test the natural ESM cache is
+    // both correct (nothing reloads templates) and faster — the
+    // cache-buster used to force one fresh evaluation per call,
+    // which under heavy parallel-test pressure can race the dynamic
+    // import resolver and produce intermittent `module not found`
+    // errors at the per-test boundary.
+    const baseUrl = pathToFileURL(file).href;
+    const url = process.env.NODE_ENV === "development" ? `${baseUrl}?t=${Date.now()}` : baseUrl;
+    // Promise-cache: dedupe concurrent first-time imports of the
+    // same URL. On error the promise is evicted so the next caller
+    // gets a fresh chance (the original race was at the resolver
+    // level, not in the module body).
+    const cached = this.importCache.get(url);
+    if (cached !== undefined) return cached;
+    const promise = (async () => {
+      try {
+        return (await import(url)) as TemplateModule;
+      } catch (err) {
+        this.importCache.delete(url);
+        throw err;
+      }
+    })();
+    this.importCache.set(url, promise);
+    return promise;
   }
 }
 

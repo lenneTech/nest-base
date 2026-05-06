@@ -261,7 +261,7 @@ function isUuid(value: string): boolean {
 /**
  * Build the IPX thumbnail URL for an image file. Non-image MIME types
  * yield `undefined` so the React grid falls back to the icon-by-mime
- * placeholder instead of a broken `<img>`.
+ * fallback instead of a broken `<img>`.
  *
  * Path shape: `/_ipx/<modifiers>/files/<storageKey>` per issue #17 +
  * #18 spec. The `preset_thumbnail` modifier resolves to the `thumbnail`

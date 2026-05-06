@@ -132,7 +132,7 @@ describe("Story · MCP-Server-Modul", () => {
         tool({
           handler: async (input, ctx) => {
             calls.push({ input, ctx });
-            return { ok: true };
+            return { status: "ok" };
           },
         }),
       );
@@ -141,7 +141,7 @@ describe("Story · MCP-Server-Modul", () => {
         { message: "hi" },
         { user: { id: "u1", tenantId: "t1" } },
       );
-      expect(result).toEqual({ ok: true });
+      expect(result).toEqual({ status: "ok" });
       expect(calls).toHaveLength(1);
       expect(calls[0]?.input).toEqual({ message: "hi" });
       expect(calls[0]?.ctx.user).toEqual({ id: "u1", tenantId: "t1" });

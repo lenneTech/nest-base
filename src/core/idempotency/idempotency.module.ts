@@ -10,29 +10,21 @@ import { APP_INTERCEPTOR } from "@nestjs/core";
 import { type Observable, from, mergeMap } from "rxjs";
 import type { Request, Response } from "express";
 
+import { PrismaService } from "../prisma/prisma.service.js";
 import {
-  IdempotencyService,
-  type IdempotencyStore,
-  type IdempotencyRecord,
-} from "./idempotency.service.js";
+  IdempotencyCleanupCron,
+  InMemoryIdempotencyStoreWithCleanup,
+} from "./idempotency-cleanup.js";
+import { IdempotencyService, type IdempotencyStore } from "./idempotency.service.js";
+import {
+  PrismaIdempotencyStore,
+  hasPrismaIdempotencyDelegate,
+} from "./idempotency-store.prisma.js";
 
 const IDEMPOTENCY_STORE = Symbol.for("lt:IdempotencyStore");
 const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 const HEADER = "idempotency-key";
 const METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
-
-class InMemoryIdempotencyStore implements IdempotencyStore {
-  private readonly map = new Map<string, IdempotencyRecord>();
-  async get(key: string) {
-    return this.map.get(key) ?? null;
-  }
-  async put(record: IdempotencyRecord) {
-    this.map.set(record.key, record);
-  }
-  async delete(key: string) {
-    this.map.delete(key);
-  }
-}
 
 @Injectable()
 class IdempotencyKeyInterceptor implements NestInterceptor {
@@ -92,12 +84,24 @@ class IdempotencyKeyInterceptor implements NestInterceptor {
  * with the same key+request-hash within TTL get the cached response
  * with an `Idempotency-Replay: 1` header.
  *
- * Store: in-memory by default. Postgres-backed adapter follows in a
- * separate slice once the `IdempotencyRecord` Prisma model lands.
+ * Store selection (iter-179 — CF.STORAGE.01 closure): the factory
+ * picks `PrismaIdempotencyStore` when the resolved Prisma client
+ * exposes the `idempotencyRecord` delegate (the migration shipped
+ * in `prisma/migrations/20260506100000_idempotency_records/`).
+ * Tests that flip features at runtime without regenerating the
+ * Prisma client land in the in-memory fallback. The runtime detection
+ * keeps the boot path independent of CI's Prisma-generation timing.
  */
 @Module({
   providers: [
-    { provide: IDEMPOTENCY_STORE, useClass: InMemoryIdempotencyStore },
+    {
+      provide: IDEMPOTENCY_STORE,
+      useFactory: (prisma: PrismaService): IdempotencyStore => {
+        if (!hasPrismaIdempotencyDelegate(prisma)) return new InMemoryIdempotencyStoreWithCleanup();
+        return new PrismaIdempotencyStore(prisma);
+      },
+      inject: [PrismaService],
+    },
     {
       provide: IdempotencyService,
       useFactory: (store: IdempotencyStore) =>
@@ -106,6 +110,12 @@ class IdempotencyKeyInterceptor implements NestInterceptor {
     },
     IdempotencyKeyInterceptor,
     { provide: APP_INTERCEPTOR, useClass: IdempotencyKeyInterceptor },
+    // Iter-181: periodic prune of expired idempotency_records.
+    // The `expiresAt` index from migration 20260506100000 makes the
+    // delete O(log N). Both adapters implement deleteOlderThan, so
+    // the cron does real work in either binding (Prisma deleteMany
+    // or in-memory Map prune).
+    IdempotencyCleanupCron,
   ],
   exports: [IdempotencyService, IDEMPOTENCY_STORE],
 })

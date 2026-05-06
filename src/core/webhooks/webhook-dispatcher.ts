@@ -1,5 +1,6 @@
 import { buildHmacSignatureHeader } from "./hmac-signature.js";
 import { type RetryConfig, WEBHOOK_RETRY_DEFAULTS, shouldAutoDisable } from "./retry-policy.js";
+import { getRegisteredWebhookEvents } from "./webhook-event.decorator.js";
 
 /**
  * Webhook Dispatcher.
@@ -80,6 +81,29 @@ export class WebhookEndpointNotFoundError extends Error {
   }
 }
 
+/**
+ * Thrown when `WebhookDispatcher.dispatch()` receives an `eventType`
+ * that isn't declared via `@WebhookEvent`. The dispatcher consults
+ * `getRegisteredWebhookEvents()`; when that registry is non-empty
+ * (i.e. the project has at least one declared event), unknown event
+ * names are rejected loudly so a typo can't silently dispatch a
+ * non-canonical event. Empty registry = backward-compat: the
+ * dispatcher accepts any event type so the slice's introduction
+ * doesn't break consumers that haven't yet declared events.
+ */
+export class WebhookEventTypeNotRegisteredError extends Error {
+  constructor(
+    public readonly eventType: string,
+    public readonly availableTypes: readonly string[],
+  ) {
+    super(
+      `webhook dispatcher: eventType "${eventType}" is not declared via @WebhookEvent ` +
+        `(declared: ${availableTypes.length === 0 ? "<none>" : availableTypes.join(", ")})`,
+    );
+    this.name = "WebhookEventTypeNotRegisteredError";
+  }
+}
+
 export class WebhookDispatcher {
   private readonly retry: RetryConfig;
 
@@ -88,6 +112,21 @@ export class WebhookDispatcher {
   }
 
   async dispatch(input: DispatchInput): Promise<void> {
+    // Validate eventType against the @WebhookEvent registry. Skip
+    // when the registry is empty (no events declared yet — projects
+    // adopt the decorator at their own pace + we don't want a
+    // backwards-incompat behaviour change to fire on day one).
+    const registered = getRegisteredWebhookEvents();
+    if (registered.length > 0) {
+      const found = registered.some((meta) => meta.name === input.eventType);
+      if (!found) {
+        throw new WebhookEventTypeNotRegisteredError(
+          input.eventType,
+          registered.map((m) => m.name),
+        );
+      }
+    }
+
     const endpoint = await this.options.endpointStore.findById(input.endpointId);
     if (!endpoint) throw new WebhookEndpointNotFoundError(input.endpointId);
     if (endpoint.status === "DISABLED") return;

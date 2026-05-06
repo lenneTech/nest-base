@@ -40,10 +40,17 @@ export const DEFAULT_SECRET_VALUE_PATTERNS: readonly RegExp[] = [
   // 32 bytes hex (64 chars), but accepting >= 8 catches the prefix
   // shape early while staying conservative on false positives.
   /\bnst_pk_[0-9a-f-]{36}_[0-9a-f]{8,}/i,
-  // Stripe-style live/test keys
+  // Stripe-style live/test keys (sk_live_, pk_test_, rk_live_, etc.)
   /\b(?:sk|pk|rk)_(?:live|test)_[A-Za-z0-9]{16,}/,
   // GitHub PAT prefix
   /\bghp_[A-Za-z0-9]{36}/,
+  // AWS access-key ID — exactly `AKIA` + 16 uppercase alnum (20 chars total)
+  /\bAKIA[A-Z0-9]{16}\b/,
+  // OpenAI API keys — `sk-` followed by ≥ 20 alnum/hyphen chars.
+  // Matches both legacy `sk-...` (48-char body) and project keys
+  // (`sk-proj-...`). Threshold of 20 keeps the regex conservative
+  // (rules out `sk-foo` and similar short identifiers).
+  /\bsk-[A-Za-z0-9-]{20,}\b/,
   // Long lowercase hex sequence (sha256, raw API-key secret, …)
   /\b[0-9a-f]{32,}\b/,
 ];

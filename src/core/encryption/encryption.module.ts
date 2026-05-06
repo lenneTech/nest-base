@@ -1,5 +1,6 @@
-import { type DynamicModule, Module } from "@nestjs/common";
+import { type DynamicModule, Module, type Provider } from "@nestjs/common";
 
+import { BLIND_INDEX, BlindIndex, planBlindIndexFromEnv } from "./blind-index.js";
 import { FieldEncryptionService } from "./field-encryption.service.js";
 import { EnvKekProvider, KEK_PROVIDER, type KekProvider } from "./kek-provider.js";
 
@@ -8,6 +9,14 @@ export interface EncryptionModuleOptions {
   env?: Record<string, string | undefined>;
   /** Custom KekProvider (Vault / KMS / Doppler) — overrides env-based default. */
   provider?: KekProvider;
+  /**
+   * Override the BlindIndex provider. When omitted, the module reads
+   * `BLIND_INDEX_KEY` from env and registers a `BlindIndex` only if a
+   * 32+ byte key is supplied — projects that don't need blind-index
+   * lookups skip the env-var entirely and the DI token is never
+   * registered.
+   */
+  blindIndex?: BlindIndex;
 }
 
 /**
@@ -24,15 +33,46 @@ export interface EncryptionModuleOptions {
 @Module({})
 export class EncryptionModule {
   static forRoot(options: EncryptionModuleOptions = {}): DynamicModule {
-    const provider: KekProvider =
-      options.provider ??
-      new EnvKekProvider(options.env ?? (process.env as Record<string, string | undefined>));
+    const env = options.env ?? (process.env as Record<string, string | undefined>);
+    const provider: KekProvider = options.provider ?? new EnvKekProvider(env);
+
+    const providers: Provider[] = [
+      { provide: KEK_PROVIDER, useValue: provider },
+      FieldEncryptionService,
+    ];
+    const exports_: (string | symbol | typeof FieldEncryptionService)[] = [
+      FieldEncryptionService,
+      KEK_PROVIDER,
+    ];
+
+    // Register BlindIndex only if the project supplied a key. The DI
+    // token is omitted otherwise so consumers that try to inject it
+    // without configuring a key get a clear "no provider for
+    // BlindIndex" error at boot rather than a silent no-op.
+    const blindIndex = resolveBlindIndex(options, env);
+    if (blindIndex) {
+      providers.push({ provide: BLIND_INDEX, useValue: blindIndex });
+      exports_.push(BLIND_INDEX);
+    }
 
     return {
       module: EncryptionModule,
-      providers: [{ provide: KEK_PROVIDER, useValue: provider }, FieldEncryptionService],
-      exports: [FieldEncryptionService, KEK_PROVIDER],
+      providers,
+      exports: exports_,
       global: true,
     };
   }
+}
+
+function resolveBlindIndex(
+  options: EncryptionModuleOptions,
+  env: Record<string, string | undefined>,
+): BlindIndex | null {
+  if (options.blindIndex) return options.blindIndex;
+  const plan = planBlindIndexFromEnv(env.BLIND_INDEX_KEY);
+  if (plan.kind === "absent") return null;
+  if (plan.kind === "rejected") {
+    throw new Error(`EncryptionModule: ${plan.reason}`);
+  }
+  return new BlindIndex({ key: plan.key });
 }

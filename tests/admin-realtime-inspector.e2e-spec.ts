@@ -2,7 +2,6 @@ import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { bootstrap } from "../src/core/app/bootstrap.js";
 import { RealtimeGateway } from "../src/core/realtime/realtime.module.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
@@ -22,11 +21,9 @@ describe("Admin Realtime Inspector · /admin/realtime*", () => {
     let previousNodeEnv: string | undefined;
 
     beforeAll(async () => {
-      // Capture the prior value so `afterAll` restores it even when
-      // the worker started under a non-default env. Blind resets to
-      // "test" hide the original leak.
       previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "development";
+      const { bootstrap } = await import("../src/core/app/bootstrap.js");
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
     });
 
@@ -140,6 +137,7 @@ describe("Admin Realtime Inspector · /admin/realtime*", () => {
     beforeAll(async () => {
       previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "production";
+      const { bootstrap } = await import("../src/core/app/bootstrap.js");
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
     });
 

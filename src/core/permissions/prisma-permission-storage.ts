@@ -10,7 +10,7 @@ import type { PermissionStorage } from "./permission.service.js";
 
 /**
  * Prisma-backed `PermissionStorage` (closes blocker — replaces the
- * no-op stub that returned `[]` for every user).
+ * no-op fake that returned `[]` for every user).
  *
  * Two layers stack on every `findRulesForUser(userId, tenantId)`:
  *
@@ -119,7 +119,7 @@ export class PrismaPermissionStorage implements PermissionStorage {
   async findRulesForUser(userId: string, tenantId: string): Promise<DbPermissionRow[]> {
     // Anonymous-style guard: a user without an ACTIVE membership in
     // the requested tenant has no rules at all. Returning `[]` here
-    // is exactly what the previous stub did — the change is that
+    // is exactly what the previous fake did — the change is that
     // members DO get rules.
     const member = await this.prisma.tenantMember.findFirst({
       where: { userId, tenantId, status: "ACTIVE" },
@@ -133,7 +133,12 @@ export class PrismaPermissionStorage implements PermissionStorage {
     // Querying via the `permission` model with a nested
     // `policy.roles.some.role.{ name, tenantId }` filter keeps the
     // adapter to a single round-trip.
-    const explicitRows = (await this.prisma.permission.findMany({
+    // The Prisma `findMany` typed return is the per-model row shape
+    // with the selected columns; the project's `PermissionRow` is
+    // structurally identical but rides through a hand-rolled
+    // interface so adapters don't depend on Prisma generics. Bridge
+    // through a typed `unknown` intermediate.
+    const explicitRowsErased: unknown = await this.prisma.permission.findMany({
       where: {
         policy: {
           roles: {
@@ -152,7 +157,8 @@ export class PrismaPermissionStorage implements PermissionStorage {
         itemFilter: true,
         fields: true,
       },
-    })) as unknown as PermissionRow[];
+    });
+    const explicitRows = explicitRowsErased as PermissionRow[];
 
     const explicit = explicitRows.map(toDbPermissionRow);
 

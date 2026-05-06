@@ -14,7 +14,21 @@ import { parseTunnelState, serializeTunnelState, type TunnelState } from "./tunn
 
 const DEFAULT_RELATIVE = "node_modules/.cache/nest-base/tunnel.json";
 
+/**
+ * Resolves the tunnel-state lock file path. The path defaults to
+ * `<projectRoot>/node_modules/.cache/nest-base/tunnel.json` but can
+ * be overridden via the `TUNNEL_STATE_LOCK_PATH` env var so test
+ * workers can isolate their lock files when the same project root
+ * is shared across multiple parallel processes (iter-146).
+ *
+ * Production code does not set this env var; the dev runner writes
+ * to the default path so the dev-portal endpoint can read it back.
+ */
 export function tunnelStateLockPath(projectRoot: string): string {
+  const override = process.env.TUNNEL_STATE_LOCK_PATH;
+  if (override !== undefined && override.length > 0) {
+    return resolve(override);
+  }
   return resolve(projectRoot, DEFAULT_RELATIVE);
 }
 

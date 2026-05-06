@@ -119,7 +119,7 @@ export function selectEmailDriver(input: DriverSelectionInput): DriverSelection 
         });
         const primary = createDriver(selection.primary, env);
         // Default From: precedence is env (SMTP_FROM) → brand.fromEmail
-        // → final placeholder. The env wins because operators rotate
+        // → final sample. The env wins because operators rotate
         // sending domains without committing brand.json; brand.fromEmail
         // is the project-wide opinion when env is unset.
         const brand = loadBrandSync();

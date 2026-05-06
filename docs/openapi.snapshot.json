@@ -357,6 +357,20 @@
         ]
       }
     },
+    "/admin/jobs": {
+      "get": {
+        "operationId": "AdminSpaController_adminJobsPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminSpa"
+        ]
+      }
+    },
     "/admin/search": {
       "get": {
         "operationId": "AdminSpaController_searchTesterPage",
@@ -574,6 +588,34 @@
         ]
       }
     },
+    "/dev/scheduled-jobs.json": {
+      "get": {
+        "operationId": "DevHubController_scheduledJobsJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/webhook-events.json": {
+      "get": {
+        "operationId": "DevHubController_webhookEventsJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
     "/dev/features/{key}/toggle": {
       "post": {
         "operationId": "DevHubController_toggleFeature",
@@ -754,6 +796,20 @@
     "/dev/erd": {
       "get": {
         "operationId": "DevHubController_erdPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/json": {
+      "get": {
+        "operationId": "DevHubController_jsonViewerPage",
         "parameters": [],
         "responses": {
           "200": {
@@ -1273,6 +1329,34 @@
         ]
       }
     },
+    "/dev/email-outbox": {
+      "get": {
+        "operationId": "DevHubController_emailOutboxPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/dev/cron": {
+      "get": {
+        "operationId": "DevHubController_cronPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
     "/dev/outbox.json": {
       "get": {
         "operationId": "DevHubController_outboxJson",
@@ -1444,9 +1528,9 @@
         ]
       }
     },
-    "/search": {
+    "/me/export": {
       "get": {
-        "operationId": "SearchController_search",
+        "operationId": "GdprController_export",
         "parameters": [],
         "responses": {
           "200": {
@@ -1454,14 +1538,23 @@
           }
         },
         "tags": [
-          "Search"
+          "Gdpr"
         ]
       }
     },
-    "/me/export": {
+    "/me/export/{jobId}": {
       "get": {
-        "operationId": "GdprController_export",
-        "parameters": [],
+        "operationId": "GdprController_exportStatus",
+        "parameters": [
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -1483,169 +1576,6 @@
         },
         "tags": [
           "Gdpr"
-        ]
-      }
-    },
-    "/geo/geocode": {
-      "get": {
-        "operationId": "GeoController_geocode",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Geo"
-        ]
-      }
-    },
-    "/geo/reverse-geocode": {
-      "get": {
-        "operationId": "GeoController_reverseGeocode",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Geo"
-        ]
-      }
-    },
-    "/places/nearby": {
-      "post": {
-        "operationId": "GeoController_placesNearby",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Geo"
-        ]
-      }
-    },
-    "/addresses": {
-      "get": {
-        "operationId": "AddressController_list",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Address"
-        ]
-      },
-      "post": {
-        "operationId": "AddressController_create",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Address"
-        ]
-      }
-    },
-    "/addresses/{id}": {
-      "get": {
-        "operationId": "AddressController_get",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Address"
-        ]
-      },
-      "delete": {
-        "operationId": "AddressController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Address"
-        ]
-      }
-    },
-    "/me/devices": {
-      "get": {
-        "operationId": "DeviceController_list",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Device"
-        ]
-      }
-    },
-    "/me/devices/{id}": {
-      "delete": {
-        "operationId": "DeviceController_revoke",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Device"
-        ]
-      }
-    },
-    "/powersync/crud": {
-      "post": {
-        "operationId": "PowerSyncController_crud",
-        "parameters": [],
-        "responses": {
-          "204": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "PowerSync"
         ]
       }
     },
@@ -1975,6 +1905,99 @@
         ]
       }
     },
+    "/admin/sessions": {
+      "get": {
+        "operationId": "SessionsAdminController_sessionsAdminPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SessionsAdmin"
+        ]
+      }
+    },
+    "/admin/sessions/list.json": {
+      "get": {
+        "operationId": "SessionsAdminController_sessionsListJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SessionsAdmin"
+        ]
+      }
+    },
+    "/admin/sessions/{sessionId}": {
+      "delete": {
+        "operationId": "SessionsAdminController_revokeSingle",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SessionsAdmin"
+        ]
+      }
+    },
+    "/admin/sessions/revoke-bulk-by-user": {
+      "post": {
+        "operationId": "SessionsAdminController_revokeBulkByUser",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SessionsAdmin"
+        ]
+      }
+    },
+    "/admin/sessions/revoke-others": {
+      "post": {
+        "operationId": "SessionsAdminController_revokeOthers",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SessionsAdmin"
+        ]
+      }
+    },
+    "/admin/impersonation/stop": {
+      "post": {
+        "operationId": "ImpersonationController_stop",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Impersonation"
+        ]
+      }
+    },
     "/admin/roles": {
       "get": {
         "operationId": "RoleAdminController_list",
@@ -2185,6 +2208,65 @@
         ]
       }
     },
+    "/admin/permissions/attach": {
+      "post": {
+        "operationId": "PermissionAdminController_attach",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PermissionAdmin"
+        ]
+      }
+    },
+    "/admin/permissions/attach/{roleId}/{policyId}": {
+      "delete": {
+        "operationId": "PermissionAdminController_detach",
+        "parameters": [
+          {
+            "name": "roleId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "policyId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PermissionAdmin"
+        ]
+      }
+    },
+    "/metrics": {
+      "get": {
+        "operationId": "MetricsController_expose",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Metrics"
+        ]
+      }
+    },
     "/files": {
       "get": {
         "operationId": "FileController_list",
@@ -2212,6 +2294,29 @@
         "parameters": [],
         "responses": {
           "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "File"
+        ]
+      }
+    },
+    "/files/share/{token}": {
+      "get": {
+        "operationId": "FileController_fetchByShareToken",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
             "description": ""
           }
         },
@@ -2268,6 +2373,66 @@
       "post": {
         "operationId": "FileController_upload",
         "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "File"
+        ]
+      }
+    },
+    "/files/{id}/visibility": {
+      "patch": {
+        "operationId": "FileController_setVisibility",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "File"
+        ]
+      }
+    },
+    "/files/zip": {
+      "post": {
+        "operationId": "FileController_downloadZip",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "File"
+        ]
+      }
+    },
+    "/files/{id}/share-link": {
+      "post": {
+        "operationId": "FileController_issueShareLink",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "201": {
             "description": ""

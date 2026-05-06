@@ -10,7 +10,14 @@ import {
   Post,
 } from "@nestjs/common";
 
+import { EmailModule } from "../../email/email.module.js";
+import { EmailService } from "../../email/email.service.js";
+import { loadFeatures } from "../../features/features.js";
 import { Can } from "../../permissions/can.guard.js";
+import { PrismaService } from "../../prisma/prisma.service.js";
+import { buildDefaultApiKeyExpiryRunnerInput } from "./api-key-expiry.factory.js";
+import { ApiKeyExpiryRunner } from "./api-key-expiry.runner.js";
+import { PrismaApiKeyStorage } from "./api-key-storage.prisma.js";
 import {
   type ApiKeyRecord,
   type ApiKeyStorage,
@@ -114,18 +121,50 @@ class ApiKeyController {
 /**
  * ApiKeyModule — `/api-keys` CRUD + `:id/rotate`. argon2id-hashed
  * secrets, plaintext only returned on `create`/`rotate` (Stripe-style).
- * In-memory storage by default; Prisma-backed adapter follows.
+ *
+ * Storage selection (iter-171, closes CF.STORAGE.01 line item (a)):
+ *   - `features.apiKeys.enabled=true` (the default): production wires
+ *     `PrismaApiKeyStorage`. Restart-safe; multi-replica safe.
+ *   - `features.apiKeys.enabled=false`: the in-memory adapter still
+ *     boots so projects that turned the feature off don't fail at
+ *     module instantiation. The controller / service is unreachable
+ *     in that case (no routes mounted by the conditional-import).
  */
 @Module({
+  imports: [EmailModule],
   controllers: [ApiKeyController],
   providers: [
-    { provide: API_KEY_STORAGE, useClass: InMemoryApiKeyStorage },
+    {
+      provide: API_KEY_STORAGE,
+      useFactory: (prisma: PrismaService) => {
+        const features = loadFeatures(process.env);
+        return features.authMethods.apiKeys
+          ? new PrismaApiKeyStorage(prisma)
+          : new InMemoryApiKeyStorage();
+      },
+      inject: [PrismaService],
+    },
     {
       provide: ApiKeyService,
       useFactory: (storage: ApiKeyStorage) => new ApiKeyService(storage),
       inject: [API_KEY_STORAGE],
     },
+    {
+      // ApiKeyExpiryRunner is a NestJS provider so the @ScheduledJob
+      // decorator on `tick()` surfaces in the DiscoveryService walk
+      // the pg-boss adapter performs at OnApplicationBootstrap. The
+      // default factory (`buildDefaultApiKeyExpiryRunnerInput`) reads
+      // expiring keys from Prisma, dispatches via EmailService through
+      // the outbox, and persists the `lastNotifiedAt` watermark — so
+      // `runner.tick()` is fully functional out-of-the-box. Projects
+      // override the provider when they want a different reader /
+      // template / watermark adapter.
+      provide: ApiKeyExpiryRunner,
+      useFactory: (prisma: PrismaService, email: EmailService) =>
+        new ApiKeyExpiryRunner(buildDefaultApiKeyExpiryRunnerInput({ prisma, email })),
+      inject: [PrismaService, EmailService],
+    },
   ],
-  exports: [ApiKeyService, API_KEY_STORAGE],
+  exports: [ApiKeyService, API_KEY_STORAGE, ApiKeyExpiryRunner],
 })
 export class ApiKeyModule {}

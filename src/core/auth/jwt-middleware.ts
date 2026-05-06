@@ -20,7 +20,16 @@
  * the upstream `nuxt-base-starter` fix
  * (lenneTech/nuxt-base-starter#13) has propagated.
  */
-const PUBLIC_PREFIXES = ["/health/", "/api/auth/", "/docs/", "/dev/", "/errors/", "/api/openapi"];
+const PUBLIC_PREFIXES = [
+  "/health/",
+  "/api/auth/",
+  "/docs/",
+  "/dev/",
+  "/errors/",
+  "/api/openapi",
+  // HMAC-signed share links — the token is the auth.
+  "/files/share/",
+];
 const PUBLIC_EXACT = new Set(["/", "/errors", "/api/openapi", "/api-docs-json"]);
 
 export function isPathProtected(path: string): boolean {

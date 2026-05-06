@@ -6,7 +6,8 @@
   "private": true,
   "type": "module",
   "engines": {
-    "bun": ">=1.1.0"
+    "bun": ">=1.3.0",
+    "node": ">=22.0.0"
   },
   "scripts": {
     "dev": "bun run scripts/dev.ts",
@@ -15,6 +16,7 @@
     "lint": "oxlint src tests",
     "lint:fix": "oxlint --fix src tests",
     "format": "oxfmt --check src tests",
+    "format:check": "oxfmt --check src tests",
     "format:fix": "oxfmt src tests",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
@@ -28,6 +30,7 @@
     "prisma:migrate": "prisma migrate deploy",
     "postinstall": "bun run scripts/postinstall-prisma-symlink.ts",
     "prepare:schema": "bun run scripts/prepare-schema.ts",
+    "prepare:schema:check": "bun run scripts/prepare-schema.ts --check",
     "check:rls": "bun run scripts/check-rls.ts",
     "doctor": "bun run scripts/doctor.ts",
     "onboard": "bun run scripts/onboard.ts",
@@ -39,8 +42,10 @@
     "sync:from-template": "bun run scripts/sync-from-template.ts",
     "sync:to-template": "bun run scripts/sync-to-template.ts",
     "sdk:generate": "kubb generate -c kubb.config.ts",
+    "sdk:check": "bun run scripts/sdk-check.ts",
     "dump:openapi": "bun run scripts/dump-openapi.ts",
     "docs:screenshots": "bun run scripts/take-showcase-screenshots.ts",
+    "geoip:download": "bun run scripts/download-geoip.ts",
     "llm-test": "bun run scripts/llm-feature-test.ts"
   },
   "devDependencies": {
@@ -84,6 +89,9 @@
     "@nestjs/websockets": "^11.1.19",
     "@node-rs/argon2": "^2.0.2",
     "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/auto-instrumentations-node": "^0.55",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.57",
+    "@opentelemetry/sdk-node": "^0.57",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7",
     "@radix-ui/react-checkbox": "^1.3.3",
@@ -118,6 +126,7 @@
     "pg": "^8.20.0",
     "pg-boss": "^12.18.1",
     "pino": "^10.3.1",
+    "prom-client": "^15",
     "react": "^19",
     "react-dom": "^19",
     "react-router-dom": "^7",

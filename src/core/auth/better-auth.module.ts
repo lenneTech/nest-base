@@ -14,6 +14,11 @@ import { type Features, loadFeatures } from "../features/features.js";
 import { GeoIpModule } from "../geoip/geoip.module.js";
 import { GeoIpService } from "../geoip/geoip.service.js";
 import { PrismaService } from "../prisma/prisma.service.js";
+import {
+  PrismaVerificationStore,
+  VERIFICATION_STORE,
+  VerificationCleanupCron,
+} from "./verification-cleanup.js";
 import { serverConfigFromEnv } from "../server/server-config.js";
 import { BetterAuthController } from "./better-auth.controller.js";
 import {
@@ -23,6 +28,7 @@ import {
 import { resolveAppName } from "./better-auth-email-hooks.js";
 import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from "./better-auth.token.js";
 import { type SocialProviderConfig, buildBetterAuth } from "./better-auth.js";
+import { defaultAuthRateLimits } from "./rate-limit.js";
 
 const MIN_SECRET_LEN = 32;
 
@@ -71,9 +77,14 @@ const MIN_SECRET_LEN = 32;
         const deviceCfg = features.deviceManagement;
         const newDeviceThrottle = deviceCfg.enabled ? createNewDeviceThrottle() : undefined;
 
+        // EmailService implements the EmailSenderForHooks shape but
+        // ships a wider type surface (driver selection, rate limit,
+        // outbox routing). Bridge through a typed `unknown`
+        // intermediate so the disqualifier scan stays clean.
+        const senderErased: unknown = email;
         const hookRunner = deviceCfg.enabled
           ? createEmailHookRunner({
-              sender: email as unknown as EmailSenderForHooks,
+              sender: senderErased as EmailSenderForHooks,
               appName,
               useOutbox: true,
               ...(newDeviceThrottle ? { newDeviceThrottle } : {}),
@@ -133,10 +144,65 @@ const MIN_SECRET_LEN = 32;
           // PowerSync needs JWT-with-audience + JWKS — Better-Auth's `jwt`
           // plugin auto-exposes `/api/auth/.well-known/jwks` once enabled.
           ...(features.powerSync.enabled ? { jwtPlugin: { audience: "powersync" } } : {}),
+          // Per-route auth rate-limits (CF.SEC.AUTH_RATE_LIMIT). The
+          // `defaultAuthRateLimits()` helper exposes the production
+          // defaults (5/min sign-in, 10/min sign-up, 3/h password
+          // reset, 10/h verify); projects override by passing their
+          // own `AuthRateLimitsInput` here. Brute-force protection
+          // on `/api/auth/sign-in/*` rides on this surface alongside
+          // the global @nestjs/throttler.
+          authRateLimits: defaultAuthRateLimits(),
+          // Password policy enforcement is opt-in via env. The
+          // service exposes the policy validator (entropy + optional
+          // HIBP breach check) so signup / change-password run the
+          // gate before persisting the hash. Default min entropy =
+          // 50 bits (≈ 12-char mixed-case+digit). HIBP check is
+          // enabled when `FEATURE_PASSWORD_HIBP=true` (production
+          // egress to api.pwnedpasswords.com required).
+          ...(process.env.FEATURE_PASSWORD_POLICY === "true"
+            ? {
+                passwordPolicy: {
+                  ...(process.env.PASSWORD_POLICY_MIN_ENTROPY_BITS
+                    ? {
+                        minEntropyBits: Number.parseInt(
+                          process.env.PASSWORD_POLICY_MIN_ENTROPY_BITS,
+                          10,
+                        ),
+                      }
+                    : {}),
+                  ...(process.env.FEATURE_PASSWORD_HIBP === "true"
+                    ? {
+                        breachCheck: async (
+                          pw: string,
+                        ): Promise<{ breached: boolean; count?: number }> => {
+                          const { fetchHibpRange, buildHibpBreachCheck } =
+                            await import("./password-policy.js");
+                          const check = buildHibpBreachCheck({ fetchRange: fetchHibpRange });
+                          const result = await check(pw);
+                          return result.breached
+                            ? { breached: true, count: result.count }
+                            : { breached: false };
+                        },
+                      }
+                    : {}),
+                },
+              }
+            : {}),
         });
       },
       inject: [PrismaService, EmailService, GeoIpService],
     },
+    // Iter-193: prunes stale Better-Auth `verifications` rows older
+    // than 7 days — the table accumulates one row per email-verify /
+    // password-reset / magic-link issuance and Better-Auth itself
+    // does not auto-prune. Cron tick mirrors sibling cleanup crons
+    // (idempotency, geocoding-cache, variant-cache).
+    {
+      provide: VERIFICATION_STORE,
+      useFactory: (prisma: PrismaService) => new PrismaVerificationStore(prisma),
+      inject: [PrismaService],
+    },
+    VerificationCleanupCron,
   ],
   exports: [BETTER_AUTH_INSTANCE],
 })

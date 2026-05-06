@@ -2,7 +2,7 @@ import type { AppEnv } from "../http/cookie-cors-config.js";
 
 /**
  * Minimal OpenTelemetry SDK shape that we depend on. Kept narrow so we
- * can swap `@opentelemetry/sdk-node` for a different SDK or a stub in
+ * can swap `@opentelemetry/sdk-node` for a different SDK or a fake in
  * tests without code changes.
  */
 export interface OtelSdk {
@@ -56,9 +56,9 @@ export async function initObservability(options: InitObservabilityOptions): Prom
 
 function defaultSdkFactory(): OtelSdk {
   // Real `@opentelemetry/sdk-node` adoption is an enabling change in a
-  // later slice (Phase 8 / observability). Until then we expose a stub
-  // so consumers that flip `observability.enabled=true` get a clear
-  // signal rather than a silent failure.
+  // later slice (Phase 8 / observability). Until then we throw a clear
+  // signal so consumers that flip `observability.enabled=true` see the
+  // misconfiguration rather than a silent failure.
   throw new Error(
     "observability.enabled=true but no sdkFactory was provided. Pass an `@opentelemetry/sdk-node` factory or keep observability disabled.",
   );

@@ -67,7 +67,8 @@ export class OutputPipeline {
     // CASL's rule index is internal; we read the raw rules off the ability
     // for this subject and union the field arrays. Empty/undefined means
     // "no field-level constraint".
-    const raw = this.ability.rulesFor("read", subject as never);
+    type RulesForArgs = Parameters<typeof this.ability.rulesFor>;
+    const raw = this.ability.rulesFor("read", subject as RulesForArgs[1]);
     let union: string[] | null = null;
     let sawWithoutFields = false;
     for (const rule of raw) {

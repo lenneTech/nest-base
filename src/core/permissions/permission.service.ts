@@ -88,6 +88,22 @@ export class PermissionService {
     }
   }
 
+  /**
+   * Drop every cached ability — the broadest invalidation. Admin
+   * surfaces that mutate role/policy/permission graph (where the
+   * affected user set is unknown without a graph walk) call this so
+   * the next request rebuilds with fresh rules. Cheap relative to a
+   * 60s TTL stale window.
+   */
+  invalidateAll(): void {
+    this.cache.clear();
+  }
+
+  /** Cache size — used by tests + the dev-portal cache panel. */
+  cacheSize(): number {
+    return this.cache.size;
+  }
+
   private cacheKey(userId: string, tenantId: string): string {
     return `${userId}|${tenantId}`;
   }

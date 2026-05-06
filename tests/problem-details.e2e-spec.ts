@@ -41,8 +41,8 @@ class BoomController {
   }
 
   @Get("ok")
-  ok(): { ok: true } {
-    return { ok: true };
+  ok(): { status: "ok" } {
+    return { status: "ok" };
   }
 
   @Get("bad-request")
@@ -188,7 +188,7 @@ describe("Problem-Details exception filter", () => {
   it("Successful responses are not touched", async () => {
     const response = await request(app.getHttpServer()).get("/boom/ok");
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({ ok: true });
+    expect(response.body).toEqual({ status: "ok" });
   });
 
   it.each([

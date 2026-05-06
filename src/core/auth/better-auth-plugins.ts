@@ -12,7 +12,12 @@ export type AuthPluginName =
   | "passkey"
   | "apiKeys"
   | "social"
-  | "emailVerification";
+  | "emailVerification"
+  | "magicLink"
+  | "admin"
+  | "organization"
+  | "oneTap"
+  | "openAPI";
 
 export function listAuthPluginNames(features: Features): AuthPluginName[] {
   const plugins: AuthPluginName[] = [];
@@ -22,5 +27,10 @@ export function listAuthPluginNames(features: Features): AuthPluginName[] {
   if (features.authMethods.apiKeys) plugins.push("apiKeys");
   if (features.authMethods.socialProviders.length > 0) plugins.push("social");
   if (features.email.enabled) plugins.push("emailVerification");
+  if (features.magicLink.enabled) plugins.push("magicLink");
+  if (features.adminPlugin.enabled) plugins.push("admin");
+  if (features.organization.enabled) plugins.push("organization");
+  if (features.oneTap.enabled) plugins.push("oneTap");
+  if (features.openAPI.enabled) plugins.push("openAPI");
   return plugins;
 }

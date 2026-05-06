@@ -13,7 +13,7 @@
  *   bun run doctor --json   # machine-readable JSON for CI consumption
  */
 
-import { existsSync, statfsSync } from 'node:fs';
+import { existsSync, readFileSync, statfsSync } from 'node:fs';
 import { connect } from 'node:net';
 import { resolve } from 'node:path';
 
@@ -63,7 +63,7 @@ async function probeTcp(host: string, port: number, timeoutMs = 600): Promise<bo
 const projectRoot = process.cwd();
 const projectName = (() => {
   try {
-    const pkg = JSON.parse(Bun.file(resolve(projectRoot, 'package.json')).text() as unknown as string) as {
+    const pkg = JSON.parse(readFileSync(resolve(projectRoot, 'package.json'), 'utf8')) as {
       name?: string;
     };
     return pkg.name ?? 'app';

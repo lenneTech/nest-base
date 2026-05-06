@@ -35,6 +35,14 @@ import { readTunnelState } from "../dev/tunnel-state-runner.js";
 import { MigrationsService } from "./migrations/migrations.service.js";
 
 import { type Features, loadFeatures } from "../features/features.js";
+import {
+  type WebhookEventMetadata,
+  getRegisteredWebhookEvents,
+} from "../webhooks/webhook-event.decorator.js";
+import {
+  SCHEDULED_JOB_REGISTRY,
+  type ScheduledJobRegistry,
+} from "../jobs/scheduled-job.registry.js";
 import { EMAIL_OUTBOX_STORAGE } from "../email/email-outbox.module.js";
 import type { EmailOutboxStorage } from "../email/email-outbox.js";
 import { classifyEmailOutboxLag } from "../email/email-outbox-health.js";
@@ -56,10 +64,6 @@ import {
   type EmailPreviewResult,
 } from "./email-preview.js";
 import { buildErdForProject } from "./erd-runner.js";
-import {
-  EjsEmailTemplateRenderer,
-  buildBuiltInEmailTemplateRegistry,
-} from "../email/email-templates.js";
 import {
   KNOWN_EMAIL_BLOCKS,
   KNOWN_EMAIL_LAYOUTS,
@@ -106,6 +110,7 @@ export class DevHubController {
     private readonly routes: RouteInventoryService,
     private readonly migrations: MigrationsService,
     private readonly jobs: JobQueueService,
+    @Inject(SCHEDULED_JOB_REGISTRY) private readonly scheduledJobs: ScheduledJobRegistry,
     @Optional() @Inject(EMAIL_OUTBOX_STORAGE) private readonly emailOutbox?: EmailOutboxStorage,
   ) {}
 
@@ -398,6 +403,43 @@ export class DevHubController {
     return { catalog: FEATURE_CATALOG, features: this.featuresOnly() };
   }
 
+  /**
+   * `/dev/scheduled-jobs.json` — surfaces the runtime
+   * `ScheduledJobRegistry` (CF.JOBS.02). Each entry mirrors the
+   * registry's contract: `name`, `cron`, `source`
+   * (`<ClassName>.<methodName>`). The DiscoveryService walk happens at
+   * `OnApplicationBootstrap`, so by the time this endpoint is hit the
+   * inventory is complete + fixed for the lifetime of the app.
+   */
+  @Get("scheduled-jobs.json")
+  scheduledJobsJson(): {
+    jobs: Array<{ name: string; cron: string; source: string }>;
+  } {
+    this.assertDev();
+    const jobs = this.scheduledJobs.list().map((entry) => ({
+      name: entry.name,
+      cron: entry.cron,
+      source: entry.source,
+    }));
+    return { jobs };
+  }
+
+  /**
+   * `/dev/webhook-events.json` — surfaces the @WebhookEvent registry
+   * (CF.WH.04). The dev-portal "Available webhook events" panel
+   * consumes this so a project administrator can see which events
+   * are emit-able without grepping the source. Each entry mirrors
+   * the canonical `WebhookEventMetadata` shape: `name`,
+   * `description?`, `version`, `permission?`. The dispatcher's
+   * runtime validation reads from the same registry — the two stay
+   * in sync by construction.
+   */
+  @Get("webhook-events.json")
+  webhookEventsJson(): { events: readonly WebhookEventMetadata[] } {
+    this.assertDev();
+    return { events: getRegisteredWebhookEvents() };
+  }
+
   @Post("features/:key/toggle")
   @HttpCode(200)
   async toggleFeature(
@@ -552,6 +594,22 @@ export class DevHubController {
     return renderDevPortalShell(buildDevPortalShellInput({ title: "ERD", brand: "central" }));
   }
 
+  /**
+   * `/dev/json` — paste-text-render JSON viewer (PRD line 145). The
+   * SPA-side `JsonViewerPage` lets developers paste arbitrary JSON
+   * and inspect the parsed structure through the same `JsonViewer`
+   * component the rest of the dev portal uses. No JSON endpoint —
+   * the parsing happens client-side.
+   */
+  @Get("json")
+  @Header("content-type", "text/html; charset=utf-8")
+  jsonViewerPage(): string {
+    this.assertDev();
+    return renderDevPortalShell(
+      buildDevPortalShellInput({ title: "JSON Viewer", brand: "central" }),
+    );
+  }
+
   @Get("erd.json")
   erdJson(): { mermaid: string; modelCount: number; relationCount: number } {
     this.assertDev();
@@ -632,7 +690,12 @@ export class DevHubController {
     rendered: Record<string, EmailPreviewResult>;
   }> {
     this.assertDev();
-    const renderer = new EjsEmailTemplateRenderer(buildBuiltInEmailTemplateRegistry());
+    // PRD § Out of Scope bans EJS — `/dev/email-preview` runs the
+    // ReactEmailTemplateRenderer (the same path production code uses
+    // through `EmailService.sendTemplate`) so the preview reflects
+    // the real rendering pipeline. Brand config is resolved once per
+    // request to mirror live behaviour.
+    const renderer = new ReactEmailTemplateRenderer({ brand: resolveBrandConfig() });
     const catalog = buildEmailPreviewCatalog();
     const rendered: Record<string, EmailPreviewResult> = {};
     for (const entry of catalog.entries) {
@@ -1249,6 +1312,36 @@ export class DevHubController {
    * JSON is the only surface; visibility happens via the existing
    * Jobs Dashboard (the worker tick aggregates as a job entry).
    */
+  /**
+   * `/dev/email-outbox` — SPA HTML shell for the email-outbox
+   * dashboard (issue #11). The React page consumes the existing
+   * `/dev/outbox.json` payload — the controller stays a single
+   * source of data for both the legacy JSON-only consumer and the
+   * new SPA page.
+   */
+  @Get("email-outbox")
+  @Header("content-type", "text/html; charset=utf-8")
+  emailOutboxPage(): string {
+    this.assertDev();
+    return renderDevPortalShell(
+      buildDevPortalShellInput({ title: "Email Outbox", brand: "central" }),
+    );
+  }
+
+  /**
+   * `/dev/cron` — SPA HTML shell for the cron-schedule dashboard
+   * (CF.JOBS.02). The React page reads the existing
+   * `/dev/scheduled-jobs.json` payload and renders the registry's
+   * inventory: every `@ScheduledJob`-decorated method, its cron
+   * expression, and the source class.method.
+   */
+  @Get("cron")
+  @Header("content-type", "text/html; charset=utf-8")
+  cronPage(): string {
+    this.assertDev();
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Cron", brand: "central" }));
+  }
+
   @Get("outbox.json")
   async outboxJson() {
     this.assertDev();

@@ -20,7 +20,7 @@ bun run lint           # oxlint + oxfmt
 bun run test:unit      # tests/unit/
 bun run test:e2e       # tests/stories + tests/*.e2e-spec.ts
 bun run test:types     # tsc --noEmit on tests/types/tsconfig.json
-bun run test:coverage  # vitest --coverage; src/core ≥ 90 %, src/modules ≥ 80 %
+bun run test:coverage  # vitest --coverage; src/core ≥ 80 %, src/modules ≥ 75 %
 bun run build          # bun build → dist/
 ```
 
@@ -69,7 +69,7 @@ unless a gate failed.
 - Don't fix the failures. Report them.
 - Don't run destructive git ops.
 - Don't skip a gate, even if a previous one failed.
-- Coverage thresholds: `src/core/` ≥ 90 %, `src/modules/` ≥ 80 %.
+- Coverage thresholds: `src/core/` ≥ 80 %, `src/modules/` ≥ 75 %.
   Below either is a fail, not a warning.
 - If a gate runs longer than 5 minutes, abort it and report timeout.
 

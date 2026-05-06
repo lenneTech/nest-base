@@ -5,8 +5,10 @@ import {
   ForbiddenException,
   Get,
   Header,
+  Headers,
   HttpCode,
   NotFoundException,
+  Optional,
   Param,
   Post,
   Query,
@@ -35,9 +37,16 @@ import {
   type WebhookInspectorPageInput,
   type WebhookRedeliverResponse,
 } from "./webhook-inspector-types.js";
+import { PrismaService } from "../prisma/prisma.service.js";
 import { RealtimeGateway } from "../realtime/realtime.module.js";
+import { SearchService } from "../search/search.service.js";
 import { serverConfigFromEnv } from "../server/server-config.js";
-import { buildPermissionReport, type PermissionReport } from "../permissions/permission-report.js";
+import {
+  buildPermissionReport,
+  type PermissionReport,
+  type PermissionRule,
+} from "../permissions/permission-report.js";
+import { PermissionService } from "../permissions/permission.service.js";
 import { buildHmacSignatureHeader } from "../webhooks/hmac-signature.js";
 import {
   buildEndpointAggregates,
@@ -75,10 +84,91 @@ import { buildDemoDeliveries } from "../webhooks/inspector-store.js";
 const CSRF_TTL_SECONDS = 30 * 60;
 const DEFAULT_PAGE_LIMIT = 100;
 const MAX_PAGE_LIMIT = 500;
+/**
+ * Audit Browser pagination — page size capped at 200 so the React
+ * page render time stays bounded even on tenants with millions of
+ * audit rows. Future cursor-pagination slice can lift this when the
+ * UI grows infinite-scroll.
+ */
+const AUDIT_BROWSER_PAGE_SIZE = 200;
+/**
+ * Search Tester result-set cap — high enough that a typical FTS
+ * query (returns dozens of hits) renders complete, low enough that
+ * a sloppy / broad query (`*`-style) doesn't ship megabytes back to
+ * the SPA. Mirrors the `SearchOptions.limit` contract.
+ */
+const SEARCH_TESTER_PAGE_SIZE = 50;
+
+/**
+ * Extract a human-readable title from a SearchHit. Cross-resource
+ * search results don't carry a separate title field — the title is
+ * usually the row's primary identifier (id) or the highlight head
+ * (the snippet without the `<b>` markers). This helper picks the
+ * best available without trusting any payload fragment.
+ */
+function extractSearchTitle(hit: { id: string; highlight?: string }): string {
+  if (hit.highlight) {
+    // Strip the `<b>...</b>` markers from the snippet for the title;
+    // the React page renders the snippet separately with the markers
+    // intact (the `dangerouslySetInnerHTML` boundary is documented
+    // in search-tester-types.ts).
+    const stripped = hit.highlight.replaceAll(/<\/?b>/g, "").trim();
+    if (stripped.length > 0) {
+      return stripped.length > 80 ? stripped.slice(0, 80) + "…" : stripped;
+    }
+  }
+  return hit.id;
+}
+
+interface AuditLogRow {
+  id: string;
+  action: string;
+  targetModel: string;
+  targetId: string;
+  actorUserId: string | null;
+  tenantId: string;
+  createdAt: Date;
+  diff: unknown;
+}
+
+function mapAuditLogRow(row: AuditLogRow): AuditLogEntry {
+  const diff = (row.diff ?? {}) as {
+    before?: Record<string, unknown>;
+    after?: Record<string, unknown>;
+  };
+  const entry: AuditLogEntry = {
+    id: row.id,
+    action: row.action.toLowerCase(),
+    resource: row.targetModel,
+    resourceId: row.targetId,
+    tenantId: row.tenantId,
+    occurredAt: row.createdAt.toISOString(),
+  };
+  if (row.actorUserId) entry.actorUserId = row.actorUserId;
+  if (diff.before) entry.before = diff.before;
+  if (diff.after) entry.after = diff.after;
+  return entry;
+}
+
+function parseIsoQuery(value: string | undefined): Date | null {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
+}
 
 @Controller("admin")
 export class AdminSpaController {
-  constructor(private readonly realtime: RealtimeGateway) {}
+  constructor(
+    private readonly realtime: RealtimeGateway,
+    private readonly prisma: PrismaService,
+    // SearchService is feature-gated (FEATURE_SEARCH_ENABLED). When
+    // search is off, SearchModule isn't loaded and DI hands us
+    // `undefined`; the search/* endpoints fall back to an empty
+    // result set so the SPA renders the "no results" empty state.
+    @Optional() private readonly searchService: SearchService | undefined,
+    @Optional() private readonly permissionService: PermissionService | undefined,
+  ) {}
 
   // ── Permission Tester ────────────────────────────────────────────
 
@@ -94,23 +184,36 @@ export class AdminSpaController {
   /**
    * `/admin/permissions/test.json` — runs the form lookup. The legacy
    * server page never wired the lookup either (it always rendered the
-   * empty form), so this returns a stub report with no rules until the
+   * empty form), so this returns an empty report with no rules until the
    * Prisma-backed PermissionStorage adapter lands. The shape pins the
    * contract the React page reads.
    */
   @Get("permissions/test.json")
-  permissionsTestJson(
+  async permissionsTestJson(
     @Query("userId") userId: string | undefined,
     @Query("tenantId") tenantId: string | undefined,
-  ): { report: PermissionReport | null; submitted: { userId: string; tenantId: string } } {
+  ): Promise<{
+    report: PermissionReport | null;
+    submitted: { userId: string; tenantId: string };
+  }> {
     this.assertDev();
     const submitted = { userId: userId ?? "", tenantId: tenantId ?? "" };
     if (!userId || !tenantId) {
       return { report: null, submitted };
     }
-    // No PermissionStorage adapter yet — return the same empty-report
-    // shape the legacy page would have shown for a user with no rules.
-    const report = buildPermissionReport({ userId, tenantId, rules: [] });
+    // PermissionService is wired by AdminCrudModule. When absent
+    // (test boots that disable it), return the empty-report shape
+    // the legacy server used.
+    if (!this.permissionService) {
+      const empty = buildPermissionReport({ userId, tenantId, rules: [] });
+      return { report: empty, submitted };
+    }
+    const ability = await this.permissionService.abilityFor(userId, tenantId);
+    const rules: PermissionRule[] = ability.rules.map((r) => ({
+      action: Array.isArray(r.action) ? r.action.join(",") : String(r.action),
+      subject: Array.isArray(r.subject) ? r.subject.join(",") : String(r.subject),
+    }));
+    const report = buildPermissionReport({ userId, tenantId, rules });
     return { report, submitted };
   }
 
@@ -421,13 +524,14 @@ export class AdminSpaController {
   }
 
   @Get("audit.json")
-  auditBrowserJson(
+  async auditBrowserJson(
+    @Headers("x-tenant-id") tenantHeader: string | undefined,
     @Query("action") action: string | undefined,
     @Query("resource") resource: string | undefined,
     @Query("actorUserId") actorUserId: string | undefined,
     @Query("from") from: string | undefined,
     @Query("to") to: string | undefined,
-  ): AuditBrowserPageInput {
+  ): Promise<AuditBrowserPageInput> {
     this.assertDev();
     const filter: AuditBrowserPageInput["filter"] = {};
     if (action) filter.action = action;
@@ -435,8 +539,60 @@ export class AdminSpaController {
     if (actorUserId) filter.actorUserId = actorUserId;
     if (from) filter.from = from;
     if (to) filter.to = to;
-    const entries: AuditLogEntry[] = [];
+
+    // Build the Prisma where-clause from the filter. Each predicate is
+    // optional; the model's composite indexes (tenantId+createdAt /
+    // targetModel+targetId / actorUserId+createdAt) handle the most
+    // common pivot combinations the UI exposes.
+    //
+    // Iter-201: explicit `tenantId` predicate from the `x-tenant-id`
+    // request header (defense-in-depth alongside the RLS predicate
+    // `tenant_id = current_setting('app.tenant_id')` enabled on
+    // `audit_log` per migration `20260504140000_audit_log`). Without
+    // the explicit filter, an operator omitting the header would see
+    // an unscoped query relying entirely on RLS for isolation; with
+    // the filter, a missing or empty header trips a 400 before the
+    // query reaches Postgres. Closes iter-199's reviewer-flagged G2.
+    const tenantId = tenantHeader?.trim() ?? "";
+    if (!tenantId) {
+      throw new BadRequestException("x-tenant-id header is required");
+    }
+    const where: Record<string, unknown> = { tenantId };
+    if (action) where.action = action.toUpperCase();
+    if (resource) where.targetModel = resource;
+    if (actorUserId) where.actorUserId = actorUserId;
+    if (from || to) {
+      const createdAt: Record<string, Date> = {};
+      const fromDate = parseIsoQuery(from);
+      const toDate = parseIsoQuery(to);
+      if (fromDate) createdAt.gte = fromDate;
+      if (toDate) createdAt.lte = toDate;
+      if (Object.keys(createdAt).length > 0) where.createdAt = createdAt;
+    }
+
+    const rows = await this.prisma.auditLog.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take: AUDIT_BROWSER_PAGE_SIZE,
+    });
+    const entries: AuditLogEntry[] = rows.map((row) => mapAuditLogRow(row));
     return { entries, filter };
+  }
+
+  // ── Admin Jobs Dashboard ─────────────────────────────────────────
+
+  /**
+   * `/admin/jobs` — Admin SPA shell for the Jobs dashboard. The
+   * React page re-uses the JSON contract under `/dev/jobs/*` so the
+   * admin and dev surfaces stay byte-for-byte aligned. Iter-108 ships
+   * the shell so site operators (Better-Auth admin role) can see
+   * queue + job state without dropping into the developer portal.
+   */
+  @Get("jobs")
+  @Header("content-type", "text/html; charset=utf-8")
+  adminJobsPage(): string {
+    this.assertDev();
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Jobs", brand: "central" }));
   }
 
   // ── Search Tester ───────────────────────────────────────────────
@@ -451,16 +607,30 @@ export class AdminSpaController {
   }
 
   @Get("search.json")
-  searchTesterJson(@Query("q") q: string | undefined): SearchTesterPageInput {
+  async searchTesterJson(@Query("q") q: string | undefined): Promise<SearchTesterPageInput> {
     this.assertDev();
     if (q === undefined) {
       return { hits: [] };
     }
-    // The legacy renderer trusted `ts_headline`'s `<b>...</b>` highlight
-    // tags. Until the cross-resource FTS service is wired here, we
-    // return an empty result — the React page renders the "no results"
-    // empty state without trusting any payload fragment.
-    return { query: q, hits: [] };
+    // SearchService is gated on `FEATURE_SEARCH_ENABLED`. Return the
+    // empty-result shape when off so the SPA renders the same empty
+    // state the legacy server used to render — no payload fragment
+    // is trusted in either case.
+    if (!this.searchService) {
+      return { query: q, hits: [] };
+    }
+    const rawHits = await this.searchService.search(q, { limit: SEARCH_TESTER_PAGE_SIZE });
+    const hits: SearchTesterPageInput["hits"] = rawHits.map((hit) => ({
+      resource: hit.resource,
+      id: hit.id,
+      title: extractSearchTitle(hit),
+      // `highlight` is the cross-resource service's pre-wrapped
+      // ts_headline output — the trust boundary the React page reads
+      // through is documented in `search-tester-types.ts`.
+      snippet: hit.highlight ?? "",
+      rank: hit.rank,
+    }));
+    return { query: q, hits };
   }
 
   // ── helpers ─────────────────────────────────────────────────────

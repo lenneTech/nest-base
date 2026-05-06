@@ -99,4 +99,70 @@ describe("Output-Pipeline · Safety-Net value patterns", () => {
       expect(out).toEqual({ id: "1", notes: "aabbccdd" });
     });
   });
+
+  /**
+   * PRD-mandated regex coverage (CF.MTPERM.18, CF.MTPERM.19, SC.SUB.05, SC.SUB.06):
+   * the safety-net must catch AWS access-key IDs and OpenAI API keys
+   * shoved into normally-safe fields.
+   */
+  describe("PRD-required cloud-key patterns", () => {
+    it("catches an AWS access-key ID in a description field", () => {
+      expect(
+        containsSecretValue(
+          { description: "deploy with AKIAIOSFODNN7EXAMPLE then rotate" },
+          DEFAULT_SECRET_VALUE_PATTERNS,
+        ),
+      ).toBe(true);
+    });
+
+    it("catches a bare AWS access-key ID value", () => {
+      expect(DEFAULT_SECRET_VALUE_PATTERNS.some((re) => re.test("AKIAIOSFODNN7EXAMPLE"))).toBe(
+        true,
+      );
+    });
+
+    it("does NOT match short AKIA-prefixed strings (< 20 chars total)", () => {
+      // AKIA must be followed by 16 alnum chars to match the AWS spec.
+      expect(DEFAULT_SECRET_VALUE_PATTERNS.some((re) => re.test("AKIA12345"))).toBe(false);
+    });
+
+    it("catches an OpenAI sk- API key in a description field", () => {
+      expect(
+        containsSecretValue(
+          { description: "test with sk-abcdef0123456789ABCDEF0123456789abcdefABCDEF0123" },
+          DEFAULT_SECRET_VALUE_PATTERNS,
+        ),
+      ).toBe(true);
+    });
+
+    it("catches an OpenAI sk-proj- project key", () => {
+      expect(
+        DEFAULT_SECRET_VALUE_PATTERNS.some((re) =>
+          re.test("sk-proj-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQR0123456789"),
+        ),
+      ).toBe(true);
+    });
+
+    it("does NOT match short sk- prefixed words like 'sk-foo'", () => {
+      // The OpenAI key shape is sk- followed by ≥ 20 chars to avoid
+      // false positives on short tokens / identifiers.
+      expect(DEFAULT_SECRET_VALUE_PATTERNS.some((re) => re.test("sk-foo"))).toBe(false);
+    });
+
+    it("masks both AWS and OpenAI keys in mask mode", () => {
+      const out = applySafetyNet(
+        {
+          aws: "AKIAIOSFODNN7EXAMPLE",
+          openai: "sk-abcdef0123456789ABCDEF0123456789abcdefABCDEF0123",
+          benign: "user@example.com",
+        },
+        { mode: "mask", valuePatterns: DEFAULT_SECRET_VALUE_PATTERNS },
+      );
+      expect(out).toEqual({
+        aws: "[redacted]",
+        openai: "[redacted]",
+        benign: "user@example.com",
+      });
+    });
+  });
 });

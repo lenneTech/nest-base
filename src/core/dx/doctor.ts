@@ -134,22 +134,22 @@ function envStrengthStep(input: DoctorInput): DoctorStep {
   const id = "env-strength";
   const label = "Secret strength";
   const weak: string[] = [];
-  const placeholders: string[] = [];
+  const samples: string[] = [];
   for (const key of input.requiredEnvKeys) {
     const value = input.env[key];
     if (!value) continue;
     if (/change-me/i.test(value)) {
-      placeholders.push(key);
+      samples.push(key);
     } else if (key.toLowerCase().includes("secret") && value.length < MIN_SECRET_LENGTH) {
       weak.push(key);
     }
   }
-  if (placeholders.length > 0) {
+  if (samples.length > 0) {
     return {
       id,
       label,
       status: "blocked",
-      detail: `placeholder "change-me" values still present: ${placeholders.join(", ")}`,
+      detail: `sample "change-me" values still present: ${samples.join(", ")}`,
       remediation: "bun run setup --rotate (or hand-edit .env to replace `change-me` values)",
     };
   }

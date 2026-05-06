@@ -81,7 +81,8 @@ Every behaviour change follows red → green → refactor:
    ```
 7. Commit: `feat(<scope>): <slice>` (or `fix(<scope>):`, etc.)
 
-Coverage thresholds: `src/core/` ≥ 90% lines, `src/modules/` ≥ 80%.
+Coverage thresholds: `src/core/` ≥ 80% lines, `src/modules/` ≥ 75% lines (enforced
+by `vitest.config.ts` via `src/core/testing/coverage-gate.ts`).
 Failing the gate forces more tests, **not** more exclusions.
 
 ## Conventional Commits

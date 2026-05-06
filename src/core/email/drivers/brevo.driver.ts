@@ -15,7 +15,7 @@ import type { EmailDriver, EmailMessage, EmailSendResult } from "../email.servic
  *   composeBrevoTemplatePayload → /v3/smtp/email body for templated sends
  *   mapBrevoTemplate            → normalises Brevo's API JSON
  * The driver methods are thin wrappers calling those planners, then
- * the injected `BrevoHttpClient`. Tests stub the HTTP client; nothing
+ * the injected `BrevoHttpClient`. Tests fake the HTTP client; nothing
  * goes to the network.
  *
  * Read-side methods (`listTemplates`, `getTemplate`) feed Issue #9's
@@ -245,7 +245,7 @@ const BREVO_BASE_URL = "https://api.brevo.com";
  * Production Brevo HTTP client built on top of the platform `fetch`.
  * Adds the `api-key` header and surfaces the response body as JSON
  * (or `null` for empty 204s). Keeps the client interface tiny so tests
- * can stub it without `nock`/`msw`.
+ * can  fake it without `nock`/`msw`.
  */
 export function createBrevoHttpClient(opts: { apiKey: string; baseUrl?: string }): BrevoHttpClient {
   const baseUrl = opts.baseUrl ?? BREVO_BASE_URL;

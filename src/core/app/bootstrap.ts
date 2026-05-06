@@ -21,8 +21,15 @@ import { buildDevPortalShellInput, renderDevPortalShell } from "../dx/dev-portal
 import { planPrismaStudio } from "../dx/prisma-studio.js";
 import { buildScalarConfig } from "../dx/scalar-config.js";
 import { planStartupBanner } from "../dx/startup-banner.js";
-import { buildSecurityHeadersConfig } from "../http/security-headers.js";
+import { loadFeatures } from "../features/features.js";
+import {
+  buildSecurityHeadersConfig,
+  isJsonShapedResponse,
+  serializeCsp,
+  strictCspDirectives,
+} from "../http/security-headers.js";
 import { createLogger } from "../observability/logger.js";
+import { createOtelSdk, planOtelBootstrap } from "../observability/otel-sdk-bootstrap.js";
 import { PinoLoggerService } from "../observability/pino-logger.service.js";
 import { applyZodSchemaRegistry } from "../openapi/zod-openapi-bridge.js";
 import { serverConfigFromEnv } from "../server/server-config.js";
@@ -75,6 +82,33 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   const logger =
     options.logger ?? new PinoLoggerService(createLogger({ env: cfg.env, name: "nest-server" }));
 
+  // OpenTelemetry SDK bootstrap (TR.BE.16). Must run BEFORE
+  // NestFactory.create(...) so the auto-instrumentations bundle
+  // can patch HTTP / Prisma / Express modules at their require()
+  // sites — patching after they've been required is a no-op.
+  // The planner skips SDK construction when:
+  //   - `features.observability.enabled` is false, OR
+  //   - the OTLP endpoint env var (OTEL_EXPORTER_OTLP_TRACES_ENDPOINT)
+  //     is unset.
+  // In tests (`listen: false`), the SDK is intentionally skipped to
+  // keep test boots fast + free of network noise.
+  if (listen) {
+    const features = loadFeatures(process.env as Record<string, string | undefined>);
+    const otelPlan = planOtelBootstrap({
+      observabilityEnabled: features.observability.enabled,
+      otlpEndpoint: process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
+      serviceName: process.env.OTEL_SERVICE_NAME,
+    });
+    if (otelPlan.enabled) {
+      const sdk = createOtelSdk({
+        enabled: true,
+        serviceName: otelPlan.serviceName,
+        otlpEndpoint: otelPlan.otlpEndpoint,
+      });
+      sdk.start();
+    }
+  }
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { logger });
   app.disable("x-powered-by");
 
@@ -84,6 +118,78 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
       contentSecurityPolicy: security.contentSecurityPolicy,
       ...(security.hsts ? { hsts: security.hsts } : { hsts: false }),
     }),
+  );
+
+  // Path-aware CSP override — JSON responses always carry the strict
+  // PROD-shape CSP regardless of env. The dev CSP keeps `unsafe-inline`
+  // / `unsafe-eval` so the Scalar UI + dev-portal HTML pages render,
+  // but those allowances must NOT leak onto JSON API responses (PRD
+  // SC.SEC.05). This middleware runs AFTER helmet so we can overwrite
+  // the header on JSON-shaped responses without touching HTML responses.
+  const STRICT_CSP_HEADER = serializeCsp(strictCspDirectives());
+  app.use(
+    (
+      req: { path?: string; url?: string; headers?: { accept?: string | string[] } },
+      res: {
+        getHeader?: (name: string) => unknown;
+        setHeader?: (name: string, value: string) => void;
+        on?: (event: string, listener: () => void) => void;
+      },
+      next: () => void,
+    ) => {
+      const path =
+        typeof req.path === "string"
+          ? req.path
+          : typeof req.url === "string"
+            ? (req.url.split("?")[0] ?? "")
+            : "";
+      const rawAccept = req.headers?.accept;
+      const acceptHeader = Array.isArray(rawAccept) ? rawAccept[0] : rawAccept;
+
+      const apply = (responseContentType: string | undefined): void => {
+        if (
+          isJsonShapedResponse({
+            path,
+            acceptHeader,
+            responseContentType,
+          }) &&
+          typeof res.setHeader === "function"
+        ) {
+          res.setHeader("Content-Security-Policy", STRICT_CSP_HEADER);
+        }
+      };
+
+      // Path / Accept-based eager apply — runs before the controller
+      // emits the body. Catches `/api/*`, `*.json` endpoints, and
+      // `Accept: application/json` requests.
+      apply(undefined);
+
+      // Late apply — at the moment the response is about to flush,
+      // re-evaluate based on the final Content-Type so JSON responses
+      // routed through paths we didn't allowlist still get the strict
+      // CSP. Express emits `header` once headers are about to be sent.
+      if (typeof res.on === "function") {
+        res.on("close", () => {
+          // No-op cleanup — Express finalises headers earlier.
+        });
+      }
+      if (typeof res.getHeader === "function" && typeof res.setHeader === "function") {
+        // Some response objects expose a writeHead override hook; as a
+        // safer alternative we hook into the moment the body starts
+        // flushing through Express via the `pre-flush` semantics: we
+        // re-check immediately before the response is committed by
+        // wrapping `setHeader`'s public side-effect through the
+        // Content-Type read AFTER the controller finishes.
+        const originalSetHeader = res.setHeader.bind(res);
+        res.setHeader = (name: string, value: string): void => {
+          originalSetHeader(name, value);
+          if (typeof name === "string" && name.toLowerCase() === "content-type") {
+            apply(typeof value === "string" ? value : undefined);
+          }
+        };
+      }
+      next();
+    },
   );
 
   // RFC 7807 Problem-Details exception filter is registered via
@@ -196,9 +302,12 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
       use: (path: string, handler: unknown) => void;
     };
     if (tusServer && tusConfig?.mountPath) {
+      // The TusServerLike contract takes `(req: unknown, res: unknown)` —
+      // Express's middleware types narrow them to `Request, Response`
+      // but our interface is permissive; passing through directly
+      // type-checks without a cast.
       expressApp.use(tusConfig.mountPath, (req: unknown, res: unknown) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return tusServer.handle(req as any, res as any);
+        return tusServer.handle(req, res);
       });
     }
     // IPX `/_ipx/<modifiers>/<source>` — Nuxt-Image-compatible asset
@@ -210,9 +319,15 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
       handle: (req: unknown, res: unknown, next?: (err?: unknown) => void) => void;
     } | null;
     if (ipxServer) {
+      // Same permissive-interface story as the TUS mount above —
+      // ipxServer.handle takes `(unknown, unknown, unknown)` so the
+      // Express middleware args ride through without a cast.
       expressApp.use("/_ipx", (req: unknown, res: unknown, next: unknown) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ipxServer.handle(req as any, res as any, next as any);
+        ipxServer.handle(
+          req,
+          res,
+          typeof next === "function" ? (next as (err?: unknown) => void) : undefined,
+        );
       });
     }
   } catch {

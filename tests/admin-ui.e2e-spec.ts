@@ -2,8 +2,6 @@ import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { bootstrap } from "../src/core/app/bootstrap.js";
-
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 const TENANT = "11111111-1111-1111-1111-111111111111";
 
@@ -74,6 +72,7 @@ describe("Admin SPA · /admin/* shell + JSON sidecars", () => {
     beforeAll(async () => {
       previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "development";
+      const { bootstrap } = await import("../src/core/app/bootstrap.js");
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
     });
 
@@ -127,6 +126,7 @@ describe("Admin SPA · /admin/* shell + JSON sidecars", () => {
     beforeAll(async () => {
       previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "production";
+      const { bootstrap } = await import("../src/core/app/bootstrap.js");
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
     });
 

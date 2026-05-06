@@ -1,6 +1,20 @@
 import { EventEmitter } from "node:events";
 
-import { Injectable, Logger, Module } from "@nestjs/common";
+import { Inject, Injectable, Logger, Module, type OnModuleInit } from "@nestjs/common";
+
+import { OUTBOX_DISPATCHERS, OutboxModule } from "../outbox/outbox.module.js";
+import type { OutboxDispatcher } from "../outbox/outbox-worker.js";
+import { RealtimeOutboxDispatcher } from "./outbox-realtime.dispatcher.js";
+import {
+  REALTIME_SERVICE,
+  REALTIME_TRANSPORT,
+  RealtimeServiceLifecycle,
+} from "./realtime-service.lifecycle.js";
+import {
+  InMemoryRealtimeTransport,
+  RealtimeService,
+  type RealtimeTransport,
+} from "./realtime.service.js";
 import {
   type OnGatewayConnection,
   type OnGatewayDisconnect,
@@ -52,9 +66,12 @@ export class InspectorEvents extends EventEmitter {}
  * smoke-test the WS endpoint.
  *
  * Permission-aware channel-filter: rooms are joined via the
- * `subscribe` event; the gateway runs the filter (placeholder noop
- * until the Ability resolver hooks into the session) before adding
- * the socket to the room.
+ * `subscribe` event; the gateway runs the channel filter
+ * (`canSubscribeToChannel` from `channel-permission.ts`) before
+ * adding the socket to the room. Today the handshake runs in
+ * "anonymous" identity mode — the filter accepts every channel —
+ * because the production session resolver hooks in via the slice
+ * that ports Better-Auth session lookup into the WS handshake.
  *
  * The gateway delegates every observable lifecycle change to the
  * `InspectorState` (pure planner) and emits parallel events on the
@@ -92,9 +109,11 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     this.logger.log(`socket connected: ${client.id}`);
     client.on("subscribe", (channel: unknown) => {
       if (typeof channel !== "string" || !channel) return;
-      // Permission-aware filter placeholder: every channel is allowed
-      // for now. Once Ability resolution is wired into handshake auth,
-      // the gateway calls `ChannelFilter.canSubscribe()` here.
+      // Anonymous-handshake mode accepts every channel. The
+      // canonical filter (`canSubscribeToChannel` in
+      // `channel-permission.ts`) is consulted once the handshake-
+      // session integration runs ability resolution against the
+      // identified user.
       client.join(channel);
       this.state.recordSubscribe(client.id, channel);
       this.inspectorBus.emit(INSPECTOR_EVENT.channelSubscribed, {
@@ -133,6 +152,27 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       eventType: event,
       payload: maskPayload(payload),
       recipientCount,
+      latencyMs: 0,
+    });
+    this.inspectorBus.emit(INSPECTOR_EVENT.eventDispatched, recorded);
+  }
+
+  /**
+   * Send `event + payload` to every connected socket regardless of
+   * room membership. Used by the realtime OutboxDispatcher for
+   * `scope: 'global'` broadcasts (system-wide announcements). The
+   * inspector mirrors these under a synthetic `*` channel so the
+   * /admin/realtime view still surfaces them.
+   */
+  broadcastGlobal(event: string, payload: unknown): void {
+    if (this.server) {
+      this.server.emit(event, payload);
+    }
+    const recorded = this.state.recordEvent({
+      channel: "*",
+      eventType: event,
+      payload: maskPayload(payload),
+      recipientCount: this.activeSocketCount(),
       latencyMs: 0,
     });
     this.inspectorBus.emit(INSPECTOR_EVENT.eventDispatched, recorded);
@@ -224,8 +264,55 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
  * (RealtimeService → connect on `OnModuleInit`, fan out via
  * `RealtimeGateway.broadcast()`).
  */
+@Injectable()
+export class RealtimeOutboxDispatcherLifecycle implements OnModuleInit {
+  constructor(
+    @Inject(OUTBOX_DISPATCHERS)
+    private readonly dispatchers: OutboxDispatcher[],
+    private readonly gateway: RealtimeGateway,
+  ) {}
+
+  /**
+   * Mounts the realtime dispatcher onto the OutboxModule's
+   * `OUTBOX_DISPATCHERS` list at module init. We mutate the array in
+   * place rather than re-binding the provider so OutboxModule's
+   * `useValue: []` stays a single source of truth — every contributing
+   * module pushes its dispatcher here. The OutboxWorker reads the
+   * (now non-empty) array on every tick.
+   */
+  onModuleInit(): void {
+    if (this.dispatchers.some((d) => d.name === "realtime-outbox")) return;
+    this.dispatchers.push(new RealtimeOutboxDispatcher(this.gateway));
+  }
+}
+
 @Module({
-  providers: [RealtimeGateway, InspectorEvents],
-  exports: [RealtimeGateway, InspectorEvents],
+  imports: [OutboxModule],
+  providers: [
+    RealtimeGateway,
+    InspectorEvents,
+    RealtimeOutboxDispatcherLifecycle,
+    // Cross-instance LISTEN/NOTIFY transport (CF.RT.* iter-102).
+    // Default binding: in-memory transport so test bootstraps don't
+    // need a live Postgres LISTEN connection. Production projects
+    // override REALTIME_TRANSPORT with a Postgres-backed adapter
+    // built on `pg` LISTEN.
+    {
+      provide: REALTIME_TRANSPORT,
+      useFactory: (): RealtimeTransport => new InMemoryRealtimeTransport(),
+    },
+    {
+      provide: REALTIME_SERVICE,
+      useFactory: (transport: RealtimeTransport): RealtimeService => new RealtimeService(transport),
+      inject: [REALTIME_TRANSPORT],
+    },
+    {
+      provide: RealtimeServiceLifecycle,
+      useFactory: (service: RealtimeService, gateway: RealtimeGateway): RealtimeServiceLifecycle =>
+        new RealtimeServiceLifecycle(service, gateway),
+      inject: [REALTIME_SERVICE, RealtimeGateway],
+    },
+  ],
+  exports: [RealtimeGateway, InspectorEvents, REALTIME_SERVICE, REALTIME_TRANSPORT],
 })
 export class RealtimeModule {}

@@ -11,7 +11,7 @@ import { type PowerSyncConflictOutcome, resolvePowerSyncConflict } from "./power
  *     tenant from `getCurrentTenantId()` into every where-clause)
  *
  * The `ModelDelegate` interface is intentionally a subset of the
- * Prisma model delegate — that lets tests pass an in-memory stub
+ * Prisma model delegate — that lets tests pass an in-memory fake
  * without bringing up a real database, and lets the production
  * subclasses just hand over `prisma.user` / `prisma.project` / ….
  */

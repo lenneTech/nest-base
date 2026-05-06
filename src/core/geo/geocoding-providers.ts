@@ -177,7 +177,7 @@ export class GoogleGeocodingProvider implements GeocodingProvider {
 }
 
 // ────────────────────────────────────────────────────────────────────
-// Local stub — deterministic, no HTTP. For tests + air-gapped dev.
+// Local fake — deterministic, no HTTP. For tests + air-gapped dev.
 // ────────────────────────────────────────────────────────────────────
 
 export interface LocalStubFixture {
@@ -206,4 +206,89 @@ export class LocalStubGeocodingProvider implements GeocodingProvider {
     if (!hit) return null;
     return { lat: hit.lat, lng: hit.lng, formatted: hit.formatted };
   }
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Provider selection helper (iter-161, closes PRD line 105)
+// ────────────────────────────────────────────────────────────────────
+
+/**
+ * Default `fetch`-backed HTTP client. The `userAgent` keeps Nominatim
+ * happy (their ToS requires identifying the caller). Tests inject
+ * a fake — the helper is exported so projects that prefer their own
+ * HTTP layer can swap it.
+ */
+export function defaultGeocodingHttpClient(): GeocodingHttpClient {
+  return {
+    async get(url, headers) {
+      const response = await fetch(url, { method: "GET", headers });
+      let body: unknown = null;
+      try {
+        body = await response.json();
+      } catch {
+        body = null;
+      }
+      return { ok: response.ok, status: response.status, body };
+    },
+  };
+}
+
+export type GeocodingProviderName = "mapbox" | "google" | "nominatim" | "local";
+
+export interface SelectGeocodingProviderInput {
+  /** Reads `features.geo.provider` (Zod-validated upstream). */
+  readonly provider: GeocodingProviderName;
+  /** Source for credentials + user-agent. Defaults to `process.env`. */
+  readonly env?: Record<string, string | undefined>;
+  /** Optional HTTP-client override; defaults to `defaultGeocodingHttpClient()`. */
+  readonly http?: GeocodingHttpClient;
+  /** Local-stub fixtures when `provider === "local"`. */
+  readonly localFixtures?: LocalStubFixture[];
+}
+
+/**
+ * Returns the provider implementation that matches the project's
+ * `features.geo.provider` setting (PRD line 105: "Geocoding (4
+ * providers: mapbox / google / nominatim / local)"). Throws when a
+ * remote provider is selected without its credential env-var set so
+ * the operator sees the misconfiguration immediately.
+ */
+export function selectGeocodingProvider(input: SelectGeocodingProviderInput): GeocodingProvider {
+  const env = input.env ?? process.env;
+  const http = input.http ?? defaultGeocodingHttpClient();
+  switch (input.provider) {
+    case "local":
+      return new LocalStubGeocodingProvider({ seedFixtures: input.localFixtures ?? [] });
+    case "nominatim": {
+      const userAgent =
+        present(env["GEO_NOMINATIM_USER_AGENT"]) ??
+        present(env["APP_NAME"]) ??
+        "nest-base/0 (set GEO_NOMINATIM_USER_AGENT)";
+      return new NominatimGeocodingProvider({ http, userAgent });
+    }
+    case "mapbox": {
+      const accessToken = present(env["GEO_MAPBOX_ACCESS_TOKEN"]);
+      if (accessToken === undefined) {
+        throw new Error(
+          "selectGeocodingProvider: GEO_MAPBOX_ACCESS_TOKEN is required when features.geo.provider=mapbox",
+        );
+      }
+      return new MapboxGeocodingProvider({ http, accessToken });
+    }
+    case "google": {
+      const apiKey = present(env["GEO_GOOGLE_API_KEY"]);
+      if (apiKey === undefined) {
+        throw new Error(
+          "selectGeocodingProvider: GEO_GOOGLE_API_KEY is required when features.geo.provider=google",
+        );
+      }
+      return new GoogleGeocodingProvider({ http, apiKey });
+    }
+  }
+}
+
+function present(value: string | undefined): string | undefined {
+  if (value === undefined) return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
 }

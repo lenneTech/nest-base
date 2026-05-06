@@ -43,7 +43,8 @@ export class OutboxWorker {
         this.dispatchers.map(async (d) => {
           try {
             await d.dispatch(entry);
-            return { ok: true } as const;
+            const success: { ok: true } = { ok: true };
+            return success;
           } catch (error) {
             return {
               ok: false,

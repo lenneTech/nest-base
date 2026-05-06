@@ -26,7 +26,7 @@ import { TestAbilityMiddleware } from "./test-ability.middleware.js";
  * PermissionsModule — wires PermissionService + middleware + guard.
  *
  * Storage adapter: `PrismaPermissionStorage` is the default
- * (closes blocker, replaces the previous no-op stub). It returns
+ * (closes blocker, replaces the previous no-op fake). It returns
  * the joined `Role → RolePolicy → Policy → Permission` rows for the
  * caller's tenant membership PLUS a synthesized "Member" ruleset
  * scoped via `$CURRENT_TENANT` so every ACTIVE tenant member can

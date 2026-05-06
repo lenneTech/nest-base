@@ -39,7 +39,7 @@ interface FileTx {
 }
 
 export interface PrismaFileStorageDeps {
-  runWithRlsTenant<T>(cb: (tx: FileTx) => Promise<T>, tenantId: string): Promise<T>;
+  runWithRlsTenant<T>(cb: (tx: FileTx) => Promise<T>, tenantId?: string): Promise<T>;
   /**
    * Test-only escape hatch: when the dependency is a fake (story
    * tests), this property exposes the in-memory tx so the test runs
@@ -69,6 +69,26 @@ export class PrismaFileStorage implements FileServiceStorage {
     const row = await this.scanById(id);
     if (!row || row.deletedAt) return null;
     return this.fromRow(row);
+  }
+
+  async findByIdInTenant(tenantId: string, id: string): Promise<FileRecord | null> {
+    if (this.deps.__tx) {
+      const row = await this.deps.__tx.file.findFirst({
+        where: { id, tenantId } as Partial<File>,
+      });
+      if (!row || row.deletedAt) return null;
+      return this.fromRow(row);
+    }
+    try {
+      const row = await this.deps.runWithRlsTenant(
+        (tx) => tx.file.findFirst({ where: { id, tenantId } as Partial<File> }),
+        tenantId,
+      );
+      if (!row || row.deletedAt) return null;
+      return this.fromRow(row);
+    } catch {
+      return null;
+    }
   }
 
   async listByFolder(tenantId: string, folderId: string | null): Promise<FileRecord[]> {
@@ -123,10 +143,8 @@ export class PrismaFileStorage implements FileServiceStorage {
     // before any handler runs). `runWithRlsTenant` reads from there
     // when the second argument is omitted.
     try {
-      return await this.deps.runWithRlsTenant(
-        (tx) => tx.file.findFirst({ where: { id } as Partial<File> }),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        undefined as unknown as any,
+      return await this.deps.runWithRlsTenant((tx) =>
+        tx.file.findFirst({ where: { id } as Partial<File> }),
       );
     } catch {
       return null;
@@ -160,10 +178,14 @@ export class PrismaFileStorage implements FileServiceStorage {
     if (patch.storageDriver !== undefined) out.storageDriver = patch.storageDriver;
     if (patch.storageKey !== undefined) out.storageKey = patch.storageKey;
     if (patch.folderId !== undefined) out.folderId = patch.folderId;
+    if (patch.visibility !== undefined) {
+      (out as { visibility: "PRIVATE" | "PUBLIC" }).visibility = patch.visibility;
+    }
     return out;
   }
 
   private fromRow(row: File): FileRecord {
+    const visibility = (row as File & { visibility?: "PRIVATE" | "PUBLIC" }).visibility;
     return {
       id: row.id,
       tenantId: row.tenantId,
@@ -175,6 +197,7 @@ export class PrismaFileStorage implements FileServiceStorage {
       storageDriver: row.storageDriver,
       storageKey: row.storageKey,
       uploaderId: row.uploaderId,
+      visibility: visibility ?? "PRIVATE",
     };
   }
 }
@@ -301,16 +324,29 @@ export class PrismaFolderStorage implements FolderStorage {
  * `PrismaFileStorage` consumes. The adapter's only job is to forward
  * `runWithRlsTenant` — production code does not pass `__tx`.
  */
+/**
+ * Type-erasing bridge: `PrismaService.runWithRlsTenant` callbacks
+ * receive a Prisma `$transaction` client surface that's wider than
+ * the project's hand-rolled `FileTx` / `FolderTx` slices. Centralise
+ * the cast here so each binding reads cleanly.
+ */
+function asFileTx(tx: unknown): FileTx {
+  return tx as FileTx;
+}
+
+function asFolderTx(tx: unknown): FolderTx {
+  return tx as FolderTx;
+}
+
 export function bindPrismaFileStorage(prisma: PrismaService): PrismaFileStorage {
   return new PrismaFileStorage({
-    runWithRlsTenant: (cb, tenantId) =>
-      prisma.runWithRlsTenant((tx) => cb(tx as unknown as FileTx), tenantId),
+    runWithRlsTenant: (cb, tenantId) => prisma.runWithRlsTenant((tx) => cb(asFileTx(tx)), tenantId),
   });
 }
 
 export function bindPrismaFolderStorage(prisma: PrismaService): PrismaFolderStorage {
   return new PrismaFolderStorage({
     runWithRlsTenant: (cb, tenantId) =>
-      prisma.runWithRlsTenant((tx) => cb(tx as unknown as FolderTx), tenantId),
+      prisma.runWithRlsTenant((tx) => cb(asFolderTx(tx)), tenantId),
   });
 }

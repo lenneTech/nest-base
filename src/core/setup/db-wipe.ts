@@ -25,8 +25,8 @@
  *      query (returned by this planner) and, if it finds rows, runs
  *      the parameterised DROP for each one.
  *
- * The discovered-schema DROP carries a `__SCHEMA__` placeholder the
- * runner replaces by quoted identifier. Keeping the placeholder in
+ * The discovered-schema DROP carries a `__SCHEMA__` token the
+ * runner replaces by quoted identifier. Keeping the token in
  * the planner output makes the recipe easy to assert without coupling
  * the test to runtime discovery results.
  */

@@ -99,9 +99,17 @@ Two URL surfaces share the same engine:
    `IpxAssetTransformer` (a thin `createIPX()` wrapper sharing the
    same engine as the URL endpoint).
 
-`DELETE /_ipx/cache/:sourcePath` drops the asset-service cache.
-RBAC: `delete` on `Asset`. IPX itself uses `Cache-Control` + ETag
-revalidation; the asset cache sits one layer below.
+`DELETE /_ipx/cache/:sourcePath` cascades through the variant-cache
+index (`AssetVariantIndex`, iter-183): `AssetService.invalidateSource`
+queries the index for every cacheKey whose `sourceKey` matches the
+parameter, drops the matching bytes from the storage adapter, and
+removes the index rows — O(log N) targeted invalidation, sibling
+sources stay cached. When no index is bound (project skipped the
+migration), the controller falls back to the legacy "drop every
+`assets/*` entry" sweep so behaviour is preserved across the
+boundary. RBAC: `delete` on `Asset`. IPX itself uses `Cache-Control`
+
+- ETag revalidation; the asset cache sits one layer below.
 
 ## Pure planners
 

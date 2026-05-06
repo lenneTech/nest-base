@@ -10,7 +10,7 @@
  * install command when the SDK is missing.
  *
  * Loading is split into a thin static class that requires the SDK
- * already-resolved (so tests can stub it) and a `create()` factory
+ * already-resolved (so tests can fake it) and a `create()` factory
  * that pulls the SDK at first use.
  */
 
@@ -147,30 +147,54 @@ export class AwsS3Operations implements S3Operations {
   }
 }
 
+/**
+ * Type-erasing helper for optional-peer-dependency dynamic imports.
+ * `import("@aws-sdk/client-s3")` would fail TypeScript's static
+ * module-resolution check because the package isn't a hard dep —
+ * routing the specifier through this helper materialises the module
+ * at runtime without coupling the static type-check to the
+ * presence of the peer dep.
+ */
+async function optionalImport(specifier: string): Promise<Record<string, unknown>> {
+  const dynamicImport: (s: string) => Promise<unknown> = Function(
+    "specifier",
+    "return import(specifier)",
+  ) as (s: string) => Promise<unknown>;
+  const mod = await dynamicImport(specifier);
+  if (typeof mod !== "object" || mod === null) {
+    throw new Error(`optionalImport(${specifier}): expected a module object, got ${typeof mod}`);
+  }
+  return mod as Record<string, unknown>;
+}
+
 async function loadSdk(): Promise<AwsSdkBindings> {
-  // Two dynamic imports so a missing peer dep produces a clear message.
+  // Two dynamic imports so a missing peer dep produces a clear
+  // message. The module specifiers ride through `optionalImport()`
+  // so the static type-check doesn't fail on a missing peer.
   const [client, presigner] = await Promise.all([
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    import("@aws-sdk/client-s3" as any).catch((err) => {
+    optionalImport("@aws-sdk/client-s3").catch((err) => {
       throw new Error(
         `aws-s3-operations: failed to load @aws-sdk/client-s3 — run \`bun add @aws-sdk/client-s3\`. underlying: ${err}`,
       );
     }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    import("@aws-sdk/s3-request-presigner" as any).catch((err) => {
+    optionalImport("@aws-sdk/s3-request-presigner").catch((err) => {
       throw new Error(
         `aws-s3-operations: failed to load @aws-sdk/s3-request-presigner — run \`bun add @aws-sdk/s3-request-presigner\`. underlying: ${err}`,
       );
     }),
   ]);
+  // The optional-import helper materialises modules typed as
+  // `Record<string, unknown>`; the runtime guarantees these
+  // properties exist (we just imported the SDK), so cast each export
+  // to its narrowed binding type.
   return {
-    S3Client: client.S3Client,
-    GetObjectCommand: client.GetObjectCommand,
-    PutObjectCommand: client.PutObjectCommand,
-    DeleteObjectCommand: client.DeleteObjectCommand,
-    HeadObjectCommand: client.HeadObjectCommand,
-    ListObjectsV2Command: client.ListObjectsV2Command,
-    getSignedUrl: presigner.getSignedUrl,
+    S3Client: client.S3Client as AwsSdkBindings["S3Client"],
+    GetObjectCommand: client.GetObjectCommand as AwsSdkBindings["GetObjectCommand"],
+    PutObjectCommand: client.PutObjectCommand as AwsSdkBindings["PutObjectCommand"],
+    DeleteObjectCommand: client.DeleteObjectCommand as AwsSdkBindings["DeleteObjectCommand"],
+    HeadObjectCommand: client.HeadObjectCommand as AwsSdkBindings["HeadObjectCommand"],
+    ListObjectsV2Command: client.ListObjectsV2Command as AwsSdkBindings["ListObjectsV2Command"],
+    getSignedUrl: presigner.getSignedUrl as AwsSdkBindings["getSignedUrl"],
   };
 }
 

@@ -60,6 +60,9 @@ const EmailBuilderPage = lazy(() =>
 const PostgrestParsePage = lazy(() =>
   import("./pages/PostgrestParsePage.js").then((m) => ({ default: m.PostgrestParsePage })),
 );
+const JsonViewerPage = lazy(() =>
+  import("./pages/JsonViewerPage.js").then((m) => ({ default: m.JsonViewerPage })),
+);
 const PermissionTesterPage = lazy(() =>
   import("./pages/PermissionTesterPage.js").then((m) => ({ default: m.PermissionTesterPage })),
 );
@@ -83,6 +86,25 @@ const OpenApiPage = lazy(() =>
 );
 const FileManagerPage = lazy(() =>
   import("./pages/FileManagerPage.js").then((m) => ({ default: m.FileManagerPage })),
+);
+const EmailOutboxPage = lazy(() =>
+  import("./pages/EmailOutboxPage.js").then((m) => ({ default: m.EmailOutboxPage })),
+);
+const CronPage = lazy(() => import("./pages/CronPage.js").then((m) => ({ default: m.CronPage })));
+const SessionsAdminPage = lazy(() =>
+  import("./pages/SessionsAdminPage.js").then((m) => ({ default: m.SessionsAdminPage })),
+);
+const AdminJobsPage = lazy(() =>
+  import("./pages/AdminJobsPage.js").then((m) => ({ default: m.AdminJobsPage })),
+);
+const RolesAdminPage = lazy(() =>
+  import("./pages/RolesAdminPage.js").then((m) => ({ default: m.RolesAdminPage })),
+);
+const PoliciesAdminPage = lazy(() =>
+  import("./pages/PoliciesAdminPage.js").then((m) => ({ default: m.PoliciesAdminPage })),
+);
+const PermissionsAdminPage = lazy(() =>
+  import("./pages/PermissionsAdminPage.js").then((m) => ({ default: m.PermissionsAdminPage })),
 );
 
 function PageFallback(): ReactNode {
@@ -114,7 +136,15 @@ export function App(): ReactNode {
         <Route path="/dev/email-preview" element={<EmailPreviewPage />} />
         <Route path="/dev/email-builder" element={<EmailBuilderPage />} />
         <Route path="/dev/postgrest-parse" element={<PostgrestParsePage />} />
+        <Route path="/dev/json" element={<JsonViewerPage />} />
         <Route path="/dev/files" element={<FileManagerPage />} />
+        <Route path="/dev/email-outbox" element={<EmailOutboxPage />} />
+        <Route path="/dev/cron" element={<CronPage />} />
+        <Route path="/admin/sessions" element={<SessionsAdminPage />} />
+        <Route path="/admin/jobs" element={<AdminJobsPage />} />
+        <Route path="/admin/roles" element={<RolesAdminPage />} />
+        <Route path="/admin/policies" element={<PoliciesAdminPage />} />
+        <Route path="/admin/permissions" element={<PermissionsAdminPage />} />
         <Route path="/admin/permissions/test" element={<PermissionTesterPage />} />
         <Route path="/admin/webhooks" element={<WebhookInspectorPage />} />
         <Route path="/admin/realtime" element={<RealtimeInspectorPage />} />

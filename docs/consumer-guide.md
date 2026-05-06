@@ -49,7 +49,7 @@ bun run lint        # oxlint + oxfmt
 bun run test:unit   # pure-function suite
 bun run test:e2e    # integration + story suite
 bun run test:types  # tsc --noEmit on tests/types
-bun run test:coverage  # vitest --coverage; ≥90% src/core, ≥80% src/modules
+bun run test:coverage  # vitest --coverage; ≥80% src/core, ≥75% src/modules
 bun run build       # bun build → dist/
 ```
 

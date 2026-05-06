@@ -86,27 +86,54 @@ export function haversineDistanceMeters(
 
 export interface FindNearbyInput {
   table: string;
+  /**
+   * Tenant scope for the spatial query. Required — every callsite
+   * must thread the operator's tenant through the SQL emission so
+   * the result set is bounded to rows the caller is allowed to see.
+   * Iter-205 reviewer-G5 closure: previously the helper emitted no
+   * `tenant_id` predicate, which left the tenant boundary entirely
+   * to RLS at runtime — defense-in-depth alongside RLS.
+   */
+  tenantId: string;
   lat: number;
   lng: number;
   /** Radius in metres. Must be > 0. */
   radiusMeters: number;
   /** Column holding the geometry; defaults to "location". */
   locationColumn?: string;
+  /**
+   * Tenant column on the target table; defaults to `"tenantId"`
+   * (camelCase, matching the geo schema's `addresses`/`geofences`).
+   * Domain modules with snake_case columns (`tenant_id`) override.
+   */
+  tenantColumn?: string;
 }
 
+const TENANT_UUID_PATTERN =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
 /**
- * Returns the SQL fragment for a `ST_DWithin` spatial-radius filter.
- * The PostGIS axis order is (lng, lat); the `::geography` cast makes
- * the radius argument metres rather than degrees.
+ * Returns the SQL fragment for a `ST_DWithin` spatial-radius filter
+ * scoped to a single tenant. The PostGIS axis order is (lng, lat);
+ * the `::geography` cast makes the radius argument metres rather
+ * than degrees. The tenantId is validated as a UUID at the helper
+ * boundary so the inlined value cannot smuggle SQL.
  */
 export function buildFindNearbyQuery(input: FindNearbyInput): string {
   if (input.radiusMeters <= 0) {
     throw new Error(`geo: findNearby radius must be > 0 (got ${input.radiusMeters})`);
   }
+  if (!input.tenantId || !TENANT_UUID_PATTERN.test(input.tenantId)) {
+    throw new Error(
+      `geo: findNearby tenantId must be a valid UUID (got ${String(input.tenantId)})`,
+    );
+  }
   const col = input.locationColumn ?? "location";
+  const tenantCol = input.tenantColumn ?? "tenantId";
   return (
     `SELECT * FROM "${input.table}" ` +
-    `WHERE ST_DWithin(` +
+    `WHERE "${tenantCol}" = '${input.tenantId}' ` +
+    `AND ST_DWithin(` +
     `"${col}"::geography, ` +
     `ST_MakePoint(${input.lng}, ${input.lat})::geography, ` +
     `${input.radiusMeters}` +
@@ -118,17 +145,49 @@ export interface WithinGeofenceInput {
   pointTable: string;
   geofenceTable: string;
   geofenceId: string;
+  /**
+   * Tenant scope for the spatial join. Required — every callsite
+   * threads the operator's tenant through to the SQL emission. Iter-205
+   * step-6 reviewer-flagged sibling closure: previously this helper
+   * had neither a tenant predicate nor `geofenceId` UUID validation,
+   * which left it as the unfixed twin of `buildFindNearbyQuery`.
+   */
+  tenantId: string;
   pointColumn?: string;
   areaColumn?: string;
+  /**
+   * Tenant column on both `pointTable` and `geofenceTable`; defaults
+   * to `"tenantId"` matching the geo schema. Domain modules with
+   * snake_case columns (`tenant_id`) override.
+   */
+  tenantColumn?: string;
 }
 
-/** Returns the SQL fragment for a `ST_Contains(geofence.area, point.location)` filter. */
+/**
+ * Returns the SQL fragment for a `ST_Contains(geofence.area, point.location)`
+ * filter scoped to a single tenant on BOTH the point and geofence
+ * tables. Both `tenantId` and `geofenceId` are validated as UUIDs at
+ * the helper boundary so the inlined values cannot smuggle SQL.
+ */
 export function buildWithinGeofenceQuery(input: WithinGeofenceInput): string {
+  if (!input.tenantId || !TENANT_UUID_PATTERN.test(input.tenantId)) {
+    throw new Error(
+      `geo: withinGeofence tenantId must be a valid UUID (got ${String(input.tenantId)})`,
+    );
+  }
+  if (!input.geofenceId || !TENANT_UUID_PATTERN.test(input.geofenceId)) {
+    throw new Error(
+      `geo: withinGeofence geofenceId must be a valid UUID (got ${String(input.geofenceId)})`,
+    );
+  }
   const pCol = input.pointColumn ?? "location";
   const aCol = input.areaColumn ?? "area";
+  const tenantCol = input.tenantColumn ?? "tenantId";
   return (
     `SELECT p.* FROM "${input.pointTable}" p, "${input.geofenceTable}" g ` +
-    `WHERE g.id = '${input.geofenceId}' ` +
+    `WHERE g."${tenantCol}" = '${input.tenantId}' ` +
+    `AND p."${tenantCol}" = '${input.tenantId}' ` +
+    `AND g.id = '${input.geofenceId}' ` +
     `AND ST_Contains(g."${aCol}", p."${pCol}")`
   );
 }

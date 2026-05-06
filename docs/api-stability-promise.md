@@ -95,6 +95,13 @@ releases:
 - **HTTP status codes** for documented error conditions (we don't quietly
   upgrade a 400 to a 422)
 - **OpenAPI `code` enum** entries (we add codes; we don't repurpose them)
+- **Idempotency-Key contract** — same key + same body within TTL replays
+  the cached response with `Idempotency-Replay: 1`; same key + different
+  body returns `409 Conflict` + `CORE_CONFLICT` + an `idempotencyKey`
+  extension on the RFC 7807 body, and the handler is NOT re-invoked
+- **ETag concurrency** — `ETag: "vN"` on reads, `If-Match: "vN"` on writes,
+  mismatches surface `412 Precondition Failed` + `CORE_PRECONDITION_FAILED`
+  with the current ETag echoed on the body
 - **Webhook signature scheme** (`t=,v1=` Standard-Webhooks header — see
   [Webhook-Spec](./webhook-spec.md))
 - **Database migrations** are forward-only; we never rewrite history of an

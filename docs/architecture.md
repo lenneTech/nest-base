@@ -283,12 +283,14 @@ These live in `src/core/` and are activated via `features.ts`:
 | Realtime | `src/core/realtime/` | `LISTEN/NOTIFY` → Socket.IO, permission-aware rooms, dev-only inspector state with PII-masked event ringbuffer |
 | MCP | `src/core/mcp/` | Model Context Protocol server, OAuth 2.1 (PKCE) |
 | Outbox | `src/core/outbox/` | Reliable event publishing (DB-write + dispatch in one tx) |
-| Audit | `src/core/audit/` | Append-only audit log, write-only by app, read-only via admin |
+| Audit | `src/core/audit/` | Append-only audit log, write-only by app, read-only via admin. The Prisma audit + audit-stamp extensions (`src/core/repository/prisma-extensions.ts`) auto-emit `(action, target, diff.before/after, metadata)` rows on every CUD against opted-in models (`Tenant`, `TenantMember`, `Role`, `RoleAssignment`, `Policy`, `Permission`, `ApiKey`); impersonation lifecycle events surface as `INVOKE` audit rows via `DefaultImpersonationAuditSink` |
 | Jobs | `src/core/jobs/` | pg-boss wrapper for cron + background work |
-| Idempotency | `src/core/idempotency/` | Stripe-style `Idempotency-Key` header |
+| Auth | `src/core/auth/` | Better-Auth core with 9 plugins (jwt/twoFactor/passkey/admin/organization/magicLink/oneTap/openAPI/apiKeys); 24h `VerificationCleanupCron` prunes stale `verifications` rows older than 7 days (Better-Auth doesn't auto-prune) |
+| Idempotency | `src/core/idempotency/` | Stripe-style `Idempotency-Key` header; Postgres-backed (`idempotency_records`) with a 24h cleanup cron pruning expired rows |
 | Concurrency | `src/core/concurrency/` | ETag / `If-Match` optimistic-lock |
-| Encryption | `src/core/encryption/` | AES-256-GCM field-level, key-versioned |
-| Geo | `src/core/geo/` | PostGIS + geocoding adapters |
+| Encryption | `src/core/encryption/` | AES-256-GCM field-level encryption via `MultiKekFieldEncryption` Prisma extension. Per-write fresh IV; primary KEK from `FIELD_ENCRYPTION_KEK`, comma-separated `FIELD_ENCRYPTION_LEGACY_KEKS` activates the read-side fallback so KEK rotation succeeds without a re-encryption pass |
+| Files | `src/core/files/` | Pluggable storage adapters (local / S3 / Postgres / RustFS), TUS resumable uploads, IPX image transforms with a Postgres-backed variant-cache index (`asset_variant_index`) + 24h cleanup cron pruning rows older than 90 days |
+| Geo | `src/core/geo/` | PostGIS + geocoding adapters with a 24h cache-cleanup cron |
 
 All are **opt-in via `features.ts`** — disabled features have zero
 footprint (no module load, no migration, no env-var requirement).
@@ -395,7 +397,7 @@ in any environment because frontends + SDK generators read them.
 
 ### Coverage
 
-`src/core/dx/clients/**` is **excluded** from the ≥ 70 % core
+`src/core/dx/clients/**` is **excluded** from the ≥ 80 % core lines
 coverage threshold (see `vitest.config.ts`). UI glue is exercised
 manually in development and by future Chrome-DevTools-MCP smoke
 tests; the **shell renderer** keeps a story test
@@ -461,12 +463,12 @@ which Tailwind utilities map to which token, build pipeline) lives in
 Auth        User · Account · Session · VerificationToken · TwoFactor · Passkey · Jwks · ApiKey
 Tenancy     Tenant · TenantMember
 Permission  Role · Policy · RolePolicy · Permission
-Files       FileFolder · File · FileBlob · AssetPreset
+Files       FileFolder · File · FileBlob · AssetPreset · AssetVariantIndex
 Webhooks    WebhookEndpoint · WebhookDelivery
 Realtime    RealtimeSubscription                       (optional)
 Geo         Address · Geofence · GeocodingCache         (optional, PostGIS)
 Mobile      PowerSyncDevice                            (optional)
-Reliability AuditLog · OutboxEvent · IdempotencyKey
+Reliability AuditLog · OutboxEntry · IdempotencyRecord
 System      ScheduledJob
 ```
 

@@ -608,13 +608,7 @@ function ComposerView({
     <div className="flex flex-col gap-4">
       <Card>
         <CardContent className="flex flex-wrap items-end gap-3 p-4">
-          <FormField
-            label="Slug"
-            id="eb-slug"
-            value={slug}
-            onChange={setSlug}
-            placeholder="my-template"
-          />
+          <FormField label="Slug" id="eb-slug" value={slug} onChange={setSlug} hint="my-template" />
           <FormField
             label="Subject"
             id="eb-subject"
@@ -700,13 +694,13 @@ function FormField({
   id,
   value,
   onChange,
-  placeholder,
+  hint,
 }: {
   label: string;
   id: string;
   value: string;
   onChange: (v: string) => void;
-  placeholder?: string;
+  hint?: string;
 }): ReactNode {
   return (
     <div className="flex flex-col gap-1.5">
@@ -715,7 +709,7 @@ function FormField({
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
+        placeholder={hint}
         className="w-44"
       />
     </div>
@@ -866,8 +860,8 @@ function BlockComposer({
           {Object.keys(vars).length === 0 ? (
             <p className="text-xs text-fg-muted">
               <em>
-                No variables — add a <code className="font-mono">{"{{name}}"}</code> placeholder to
-                a block.
+                No variables — add a <code className="font-mono">{"{{name}}"}</code> token to a
+                block.
               </em>
             </p>
           ) : (

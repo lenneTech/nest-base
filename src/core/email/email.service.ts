@@ -1,3 +1,7 @@
+import { type BlocklistEntry, checkRecipientBlocklist } from "./recipient-blocklist.js";
+import type { RecipientRateLimiter } from "./recipient-rate-limiter.js";
+import { resolveLocaleFallbackChain } from "./locale-fallback.js";
+
 /**
  * EmailService.
  *
@@ -81,6 +85,35 @@ export interface EmailServiceOptions {
   devWhitelist?: string[];
   rateLimit?: EmailRateLimiter;
   /**
+   * PRD-aligned recipient blocklist (CF.EMAIL.07). Patterns can be
+   * full addresses (`alice@example.com`) or domain wildcards
+   * (`@spam.example`). Checked before the dev whitelist so an
+   * explicitly-blocked address never wins via a permissive whitelist.
+   * `EmailRecipientBlockedError` thrown when matched.
+   */
+  blocklist?: readonly BlocklistEntry[];
+  /**
+   * Per-recipient sliding-window rate limiter (CF.EMAIL.08). When
+   * supplied, every send goes through `consume(recipient)`; over-cap
+   * recipients throw `EmailRecipientRateLimitedError`. Co-exists with
+   * the legacy `rateLimit` adapter — both checks must pass.
+   */
+  recipientRateLimiter?: RecipientRateLimiter;
+  /**
+   * Project default locale for the locale fallback chain (CF.EMAIL.09).
+   * When `sendTemplate({userLocale})` is called, the renderer is
+   * walked through the chain `[userLocale, languageRoot, defaultLocale]`
+   * — first locale that renders successfully wins. Defaults to "en".
+   */
+  defaultLocale?: string;
+  /**
+   * Per-template available-locale registry. Keys are template names,
+   * values are the locales the project ships for each template
+   * (e.g. `{ greeting: ["en", "de"], invitation: ["en"] }`).
+   * When omitted, the legacy single-locale path is used (no fallback).
+   */
+  availableLocalesByTemplate?: Readonly<Record<string, readonly string[]>>;
+  /**
    * Optional outbox enqueuer — when set, callers may pass
    * `mode: "outbox"` to defer transport to the worker. When unset,
    * `mode: "outbox"` throws `EmailOutboxNotConfiguredError`.
@@ -100,6 +133,13 @@ export interface SendTemplateOptions {
   to: string;
   template: string;
   locale?: string;
+  /**
+   * Recipient's preferred locale (e.g. `de-AT`). When supplied
+   * together with `availableLocalesByTemplate` on the service, the
+   * renderer walks the fallback chain — exact → language root →
+   * default locale — picking the first that renders.
+   */
+  userLocale?: string;
   vars?: object;
   brevoTemplateId?: number;
   from?: string;
@@ -154,6 +194,22 @@ export class EmailRateLimitedError extends Error {
   }
 }
 
+export class EmailRecipientBlockedError extends Error {
+  constructor(recipient: string, reason: string) {
+    super(`email: recipient "${recipient}" is on the blocklist (${reason})`);
+    this.name = "EmailRecipientBlockedError";
+  }
+}
+
+export class EmailRecipientRateLimitedError extends Error {
+  constructor(recipient: string, retryAt: number) {
+    super(
+      `email: per-recipient rate limit reached for "${recipient}" (retry at ${new Date(retryAt).toISOString()})`,
+    );
+    this.name = "EmailRecipientRateLimitedError";
+  }
+}
+
 export class TransactionalDriverMissingError extends Error {
   constructor() {
     super("email: brevoTemplateId is set but no transactional driver was configured");
@@ -172,8 +228,10 @@ export class EmailService {
   constructor(private readonly options: EmailServiceOptions) {}
 
   async send(opts: SendOptions, dispatch?: SendDispatchOptions): Promise<EmailSendResult> {
+    this.assertNotBlocked(opts.to);
     this.assertAllowed(opts.to);
     this.assertWithinRateLimit(opts.to);
+    this.assertWithinRecipientRateLimit(opts.to);
     if (dispatch?.mode === "outbox") {
       const result = await this.enqueueViaOutbox("send", opts, dispatch.idempotencyKey);
       this.options.rateLimit?.record(opts.to);
@@ -189,8 +247,10 @@ export class EmailService {
     opts: SendTemplateOptions,
     dispatch?: SendDispatchOptions,
   ): Promise<EmailSendResult> {
+    this.assertNotBlocked(opts.to);
     this.assertAllowed(opts.to);
     this.assertWithinRateLimit(opts.to);
+    this.assertWithinRecipientRateLimit(opts.to);
     if (dispatch?.mode === "outbox") {
       const result = await this.enqueueViaOutbox("sendTemplate", opts, dispatch.idempotencyKey);
       this.options.rateLimit?.record(opts.to);
@@ -211,8 +271,7 @@ export class EmailService {
         vars,
       );
     } else {
-      const locale = opts.locale ?? "en";
-      const rendered = await this.options.renderer.render(opts.template, locale, vars);
+      const rendered = await this.renderTemplateWithFallback(opts, vars);
       const message: EmailMessage = {
         to: opts.to,
         from: opts.from ?? this.options.defaultFrom,
@@ -224,6 +283,48 @@ export class EmailService {
     }
     this.options.rateLimit?.record(opts.to);
     return result;
+  }
+
+  /**
+   * Render a template through the locale fallback chain (CF.EMAIL.09).
+   *
+   *  - When `userLocale` + `availableLocalesByTemplate` are both supplied,
+   *    walk `[userLocale, languageRoot, defaultLocale]` and use the first
+   *    locale that renders successfully.
+   *  - When only `locale` (legacy) is supplied, render that single locale
+   *    directly — backward-compat path.
+   *  - When neither is supplied, render the project default ("en").
+   */
+  private async renderTemplateWithFallback(
+    opts: SendTemplateOptions,
+    vars: object,
+  ): Promise<EmailRenderedTemplate> {
+    const defaultLocale = this.options.defaultLocale ?? "en";
+    const availableForTemplate = this.options.availableLocalesByTemplate?.[opts.template];
+
+    if (opts.userLocale !== undefined && availableForTemplate !== undefined) {
+      const chain = resolveLocaleFallbackChain({
+        userLocale: opts.userLocale,
+        defaultLocale,
+        availableLocales: availableForTemplate,
+      });
+      let lastError: unknown;
+      for (const locale of chain) {
+        try {
+          return await this.options.renderer.render(opts.template, locale, vars);
+        } catch (err) {
+          lastError = err;
+        }
+      }
+      throw lastError instanceof Error
+        ? lastError
+        : new Error(
+            `email: template ${opts.template} unrenderable in any of [${chain.join(", ")}]`,
+          );
+    }
+
+    const singleLocale = opts.locale ?? opts.userLocale ?? defaultLocale;
+    return this.options.renderer.render(opts.template, singleLocale, vars);
   }
 
   private async enqueueViaOutbox(
@@ -263,6 +364,24 @@ export class EmailService {
     const decision = this.options.rateLimit?.check(recipient);
     if (decision && !decision.allowed) {
       throw new EmailRateLimitedError(recipient, decision.resetMs);
+    }
+  }
+
+  private assertNotBlocked(recipient: string): void {
+    const blocklist = this.options.blocklist;
+    if (!blocklist || blocklist.length === 0) return;
+    const result = checkRecipientBlocklist({ address: recipient, blocklist });
+    if (result.blocked) {
+      throw new EmailRecipientBlockedError(recipient, result.reason);
+    }
+  }
+
+  private assertWithinRecipientRateLimit(recipient: string): void {
+    const limiter = this.options.recipientRateLimiter;
+    if (!limiter) return;
+    const decision = limiter.consume(recipient);
+    if (!decision.allowed) {
+      throw new EmailRecipientRateLimitedError(recipient, decision.retryAt);
     }
   }
 }

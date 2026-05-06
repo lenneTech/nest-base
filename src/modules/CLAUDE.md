@@ -122,7 +122,7 @@ const record = await this.prisma.runWithRlsTenant(
 
 `tx.project.*` and `import type { Project } from '@prisma/client'` are
 fully typed once `bun run prisma:generate` ran against the current
-schema. **No `(tx as any)` casts.** If TypeScript says
+schema. **No escape-hatch casts on `tx`** — if TypeScript says
 `tx.<resource>` doesn't exist or `Project` isn't exported, the
 generator output is stale — regenerate, don't cast.
 
@@ -160,8 +160,8 @@ overrides Prisma and creates drift between the schema and runtime.
   RLS round-trip.
 - TDD-first: RED before GREEN. See `.claude/skills/running-tdd-slice.md`.
 
-Coverage threshold for `src/modules/` is **≥ 80 %** (vs `src/core/`'s
-90 %). New code without a story still drags the average.
+Coverage threshold for `src/modules/` is **≥ 75 %** (vs `src/core/`'s
+80 %). New code without a story still drags the average.
 
 ## Adding a new resource — outline
 

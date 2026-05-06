@@ -128,7 +128,7 @@ export interface DecideRegistrationActionInput {
 export function decideRegistrationAction(
   input: DecideRegistrationActionInput,
 ): RegistrationDecision {
-  // No record (or placeholder pid 0): nothing to take over, register fresh.
+  // No record (or sentinel pid 0): nothing to take over, register fresh.
   if (input.existingPid === undefined) return "no-existing";
   if (input.existingPid === 0) return "no-existing";
 

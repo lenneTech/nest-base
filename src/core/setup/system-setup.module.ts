@@ -18,7 +18,7 @@ import { systemSetupConfigFromEnv } from "./system-setup-config.js";
 const ADMIN_PROVISIONING_STORAGE = Symbol.for("lt:AdminProvisioningStorage");
 
 /**
- * In-memory admin storage stub. Replaced with a Better-Auth-backed
+ * In-memory admin storage fake. Replaced with a Better-Auth-backed
  * adapter once Better-Auth's Prisma schema lands. For now: a single
  * Map<email, AdminRecord> that tracks the bootstrap admin within the
  * process lifetime — enough to make `provisionInitialAdmin()` exercise
@@ -74,7 +74,7 @@ class SystemSetupBootstrap implements OnModuleInit {
  * and cached on `SystemSetupBootstrap.getLastResult()` for the
  * `/dev/system-setup` diagnostics endpoint.
  *
- * Storage is currently a process-local stub. Once Better-Auth's
+ * Storage is currently a process-local fake. Once Better-Auth's
  * Prisma adapter lands, the storage provider here swaps to a
  * Better-Auth-backed adapter without touching the bootstrap.
  */

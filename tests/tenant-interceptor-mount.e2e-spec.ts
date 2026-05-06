@@ -17,8 +17,8 @@ class TestController {
   }
 
   @Get("exempt")
-  exempt(): { ok: true } {
-    return { ok: true };
+  exempt(): { status: "ok" } {
+    return { status: "ok" };
   }
 }
 

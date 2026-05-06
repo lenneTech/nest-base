@@ -1,20 +1,35 @@
 import { z } from "zod";
 
 /**
- * System Setup config (Phase 2 will wire the actual provisioning).
+ * System Setup config — discriminated union (iter-122 PRD-reviewer
+ * Finding 15). The previous shape returned a static "disabled"
+ * fallback with a sentinel admin-password string, which tripped the
+ * disqualifier scan. The new shape forces every consumer to branch
+ * on `enabled` before reading credentials, so no fake sentinel
+ * string ever rides through the runtime.
  *
- * The bootstrap admin is provisioned from env-vars on first boot. Setup is
- * idempotent: re-running with the same credentials must not recreate the
- * user. This module owns the env-input parsing only.
+ * The bootstrap admin is provisioned from env-vars on first boot.
+ * Setup is idempotent: re-running with the same credentials must
+ * not recreate the user. This module owns the env-input parsing only.
  */
 
-export const SystemSetupConfigSchema = z.object({
+const SystemSetupEnabledSchema = z.object({
+  enabled: z.literal(true),
   adminEmail: z.email(),
   adminPassword: z.string().min(12),
-  enabled: z.boolean(),
 });
 
+const SystemSetupDisabledSchema = z.object({
+  enabled: z.literal(false),
+});
+
+export const SystemSetupConfigSchema = z.union([
+  SystemSetupEnabledSchema,
+  SystemSetupDisabledSchema,
+]);
+
 export type SystemSetupConfig = z.infer<typeof SystemSetupConfigSchema>;
+export type EnabledSystemSetupConfig = z.infer<typeof SystemSetupEnabledSchema>;
 
 export interface SystemSetupEnv {
   SYSTEM_SETUP_ADMIN_EMAIL?: string;
@@ -31,11 +46,7 @@ export function systemSetupConfigFromEnv(env: SystemSetupEnv): SystemSetupConfig
   const password = env.SYSTEM_SETUP_ADMIN_PASSWORD;
 
   if (!email && !password) {
-    return {
-      adminEmail: "disabled@invalid.local",
-      adminPassword: "system-setup-disabled-placeholder",
-      enabled: false,
-    };
+    return { enabled: false };
   }
 
   if (!password) {
@@ -45,9 +56,9 @@ export function systemSetupConfigFromEnv(env: SystemSetupEnv): SystemSetupConfig
     throw new Error("SYSTEM_SETUP_ADMIN_PASSWORD is set but SYSTEM_SETUP_ADMIN_EMAIL is missing");
   }
 
-  return SystemSetupConfigSchema.parse({
+  return SystemSetupEnabledSchema.parse({
+    enabled: true,
     adminEmail: email,
     adminPassword: password,
-    enabled: true,
   });
 }

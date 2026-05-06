@@ -187,7 +187,7 @@ export function filterDeliveries(input: DeliveryFilterInput): DeliveryAggregateI
 
 /**
  * Linear-interpolation percentile (Excel-style PERCENTILE.INC). Returns
- * 0 for an empty input so the React sidebar can render a "—" placeholder
+ * 0 for an empty input so the React sidebar can render a "—" fallback
  * without checking length.
  */
 function percentile(values: readonly number[], p: number): number {

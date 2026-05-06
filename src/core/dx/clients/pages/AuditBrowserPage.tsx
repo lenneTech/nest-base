@@ -83,19 +83,19 @@ export function AuditBrowserPage(): ReactNode {
               <FilterField
                 label="Action"
                 name="action"
-                placeholder="create / update / delete"
+                hint="create / update / delete"
                 defaultValue={filter.action ?? ""}
               />
               <FilterField
                 label="Resource"
                 name="resource"
-                placeholder="Project"
+                hint="Project"
                 defaultValue={filter.resource ?? ""}
               />
               <FilterField
                 label="Actor"
                 name="actorUserId"
-                placeholder="user uuid"
+                hint="user uuid"
                 defaultValue={filter.actorUserId ?? ""}
               />
               <FilterField label="From" name="from" type="date" defaultValue={filter.from ?? ""} />
@@ -122,26 +122,20 @@ export function AuditBrowserPage(): ReactNode {
 function FilterField({
   label,
   name,
-  placeholder,
+  hint,
   defaultValue,
   type,
 }: {
   label: string;
   name: string;
-  placeholder?: string;
+  hint?: string;
   defaultValue: string;
   type?: string;
 }): ReactNode {
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={name}>{label}</Label>
-      <Input
-        id={name}
-        name={name}
-        type={type}
-        placeholder={placeholder}
-        defaultValue={defaultValue}
-      />
+      <Input id={name} name={name} type={type} placeholder={hint} defaultValue={defaultValue} />
     </div>
   );
 }

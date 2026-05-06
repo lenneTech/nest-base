@@ -109,7 +109,7 @@ import { buildAbility } from "../permissions/casl-ability.ts";
 
 ### Coverage threshold
 
-`src/core/` is gated at **≥ 90 % line coverage**. New code without a
+`src/core/` is gated at **≥ 80 % line coverage**. New code without a
 test will lower the average and fail CI. Write the story first.
 
 ### `features.ts` gating

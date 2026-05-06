@@ -233,7 +233,14 @@ walks through it end-to-end.
   header (RFC 5988) with `rel="next"`/`"last"`.
 - **Idempotency** — for non-idempotent endpoints (`POST`, `PATCH`),
   honour the `Idempotency-Key` header. Decorate with
-  `@RequireIdempotencyKey()`.
+  `@RequireIdempotencyKey()`. Replays of the same key + body return
+  the cached response with `Idempotency-Replay: 1`. The same key with
+  a *different* body raises `IdempotencyConflictError` → `409
+  Conflict` + `CORE_CONFLICT` + an `idempotencyKey` extension on the
+  RFC 7807 problem-details body so the caller can identify the
+  offending key without parsing the message string. The store is
+  Postgres-backed (`idempotency_records` table) so cached replays
+  survive a process restart; cf. `src/core/idempotency/`.
 - **Optimistic concurrency** — return `ETag: "vN"` on read, accept
   `If-Match: "vN"` on update; mismatch → `412 Precondition Failed`.
 - **Soft-delete** — `deletedAt` / `deletedBy` columns; `delete()` soft,
@@ -310,7 +317,7 @@ Test layering and TDD discipline live in
 | Migration | `tests/migrate/` | Vitest + Postgres | Up- and down-migrations |
 | Performance | `tests/k6/` | k6 | Load/memory tests |
 
-Coverage thresholds: `src/core/` ≥ 90 %, `src/modules/` ≥ 80 %. Failing
+Coverage thresholds: `src/core/` ≥ 80 %, `src/modules/` ≥ 75 %. Failing
 the gate means *more tests*, not more exclusions.
 
 **Exception — `src/core/dx/clients/**`** (the React Dev-Portal SPA) is

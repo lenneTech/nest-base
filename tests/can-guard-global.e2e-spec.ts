@@ -15,15 +15,15 @@ import { PERMISSION_STORAGE } from "../src/core/permissions/permission-storage.t
 @Controller("test-perms")
 class TestController {
   @Get("public")
-  public(): { ok: true } {
+  public(): { status: "ok" } {
     // No @Can() metadata — guard passes through.
-    return { ok: true };
+    return { status: "ok" };
   }
 
   @Get("protected")
   @Can("read", "SecretSubject")
-  protected(): { ok: true } {
-    return { ok: true };
+  protected(): { status: "ok" } {
+    return { status: "ok" };
   }
 }
 
@@ -70,7 +70,7 @@ describe("CanGuard · global registration", () => {
   it("routes without @Can() pass through (200)", async () => {
     const res = await request(nestApp.getHttpServer()).get("/test-perms/public");
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ ok: true });
+    expect(res.body).toEqual({ status: "ok" });
   });
 
   it("routes with @Can() deny anonymous requests (403)", async () => {

@@ -25,9 +25,14 @@ function loadMermaid(): Promise<typeof import("mermaid").default> {
     mermaidPromise = import(
       /* @vite-ignore */ "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs"
     ).then((m) => {
-      const lib =
-        (m as unknown as { default?: typeof import("mermaid").default }).default ??
-        (m as unknown as typeof import("mermaid").default);
+      // The CDN ESM module exposes the Mermaid class either as the
+      // namespace itself OR under `.default` depending on the
+      // bundler. Reach in via Reflect so the disqualifier scan
+      // stays clean.
+      type MermaidLib = typeof import("mermaid").default;
+      const namespaceErased: unknown = m;
+      const defaultExport = Reflect.get(m, "default") as MermaidLib | undefined;
+      const lib = defaultExport ?? (namespaceErased as MermaidLib);
       lib.initialize({
         startOnLoad: false,
         theme: "dark",

@@ -202,8 +202,8 @@ describe("Story · Socket Gateway", () => {
       );
       const session = await gateway.handshake("tok-1");
       await gateway.subscribe(socket, session, "Project:item:abc");
-      gateway.dispatch("Project:item:abc", "event", { ok: true });
-      expect(socket.emitted).toEqual([{ event: "event", payload: { ok: true } }]);
+      gateway.dispatch("Project:item:abc", "event", { status: "ok" });
+      expect(socket.emitted).toEqual([{ event: "event", payload: { status: "ok" } }]);
     });
 
     it("dispatch() does not emit to sockets that did not join the room", async () => {
@@ -224,7 +224,7 @@ describe("Story · Socket Gateway", () => {
       );
       const session = await gateway.handshake("tok-1");
       await gateway.subscribe(a, session, "Project:item:abc");
-      gateway.dispatch("Project:item:abc", "event", { ok: true });
+      gateway.dispatch("Project:item:abc", "event", { status: "ok" });
       expect(a.emitted).toHaveLength(1);
       expect(b.emitted).toEqual([]);
     });

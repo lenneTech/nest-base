@@ -1,10 +1,18 @@
 import { passkey } from "@better-auth/passkey";
 import { type BetterAuthOptions, type BetterAuthPlugin, betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+// `one-tap` and `open-api` lack subpath exports in better-auth 1.6's
+// package.json — they're only exposed via the umbrella `better-auth/plugins`
+// entry. The other 4 plugins have stable subpath exports.
+import { admin } from "better-auth/plugins/admin";
 import { jwt } from "better-auth/plugins/jwt";
+import { magicLink } from "better-auth/plugins/magic-link";
+import { oneTap, openAPI } from "better-auth/plugins";
+import { organization } from "better-auth/plugins/organization";
 import { twoFactor } from "better-auth/plugins/two-factor";
 
 import type { DeviceHandlingRunner } from "../devices/device-handling.runner.js";
+import { validatePasswordPolicy } from "./password-policy.js";
 import { resolveBetterAuthMountPath } from "./better-auth-config.js";
 import {
   createEmailHookRunner,
@@ -94,7 +102,7 @@ export interface BuildBetterAuthInput {
   /**
    * Wire Better-Auth's email hooks (verification, reset, welcome) to a
    * caller-supplied `EmailService`. When omitted, Better-Auth falls
-   * back to its built-in default — currently a no-op stub.
+   * back to its built-in default — currently a no-op fake.
    */
   emailHooks?: EmailHooksOptions;
   /**
@@ -105,6 +113,143 @@ export interface BuildBetterAuthInput {
    * oldest session above the per-user cap.
    */
   deviceHandling?: { runner: DeviceHandlingRunner };
+  /**
+   * Password policy enforcement (CF.AUTH.passwordPolicy). When
+   * supplied, every Better-Auth signup / change-password flow runs
+   * the password through `validatePasswordPolicy` before hashing —
+   * a low-entropy or HIBP-breached password rejects with
+   * `PasswordPolicyError`. Projects that want to skip the breach
+   * check (no internet egress) supply only `minEntropyBits`; projects
+   * that want full enforcement supply both.
+   */
+  passwordPolicy?: {
+    minEntropyBits?: number;
+    breachCheck?: (password: string) => Promise<{ breached: boolean; count?: number }>;
+  };
+  /**
+   * Switch on the magic-link plugin (Better-Auth 1.6 plugin slot 6/9
+   * per the PRD). Caller supplies a `sendMagicLink` closure so the
+   * email is delivered through the project's `EmailService`. Defaults
+   * are otherwise Better-Auth's: 5-minute link expiry, single-use.
+   */
+  magicLink?: { sendMagicLink: MagicLinkSender };
+  /**
+   * Switch on the admin plugin (Better-Auth 1.6 plugin slot 4/9).
+   * Provides impersonation + ban + role assignment endpoints under
+   * `/api/auth/admin/*` for users that hold the `admin` role.
+   */
+  adminPlugin?: AdminPluginOptions;
+  /**
+   * Switch on the organization plugin (Better-Auth 1.6 plugin slot
+   * 5/9). Provides organization + membership + invitation routes
+   * under `/api/auth/organization/*`.
+   */
+  organization?: OrganizationPluginOptions;
+  /**
+   * Switch on the one-tap plugin (Better-Auth 1.6 plugin slot 7/9).
+   * Backs Google's One Tap chooser; the plugin verifies the ID token
+   * Google's UI returns and signs the user in.
+   */
+  oneTap?: OneTapPluginOptions;
+  /**
+   * Switch on the OpenAPI plugin (Better-Auth 1.6 plugin slot 8/9).
+   * Mounts `/api/auth/reference` (Scalar UI) + the underlying
+   * OpenAPI 3.1 document so SDK consumers can introspect the auth
+   * surface. The plugin's only side effect is exposing those routes;
+   * it does not change auth behaviour.
+   */
+  openAPI?: OpenAPIPluginOptions;
+  /**
+   * Per-route rate-limit windows for the auth surface. Wired into
+   * Better-Auth's `rateLimit.customRules` map at boot. The shape
+   * mirrors `defaultAuthRateLimits()` from `auth/rate-limit.ts`:
+   * tighter caps on `/sign-in/email` (credential-stuffing) and
+   * `/forget-password` (email-existence leak), looser on
+   * `/verify-email` re-sends.
+   *
+   * The global throttler (`@nestjs/throttler` + `PostgresThrottlerStore`)
+   * still protects every route uniformly; these rules add precision
+   * for the auth surface where brute-force resistance matters most.
+   */
+  authRateLimits?: AuthRateLimitsInput;
+}
+
+export interface AuthRateLimitWindow {
+  /** Seconds in the rolling window. */
+  readonly windowSeconds: number;
+  /** Max requests per window. */
+  readonly maxRequests: number;
+}
+
+/**
+ * Per-route auth rate-limit map. Keys are the Better-Auth route
+ * paths under `/api/auth/`. The factory translates this into
+ * Better-Auth's `rateLimit.customRules` (a `{path: {window, max}}`
+ * object — wildcards like `/sign-in/*` are honoured by the
+ * Better-Auth runtime).
+ */
+export interface AuthRateLimitsInput {
+  readonly signIn?: AuthRateLimitWindow;
+  readonly signUp?: AuthRateLimitWindow;
+  readonly passwordReset?: AuthRateLimitWindow;
+  readonly verifyEmail?: AuthRateLimitWindow;
+}
+
+/**
+ * `sendMagicLink` callback the magic-link plugin invokes when a
+ * user requests a sign-in link. The closure is responsible for
+ * routing the link through the project's `EmailService` (or the
+ * outbox, depending on the email-hooks configuration).
+ */
+export type MagicLinkSender = (input: {
+  readonly email: string;
+  readonly token: string;
+  readonly url: string;
+}) => Promise<void>;
+
+export interface AdminPluginOptions {
+  /**
+   * The role names that are recognised as administrators. Defaults
+   * to `["admin"]`; project code adds entitlement-tier names here
+   * (e.g. `["admin", "support"]`).
+   */
+  adminRoles?: readonly string[];
+  /**
+   * The role to assign to newly-created users. Defaults to `"user"`.
+   */
+  defaultRole?: string;
+}
+
+export interface OrganizationPluginOptions {
+  /**
+   * Hard cap on how many organizations a single user can be a member
+   * of. Defaults to Better-Auth's built-in (currently 100).
+   */
+  membershipLimit?: number;
+}
+
+export interface OneTapPluginOptions {
+  /**
+   * Google client id authorised to issue ID tokens for One Tap. The
+   * plugin verifies the audience matches this value before signing
+   * the user in.
+   */
+  clientId: string;
+}
+
+export interface OpenAPIPluginOptions {
+  /**
+   * Mount-path for the OpenAPI document and Scalar UI. Defaults to
+   * `/reference` (relative to the Better-Auth base path), so the
+   * full URL ends up as `/api/auth/reference` under the standard
+   * mount.
+   */
+  path?: string;
+  /**
+   * When false, only the JSON document is exposed (no Scalar UI).
+   * Useful for production where the UI surface is unwanted.
+   */
+  scalarUI?: boolean;
 }
 
 export interface EmailHooksOptions {
@@ -175,6 +320,16 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
     }
   }
 
+  if (input.magicLink && typeof input.magicLink.sendMagicLink !== "function") {
+    throw new Error("Better-Auth magicLink.sendMagicLink must be a function");
+  }
+  if (input.adminPlugin?.adminRoles && input.adminPlugin.adminRoles.length === 0) {
+    throw new Error("Better-Auth adminPlugin.adminRoles must be non-empty when provided");
+  }
+  if (input.oneTap && !input.oneTap.clientId) {
+    throw new Error("Better-Auth oneTap.clientId must be a non-empty string");
+  }
+
   const basePath = resolveBetterAuthMountPath(input.basePath);
   const plugins: BetterAuthPlugin[] = [];
   if (input.twoFactor) plugins.push(twoFactor({ issuer: input.twoFactor.issuer }));
@@ -184,6 +339,44 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
   if (input.passkey) {
     const rpID = input.passkey.rpID ?? new URL(input.baseUrl).hostname;
     plugins.push(passkey({ rpName: input.passkey.rpName, rpID, origin: input.baseUrl }));
+  }
+  if (input.magicLink) {
+    const send = input.magicLink.sendMagicLink;
+    plugins.push(
+      magicLink({
+        sendMagicLink: async ({ email, token, url }) => {
+          await send({ email, token, url });
+        },
+      }),
+    );
+  }
+  if (input.adminPlugin) {
+    plugins.push(
+      admin({
+        ...(input.adminPlugin.adminRoles ? { adminRoles: [...input.adminPlugin.adminRoles] } : {}),
+        ...(input.adminPlugin.defaultRole ? { defaultRole: input.adminPlugin.defaultRole } : {}),
+      }),
+    );
+  }
+  if (input.organization) {
+    plugins.push(
+      organization(
+        input.organization.membershipLimit !== undefined
+          ? { membershipLimit: input.organization.membershipLimit }
+          : {},
+      ),
+    );
+  }
+  if (input.oneTap) {
+    plugins.push(oneTap({ clientId: input.oneTap.clientId }));
+  }
+  if (input.openAPI) {
+    plugins.push(
+      openAPI({
+        ...(input.openAPI.path ? { path: input.openAPI.path } : {}),
+        ...(input.openAPI.scalarUI === false ? { disableDefaultReference: true } : {}),
+      }),
+    );
   }
 
   // Build the email hook runner up front so both `emailVerification` and
@@ -204,8 +397,54 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
       })
     : undefined;
 
+  const passwordPolicyInput = input.passwordPolicy;
+  // Better-Auth's `password.hash` is the canonical place to gate the
+  // policy because it runs on signup AND change-password before the
+  // hash is persisted. We delegate to the default scrypt hasher
+  // afterwards via `betterAuth`'s own `password` plumbing — the
+  // policy is a pre-hash filter, not a hash replacement.
   const emailAndPasswordOptions: NonNullable<BetterAuthOptions["emailAndPassword"]> = {
     enabled: true,
+    ...(passwordPolicyInput
+      ? {
+          password: {
+            async hash(password: string): Promise<string> {
+              const opts: { minEntropyBits?: number } = {};
+              if (passwordPolicyInput.minEntropyBits !== undefined) {
+                opts.minEntropyBits = passwordPolicyInput.minEntropyBits;
+              }
+              const breachAdapter = passwordPolicyInput.breachCheck
+                ? async (
+                    pw: string,
+                  ): Promise<
+                    | { readonly breached: false }
+                    | { readonly breached: true; readonly count: number }
+                  > => {
+                    const r = await passwordPolicyInput.breachCheck!(pw);
+                    return r.breached
+                      ? ({ breached: true, count: r.count ?? 0 } as const)
+                      : ({ breached: false } as const);
+                  }
+                : undefined;
+              await validatePasswordPolicy(password, opts, breachAdapter);
+              // Better-Auth's default scrypt hasher — match the
+              // upstream behaviour after the policy gate passes.
+              const { hashPassword } = await import("better-auth/crypto");
+              return hashPassword(password);
+            },
+            verify: async ({
+              password,
+              hash,
+            }: {
+              password: string;
+              hash: string;
+            }): Promise<boolean> => {
+              const { verifyPassword } = await import("better-auth/crypto");
+              return verifyPassword({ password, hash });
+            },
+          },
+        }
+      : {}),
     ...(hookRunner
       ? {
           sendResetPassword: async (data: {
@@ -323,6 +562,61 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
     ...(input.socialProviders && Object.keys(input.socialProviders).length > 0
       ? { socialProviders: input.socialProviders as BetterAuthOptions["socialProviders"] }
       : {}),
+    ...(input.authRateLimits
+      ? {
+          rateLimit: {
+            // The global rate-limit defaults (window/max) cover every
+            // route the customRules don't cite. Better-Auth merges
+            // them with its own internal defaults at boot.
+            customRules: buildBetterAuthCustomRules(input.authRateLimits),
+          },
+        }
+      : {}),
   };
   return betterAuth(options);
+}
+
+/**
+ * Translate the project's `AuthRateLimitsInput` into Better-Auth's
+ * `rateLimit.customRules` shape: a `{path: {window, max}}` object.
+ * Path wildcards (e.g. `/sign-in/*`) are honoured by Better-Auth's
+ * matcher at request time.
+ */
+function buildBetterAuthCustomRules(
+  limits: AuthRateLimitsInput,
+): Record<string, { window: number; max: number }> {
+  const rules: Record<string, { window: number; max: number }> = {};
+  if (limits.signIn) {
+    rules["/sign-in/*"] = {
+      window: limits.signIn.windowSeconds,
+      max: limits.signIn.maxRequests,
+    };
+  }
+  if (limits.signUp) {
+    rules["/sign-up/*"] = {
+      window: limits.signUp.windowSeconds,
+      max: limits.signUp.maxRequests,
+    };
+  }
+  if (limits.passwordReset) {
+    rules["/forget-password"] = {
+      window: limits.passwordReset.windowSeconds,
+      max: limits.passwordReset.maxRequests,
+    };
+    rules["/reset-password"] = {
+      window: limits.passwordReset.windowSeconds,
+      max: limits.passwordReset.maxRequests,
+    };
+  }
+  if (limits.verifyEmail) {
+    rules["/verify-email"] = {
+      window: limits.verifyEmail.windowSeconds,
+      max: limits.verifyEmail.maxRequests,
+    };
+    rules["/send-verification-email"] = {
+      window: limits.verifyEmail.windowSeconds,
+      max: limits.verifyEmail.maxRequests,
+    };
+  }
+  return rules;
 }

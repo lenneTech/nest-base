@@ -13,7 +13,7 @@
 // generators that hit the legacy URL don't carry a tenant context
 // (mirrors the canonical doc's exemption). Removed once
 // lenneTech/nuxt-base-starter#13 has propagated.
-const EXEMPT_EXACT = new Set(["/", "/errors", "/tenants", "/api-docs-json"]);
+const EXEMPT_EXACT = new Set(["/", "/errors", "/tenants", "/api-docs-json", "/metrics"]);
 // `/me/*` endpoints operate on the authenticated user (req.user.id),
 // not on a specific tenant. `/tenants` is the self-service tenant CRUD
 // surface — a signed-up user creates their first tenant here, so the
@@ -27,6 +27,10 @@ const EXEMPT_PREFIXES = [
   "/errors/",
   "/me/",
   "/tenants/",
+  // Share-token endpoints — the token's HMAC envelope encodes the
+  // file id; the controller resolves the file and the storage layer
+  // applies tenant filtering at read time.
+  "/files/share/",
 ];
 
 export function isTenantExempt(path: string): boolean {

@@ -69,5 +69,6 @@ model GeocodingCache {
 
   @@unique([provider, queryHash])
   @@index([expiresAt])
+  @@index([createdAt])
   @@map("geocoding_cache")
 }

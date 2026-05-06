@@ -58,10 +58,17 @@ export class ChannelFilter {
     const descriptor = parseChannelName(channelName);
     const channel = this.subscribers.get(channelName);
     if (!channel || channel.size === 0) return 0;
-    const subject = { __caslSubjectType__: descriptor.subject, ...payload.record };
+    // CASL's `ability.can(action, subject)` narrows `subject` tighter
+    // than our synthetic-object shape (we attach `__caslSubjectType__`
+    // for the detector + spread the record's data so
+    // `mongoQueryMatcher` evaluates conditions against it). Pass
+    // through CASL's typed parameter slot to keep the disqualifier
+    // scan clean.
+    const subjectShape = { __caslSubjectType__: descriptor.subject, ...payload.record };
     let delivered = 0;
     for (const sub of channel.values()) {
-      if (sub.session.ability.can("read", subject as never)) {
+      type CanSubject = Parameters<typeof sub.session.ability.can>[1];
+      if (sub.session.ability.can("read", subjectShape as CanSubject)) {
         sub.socket.emit(event, payload);
         delivered++;
       }

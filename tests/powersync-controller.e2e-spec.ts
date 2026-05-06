@@ -2,20 +2,27 @@ import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { bootstrap } from "../src/core/app/bootstrap.js";
-
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 const TENANT = "11111111-1111-1111-1111-111111111111";
 
 describe("PowerSyncController · POST /powersync/crud", () => {
   let app: INestApplication;
+  let previousPowerSyncFlag: string | undefined;
 
   beforeAll(async () => {
+    previousPowerSyncFlag = process.env.FEATURE_POWERSYNC_ENABLED;
+    // PowerSync is opt-in (heap-budget gate SC.BOOT.09); turn it on BEFORE
+    // dynamic-importing bootstrap so AppModule's top-level
+    // `loadFeatures(process.env)` sees the flag.
+    process.env.FEATURE_POWERSYNC_ENABLED = "true";
+    const { bootstrap } = await import("../src/core/app/bootstrap.js");
     app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
   });
 
   afterAll(async () => {
     await app.close();
+    if (previousPowerSyncFlag === undefined) delete process.env.FEATURE_POWERSYNC_ENABLED;
+    else process.env.FEATURE_POWERSYNC_ENABLED = previousPowerSyncFlag;
   });
 
   it("403s when no ability is attached (CanGuard rejects empty ability)", async () => {

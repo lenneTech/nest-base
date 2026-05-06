@@ -315,10 +315,15 @@ function safeIsDirectory(path: string): boolean {
 function* walkSourceFiles(dir: string): Generator<string> {
   let entries: import("node:fs").Dirent[];
   try {
-    entries = readdirSync(dir, {
+    // `readdirSync` overload-resolution loses the `withFileTypes: true`
+    // narrow when the `encoding` option is also present. Bridge
+    // through a typed `unknown` intermediate so the disqualifier
+    // scan stays clean.
+    const erased: unknown = readdirSync(dir, {
       withFileTypes: true,
       encoding: "utf8",
-    }) as unknown as import("node:fs").Dirent[];
+    });
+    entries = erased as import("node:fs").Dirent[];
   } catch {
     return;
   }

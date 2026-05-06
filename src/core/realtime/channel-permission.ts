@@ -30,13 +30,19 @@ export function parseChannelName(name: string): ChannelDescriptor {
 }
 
 export function canSubscribeToChannel(ability: Ability, channel: ChannelDescriptor): boolean {
+  // CASL's `ability.can` accepts a `Subject` union that's tighter
+  // than the project's stored channel descriptor. The wire-shape
+  // helper below routes through CASL's typed signature once.
+  type CanArgs = Parameters<Ability["can"]>;
+  type CanSubject = CanArgs[1];
   if (channel.scope === "tenant") {
     // Use a synthetic subject that carries the tenant id so CASL's
     // mongoQueryMatcher can evaluate `conditions: { tenantId: <id> }`.
-    return ability.can("read", {
+    const subject: CanSubject = {
       __caslSubjectType__: channel.subject,
       tenantId: channel.id,
-    } as never);
+    } as CanSubject;
+    return ability.can("read", subject);
   }
-  return ability.can("read", channel.subject as never);
+  return ability.can("read", channel.subject as CanSubject);
 }

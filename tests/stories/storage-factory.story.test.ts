@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { LocalStorageAdapter } from "../../src/core/files/local-storage-adapter.js";
 import { PostgresStorageAdapter } from "../../src/core/files/postgres-storage-adapter.js";
+import { RustFsStorageAdapter } from "../../src/core/files/rustfs-storage-adapter.js";
 import { S3StorageAdapter, type S3Operations } from "../../src/core/files/s3-storage-adapter.js";
 import {
   createStorageAdapter,
@@ -127,6 +128,76 @@ describe("Story · Storage factory", () => {
         env: { S3_BUCKET: "test" },
       }),
     ).rejects.toThrow(/aws-sdk|s3 driver/);
+  });
+
+  it("driver=rustfs builds a RustFsStorageAdapter from RUSTFS_ENDPOINT (CF.FILES.05)", async () => {
+    const ops: S3Operations = {
+      async putObject() {},
+      async getObject() {
+        return null;
+      },
+      async deleteObject() {
+        return true;
+      },
+      async headObject() {
+        return false;
+      },
+      async listObjects() {
+        return [];
+      },
+      async presignGet() {
+        return "https://example/key";
+      },
+    };
+    const adapter = await createStorageAdapter({
+      driver: "rustfs",
+      env: {
+        S3_BUCKET: "test",
+        RUSTFS_ENDPOINT: "http://rustfs:9000",
+        RUSTFS_MAX_TTL_SECONDS: "300",
+      },
+      s3OperationsFactory: async () => ops,
+    });
+    expect(adapter).toBeInstanceOf(RustFsStorageAdapter);
+    // RustFS extends S3StorageAdapter, so instanceof S3 also holds.
+    expect(adapter).toBeInstanceOf(S3StorageAdapter);
+  });
+
+  it("driver=rustfs reads STORAGE_RUSTFS_ENDPOINT as an alternative override", async () => {
+    const ops: S3Operations = {
+      async putObject() {},
+      async getObject() {
+        return null;
+      },
+      async deleteObject() {
+        return true;
+      },
+      async headObject() {
+        return false;
+      },
+      async listObjects() {
+        return [];
+      },
+      async presignGet() {
+        return "https://example/key";
+      },
+    };
+    const adapter = await createStorageAdapter({
+      driver: "rustfs",
+      env: { S3_BUCKET: "test", STORAGE_RUSTFS_ENDPOINT: "http://rustfs:9000" },
+      s3OperationsFactory: async () => ops,
+    });
+    expect(adapter).toBeInstanceOf(RustFsStorageAdapter);
+  });
+
+  it("driver=rustfs without any endpoint env var fails fast", async () => {
+    await expect(
+      createStorageAdapter({
+        driver: "rustfs",
+        env: { S3_BUCKET: "test" },
+        s3OperationsFactory: async () => ({}) as unknown as S3Operations,
+      }),
+    ).rejects.toThrow(/RUSTFS_ENDPOINT|STORAGE_RUSTFS_ENDPOINT|S3_ENDPOINT/);
   });
 
   it("rejects an unknown driver", async () => {

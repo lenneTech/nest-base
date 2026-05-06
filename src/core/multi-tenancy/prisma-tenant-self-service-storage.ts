@@ -95,8 +95,23 @@ export class PrismaTenantSelfServiceStorage implements TenantSelfServiceStorage 
     >,
   ) {}
 
+  /**
+   * Type-erasing bridge: the constructor accepts a structurally-
+   * narrowed slice of `PrismaClient`, but each method needs the
+   * project's hand-rolled `PrismaSlice` interface (which uses
+   * project-specific input types narrower than Prisma's generics).
+   * Centralise the cast here so each call site reads cleanly. The
+   * runtime contract is identical (Prisma generated the same
+   * findUnique/create/findMany shape we declare); the static gap is
+   * Prisma's generic-constraint strictness.
+   */
+  private slice(): PrismaSlice {
+    const erased: unknown = this.prisma;
+    return erased as PrismaSlice;
+  }
+
   async findTenantByName(name: string): Promise<TenantPlanRow | null> {
-    const row = await (this.prisma as unknown as PrismaSlice).tenant.findUnique({
+    const row = await this.slice().tenant.findUnique({
       where: { name },
     });
     return row ? { id: row.id, name: row.name, createdAt: row.createdAt } : null;
@@ -109,7 +124,7 @@ export class PrismaTenantSelfServiceStorage implements TenantSelfServiceStorage 
     tenant: TenantPlanRow;
     member: TenantMemberRecord;
   }): Promise<{ tenant: TenantPlanRow; member: TenantMemberRecord }> {
-    return (this.prisma as unknown as PrismaSlice).$transaction(async (tx) => {
+    return this.slice().$transaction(async (tx) => {
       const insertedTenant = await tx.tenant.create({
         data: { id: tenant.id, name: tenant.name, createdAt: tenant.createdAt },
       });
@@ -157,7 +172,7 @@ export class PrismaTenantSelfServiceStorage implements TenantSelfServiceStorage 
   }
 
   async listMembershipsForUser(userId: string): Promise<TenantWithMembership[]> {
-    const rows = await (this.prisma as unknown as PrismaSlice).tenantMember.findMany({
+    const rows = await this.slice().tenantMember.findMany({
       where: { userId },
       include: { tenant: true },
       orderBy: { createdAt: "asc" },

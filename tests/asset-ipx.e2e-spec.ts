@@ -191,4 +191,67 @@ describe("Asset · IPX endpoint", () => {
     expect(typeof res.body.removed).toBe("number");
     expect(res.body.removed).toBeGreaterThanOrEqual(1);
   });
+
+  it("DELETE /_ipx/cache/:sourcePath cascades via VariantCacheIndex — sibling sources survive (iter-183)", async () => {
+    // Upload a sibling source so the cascade has something to NOT
+    // delete — the legacy "wipe all `assets/*`" implementation would
+    // drop both, but the iter-183 cascade only drops the variants
+    // for the targeted source.
+    const siblingBytes = emerald8x8Png();
+    const siblingUpload = await request(app.getHttpServer())
+      .post("/files/upload")
+      .set("x-tenant-id", tenantId)
+      .set("cookie", sessionCookie)
+      .set("x-test-ability", "full")
+      .send({
+        tenantId,
+        folderId: null,
+        filename: "sibling.png",
+        mimeType: "image/png",
+        uploaderId: "00000000-0000-0000-0000-000000000099",
+        contentsBase64: Buffer.from(siblingBytes).toString("base64"),
+      });
+    expect(siblingUpload.status).toBe(201);
+    const siblingKey = siblingUpload.body.storageKey as string;
+    expect(siblingKey).not.toBe(storageKey);
+
+    // Prime cache for both sources via the legacy /assets endpoint.
+    for (const key of [storageKey, siblingKey]) {
+      await request(app.getHttpServer())
+        .get(`/assets/${encodeURIComponent(key)}?width=4&format=webp`)
+        .set("x-tenant-id", tenantId)
+        .set("cookie", sessionCookie)
+        .set("x-test-ability", "full")
+        .expect(200);
+    }
+
+    // Targeted invalidation of the original source only.
+    const res = await request(app.getHttpServer())
+      .delete(`/_ipx/cache/${encodeURIComponent(storageKey)}`)
+      .set("x-tenant-id", tenantId)
+      .set("cookie", sessionCookie)
+      .set("x-test-ability", "full");
+    expect(res.status).toBe(200);
+    expect(res.body.removed).toBeGreaterThanOrEqual(1);
+
+    // Sibling cache HIT proves the cascade did NOT drop its variant.
+    // The next GET on the sibling MUST report `x-cache: HIT`; if the
+    // cascade had wiped everything, we'd see MISS instead.
+    const siblingHit = await request(app.getHttpServer())
+      .get(`/assets/${encodeURIComponent(siblingKey)}?width=4&format=webp`)
+      .set("x-tenant-id", tenantId)
+      .set("cookie", sessionCookie)
+      .set("x-test-ability", "full");
+    expect(siblingHit.status).toBe(200);
+    expect(siblingHit.headers["x-cache"]).toBe("HIT");
+
+    // The original source MUST report MISS (next request re-renders).
+    const originalMiss = await request(app.getHttpServer())
+      .get(`/assets/${encodeURIComponent(storageKey)}?width=4&format=webp`)
+      .set("x-tenant-id", tenantId)
+      .set("cookie", sessionCookie)
+      .set("x-test-ability", "full");
+    expect(originalMiss.status).toBe(200);
+    expect(originalMiss.headers["x-cache"]).toBe("MISS");
+  });
 });

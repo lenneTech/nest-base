@@ -81,7 +81,9 @@ is non-negotiable:
    bun run lint && bun run test:unit && bun run test:e2e \
      && bun run test:types && bun run test:coverage && bun run build
    ```
-   Coverage thresholds: `src/core/` ≥ 90 %, `src/modules/` ≥ 80 %.
+   Coverage thresholds: `src/core/` ≥ 80 %, `src/modules/` ≥ 75 %
+   (`nest-base-prd.md` § Quality Gates; enforced by
+   `scripts/check-coverage-thresholds.ts`).
 5. **Commit** — Conventional Commits: `feat(<scope>): <summary>` /
    `fix(<scope>): <summary>`.
 

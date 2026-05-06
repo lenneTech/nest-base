@@ -11,14 +11,14 @@ import { buildDefaultEnvExample } from "./setup-wizard.js";
  * Setup-wizard runner planner.
  *
  * Pure function: takes the `.env.example` text + an injectable RNG,
- * returns the rendered `.env` text with every recognised placeholder
- * replaced by a fresh secret. `runSetupWizard()` is the thin I/O
- * wrapper invoked by `scripts/setup-wizard.ts`.
+ * returns the rendered `.env` text with every recognised template
+ * value replaced by a fresh secret. `runSetupWizard()` is the thin
+ * I/O wrapper invoked by `scripts/setup-wizard.ts`.
  *
  * Three properties locked in:
- *   - Recognised placeholders (BETTER_AUTH_SECRET, POSTGRES_PASSWORD,
+ *   - Recognised template values (BETTER_AUTH_SECRET, POSTGRES_PASSWORD,
  *     POWERSYNC_DB_PASSWORD, FIELD_ENCRYPTION_KEK, S3_SECRET_KEY) get
- *     freshly random values — never the example placeholder.
+ *     freshly random values — never the example template value.
  *   - DATABASE_URL is rewritten to use the freshly generated
  *     POSTGRES_PASSWORD so the URL stays in sync with the DSN parts.
  *   - Unknown lines (comments, blank lines, custom vars added by the
@@ -78,7 +78,7 @@ export function planEnvFromExample(
   exampleText: string,
   options: PlanEnvFromExampleOptions,
 ): string {
-  // Apply project-name substitution to the *placeholder* text first so it
+  // Apply project-name substitution to the *template* text first so it
   // never touches generated secrets. Only kicks in when the project has
   // been renamed away from the template default.
   const projectName = options.projectName;
@@ -137,7 +137,7 @@ export function planEnvFromExample(
 }
 
 /**
- * Rewrite the placeholder template name + the localhost APP_BASE_URL to
+ * Rewrite the template-name token + the localhost APP_BASE_URL to
  * project-specific values. Operates on raw text so it stays transparent
  * to the secret-substitution loop above.
  */

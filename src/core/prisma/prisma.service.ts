@@ -1,10 +1,27 @@
 import { Injectable, type OnModuleDestroy, type OnModuleInit } from "@nestjs/common";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { type Prisma, PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
+import { buildUserEmailBlindIndexExtension } from "../auth/user-blind-index.extension.js";
 import { getQueryBuffer } from "../dx/query-buffer.js";
+import { BlindIndex, planBlindIndexFromEnv } from "../encryption/blind-index.js";
+import { EnvKekProvider, type KekProvider } from "../encryption/kek-provider.js";
+import { parseFieldEncryptionMap } from "../encryption/field-encryption-config.js";
+import { parseLegacyKeks } from "../encryption/legacy-kek-config.js";
+import { MultiKekFieldEncryption } from "../encryption/multi-kek.service.js";
 import { getCurrentTenantId } from "../multi-tenancy/tenant-context.js";
 import { getRequestContext } from "../request-context/request-context.js";
+import { loadFeatures } from "../features/features.js";
+import {
+  type AuditLogWriteInput,
+  buildAuditExtension,
+  buildAuditStampExtension,
+  buildFieldEncryptionExtension,
+  buildQueryTrackerExtension,
+  buildVersionBumpExtension,
+  softDeleteExtension,
+  uuidV7Extension,
+} from "../repository/prisma-extensions.js";
 
 /**
  * Prisma 7 client wrapped as a NestJS provider.
@@ -28,8 +45,53 @@ import { getRequestContext } from "../request-context/request-context.js";
  * Migrations are NOT run from the application — they are managed via
  * `bun run prisma:migrate` in CI / dev.
  */
+/**
+ * Type alias for the Prisma client after the full extension chain
+ * has been applied (`uuidV7 → auditStamp → softDelete → fieldEncryption →
+ * versionBump → audit → queryTracker → userEmailBlindIndex`). Each
+ * extension adds members to the client's API surface — the alias
+ * collapses to `unknown` if any link breaks, which fails
+ * type-checking visibly. Iter-117 extended the chain with
+ * `fieldEncryption` (CF.SEC.01) so the runtime client now matches the
+ * 7-extension stack the PRD pins.
+ */
+export type ExtendedPrismaClient = ReturnType<PrismaService["buildExtendedClient"]>;
+
+/**
+ * Static map from framework-managed Prisma model names → snake_case
+ * Postgres table names. Used by the audit extension's `readBeforeImage`
+ * to side-step the Prisma `delegate[model]` accessor (which is
+ * unreliable inside class-method `this` contexts when Nest's IoC
+ * wraps the PrismaService instance). Project code that opts new
+ * models into auditable can extend this map at module-init time.
+ */
+export const MODEL_TABLE_MAP: Record<string, string> = {
+  Tenant: "tenants",
+  TenantMember: "tenant_members",
+  Role: "roles",
+  RolePolicy: "role_policies",
+  Policy: "policies",
+  Permission: "permissions",
+  ApiKey: "api_keys",
+  User: "users",
+  UserProfile: "user_profiles",
+  File: "files",
+  Folder: "folders",
+  WebhookEndpoint: "webhook_endpoints",
+};
+
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+  /**
+   * Extension-extended client surface (PRD § Core Features § Data).
+   * Built lazily on first access so tests that don't need the
+   * extensions don't pay the construction cost. Lazy-initialised in
+   * `buildExtendedClient()`; reset to undefined in `onModuleDestroy`.
+   */
+  private extendedClient:
+    | ReturnType<typeof PrismaService.prototype.buildExtendedClient>
+    | undefined;
+
   constructor() {
     const url = process.env.DATABASE_URL;
     if (!url) {
@@ -56,8 +118,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       // The Prisma type for $on('query') varies between minor versions.
       // Cast to a permissive event shape so we read the fields we need.
       type QueryEvent = { query: string; duration: number; timestamp?: Date };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (this as any).$on("query", (event: QueryEvent) => {
+      type PrismaWithQueryEvent = PrismaService & {
+        $on(event: "query", handler: (event: QueryEvent) => void): void;
+      };
+      (this as PrismaWithQueryEvent).$on("query", (event: QueryEvent) => {
         const requestId = getRequestContext()?.requestId;
         buffer.record({
           sql: event.query,
@@ -70,7 +134,229 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   async onModuleDestroy(): Promise<void> {
+    this.extendedClient = undefined;
     await this.$disconnect();
+  }
+
+  /**
+   * Returns the extended client (uuidV7 → auditStamp → softDelete).
+   * Built once per `PrismaService` instance and cached. Callers that
+   * need the extension behaviour (auto-id, auto-tenantId/createdBy,
+   * soft-delete filtering) reach for `prismaService.client` instead
+   * of using the bare `prismaService` directly.
+   *
+   * The bare `PrismaService` keeps inheriting from `PrismaClient` so
+   * existing call sites (audit-log persistence, RLS transactions)
+   * continue to work — the extended client is opt-in.
+   */
+  get client(): ExtendedPrismaClient {
+    if (!this.extendedClient) {
+      this.extendedClient = this.buildExtendedClient();
+    }
+    return this.extendedClient;
+  }
+
+  /**
+   * Internal — composes the extension chain. Exposed only so the
+   * `ExtendedPrismaClient` type alias above can derive its shape via
+   * `ReturnType`.
+   */
+  buildExtendedClient() {
+    const auditStampExtension = buildAuditStampExtension({
+      resolveTenantId: () => getCurrentTenantId() ?? null,
+      // `RequestContext` doesn't currently carry a user id (the
+      // Better-Auth session middleware attaches `req.user` directly
+      // to the Express request rather than the AsyncLocalStorage
+      // context). Until the request-context surface is extended,
+      // `auditStamp` only fills `tenantId` automatically; project
+      // code passes `createdBy` / `updatedBy` explicitly when it
+      // wants them stamped.
+      resolveUserId: () => null,
+    });
+
+    // Audit extension — only kicks in when `features.audit.enabled`
+    // is on. The writer uses the captured `bareClient` callback (the
+    // bare PrismaClient) so audit rows bypass the soft-delete +
+    // auditStamp + uuidV7 extensions (audit-log writes must NOT
+    // recurse through the chain).
+    const features = loadFeatures(process.env as Record<string, string | undefined>);
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const bareSelf = this;
+    const auditExtension = buildAuditExtension({
+      resolveTenantId: () => getCurrentTenantId() ?? null,
+      resolveUserId: () => null,
+      resolveRequestId: () => getRequestContext()?.requestId ?? null,
+      writeAuditLog: async (row: AuditLogWriteInput) => {
+        if (!features.audit.enabled) return;
+        // Why $executeRaw instead of `bareClient().auditLog.create(...)`?
+        // The `bareClient` closure captures `this` from the
+        // `buildExtendedClient` method context. Prisma 7 + Nest's IoC
+        // wrapping mean that `this.auditLog` (the lazy-materialised
+        // model delegate) is sometimes undefined inside this audit
+        // hook even though `prisma.auditLog` works from injected-instance
+        // call sites. Routing the audit-row insert through
+        // `$executeRaw` sidesteps the delegate-resolution path
+        // entirely; the SQL maps 1:1 to the AuditLog Prisma model
+        // (`audit_log` table, snake_case columns via `@map`).
+        const diffJson = JSON.stringify(row.diff ?? {});
+        const metadataJson = row.metadata !== null ? JSON.stringify(row.metadata) : null;
+        await bareSelf.$executeRaw`
+          INSERT INTO audit_log
+            (id, tenant_id, actor_user_id, target_model, target_id, action, diff, metadata, created_at)
+          VALUES
+            (gen_random_uuid(),
+             ${row.tenantId}::uuid,
+             ${row.actorUserId}::uuid,
+             ${row.targetModel},
+             ${row.targetId},
+             ${row.action}::audit_action,
+             ${diffJson}::jsonb,
+             ${metadataJson}::jsonb,
+             now())
+        `;
+      },
+      // Pre-read for the before-image. Uses `$queryRaw` against the
+      // mapped table for the framework-managed default-auditable
+      // models. We route around `bareClient()[delegateKey]` because
+      // Prisma 7 + Nest's IoC wrapping mean the delegate accessors
+      // are sometimes undefined inside our own methods (the Proxy
+      // that surfaces them when injected callers access
+      // `prisma.<model>` doesn't reach `this.<model>` from inside
+      // the class). The framework-managed models all use a static
+      // table name; project code that opts additional models in
+      // either provides a custom `readBeforeImage` or overrides
+      // `MODEL_TABLE_MAP` in their bootstrap.
+      readBeforeImage: async (model, where) => {
+        const tableName = MODEL_TABLE_MAP[model];
+        if (!tableName) return null;
+        const id = (where as { id?: unknown }).id;
+        if (typeof id !== "string" || id.length === 0) return null;
+        try {
+          const rows = (await bareSelf.$queryRawUnsafe(
+            `SELECT * FROM ${tableName} WHERE id = $1`,
+            id,
+          )) as Record<string, unknown>[];
+          return rows[0] ?? null;
+        } catch {
+          return null;
+        }
+      },
+      // Default opt-in for the framework-managed governance models —
+      // Tenants, role/permission/policy assignments, API keys. The
+      // PRD pins "Prisma extension capture (every CUD on opted-in
+      // models)" as a Success Criterion (CF.AUDIT.02); shipping with
+      // an empty list would silently disable the entire subsystem in
+      // every consuming project. Project code adds its own resource
+      // models via `setAuditableModels()` (project-specific defaults
+      // can override this list, e.g. dropping API keys if a tenant
+      // doesn't use them, or adding User if the project's policy
+      // demands it). Anonymous-access models (Session, Account,
+      // Verification — all Better-Auth internals) stay out of the
+      // default; their churn doesn't carry compliance value and
+      // would dwarf the audit-log volume.
+      auditableModels: [
+        "Tenant",
+        "TenantMember",
+        "Role",
+        "RolePolicy",
+        "Policy",
+        "Permission",
+        "ApiKey",
+      ],
+    });
+
+    // BlindIndex extension auto-populates `User.emailHash` on every
+    // create/update through `prisma.client.user.*` (CF.SEC.03 iter-94).
+    // No-op when `BLIND_INDEX_KEY` is unset (planner returns absent
+    // → null blindIndex → extension trivial). Mounted last so the
+    // hash reflects the email AFTER auditStamp / softDelete are
+    // applied — they don't touch `email`, but the order keeps the
+    // extension's writes on top of the chain.
+    const blindIndexPlan = planBlindIndexFromEnv(process.env.BLIND_INDEX_KEY);
+    const blindIndex: BlindIndex | null =
+      blindIndexPlan.kind === "accepted" ? new BlindIndex({ key: blindIndexPlan.key }) : null;
+    const userEmailBlindIndexExtension = buildUserEmailBlindIndexExtension(blindIndex);
+
+    // versionBump auto-increments the `version` column on update for
+    // ETag concurrency (CF.DATA.07). Default opt-in list is empty —
+    // none of the framework-managed governance models declare a
+    // `version` column today (adding it requires a migration + ETag
+    // header consumers + Prisma client regen). Project code that
+    // adds versioned resources extends this list via a config
+    // override or builds its own extension chain.
+    const versionBumpExtension = buildVersionBumpExtension({
+      versionedModels: [],
+    });
+
+    // queryTracker pipes per-operation duration into the dev-portal
+    // QueryBuffer (the same buffer the existing $on('query') listener
+    // feeds with raw SQL durations — this layer adds the model +
+    // operation labels Prisma's raw event lacks).
+    const queryBuffer = getQueryBuffer();
+    const queryTrackerExtension = buildQueryTrackerExtension({
+      record: ({ model, operation, durationMs }) => {
+        if (process.env.PRISMA_DISABLE_QUERY_BUFFER === "1") return;
+        queryBuffer.record({
+          sql: `${model}.${operation}`,
+          durationMs,
+          startedAtMs: Date.now() - Math.round(durationMs),
+        });
+      },
+    });
+
+    // fieldEncryptionExtension (CF.SEC.01 — iter-117): when
+    // `FEATURE_FIELD_ENCRYPTION=true` AND `FIELD_ENCRYPTION_KEK` is
+    // set, models listed in `FIELD_ENCRYPTION_MODEL_FIELDS` are
+    // encrypted at write + decrypted at read. The extension is in
+    // the chain unconditionally so the type alias stays stable; when
+    // no fields are configured every operation passes through.
+    const env = process.env as Record<string, string | undefined>;
+    const envField = env.FIELD_ENCRYPTION_MODEL_FIELDS;
+    const fieldEncryptionMap = parseFieldEncryptionMap(envField);
+    const fieldEncryptionEnabled =
+      env.FEATURE_FIELD_ENCRYPTION === "true" &&
+      typeof env.FIELD_ENCRYPTION_KEK === "string" &&
+      Object.keys(fieldEncryptionMap).length > 0;
+    let fieldEncryptionExtension: ReturnType<typeof buildFieldEncryptionExtension> | null = null;
+    if (fieldEncryptionEnabled) {
+      // Iter-188: MultiKekFieldEncryption wraps the primary
+      // EnvKekProvider. When `FIELD_ENCRYPTION_LEGACY_KEKS` is unset
+      // the legacy array is empty and decrypt() only tries the primary
+      // — byte-for-byte identical to the previous single-KEK path.
+      // When operators stage a rotation by listing the prior KEK in
+      // FIELD_ENCRYPTION_LEGACY_KEKS, the extension's decrypt path
+      // tries the primary first then walks legacy KEKs in declaration
+      // order so existing-row reads succeed without a re-encryption pass.
+      const legacyKeks = parseLegacyKeks(env.FIELD_ENCRYPTION_LEGACY_KEKS);
+      const multi = new MultiKekFieldEncryption({
+        primary: new EnvKekProvider(env),
+        legacy: legacyKeks.map<KekProvider>((buf) => ({ getKek: () => buf })),
+      });
+      fieldEncryptionExtension = buildFieldEncryptionExtension({
+        modelFields: fieldEncryptionMap,
+        encrypt: (plaintext) => multi.encrypt(plaintext),
+        decrypt: (ciphertext) => multi.decrypt(ciphertext),
+      });
+    } else {
+      // Identity passthrough — keeps the extension chain length
+      // stable across configurations so the `ExtendedPrismaClient`
+      // type alias matches in both modes.
+      fieldEncryptionExtension = buildFieldEncryptionExtension({
+        modelFields: {},
+        encrypt: (plaintext) => plaintext,
+        decrypt: (ciphertext) => ciphertext,
+      });
+    }
+
+    const extended = this.$extends(uuidV7Extension)
+      .$extends(auditStampExtension)
+      .$extends(softDeleteExtension)
+      .$extends(fieldEncryptionExtension)
+      .$extends(versionBumpExtension)
+      .$extends(auditExtension)
+      .$extends(queryTrackerExtension)
+      .$extends(userEmailBlindIndexExtension);
+    return extended;
   }
 
   /**

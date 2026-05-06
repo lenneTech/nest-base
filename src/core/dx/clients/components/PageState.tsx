@@ -11,7 +11,7 @@ interface BaseProps {
   children?: ReactNode;
 }
 
-/** Card-shaped placeholder used while a query is in flight. */
+/** Card-shaped fallback used while a query is in flight. */
 export function PageLoading({ className, children }: BaseProps) {
   return (
     <div
@@ -25,7 +25,7 @@ export function PageLoading({ className, children }: BaseProps) {
   );
 }
 
-/** Card-shaped placeholder shown when an endpoint failed. */
+/** Card-shaped fallback shown when an endpoint failed. */
 export function PageError({ className, children }: BaseProps) {
   return (
     <div
@@ -39,7 +39,7 @@ export function PageError({ className, children }: BaseProps) {
   );
 }
 
-/** Card-shaped placeholder shown when no rows / data exist. */
+/** Card-shaped fallback shown when no rows / data exist. */
 export function PageEmpty({ className, children }: BaseProps) {
   return (
     <div

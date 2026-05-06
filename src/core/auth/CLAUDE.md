@@ -18,6 +18,7 @@ auth/
 ├── rate-limit.ts                      ← per-route limit table
 ├── api-keys/                          ← `/api/v1/api-keys` resource
 ├── powersync*.ts                      ← PowerSync JWT bridge
+├── verification-cleanup.ts            ← 24h cron pruning stale `verifications` rows (>7d expired)
 └── auth-scenarios.ts                  ← named auth scenarios for docs/tests
 ```
 

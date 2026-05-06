@@ -159,7 +159,7 @@ watcher for incremental rebuilds (~80 ms warm).
 
 ## Coverage
 
-This subtree is **excluded from the ≥ 90 % core coverage threshold**
+This subtree is **excluded from the ≥ 80 % core coverage threshold**
 (see `vitest.config.ts` and `docs/code-guidelines.md`). The
 **shell renderer** (`../dev-portal-shell.ts`) is still covered by a
 story test — it is the only file in the migration with a coverage

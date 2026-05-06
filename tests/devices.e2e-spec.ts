@@ -2,7 +2,6 @@ import type { INestApplication, LoggerService } from "@nestjs/common";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { bootstrap } from "../src/core/app/bootstrap.js";
 import { EmailService } from "../src/core/email/email.service.js";
 import { PrismaService } from "../src/core/prisma/prisma.service.js";
 
@@ -50,6 +49,10 @@ describe("E2E · Device-handling", () => {
     process.env.APP_NAME = "TestApp";
     process.env.FEATURE_DEVICE_MANAGEMENT_ENABLED = "true";
 
+    // DeviceModule is opt-in (heap-budget gate SC.BOOT.09); env must be
+    // set BEFORE the bootstrap import so AppModule's top-level
+    // `loadFeatures(process.env)` sees the flag.
+    const { bootstrap } = await import("../src/core/app/bootstrap.js");
     app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
     prisma = app.get(PrismaService);
 

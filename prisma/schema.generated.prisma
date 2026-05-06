@@ -87,6 +87,14 @@ model TenantMember {
 model User {
   id               String   @id @default(uuid()) @db.Uuid
   email            String   @unique
+  /// Blind-index companion column for `email` (CF.SEC.03). Populated
+  /// automatically by the `userEmailBlindIndexExtension` on every
+  /// create/update through `prisma.client.user.*` — equality lookups
+  /// against this column hit a deterministic HMAC, which keeps
+  /// "find user by email" working even if the `email` column is
+  /// later AES-256-GCM encrypted at rest. NULL on rows seeded before
+  /// the extension was active or when no `BLIND_INDEX_KEY` is set.
+  emailHash        String?  @unique @map("email_hash")
   name             String   @default("")
   emailVerified    Boolean  @default(false) @map("email_verified")
   image            String?
@@ -95,13 +103,14 @@ model User {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  tenant      Tenant?        @relation(fields: [tenantId], references: [id], onDelete: SetNull)
-  memberships TenantMember[]
-  apiKeys     ApiKey[]
-  sessions    Session[]
-  accounts    Account[]
-  twoFactors  TwoFactor[]
-  passkeys    Passkey[]
+  tenant           Tenant?          @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  memberships      TenantMember[]
+  apiKeys          ApiKey[]
+  sessions         Session[]
+  accounts         Account[]
+  twoFactors       TwoFactor[]
+  passkeys         Passkey[]
+  pendingErasures  PendingErasure[]
 
   @@map("users")
 }
@@ -168,6 +177,7 @@ model Verification {
   updatedAt  DateTime @updatedAt @map("updated_at")
 
   @@index([identifier])
+  @@index([expiresAt])
   @@map("verifications")
 }
 
@@ -216,19 +226,26 @@ model Passkey {
 }
 
 model ApiKey {
-  id         String    @id @default(uuid()) @db.Uuid
-  lookupId   String    @unique @map("lookup_id") @db.Uuid
-  hash       String
-  name       String
-  scopes     String[]
-  userId     String    @map("user_id") @db.Uuid
-  expiresAt  DateTime? @map("expires_at")
-  lastUsedAt DateTime? @map("last_used_at")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
+  id             String    @id @default(uuid()) @db.Uuid
+  lookupId       String    @unique @map("lookup_id") @db.Uuid
+  hash           String
+  name           String
+  scopes         String[]
+  userId         String    @map("user_id") @db.Uuid
+  expiresAt      DateTime? @map("expires_at")
+  lastUsedAt     DateTime? @map("last_used_at")
+  /// Watermark advanced after a successful expiry notification email.
+  /// The ApiKeyExpiryRunner uses this to suppress duplicate sends
+  /// inside the per-key cooldown window (default 24h) — without it the
+  /// daily cron tick would re-email every morning until the key is
+  /// rotated. Forward-only: a NULL value means "never notified".
+  lastNotifiedAt DateTime? @map("last_notified_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([expiresAt])
   @@map("api_keys")
 }
 
@@ -265,20 +282,26 @@ model Folder {
   @@map("folders")
 }
 
+enum FileVisibility {
+  PRIVATE
+  PUBLIC
+}
+
 model File {
-  id            String   @id @default(uuid()) @db.Uuid
-  tenantId      String   @map("tenant_id") @db.Uuid
-  folderId      String?  @map("folder_id") @db.Uuid
+  id            String         @id @default(uuid()) @db.Uuid
+  tenantId      String         @map("tenant_id") @db.Uuid
+  folderId      String?        @map("folder_id") @db.Uuid
   filename      String
-  mimeType      String   @map("mime_type")
-  sizeBytes     Int      @map("size_bytes")
+  mimeType      String         @map("mime_type")
+  sizeBytes     Int            @map("size_bytes")
   sha256        String
-  storageDriver String   @map("storage_driver")
-  storageKey    String   @map("storage_key")
-  uploaderId    String   @map("uploader_id") @db.Uuid
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-  deletedAt     DateTime? @map("deleted_at")
+  storageDriver String         @map("storage_driver")
+  storageKey    String         @map("storage_key")
+  uploaderId    String         @map("uploader_id") @db.Uuid
+  visibility    FileVisibility @default(PRIVATE)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  deletedAt     DateTime?      @map("deleted_at")
 
   tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   folder Folder? @relation(fields: [folderId], references: [id])
@@ -482,4 +505,161 @@ model UserProfile {
 
   @@index([tenantId])
   @@map("user_profiles")
+}
+
+// ---------- AuditLog (PRD § Core Features § Audit) ----------
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  RESTORE
+  // INVOKE rows record actions where the actor uses authority over a
+  // session/resource without mutating shape — impersonation start /
+  // stop is the canonical case (SC.SUB.16). The metadata.kind field
+  // disambiguates IMPERSONATION_START vs IMPERSONATION_STOP.
+  INVOKE
+  // REVOKE rows record session-revocation events (CF.AUTH.SESSIONS).
+  // The action+kind pair lets the Audit Browser surface
+  // session-revoke history per actor / per affected user without
+  // mixing it into generic DELETE traffic. metadata.strategy carries
+  // the revoke-strategy: single | bulk-by-user | bulk-by-user-except-current.
+  REVOKE
+
+  @@map("audit_action")
+}
+
+// ---------- OutboxEntry (CF.RT.04 + CF.WH.06 + CF.JOBS.01) ----------
+
+// Backs the per-second OutboxWorker tick. Every domain write that
+// fans out to webhooks / realtime / search-index appends here; the
+// worker claims unprocessed rows in `seq` order, runs every
+// registered dispatcher, and marks `processed_at` only when ALL
+// dispatchers succeeded.
+//
+// Forward-only `seq` (auto-increment) preserves dispatch ordering
+// across restarts. Survives restart by definition (this is what
+// makes the outbox at-least-once).
+model OutboxEntry {
+  id          String    @id @default(uuid()) @db.Uuid
+  seq         Int       @default(autoincrement())
+  tenantId    String    @map("tenant_id") @db.Uuid
+  type        String
+  payload     Json
+  occurredAt  DateTime  @default(now()) @map("occurred_at")
+  processedAt DateTime? @map("processed_at")
+
+  @@index([processedAt, seq])
+  @@map("outbox_entries")
+}
+
+// ---------- PendingErasure (CF.GDPR.04 — 30-day grace) ----------
+
+// Backs the GdprErasureRunner cron + the DELETE /me/account
+// controller. A row materialises when the user requests deletion;
+// the runner's daily tick erases (anonymises) the user once
+// `requested_at` is more than 30 days ago and `cancelled_at` is
+// NULL. `completed_at` is the idempotency watermark — the next tick
+// skips rows where it is set.
+model PendingErasure {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  requestedAt DateTime  @default(now()) @map("requested_at")
+  cancelledAt DateTime? @map("cancelled_at")
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([completedAt, cancelledAt, requestedAt])
+  @@map("pending_erasures")
+}
+
+// Backs the audit Prisma extension: every CUD on an opted-in model
+// emits an `AuditLog` row carrying the actor, the tenant, the target
+// model + record id, the action, and a `{before?, after?}` JSON diff.
+//
+// The model lives in the always-on core schema so the table exists
+// at migrate time even when `features.audit.enabled === false` — the
+// feature flag controls whether the extension WRITES rows, not
+// whether the table exists. This avoids the migrate-time skew of a
+// feature-gated table that some installs have and others don't.
+model AuditLog {
+  id          String      @id @default(uuid()) @db.Uuid
+  tenantId    String      @map("tenant_id") @db.Uuid
+  actorUserId String?     @map("actor_user_id") @db.Uuid
+  targetModel String      @map("target_model")
+  targetId    String      @map("target_id")
+  action      AuditAction
+  /// Diff payload — `{before?, after?}` JSON. Both keys are optional:
+  ///   - CREATE → only `after`
+  ///   - DELETE → only `before`
+  ///   - UPDATE → both
+  ///   - RESTORE → both, `after.deletedAt = null`
+  diff        Json
+  /// Optional metadata bag — request id / trace id / IP — captured
+  /// from the AsyncLocalStorage context when available. Stored as
+  /// JSON so projects can extend it (e.g. add user-agent) without
+  /// schema migration.
+  metadata    Json?
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  @@index([tenantId, createdAt])
+  @@index([targetModel, targetId])
+  @@index([actorUserId, createdAt])
+  @@map("audit_log")
+}
+
+/// Stripe-style idempotency record. Persists the cached response for a
+/// (userId-scoped) idempotency key so replays survive a process
+/// restart. The `key` column already encodes the userId via the
+/// `scopeIdempotencyKey()` prefix in the service layer; storing the
+/// raw `userId` separately lets the framework reason about ownership
+/// without parsing the prefix.
+///
+/// `expiresAt` is the wall-clock cutoff after which the record is
+/// treated as a miss; a periodic cleanup job (or a TTL-aware lookup)
+/// can prune rows past this watermark. The service-side `now` is in
+/// epoch milliseconds; the DB column is `TIMESTAMP(3)` and the
+/// adapter converts at the boundary.
+model IdempotencyRecord {
+  /// Scoped key — `<userId | "anon">::<client-supplied-key>`.
+  key         String   @id
+  userId      String?  @map("user_id") @db.Uuid
+  requestHash String   @map("request_hash")
+  status      Int
+  /// Cached response body. JSON so any handler shape round-trips.
+  body        Json
+  expiresAt   DateTime @map("expires_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([expiresAt])
+  @@map("idempotency_records")
+}
+
+/// Asset-variant cache index (CF.STORAGE.01 closure — iter-183).
+///
+/// Discoverable index over the asset variant cache. The matching
+/// rendered bytes live on the `StorageAdapter` cache (typically
+/// `_cache/<cacheKey>`); this table maps each cacheKey back to its
+/// source so cascade-invalidation on origin re-upload is O(log N)
+/// instead of an O(N) walk over the `assets/*` prefix.
+///
+/// `cacheKey` is the same value `computeCacheKey({sourceKey,
+/// options})` returns from `asset.service.ts`. `optionsHash` is the
+/// hash of just the `TransformOptions` — useful for analytics +
+/// dedup when two sources share the same transform recipe.
+model AssetVariantIndex {
+  /// Stable hash of `(sourceKey, options)` — primary key.
+  cacheKey    String   @id @map("cache_key")
+  sourceKey   String   @map("source_key")
+  optionsHash String   @map("options_hash")
+  mimeType    String   @map("mime_type")
+  sizeBytes   Int      @map("size_bytes")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([sourceKey])
+  @@index([createdAt])
+  @@map("asset_variant_index")
 }

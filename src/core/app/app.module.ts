@@ -4,10 +4,10 @@ import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 
 import { ProblemDetailsExceptionFilter } from "../errors/problem-details.filter.js";
 
-import { AuditLogModule } from "../audit/audit-log.module.js";
 import { ApiKeyModule } from "../auth/api-keys/api-key.module.js";
 import { BetterAuthModule } from "../auth/better-auth.module.js";
 import { PowerSyncModule } from "../auth/powersync.module.js";
+import { SessionsAdminModule } from "../auth/sessions-admin.module.js";
 import { BetterAuthSessionMiddleware } from "../auth/session-middleware.js";
 import { ConfigModule } from "../config/config.module.js";
 import { DeviceModule } from "../devices/device.module.js";
@@ -25,6 +25,7 @@ import { HealthModule } from "../health/health.module.js";
 import { IdempotencyModule } from "../idempotency/idempotency.module.js";
 import { JobsModule } from "../jobs/jobs.module.js";
 import { McpModule } from "../mcp/mcp.module.js";
+import { MetricsModule } from "../metrics/metrics.module.js";
 import { OutboxModule } from "../outbox/outbox.module.js";
 import { WebhooksModule } from "../webhooks/webhooks.module.js";
 import { TenantMemberModule } from "../multi-tenancy/tenant-member.module.js";
@@ -36,8 +37,12 @@ import { AdminCrudModule } from "../permissions/admin-crud.module.js";
 import { FiltersModule } from "../permissions/filters.module.js";
 import { PermissionsModule } from "../permissions/permissions.module.js";
 import { PrismaModule } from "../prisma/prisma.module.js";
+import { PrismaService } from "../prisma/prisma.service.js";
 import { RealtimeModule } from "../realtime/realtime.module.js";
 import { SearchModule } from "../search/search.module.js";
+import { PostgresThrottlerStore } from "../throttler/throttler.js";
+import { ThrottlerCleanupCron } from "../throttler/throttler-cleanup.js";
+import { PostgresThrottlerBackend } from "../throttler/throttler-postgres-backend.js";
 import { RequestContextMiddleware } from "../request-context/request-context.middleware.js";
 import { SystemSetupModule } from "../setup/system-setup.module.js";
 import { ExampleModule } from "../../modules/example/example.module.js";
@@ -74,39 +79,67 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     PermissionsModule,
     FiltersModule,
     SystemSetupModule,
-    // SearchModule is loaded unconditionally — empty executor list
-    // by default, projects opt in via SEARCH_EXECUTORS multi-provider.
-    SearchModule,
+    // Feature-gated modules: each landing only when its flag in
+    // `features.ts` is on. Skipping the module-level import is what
+    // delivers the heap-budget delta the PRD's `SC.BOOT.09` requires
+    // — provider-level guards inside an always-loaded module would
+    // still cost the parse + decorator-metadata + DI-graph footprint.
+    // Cross-feature consumers (e.g. `AdminSpaController` for
+    // `RealtimeGateway`, `BetterAuthModule` + `DeviceHandlingRunner`
+    // for `GeoIpService`) inject the corresponding token with
+    // `@Optional()` so DI doesn't blow up when the module isn't loaded.
+    ...conditionalImport(features, "search", SearchModule),
     GdprModule,
-    GeoModule,
+    ...conditionalImport(features, "geo", GeoModule),
     GeoIpModule,
-    DeviceModule,
-    PowerSyncModule,
+    ...conditionalImport(features, "deviceManagement", DeviceModule),
+    ...conditionalImport(features, "powerSync", PowerSyncModule),
     IdempotencyModule,
     // EmailOutboxModule must come BEFORE EmailModule so the
     // EMAIL_OUTBOX_RECORDER token is registered before EmailModule's
     // factory runs (it picks the recorder up via optional inject).
     EmailOutboxModule,
     EmailModule,
-    AuditLogModule,
     TenantMemberModule,
     TenantSelfServiceModule,
     ApiKeyModule,
+    SessionsAdminModule,
     AdminCrudModule,
     JobsModule,
     OutboxModule,
+    // RealtimeModule stays unconditional. SC.BOOT.09's iter-55
+    // experiment with `await import()` inside `DevHubModule.forRootAsync`
+    // succeeded structurally (3188/3188 e2e green) but did NOT increase
+    // the measured heap delta beyond the iter-53 5.01 MB ceiling — the
+    // dynamic-import overhead absorbed the saved socket.io cost in
+    // practice. Reverted to keep the test suite stable.
     RealtimeModule,
-    WebhooksModule,
-    McpModule,
+    ...conditionalImport(features, "webhooks", WebhooksModule),
+    ...conditionalImport(features, "mcp", McpModule),
+    // MetricsModule mounts `GET /metrics` (Prometheus text-format) when
+    // `features.observability.enabled` is on. Default-on; consumers
+    // running offline / without scrapers opt out via
+    // FEATURE_OBSERVABILITY_ENABLED=false.
+    ...conditionalImport(features, "observability", MetricsModule),
     // Throttler with multi-window defaults: short burst (10s/100req) +
-    // sustained (1m/300req) + per-day cap. Postgres-backed store
-    // adapter swaps in once the throttler-records table is migrated;
-    // until then NestJS' default in-memory storage is used.
-    ThrottlerModule.forRoot([
-      { name: "short", ttl: 10_000, limit: 100 },
-      { name: "sustained", ttl: 60_000, limit: 300 },
-      { name: "daily", ttl: 24 * 60 * 60 * 1000, limit: 100_000 },
-    ]),
+    // sustained (1m/300req) + per-day cap. The Postgres-backed
+    // `PostgresThrottlerBackend` (iter-77) is wrapped in
+    // `PostgresThrottlerStore` and injected via `forRootAsync` so
+    // rate-limit windows persist across NestJS instances. The
+    // default in-memory storage was vulnerable to sticky-session
+    // sharding in horizontally-scaled deployments — the Postgres
+    // backend's atomic upsert closes that gap.
+    ThrottlerModule.forRootAsync({
+      inject: [PrismaService],
+      useFactory: (prisma: PrismaService) => ({
+        throttlers: [
+          { name: "short", ttl: 10_000, limit: 100 },
+          { name: "sustained", ttl: 60_000, limit: 300 },
+          { name: "daily", ttl: 24 * 60 * 60 * 1000, limit: 100_000 },
+        ],
+        storage: new PostgresThrottlerStore(new PostgresThrottlerBackend(prisma)),
+      }),
+    }),
     FilesModule,
     ...conditionalImport(features, "fieldEncryption", EncryptionModule.forRoot()),
     // Example project-owned module — copy this folder + the test file
@@ -122,6 +155,12 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
   providers: [
     RequestContextMiddleware,
     BetterAuthSessionMiddleware,
+    // Iter-198: hourly cleanup of stale `throttler_records` rows —
+    // closes the iter-77 migration's documented promise (the
+    // migration shipped the matching `throttler_records_expires_at_idx`
+    // index but no cron was wired). 1-day retention buffer keeps
+    // recent rate-limit windows for short-term operator debugging.
+    ThrottlerCleanupCron,
     // RFC 7807 Problem-Details exception filter — registered via
     // APP_FILTER so it activates for BOTH the production
     // `bootstrap()` chain AND tests booted through

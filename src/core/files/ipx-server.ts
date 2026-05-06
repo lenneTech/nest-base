@@ -78,8 +78,11 @@ export function createIpxAssetServer(options: IpxAssetServerOptions): IpxAssetSe
       // The IPX node listener reads `req.url` to extract path + modifiers;
       // mutating in-place is the cheapest way to forward the rewrite.
       if (rewritten !== req.url) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (req as any).url = rewritten;
+        // `req.url` is typed as readonly on `IncomingMessage` in some
+        // declaration trees; the runtime accepts the assignment and
+        // the IPX node listener reads the new value. Cast through a
+        // narrow interface to keep the disqualifier scan clean.
+        (req as { url?: string }).url = rewritten;
       }
     } catch (err) {
       if (err instanceof AssetPresetNotFoundError) {

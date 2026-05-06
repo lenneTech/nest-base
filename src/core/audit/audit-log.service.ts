@@ -8,7 +8,7 @@
  *
  * Encryption-awareness: when the caller marks a field as encrypted
  * (project-level `features.fieldEncryption`), the builder rewrites
- * its value with the literal `[encrypted]` placeholder in BOTH
+ * its value with the literal `[encrypted]` marker in BOTH
  * halves. A leaked audit row therefore reveals "this field changed"
  * but never "the new value was X" — the cleartext exists only in
  * the encrypted column on the source table.

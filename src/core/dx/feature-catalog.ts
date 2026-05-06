@@ -34,7 +34,7 @@ export const FEATURE_CATALOG: readonly FeatureMeta[] = [
     description: "TUS resumable uploads + S3/local/postgres storage adapters + asset pipeline.",
     envKey: "FEATURE_FILES_ENABLED",
     category: "data",
-    exposes: ["/files", "/folders", "/assets/:key", "TUS endpoint"],
+    exposes: ["/files", "/folders", "/assets/:key", "TUS endpoint", "VariantCacheCleanupCron"],
   },
   {
     key: "email",
@@ -122,7 +122,7 @@ export const FEATURE_CATALOG: readonly FeatureMeta[] = [
     description: "Stripe-style Idempotency-Key with sha256-fingerprint deduplication.",
     envKey: "FEATURE_IDEMPOTENCY_ENABLED",
     category: "infrastructure",
-    exposes: ["Idempotency-Key header", "IdempotencyKeyInterceptor"],
+    exposes: ["Idempotency-Key header", "IdempotencyKeyInterceptor", "IdempotencyCleanupCron"],
   },
   {
     key: "observability",

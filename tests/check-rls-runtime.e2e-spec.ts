@@ -3,7 +3,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Client } from "pg";
 
 import { listTenantScopedModels } from "../src/core/permissions/rls-audit-planner.js";
-import { checkRlsAtRuntime } from "../src/core/permissions/rls-runtime-check.js";
+import {
+  checkRlsAtRuntime,
+  connectAndCheckRlsAtRuntime,
+} from "../src/core/permissions/rls-runtime-check.js";
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -77,5 +80,39 @@ describe("E2E · check:rls runtime — live pg_class.relrowsecurity verification
   it("returns clean again once RLS is re-enabled on the table", async () => {
     const findings = await checkRlsAtRuntime({ tenantScopedModels: tenantScoped, client });
     expect(findings).toEqual([]);
+  });
+
+  /**
+   * `connectAndCheckRlsAtRuntime` is the CLI runner's convenience
+   * wrapper: open a fresh `pg.Client`, run the check, close. The
+   * tests above use the shared testcontainer client; this test
+   * exercises the open-and-close path directly so the wrapper is
+   * covered. (iter-156)
+   */
+  it("connectAndCheckRlsAtRuntime opens its own pg.Client and runs the same check", async () => {
+    const url = process.env.DATABASE_URL;
+    if (!url) throw new Error("DATABASE_URL required for the check:rls runtime e2e");
+    const findings = await connectAndCheckRlsAtRuntime({
+      tenantScopedModels: tenantScoped,
+      databaseUrl: url,
+    });
+    expect(findings).toEqual([]);
+  });
+
+  it("connectAndCheckRlsAtRuntime surfaces findings when a tenant-scoped table loses RLS", async () => {
+    const url = process.env.DATABASE_URL;
+    if (!url) throw new Error("DATABASE_URL required for the check:rls runtime e2e");
+    await client.query("ALTER TABLE examples DISABLE ROW LEVEL SECURITY");
+    try {
+      const findings = await connectAndCheckRlsAtRuntime({
+        tenantScopedModels: tenantScoped,
+        databaseUrl: url,
+      });
+      const example = findings.find((f) => f.table === "examples");
+      expect(example, JSON.stringify(findings)).toBeDefined();
+      expect(example?.reason).toBe("rls-disabled");
+    } finally {
+      await client.query("ALTER TABLE examples ENABLE ROW LEVEL SECURITY");
+    }
   });
 });

@@ -195,19 +195,19 @@ function SocketsTab({
           label="Tenant"
           value={tenantFilter}
           onChange={setTenantFilter}
-          placeholder="exact tenant id"
+          hint="exact tenant id"
         />
         <FilterInput
           label="User"
           value={userFilter}
           onChange={setUserFilter}
-          placeholder="userId substring"
+          hint="userId substring"
         />
         <FilterInput
           label="Channel pattern"
           value={channelFilter}
           onChange={setChannelFilter}
-          placeholder="Project:tenant:*"
+          hint="Project:tenant:*"
         />
       </FiltersBar>
       {filtered.length === 0 ? (
@@ -298,12 +298,12 @@ function FilterInput({
   label,
   value,
   onChange,
-  placeholder,
+  hint,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
-  placeholder?: string;
+  hint?: string;
 }): ReactNode {
   const id = label.toLowerCase().replace(/[^a-z]+/g, "-");
   return (
@@ -313,7 +313,7 @@ function FilterInput({
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
+        placeholder={hint}
         className="w-44"
       />
     </div>
@@ -453,7 +453,7 @@ function ChannelsTab({
           label="Channel pattern"
           value={pattern}
           onChange={setPattern}
-          placeholder="Project:tenant:*"
+          hint="Project:tenant:*"
         />
         <span className="text-xs text-fg-muted">
           {filtered.length} of {channels.length} channels match
@@ -540,19 +540,19 @@ function EventsTab({
           label="Channel pattern"
           value={channelFilter}
           onChange={setChannelFilter}
-          placeholder="Project:tenant:*"
+          hint="Project:tenant:*"
         />
         <FilterInput
           label="Event type"
           value={typeFilter}
           onChange={setTypeFilter}
-          placeholder="project.updated"
+          hint="project.updated"
         />
         <FilterInput
           label="Free-text search (payload)"
           value={textSearch}
           onChange={setTextSearch}
-          placeholder="anything"
+          hint="anything"
         />
         <Button
           variant={paused ? "default" : "outline"}
@@ -713,10 +713,12 @@ function hashHue(input: string): number {
 function compileChannelPattern(input: string): RegExp | null {
   const trimmed = input.trim();
   if (!trimmed) return null;
-  const placeholder = " WILD ";
-  const withPlaceholder = trimmed.replaceAll("*", placeholder);
-  const escaped = withPlaceholder.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const restored = escaped.replaceAll(placeholder, ".*");
+  // Sentinel that no user-typed pattern would contain — survives
+  // the regex-escape pass so we can swap it back to `.*` afterwards.
+  const wildSentinel = " WILD ";
+  const sentinelised = trimmed.replaceAll("*", wildSentinel);
+  const escaped = sentinelised.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const restored = escaped.replaceAll(wildSentinel, ".*");
   try {
     return new RegExp(`^${restored}$`);
   } catch {

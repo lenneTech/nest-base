@@ -13,12 +13,24 @@ export interface RetryConfig {
   autoDisableAfter: number;
 }
 
+/**
+ * PRD § Core Features § Webhooks pins the canonical retry curve:
+ *   1m → 5m → 25m, 2h hard cap, DLQ after 5 attempts.
+ *
+ * The schedule is exponential with factor=5, starting at 60_000 ms:
+ *   attempt 1 →  1m =     60_000
+ *   attempt 2 →  5m =    300_000
+ *   attempt 3 → 25m =  1_500_000
+ *   attempt 4 →  2h =  7_200_000  (clamped by maxDelayMs)
+ *   attempt 5 →  2h =  7_200_000  (clamped, then DLQ)
+ */
 export const WEBHOOK_RETRY_DEFAULTS: RetryConfig = {
-  initialDelayMs: 1000,
-  factor: 2,
-  // 1h cap — typical Standard Webhooks recommendation
-  maxDelayMs: 60 * 60 * 1000,
-  autoDisableAfter: 20,
+  initialDelayMs: 60_000,
+  factor: 5,
+  // 2h hard cap — PRD pin, mirroring Standard Webhooks recommended max.
+  maxDelayMs: 2 * 60 * 60 * 1000,
+  // After 5 consecutive failures the delivery is auto-disabled / DLQ'd.
+  autoDisableAfter: 5,
 };
 
 export function computeRetryDelayMs(attempt: number, config: RetryConfig): number {

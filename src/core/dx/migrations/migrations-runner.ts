@@ -303,7 +303,10 @@ export function runResolveRolledBack(
   name: string,
   projectRoot: string = process.cwd(),
 ): Promise<PrismaCommandResult> {
-  validateMigrationName(name) as never; // strict-mode safety
+  // Strict-mode safety: `validateMigrationName` may throw before
+  // `isValidDiskMigrationName` — we deliberately invoke it for its
+  // side effect and discard the boolean result.
+  void validateMigrationName(name);
   if (!isValidDiskMigrationName(name)) {
     throw new Error(`runResolveRolledBack expects a disk migration name, got "${name}"`);
   }

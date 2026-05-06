@@ -187,4 +187,69 @@ describe("Story · AwsS3Operations", () => {
     expect(harness.presignerCalls).toHaveLength(1);
     expect(harness.presignerCalls[0]!.expiresIn).toBe(600);
   });
+
+  /**
+   * Iter-158: cover the `streamToUint8Array` body-shape branches
+   * (lines 217-237 in `aws-s3-operations.ts`). The AWS SDK returns
+   * either a Web ReadableStream (browser; exposed as
+   * `transformToByteArray`), a Node.js Readable, or a Uint8Array
+   * (the test passthrough). The bindings harness above always
+   * returns Uint8Array; these two tests inject a custom S3Client
+   * that returns the wider body shapes.
+   */
+  describe("streamToUint8Array body-shape branches (iter-158)", () => {
+    function makeOpsWithBody(body: unknown): AwsS3Operations {
+      const harness = makeBindings();
+      const wrappedBindings = {
+        ...harness.bindings,
+        S3Client: class {
+          async send(command: unknown): Promise<unknown> {
+            const cmd = command as { _name: string; _input: Record<string, unknown> };
+            if (cmd._name === "GetObjectCommand") {
+              return { Body: body, ContentType: "application/octet-stream" };
+            }
+            return {};
+          }
+        },
+      };
+      // Cast through `unknown` because the harness's command-class
+      // exports are typed as optional (helper builds them lazily).
+      // Constructor parameters carry the narrower required shape.
+      type AwsSdkBindingsParam = ConstructorParameters<typeof AwsS3Operations>[1];
+      const erased: unknown = wrappedBindings;
+      return new AwsS3Operations({ bucket: "test-bucket" }, erased as AwsSdkBindingsParam);
+    }
+
+    it("getObject collapses a Web ReadableStream body via transformToByteArray", async () => {
+      const payload = new TextEncoder().encode("hello-stream");
+      const ops = makeOpsWithBody({
+        async transformToByteArray(): Promise<Uint8Array> {
+          return payload;
+        },
+      });
+      const result = await ops.getObject("k");
+      expect(result).not.toBeNull();
+      expect(new TextDecoder().decode(result!.body)).toBe("hello-stream");
+    });
+
+    it("getObject collapses a Node.js async-iterable body chunk-by-chunk", async () => {
+      const c1 = new TextEncoder().encode("hello");
+      const c2 = new TextEncoder().encode("-iter");
+      const c3 = new TextEncoder().encode("-able");
+      // Async iterable that yields three chunks; the helper merges
+      // them into a single Uint8Array of the right size.
+      const asyncIter = {
+        async *[Symbol.asyncIterator](): AsyncGenerator<Uint8Array> {
+          yield c1;
+          yield c2;
+          yield c3;
+        },
+      };
+      const ops = makeOpsWithBody(asyncIter);
+      const result = await ops.getObject("k");
+      expect(result).not.toBeNull();
+      expect(new TextDecoder().decode(result!.body)).toBe("hello-iter-able");
+      expect(result!.body.byteLength).toBe(c1.byteLength + c2.byteLength + c3.byteLength);
+    });
+  });
 });

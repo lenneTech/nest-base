@@ -116,8 +116,8 @@ strict red-green-refactor:
 
 Coverage thresholds:
 
-- `src/core/` ≥ 90% lines
-- `src/modules/` ≥ 80% lines
+- `src/core/` ≥ 80% lines
+- `src/modules/` ≥ 75% lines
 
 UI renderers (`src/core/dx/*-ui.ts`) and glue files (modules, controllers,
 interceptors, middleware, guards) are excluded from the gate — they're

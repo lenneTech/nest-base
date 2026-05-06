@@ -48,7 +48,7 @@ export function fanoutMasterEvent(event: MasterEvent, subscribers: WebhookSubscr
   return jobs;
 }
 
-function matchesEvent(patterns: string[], type: string): boolean {
+export function matchesEvent(patterns: string[], type: string): boolean {
   for (const pattern of patterns) {
     if (pattern === "*") return true;
     if (pattern === type) return true;

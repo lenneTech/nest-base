@@ -1,0 +1,50 @@
+{
+  "$schema": "https://ralph.dev/schemas/config.v1.json",
+  "version": 1,
+  "project": {
+    "name": "nest-base",
+    "kind": "fullstack-nestjs-bun",
+    "description": "Template-fähiger NestJS-Server auf Bun + Prisma + Postgres + Better-Auth"
+  },
+  "loop": {
+    "completionPromise": "ImplementedEverything",
+    "promptPath": "nest-base-loop-prompt.md",
+    "specPath": "nest-base-prd.md",
+    "checklistPath": "SPEC-CHECKLIST.md",
+    "verifyScript": "scripts/verify-spec.sh",
+    "qualityGates": [
+      "bun run lint",
+      "bun run format:check",
+      "bun run test:types",
+      "bun run test:unit",
+      "bun run test:e2e",
+      "bun run build"
+    ],
+    "disqualifierPatterns": [
+      "TODO",
+      "FIXME",
+      "XXX",
+      "stub",
+      "placeholder",
+      "NotImplemented",
+      "as any",
+      "as never",
+      "as unknown as",
+      "@ts-ignore",
+      "@ts-expect-error",
+      "return { ok: true }",
+      "console.log(",
+      "void body;",
+      "void id;"
+    ]
+  },
+  "import": {
+    "type": "prd",
+    "source": "nest-base-prd.md",
+    "extractor": "section-and-bullet",
+    "outputs": {
+      "checklist": "SPEC-CHECKLIST.md",
+      "loopPrompt": "nest-base-loop-prompt.md"
+    }
+  }
+}

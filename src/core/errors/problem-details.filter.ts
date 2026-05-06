@@ -9,6 +9,7 @@ import type { Request, Response } from "express";
 import { ZodError } from "zod";
 
 import { ETagMissingError, ETagPreconditionFailedError } from "../concurrency/etag.js";
+import { IdempotencyConflictError } from "../idempotency/idempotency.service.js";
 import { TenantIsolationError } from "../multi-tenancy/tenant-header.js";
 import { getRequestContext } from "../request-context/request-context.js";
 import { CORE_ERROR_CODES, type ProblemDetails, problemDetails } from "./error-code.js";
@@ -65,6 +66,21 @@ export class ProblemDetailsExceptionFilter implements ExceptionFilter {
         instance: req.originalUrl ?? req.url,
       });
       return { ...detail, ...correlation };
+    }
+
+    if (exception instanceof IdempotencyConflictError) {
+      // Stripe-style: same Idempotency-Key with a different request
+      // body collides → 409 Conflict + CORE_CONFLICT. The handler
+      // is intentionally NOT re-invoked, so the caller can either
+      // pick a fresh key or align the body with the original request.
+      const detail = problemDetails({
+        code: CORE_ERROR_CODES.CONFLICT,
+        status: HttpStatus.CONFLICT,
+        title: "Idempotency-Key Conflict",
+        detail: exception.message,
+        instance: req.originalUrl ?? req.url,
+      });
+      return { ...detail, ...correlation, idempotencyKey: exception.key };
     }
 
     if (exception instanceof ETagPreconditionFailedError) {

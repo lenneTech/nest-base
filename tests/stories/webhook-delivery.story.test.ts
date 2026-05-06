@@ -80,12 +80,30 @@ describe("Story · Webhook-Delivery", () => {
   });
 
   describe("Retry policy", () => {
-    it("exponential backoff doubles each attempt up to a cap", () => {
+    it("exponential backoff grows monotonically up to a cap", () => {
       const a1 = computeRetryDelayMs(1, WEBHOOK_RETRY_DEFAULTS);
       const a2 = computeRetryDelayMs(2, WEBHOOK_RETRY_DEFAULTS);
       const a3 = computeRetryDelayMs(3, WEBHOOK_RETRY_DEFAULTS);
       expect(a2).toBeGreaterThan(a1);
       expect(a3).toBeGreaterThan(a2);
+    });
+
+    it("matches the PRD-pinned curve: 1m → 5m → 25m, 2h cap, DLQ after 5 (SC.SUB.10)", () => {
+      // PRD § Core Features § Webhooks pins these exact values. The
+      // test locks them in so a future refactor can't silently drift
+      // away from the contract.
+      expect(WEBHOOK_RETRY_DEFAULTS.initialDelayMs).toBe(60_000);
+      expect(WEBHOOK_RETRY_DEFAULTS.factor).toBe(5);
+      expect(WEBHOOK_RETRY_DEFAULTS.maxDelayMs).toBe(2 * 60 * 60 * 1000);
+      expect(WEBHOOK_RETRY_DEFAULTS.autoDisableAfter).toBe(5);
+
+      // Verify the resulting schedule. attempts 1-3 are exact powers
+      // of the factor; attempt 4 hits the 2h cap.
+      expect(computeRetryDelayMs(1, WEBHOOK_RETRY_DEFAULTS)).toBe(60_000); // 1m
+      expect(computeRetryDelayMs(2, WEBHOOK_RETRY_DEFAULTS)).toBe(300_000); // 5m
+      expect(computeRetryDelayMs(3, WEBHOOK_RETRY_DEFAULTS)).toBe(1_500_000); // 25m
+      expect(computeRetryDelayMs(4, WEBHOOK_RETRY_DEFAULTS)).toBe(7_200_000); // 2h (clamped)
+      expect(computeRetryDelayMs(5, WEBHOOK_RETRY_DEFAULTS)).toBe(7_200_000); // 2h (clamped)
     });
 
     it("respects the maxDelayMs cap", () => {

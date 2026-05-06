@@ -154,6 +154,46 @@ jobs:
           path: dist/
           retention-days: 7
 
+  # PRD line 260 pins "OpenAPI snapshot drift + SDK drift" as required
+  # checks. Both gates run in `verify-spec.sh` (SC.QG.13 + SC.QG.14)
+  # but were not exposed as PR-blocking jobs until iter-153. Each job
+  # invokes the same `bun run` script the local verify-spec gate uses
+  # so the contract is single-sourced.
+  openapi-snapshot-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Generate Prisma client
+        run: bun run prepare:schema && bun run prisma:generate
+      - name: OpenAPI snapshot drift check
+        # The drift gate dumps the live OAS document and asserts
+        # byte-for-byte equality with `docs/openapi.snapshot.json`.
+        # A change to a controller's `@ApiOperation` / Zod schema /
+        # response DTO that the author forgot to commit is the
+        # canonical failure mode.
+        run: bun run dump:openapi --check
+
+  sdk-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: SDK consumability check
+        # `sdk:check` runs kubb against the committed OAS snapshot to
+        # confirm the snapshot still produces a working TS SDK. A
+        # break here means downstream consumers' generated `sdk.gen.ts`
+        # would no longer compile.
+        run: bun run sdk:check
+
   audit:
     runs-on: ubuntu-latest
     # Advisory only — vulnerable transitive deps are surfaced but never
@@ -190,6 +230,8 @@ jobs:
       - test-e2e
       - test-coverage
       - build
+      - openapi-snapshot-drift
+      - sdk-drift
     if: always()
     steps:
       - name: Verify every required job passed

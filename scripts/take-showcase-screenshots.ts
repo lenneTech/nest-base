@@ -86,18 +86,47 @@ interface PageSpec {
   requiresAuth?: boolean;
 }
 
+// Mirrors every <Route> declared in `src/core/dx/clients/App.tsx`.
+// SC.DX requires `bun run docs:screenshots` to reproduce every dev-portal
+// page; the structural test
+// `tests/stories/showcase-screenshots-coverage.story.test.ts` pins the
+// 1:1 correspondence so a new route can't ship without a screenshot
+// entry.
 const PAGES: PageSpec[] = [
+  // Dev portal
   { slug: "dev-landing", path: "/dev", waitFor: ["Dev Hub", "Cockpit"] },
+  { slug: "dev-components", path: "/dev/components", waitFor: ["Components", "shadcn"] },
   { slug: "dev-features", path: "/dev/features", waitFor: ["Multi-Tenancy", "Feature flags"] },
+  { slug: "dev-brand", path: "/dev/brand", waitFor: ["Brand"] },
   { slug: "dev-coverage", path: "/dev/coverage", waitFor: ["Coverage", "no run yet", "Lines"] },
-  { slug: "dev-jobs", path: "/dev/jobs", waitFor: ["Jobs", "Queues"] },
+  { slug: "dev-tests", path: "/dev/tests", waitFor: ["Tests"] },
+  { slug: "dev-diagnostics", path: "/dev/diagnostics", waitFor: ["Diagnostics"] },
+  { slug: "dev-logs", path: "/dev/logs", waitFor: ["Logs"] },
+  { slug: "dev-traces", path: "/dev/traces", waitFor: ["Traces"] },
+  { slug: "dev-queries", path: "/dev/queries", waitFor: ["Queries"] },
   { slug: "dev-migrations", path: "/dev/migrations", waitFor: ["Migrations", "Status"] },
-  { slug: "dev-email-builder", path: "/dev/email-builder", waitFor: ["Email Builder", "Templates"] },
+  { slug: "dev-jobs", path: "/dev/jobs", waitFor: ["Jobs", "Queues"] },
+  { slug: "dev-routes", path: "/dev/routes", waitFor: ["Routes"] },
+  { slug: "dev-erd", path: "/dev/erd", waitFor: ["ERD"] },
   { slug: "dev-email-preview", path: "/dev/email-preview", waitFor: ["Email Preview", "verification"] },
+  { slug: "dev-email-builder", path: "/dev/email-builder", waitFor: ["Email Builder", "Templates"] },
+  { slug: "dev-postgrest-parse", path: "/dev/postgrest-parse", waitFor: ["PostgREST"] },
+  { slug: "dev-json", path: "/dev/json", waitFor: ["JSON Viewer"] },
+  { slug: "dev-files", path: "/dev/files", waitFor: ["File Manager"] },
+  { slug: "dev-cron", path: "/dev/cron", waitFor: ["Cron"] },
+  { slug: "dev-email-outbox", path: "/dev/email-outbox", waitFor: ["Email Outbox"] },
+  // Admin pages (require auth)
+  { slug: "admin-roles", path: "/admin/roles", waitFor: ["Roles"], requiresAuth: true },
+  { slug: "admin-policies", path: "/admin/policies", waitFor: ["Policies"], requiresAuth: true },
+  { slug: "admin-permissions", path: "/admin/permissions", waitFor: ["Permissions"], requiresAuth: true },
   { slug: "admin-permissions-test", path: "/admin/permissions/test", waitFor: ["Permission Tester"], requiresAuth: true },
+  { slug: "admin-sessions", path: "/admin/sessions", waitFor: ["Sessions"], requiresAuth: true },
+  { slug: "admin-jobs", path: "/admin/jobs", waitFor: ["Jobs"], requiresAuth: true },
   { slug: "admin-webhooks", path: "/admin/webhooks", waitFor: ["Webhook Inspector", "Endpoints"], requiresAuth: true },
   { slug: "admin-realtime", path: "/admin/realtime", waitFor: ["Realtime Inspector", "Sockets"], requiresAuth: true },
   { slug: "admin-audit", path: "/admin/audit", waitFor: ["Audit Browser"], requiresAuth: true },
+  { slug: "admin-search", path: "/admin/search", waitFor: ["Search Tester"], requiresAuth: true },
+  // Public catalogues
   { slug: "errors", path: "/errors", waitFor: ["Error Catalog", "CORE_"] },
   { slug: "openapi", path: "/api/openapi", waitFor: ["OpenAPI", "openapi"] },
 ];

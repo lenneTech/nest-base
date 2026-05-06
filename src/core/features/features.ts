@@ -18,7 +18,7 @@ import type { AppEnv } from "../http/cookie-cors-config.js";
  */
 
 const SOCIAL_PROVIDERS = ["google", "github", "apple", "discord"] as const;
-const STORAGE_DRIVERS = ["s3", "local", "postgres"] as const;
+const STORAGE_DRIVERS = ["s3", "local", "postgres", "rustfs"] as const;
 const EMAIL_PROVIDERS = ["smtp", "brevo"] as const;
 const GEO_PROVIDERS = ["mapbox", "google", "nominatim", "local"] as const;
 const GEO_IP_PROVIDERS = ["dbip-lite", "maxmind"] as const;
@@ -85,10 +85,20 @@ const Realtime = togglableDefault(false);
 const PowerSync = togglableDefault(false);
 const Mcp = togglableDefault(false);
 const FieldEncryption = togglableDefault(false);
+const MagicLink = togglableDefault(false);
+const AdminPlugin = togglableDefault(false);
+const Organization = togglableDefault(false);
+const OneTap = togglableDefault(false);
+const OpenAPI = togglableDefault(false);
 const RateLimit = togglableDefault(true);
 const Idempotency = togglableDefault(true);
 const Observability = togglableDefault(true);
 const Jobs = togglableDefault(true);
+// `audit` gates the audit-log subsystem (the AuditLog Prisma model +
+// the audit Prisma extension). Default-on because permission /
+// authentication / data-mutation surfaces always need audit traces;
+// projects with strict storage budgets opt out via FEATURE_AUDIT_ENABLED=false.
+const Audit = togglableDefault(true);
 
 export const FeaturesSchema = z.object({
   authMethods: AuthMethodsSchema.default(() => AuthMethodsSchema.parse({})),
@@ -101,6 +111,11 @@ export const FeaturesSchema = z.object({
   powerSync: PowerSync.default(() => PowerSync.parse({})),
   mcp: Mcp.default(() => Mcp.parse({})),
   fieldEncryption: FieldEncryption.default(() => FieldEncryption.parse({})),
+  magicLink: MagicLink.default(() => MagicLink.parse({})),
+  adminPlugin: AdminPlugin.default(() => AdminPlugin.parse({})),
+  organization: Organization.default(() => Organization.parse({})),
+  oneTap: OneTap.default(() => OneTap.parse({})),
+  openAPI: OpenAPI.default(() => OpenAPI.parse({})),
   geo: GeoSchema.default(() => GeoSchema.parse({})),
   geoIp: GeoIpSchema.default(() => GeoIpSchema.parse({})),
   deviceManagement: DeviceManagementSchema.default(() => DeviceManagementSchema.parse({})),
@@ -108,6 +123,7 @@ export const FeaturesSchema = z.object({
   idempotency: Idempotency.default(() => Idempotency.parse({})),
   observability: Observability.default(() => Observability.parse({})),
   jobs: Jobs.default(() => Jobs.parse({})),
+  audit: Audit.default(() => Audit.parse({})),
 });
 
 export type Features = z.infer<typeof FeaturesSchema>;
@@ -123,13 +139,19 @@ export type ToggleableFeatureKey =
   | "powerSync"
   | "mcp"
   | "fieldEncryption"
+  | "magicLink"
+  | "adminPlugin"
+  | "organization"
+  | "oneTap"
+  | "openAPI"
   | "geo"
   | "geoIp"
   | "deviceManagement"
   | "rateLimit"
   | "idempotency"
   | "observability"
-  | "jobs";
+  | "jobs"
+  | "audit";
 
 /**
  * `loadFeatures(env)` reads `FEATURE_*` ENV-vars and merges them onto the
@@ -167,6 +189,15 @@ const SECTION_KEYS = new Set([
   "MCP",
   "FIELDENCRYPTION",
   "FIELD_ENCRYPTION",
+  "MAGICLINK",
+  "MAGIC_LINK",
+  "ADMINPLUGIN",
+  "ADMIN_PLUGIN",
+  "ORGANIZATION",
+  "ONETAP",
+  "ONE_TAP",
+  "OPENAPI",
+  "OPEN_API",
   "GEO",
   "GEO_IP",
   "DEVICEMANAGEMENT",
@@ -176,6 +207,7 @@ const SECTION_KEYS = new Set([
   "IDEMPOTENCY",
   "OBSERVABILITY",
   "JOBS",
+  "AUDIT",
 ]);
 
 const SECTION_TO_KEY: Record<string, FeatureKey> = {
@@ -190,6 +222,15 @@ const SECTION_TO_KEY: Record<string, FeatureKey> = {
   MCP: "mcp",
   FIELDENCRYPTION: "fieldEncryption",
   FIELD_ENCRYPTION: "fieldEncryption",
+  MAGICLINK: "magicLink",
+  MAGIC_LINK: "magicLink",
+  ADMINPLUGIN: "adminPlugin",
+  ADMIN_PLUGIN: "adminPlugin",
+  ORGANIZATION: "organization",
+  ONETAP: "oneTap",
+  ONE_TAP: "oneTap",
+  OPENAPI: "openAPI",
+  OPEN_API: "openAPI",
   GEO: "geo",
   GEO_IP: "geoIp",
   DEVICEMANAGEMENT: "deviceManagement",
@@ -199,6 +240,7 @@ const SECTION_TO_KEY: Record<string, FeatureKey> = {
   IDEMPOTENCY: "idempotency",
   OBSERVABILITY: "observability",
   JOBS: "jobs",
+  AUDIT: "audit",
 };
 
 const FIELD_TO_PROP: Record<string, string> = {

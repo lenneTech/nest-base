@@ -15,7 +15,7 @@ import { canSubscribeToChannel, parseChannelName } from "./channel-permission.js
  *      joined socket through the abstract SocketServer adapter.
  *
  * The Socket.IO library binding lives in the realtime-module wiring;
- * tests use a stub SocketServer so the unit suite stays free of the
+ * tests use a fake SocketServer so the unit suite stays free of the
  * network layer.
  */
 

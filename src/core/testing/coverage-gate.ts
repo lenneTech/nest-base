@@ -26,18 +26,24 @@ export interface CoverageThreshold {
   branches: number;
 }
 
+// PRD § Success Criteria pins:
+//   src/core/**   ≥ 80 % lines
+//   src/modules/** ≥ 75 % lines
+// Current coverage (iter-59 measurement) is 92.87 % / 95.45 %, well
+// above the PRD floor — bumping the gate to the PRD floor turns the
+// threshold from a permissive check into a real protection.
 export const CORE_COVERAGE_THRESHOLD: CoverageThreshold = {
-  lines: 70,
-  statements: 60,
-  functions: 70,
-  branches: 50,
+  lines: 80,
+  statements: 75,
+  functions: 80,
+  branches: 70,
 };
 
 export const MODULES_COVERAGE_THRESHOLD: CoverageThreshold = {
-  lines: 60,
-  statements: 50,
-  functions: 60,
-  branches: 45,
+  lines: 75,
+  statements: 70,
+  functions: 75,
+  branches: 65,
 };
 
 export const coverageThresholds: Record<string, CoverageThreshold> = {

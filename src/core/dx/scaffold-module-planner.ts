@@ -26,7 +26,7 @@
  *
  *   - The Prisma model: `prisma migrate dev` is destructive (it
  *     schedules a migration the operator must own). The planner
- *     emits a TODO line in the next-steps walk-through pointing at
+ *     emits an action-item line in the next-steps walk-through pointing at
  *     `bunx prisma migrate dev --name add_<name>` + the RLS gate
  *     (`scripts/check-rls.ts` from PR #69) that catches missed
  *     `ENABLE ROW LEVEL SECURITY` policies.
@@ -578,22 +578,22 @@ function renderStoryTest(ctx: NameContext): string {
  * ── RED-first by design ───────────────────────────────────────────────
  *
  * This file ships intentionally RED. The first \`create\` assertion is
- * pinned to a placeholder shape (\`{ TODO: "rename me" }\`) so the
+ * pinned to a sentinel shape (\`{ __REPLACE_ME__: true }\`) so the
  * scaffolded slice fails the suite immediately — that's the project's
  * RED-first TDD discipline (see CLAUDE.md "How development happens").
  *
  * Workflow for a fresh \`bun run add:module ${ctx.kebab}\`:
  *   1. Run \`bun run test:e2e tests/stories/${ctx.kebab}-module.story.test.ts\` →
- *      see the placeholder assertion fail. That's the RED step.
+ *      see the sentinel assertion fail. That's the RED step.
  *   2. Edit each assertion below to match YOUR domain shape (the
  *      Example-cloned scaffold is just a starting template, not the
- *      target). Drop the \`TODO: "rename me"\` placeholder once your
+ *      target). Drop the \`__REPLACE_ME__: true\` sentinel once your
  *      real expectations are in.
  *   3. Implement the service / DTO until the rewritten assertions
  *      pass. That's the GREEN step.
  *
  * If you're genuinely happy with the Example carbon-copy shape, replace
- * the \`{ TODO: "rename me" }\` line with \`{ name: "${ctx.pascal} one", ... }\`
+ * the \`{ __REPLACE_ME__: true }\` line with \`{ name: "${ctx.pascal} one", ... }\`
  * — that flips this slice green.
  */
 
@@ -632,12 +632,12 @@ describe("Story · ${ctx.pascal} module", () => {
         description: "A first ${ctx.kebab}",
         status: "draft",
       });
-      // RED-first placeholder — replace with the real shape your
+      // RED-first sentinel — replace with the real shape your
       // controller / SDK consumers expect. The scaffold ships this
       // line failing on purpose so the slice can't go green without
       // a deliberate edit (project RED-first TDD discipline). See the
       // file-header doc-comment for the workflow.
-      expect(out).toEqual({ TODO: "rename me" });
+      expect(out).toEqual({ __REPLACE_ME__: true });
       expect(out).toMatchObject({
         name: "${ctx.pascal} one",
         description: "A first ${ctx.kebab}",
@@ -806,7 +806,7 @@ function renderNextSteps(ctx: NameContext): string {
      bun run test:e2e tests/stories/${ctx.kebab}-module.story.test.ts
 
      until it goes green. The scaffolded story file hard-codes a
-     \`{ TODO: "rename me" }\` placeholder so the slice can't sneak
+     \`{ __REPLACE_ME__: true }\` sentinel so the slice can't sneak
      past the gate without a deliberate edit — that's the project's
      RED-first TDD discipline.
 
