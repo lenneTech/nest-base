@@ -659,6 +659,55 @@ model SystemSecret {
   @@map("system_secrets")
 }
 
+// ---------- Rate-Limit Admin (issue #94) ----------
+
+// Persists operator-configured rate-limit windows so live changes survive
+// restarts without a code deploy. The service caches rows in memory and
+// refreshes every 30 s; deletions trigger a cache flush that falls back to
+// the hardcoded default for that scope.
+model RateLimitConfig {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  scope         String   @unique // "global:1s" | "global:1m" | "global:1h" | "auth:signIn" | "auth:signUp" | "auth:passwordReset" | "auth:verifyEmail"
+  maxRequests   Int      @map("max_requests")
+  windowSeconds Int      @map("window_seconds")
+  updatedById   String?  @map("updated_by_id") @db.Uuid
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("rate_limit_configs")
+}
+
+// Sampled decision history: every block and ~1% of allows. The inspector
+// and decisions tab read this for operator visibility into throttle patterns.
+model RateLimitDecision {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bucketKey  String   @map("bucket_key")
+  endpoint   String
+  decision   String   // "allow" | "block"
+  count      Int
+  limit      Int
+  windowSecs Int      @map("window_secs")
+  ip         String?
+  userId     String?  @map("user_id") @db.Uuid
+  ts         DateTime @default(now()) @map("ts")
+
+  @@index([bucketKey])
+  @@index([ts])
+  @@map("rate_limit_decisions")
+}
+
+// Users and IPs exempt from rate limiting. The throttler reads this on each
+// request (cached) before touching the throttler_records counter.
+model RateLimitAllowlist {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @unique @map("user_id") @db.Uuid
+  reason      String
+  createdById String?  @map("created_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("rate_limit_allowlist")
+}
+
 /// Asset-variant cache index (CF.STORAGE.01 closure — iter-183).
 ///
 /// Discoverable index over the asset variant cache. The matching

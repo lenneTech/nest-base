@@ -49,6 +49,7 @@ import { SearchModule } from "../search/search.module.js";
 import { PostgresThrottlerStore } from "../throttler/throttler.js";
 import { ThrottlerCleanupCron } from "../throttler/throttler-cleanup.js";
 import { PostgresThrottlerBackend } from "../throttler/throttler-postgres-backend.js";
+import { RateLimitAdminModule } from "../throttler/rate-limit-admin.module.js";
 import { RequestContextMiddleware } from "../request-context/request-context.middleware.js";
 import { SystemSetupModule } from "../setup/system-setup.module.js";
 import { ExampleModule } from "../../modules/example/example.module.js";
@@ -199,6 +200,9 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
       }),
     }),
     FilesModule,
+    // Rate-limit admin: /admin/rate-limits inspector, config editor,
+    // decision history, key reset, and allowlist management (issue #94).
+    RateLimitAdminModule,
     ...conditionalImport(features, "fieldEncryption", EncryptionModule.forRoot()),
     // Example project-owned module — copy this folder + the test file
     // to scaffold a new resource. Drop the import once you have your

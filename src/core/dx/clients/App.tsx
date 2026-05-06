@@ -109,6 +109,9 @@ const PoliciesAdminPage = lazy(() =>
 const PermissionsAdminPage = lazy(() =>
   import("./pages/PermissionsAdminPage.js").then((m) => ({ default: m.PermissionsAdminPage })),
 );
+const RateLimitsAdminPage = lazy(() =>
+  import("./pages/RateLimitsAdminPage.js").then((m) => ({ default: m.RateLimitsAdminPage })),
+);
 
 function PageFallback(): ReactNode {
   return (
@@ -154,6 +157,7 @@ export function App(): ReactNode {
         <Route path="/admin/realtime" element={<RealtimeInspectorPage />} />
         <Route path="/admin/audit" element={<AuditBrowserPage />} />
         <Route path="/admin/search" element={<SearchTesterPage />} />
+        <Route path="/admin/rate-limits" element={<RateLimitsAdminPage />} />
         <Route path="/errors" element={<ErrorsPage />} />
         <Route path="/api/openapi" element={<OpenApiPage />} />
       </Routes>

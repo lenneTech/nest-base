@@ -81,6 +81,7 @@ export const NAV_SECTIONS: readonly AdminNavSection[] = [
       { id: "realtime", label: "Realtime Inspector", href: "/admin/realtime", icon: "radio" },
       { id: "audit", label: "Audit Browser", href: "/admin/audit", icon: "list" },
       { id: "search", label: "Search Tester", href: "/admin/search", icon: "search" },
+      { id: "rate-limits", label: "Rate-Limits", href: "/admin/rate-limits", icon: "shield" },
     ],
   },
 ];
@@ -122,6 +123,7 @@ export const SPA_ROUTES = new Set<string>([
   "/admin/realtime",
   "/admin/audit",
   "/admin/search",
+  "/admin/rate-limits",
   "/errors",
   "/api/openapi",
 ]);

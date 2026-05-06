@@ -155,6 +155,12 @@ const PAGES: PageSpec[] = [
   },
   { slug: "admin-audit", path: "/admin/audit", waitFor: ["Audit Browser"], requiresAuth: true },
   { slug: "admin-search", path: "/admin/search", waitFor: ["Search Tester"], requiresAuth: true },
+  {
+    slug: "admin-rate-limits",
+    path: "/admin/rate-limits",
+    waitFor: ["Inspektor", "Konfiguration"],
+    requiresAuth: true,
+  },
   // Public catalogues
   { slug: "errors", path: "/errors", waitFor: ["Error Catalog", "CORE_"] },
   { slug: "openapi", path: "/api/openapi", waitFor: ["OpenAPI", "openapi"] },
