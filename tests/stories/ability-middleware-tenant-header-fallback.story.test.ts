@@ -38,7 +38,7 @@ describe("Story · AbilityMiddleware x-tenant-id resolution", () => {
   const OTHER_TENANT = "00000000-0000-4000-8000-000000000002";
 
   type Req = {
-    user?: { id: string; tenantId: string | null };
+    user?: { id: string; activeOrganizationId?: string | null };
     headers?: Record<string, string | string[] | undefined>;
     ability?: Ability;
   };
@@ -49,21 +49,18 @@ describe("Story · AbilityMiddleware x-tenant-id resolution", () => {
     } as unknown as PermissionService;
   }
 
-  function makePrismaWithRow(row: { id: string; status: string } | null): PrismaService {
-    const findFirst = vi.fn(async (input: { where?: Record<string, unknown> }) => {
-      if (!row) return null;
-      const where = input?.where ?? {};
-      if (where.status !== undefined && row.status !== where.status) return null;
-      return row;
-    });
+  // BA's `member` table stores only active members — no status column.
+  // A found row implies membership; absence implies no membership.
+  function makePrismaWithRow(row: { id: string } | null): PrismaService {
+    const findFirst = vi.fn(async () => row);
     return {
-      tenantMember: { findFirst },
+      member: { findFirst },
     } as unknown as PrismaService;
   }
 
   function makePrismaThrowing(): PrismaService {
     return {
-      tenantMember: {
+      member: {
         findFirst: vi.fn(async () => {
           throw new Error("db unavailable");
         }),
@@ -85,13 +82,13 @@ describe("Story · AbilityMiddleware x-tenant-id resolution", () => {
 
   const res = {} as Response;
 
-  it("uses the x-tenant-id header when req.user.tenantId is null AND the user has an ACTIVE membership", async () => {
+  it("uses the x-tenant-id header when req.user has no activeOrganizationId AND the user has a BA member row", async () => {
     const ability = buildAbility([{ action: "read", subject: "Example" }]);
     const service = makeService(ability);
-    const prisma = makePrismaWithRow({ id: "m1", status: "ACTIVE" });
+    const prisma = makePrismaWithRow({ id: "m1" });
     const mw = new AbilityMiddleware(service, prisma);
     const req: Req = {
-      user: { id: "u1", tenantId: null },
+      user: { id: "u1", activeOrganizationId: null },
       headers: { [TENANT_HEADER]: VALID_TENANT },
     };
     const next = nextFn();
@@ -102,21 +99,21 @@ describe("Story · AbilityMiddleware x-tenant-id resolution", () => {
     expect(next.calls).toBe(1);
   });
 
-  it("keeps the empty-ability fallback when the header is set but membership is INVITED (not ACTIVE)", async () => {
+  it("keeps the empty-ability fallback when the header is set but the user has no member row in BA (not a member)", async () => {
+    // BA's member table stores only active members — absence of a row
+    // means no active membership. The resolver throws ForbiddenException;
+    // the middleware swallows it and installs an empty ability. CanGuard
+    // still denies because empty ability grants nothing.
     const service = makeService(buildAbility([{ action: "read", subject: "Example" }]));
-    const prisma = makePrismaWithRow({ id: "m1", status: "INVITED" });
+    const prisma = makePrismaWithRow(null);
     const mw = new AbilityMiddleware(service, prisma);
     const req: Req = {
-      user: { id: "u1", tenantId: null },
+      user: { id: "u1", activeOrganizationId: null },
       headers: { [TENANT_HEADER]: VALID_TENANT },
     };
     const next = nextFn();
     await mw.use(req as never, res, next);
 
-    // Resolver throws ForbiddenException; middleware swallows the
-    // signal and installs an empty ability. CanGuard still denies
-    // because empty ability grants nothing — and the interceptor
-    // raises the hard 403 separately at the RLS layer.
     expect(req.ability).toBeDefined();
     expect(req.ability!.can("read", "Example")).toBe(false);
     expect(service.abilityFor).not.toHaveBeenCalled();
@@ -129,7 +126,7 @@ describe("Story · AbilityMiddleware x-tenant-id resolution", () => {
     const prisma = makePrismaWithRow(null);
     const mw = new AbilityMiddleware(service, prisma);
     const req: Req = {
-      user: { id: "u1", tenantId: null },
+      user: { id: "u1", activeOrganizationId: null },
       headers: { [TENANT_HEADER]: OTHER_TENANT },
     };
     const next = nextFn();
@@ -146,11 +143,11 @@ describe("Story · AbilityMiddleware x-tenant-id resolution", () => {
     const service = makeService(buildAbility([{ action: "read", subject: "Example" }]));
     const findFirst = vi.fn(async () => null);
     const prisma = {
-      tenantMember: { findFirst },
+      member: { findFirst },
     } as unknown as PrismaService;
     const mw = new AbilityMiddleware(service, prisma);
     const req: Req = {
-      user: { id: "u1", tenantId: null },
+      user: { id: "u1", activeOrganizationId: null },
       headers: { [TENANT_HEADER]: "not-a-uuid" },
     };
     const next = nextFn();
@@ -166,18 +163,16 @@ describe("Story · AbilityMiddleware x-tenant-id resolution", () => {
     expect(next.lastError).toBeUndefined();
   });
 
-  it("HEADER WINS over req.user.tenantId when ACTIVE membership exists (multi-membership UX)", async () => {
-    // CHANGED from the previous "header is fallback-only" semantics:
-    // a non-null `req.user.tenantId` no longer suppresses the header
-    // lookup. The ACTIVE-membership check still runs — the breach was
-    // specifically the case where the OLD code skipped the membership
-    // check entirely; now the resolver always validates.
+  it("HEADER WINS over req.user.activeOrganizationId when a BA member row exists (multi-membership UX)", async () => {
+    // The resolver always validates membership via BA's member table
+    // when a header is present — even if activeOrganizationId is set.
+    // This closes the cross-tenant write breach vector.
     const ability = buildAbility([{ action: "read", subject: "Example" }]);
     const service = makeService(ability);
-    const prisma = makePrismaWithRow({ id: "m1", status: "ACTIVE" });
+    const prisma = makePrismaWithRow({ id: "m1" });
     const mw = new AbilityMiddleware(service, prisma);
     const req: Req = {
-      user: { id: "u1", tenantId: "session-tenant" },
+      user: { id: "u1", activeOrganizationId: "session-org" },
       headers: { [TENANT_HEADER]: OTHER_TENANT },
     };
     const next = nextFn();
@@ -190,22 +185,20 @@ describe("Story · AbilityMiddleware x-tenant-id resolution", () => {
     expect(next.lastError).toBeUndefined();
   });
 
-  it("does NOT consult the membership table when the header just echoes req.user.tenantId (DB short-circuit)", async () => {
-    // When header == session tenant, the `createTenantWithMember`
-    // invariant guarantees an ACTIVE membership exists — the lookup
-    // would round-trip just to confirm what we already know. Skipping
-    // it keeps the hot path fast AND keeps existing tests that set
-    // `User.tenantId` without creating a `TenantMember` row green.
+  it("falls back to activeOrganizationId when no header is present (no DB lookup needed)", async () => {
+    // When no header is present, the resolver reads
+    // req.user.activeOrganizationId without consulting the member table.
+    // This keeps the header-less path fast (no extra DB round-trip).
     const ability = buildAbility([{ action: "read", subject: "Example" }]);
     const service = makeService(ability);
     const findFirst = vi.fn();
     const prisma = {
-      tenantMember: { findFirst },
+      member: { findFirst },
     } as unknown as PrismaService;
     const mw = new AbilityMiddleware(service, prisma);
     const req: Req = {
-      user: { id: "u1", tenantId: VALID_TENANT },
-      headers: { [TENANT_HEADER]: VALID_TENANT },
+      user: { id: "u1", activeOrganizationId: VALID_TENANT },
+      headers: {},
     };
     const next = nextFn();
     await mw.use(req as never, res, next);
@@ -221,7 +214,7 @@ describe("Story · AbilityMiddleware x-tenant-id resolution", () => {
     const prisma = makePrismaThrowing();
     const mw = new AbilityMiddleware(service, prisma);
     const req: Req = {
-      user: { id: "u1", tenantId: null },
+      user: { id: "u1", activeOrganizationId: null },
       headers: { [TENANT_HEADER]: VALID_TENANT },
     };
     const next = nextFn();

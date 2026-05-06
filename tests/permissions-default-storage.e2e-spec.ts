@@ -60,7 +60,7 @@ describe("Permissions · default Prisma storage end-to-end", () => {
     try {
       const u = await prisma.user.findUnique({ where: { email } });
       if (u) {
-        await prisma.tenantMember.deleteMany({ where: { userId: u.id } });
+        await prisma.member.deleteMany({ where: { userId: u.id } });
         await prisma.user.delete({ where: { id: u.id } });
       }
     } catch {
@@ -78,8 +78,9 @@ describe("Permissions · default Prisma storage end-to-end", () => {
     //    sign-up doesn't auto-create a tenant — that's a separate
     //    concern. We provision one explicitly so the assertion stays
     //    focused on "ACTIVE member → unlock" rather than auth wiring.
-    const tenant = await prisma.tenant.create({
-      data: { id: crypto.randomUUID(), name: `perm-default-${Date.now()}` },
+    const orgId = crypto.randomUUID();
+    const tenant = await prisma.organization.create({
+      data: { id: orgId, name: `perm-default-${Date.now()}`, slug: `perm-default-${orgId}` },
     });
 
     // 2. Sign up — Better-Auth creates the User row and sets a cookie.
@@ -98,23 +99,19 @@ describe("Permissions · default Prisma storage end-to-end", () => {
     //    user fields at sign-in time).
     const persisted = await prisma.user.findUnique({ where: { email } });
     expect(persisted, "user must persist after sign-up").not.toBeNull();
-    await prisma.user.update({
-      where: { id: persisted!.id },
-      data: { tenantId: tenant.id },
-    });
-    await prisma.tenantMember.create({
+    // Create a BA member row — presence of the row implies ACTIVE membership.
+    await prisma.member.create({
       data: {
         id: crypto.randomUUID(),
         userId: persisted!.id,
-        tenantId: tenant.id,
+        organizationId: tenant.id,
         role: "member",
-        status: "ACTIVE",
-        joinedAt: new Date(),
+        createdAt: new Date(),
       },
     });
 
     // 4. Sign in again on a fresh agent so the session sees the
-    //    updated `tenantId` field.
+    //    Signed in after membership creation so the session is fresh.
     const memberAgent = request.agent(app.getHttpServer());
     const signIn = await memberAgent
       .post("/api/auth/sign-in/email")
@@ -134,7 +131,7 @@ describe("Permissions · default Prisma storage end-to-end", () => {
     expect(res.body).toEqual({ status: "ok" });
 
     // Cleanup the tenant we created (cascade removes member row).
-    await prisma.tenantMember.deleteMany({ where: { tenantId: tenant.id } });
-    await prisma.tenant.delete({ where: { id: tenant.id } });
+    await prisma.member.deleteMany({ where: { organizationId: tenant.id } });
+    await prisma.organization.delete({ where: { id: tenant.id } });
   });
 });

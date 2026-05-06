@@ -4,7 +4,6 @@ import type { PrismaService } from "../prisma/prisma.service.js";
 export interface UserBlindIndexRow {
   readonly id: string;
   readonly email: string;
-  readonly tenantId: string | null;
 }
 
 /**
@@ -32,14 +31,13 @@ export async function findUserByEmail(
   const hash = blindIndex.compute(email);
   if (hash === null) return null;
   const rows = (await prisma.$queryRawUnsafe(
-    `SELECT id, email, tenant_id FROM users WHERE email_hash = $1 LIMIT 1`,
+    `SELECT id, email FROM users WHERE email_hash = $1 LIMIT 1`,
     hash,
-  )) as Array<{ id: string; email: string; tenant_id: string | null }>;
+  )) as Array<{ id: string; email: string }>;
   const row = rows[0];
   if (!row) return null;
   return {
     id: row.id,
     email: row.email,
-    tenantId: row.tenant_id,
   };
 }

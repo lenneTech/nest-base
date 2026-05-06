@@ -212,9 +212,13 @@ describe("Story · BA Organizations Migration", () => {
       expect(observed).toBe(sessionTenant);
     });
 
-    it("returns null when no header and no activeOrganizationId", async () => {
+    it("returns null when no header and no activeOrganizationId (exempt path — no tenant scope)", async () => {
+      // Use an exempt path (/api/me/*) so the interceptor bypasses tenant resolution
+      // entirely. On non-exempt routes the interceptor throws when both header and
+      // session.activeOrganizationId are absent — that is intentional (security boundary).
       const { ctx, fakePrisma } = makeAuthenticatedContext({
         activeOrganizationId: null,
+        path: "/api/me/profile",
       });
 
       const interceptor = new TenantInterceptor(fakePrisma as never);
@@ -226,7 +230,7 @@ describe("Story · BA Organizations Migration", () => {
         },
       });
       await lastValueFrom(await Promise.resolve(result$));
-      // No header + no activeOrganizationId → tenantId is null/undefined
+      // Exempt path → interceptor skips tenant resolution → no tenant set
       expect(observed == null).toBe(true);
     });
   });

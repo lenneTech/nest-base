@@ -13,8 +13,10 @@ import { uuidV7 } from "../../src/core/uuid/uuid-v7.js";
  *  1. Explicit rows — `Role → RolePolicy → Policy → Permission` that
  *     an admin authored via `/admin/*` CRUD.
  *  2. Implicit "Member" rules — synthesized in-memory whenever the
- *     user has an `ACTIVE` `TenantMember` row in the requested tenant.
- *     Without those, a fresh sign-up would 403 on every `@Can()` route.
+ *     user has a BA `member` row in the requested organization.
+ *     BA's member table stores only active members — a found row
+ *     implies membership. Without these rules, a fresh sign-up
+ *     would 403 on every `@Can()` route.
  *
  * The synthesized rules are NEVER written to the DB. They live for the
  * duration of the request (and the 60s `PermissionService` cache).
@@ -26,17 +28,34 @@ describe("Story · PrismaPermissionStorage", () => {
   let prisma: PrismaClient;
   let tenantId: string;
   let otherTenantId: string;
+  // Track created user ids so we can clean them up in afterAll.
+  const createdUserIds: string[] = [];
 
   beforeAll(async () => {
     const url = process.env.DATABASE_URL;
     if (!url) throw new Error("DATABASE_URL missing — global-setup did not run");
     prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) });
     await prisma.$connect();
-    const t1 = await prisma.tenant.create({
-      data: { id: uuidV7(), name: `pps-storage-${Date.now()}` },
+    // Organization.id is String (not UUID) in BA schema but our other
+    // tables keep UUID FKs, so we use UUID-shaped strings here so that
+    // Role.tenantId (still @db.Uuid) stays compatible.
+    const id1 = uuidV7();
+    const id2 = uuidV7();
+    const t1 = await prisma.organization.create({
+      data: {
+        id: id1,
+        name: `pps-storage-${Date.now()}`,
+        slug: `pps-storage-${id1}`,
+        createdAt: new Date(),
+      },
     });
-    const t2 = await prisma.tenant.create({
-      data: { id: uuidV7(), name: `pps-storage-other-${Date.now()}` },
+    const t2 = await prisma.organization.create({
+      data: {
+        id: id2,
+        name: `pps-storage-other-${Date.now()}`,
+        slug: `pps-storage-other-${id2}`,
+        createdAt: new Date(),
+      },
     });
     tenantId = t1.id;
     otherTenantId = t2.id;
@@ -44,42 +63,40 @@ describe("Story · PrismaPermissionStorage", () => {
 
   afterAll(async () => {
     if (tenantId) {
-      await prisma.tenantMember.deleteMany({ where: { tenantId } });
-      await prisma.user.deleteMany({ where: { tenantId } });
-      await prisma.tenant.delete({ where: { id: tenantId } });
+      await prisma.member.deleteMany({ where: { organizationId: tenantId } });
+      await prisma.user.deleteMany({ where: { id: { in: createdUserIds } } });
+      await prisma.organization.delete({ where: { id: tenantId } });
     }
     if (otherTenantId) {
-      await prisma.tenantMember.deleteMany({ where: { tenantId: otherTenantId } });
-      await prisma.user.deleteMany({ where: { tenantId: otherTenantId } });
-      await prisma.tenant.delete({ where: { id: otherTenantId } });
+      await prisma.member.deleteMany({ where: { organizationId: otherTenantId } });
+      await prisma.organization.delete({ where: { id: otherTenantId } });
     }
     await prisma.$disconnect();
   });
 
-  async function makeUser(targetTenant: string = tenantId): Promise<string> {
+  async function makeUser(): Promise<string> {
     const id = uuidV7();
     await prisma.user.create({
       data: {
         id,
         email: `pps-${id}@example.test`,
         name: "Storage Test User",
-        tenantId: targetTenant,
       },
     });
+    createdUserIds.push(id);
     return id;
   }
 
-  it("returns the synthesized 'Member' rules when the user is an ACTIVE tenant member", async () => {
+  it("returns the synthesized 'Member' rules when the user is a BA organization member", async () => {
     const storage = new PrismaPermissionStorage(prisma);
     const userId = await makeUser();
-    await prisma.tenantMember.create({
+    await prisma.member.create({
       data: {
         id: uuidV7(),
         userId,
-        tenantId,
+        organizationId: tenantId,
         role: "member",
-        status: "ACTIVE",
-        joinedAt: new Date(),
+        createdAt: new Date(),
       },
     });
 
@@ -101,60 +118,25 @@ describe("Story · PrismaPermissionStorage", () => {
     }
   });
 
-  it("returns an empty list when the user has no tenant_member row in the tenant", async () => {
+  it("returns an empty list when the user has no member row in the organization", async () => {
     const storage = new PrismaPermissionStorage(prisma);
     const userId = await makeUser();
-    // No membership inserted — fresh user, no tenant link.
+    // No membership inserted — fresh user, no org link.
     const rows = await storage.findRulesForUser(userId, tenantId);
     expect(rows).toEqual([]);
   });
 
-  it("returns an empty list when the membership is INVITED (not yet ACTIVE)", async () => {
+  it("does not leak rules from another organization", async () => {
     const storage = new PrismaPermissionStorage(prisma);
     const userId = await makeUser();
-    await prisma.tenantMember.create({
+    // The user is a member of `tenantId` but we ask about `otherTenantId`.
+    await prisma.member.create({
       data: {
         id: uuidV7(),
         userId,
-        tenantId,
+        organizationId: tenantId,
         role: "member",
-        status: "INVITED",
-        invitedAt: new Date(),
-      },
-    });
-    const rows = await storage.findRulesForUser(userId, tenantId);
-    expect(rows).toEqual([]);
-  });
-
-  it("returns an empty list when the membership is SUSPENDED", async () => {
-    const storage = new PrismaPermissionStorage(prisma);
-    const userId = await makeUser();
-    await prisma.tenantMember.create({
-      data: {
-        id: uuidV7(),
-        userId,
-        tenantId,
-        role: "member",
-        status: "SUSPENDED",
-        joinedAt: new Date(),
-      },
-    });
-    const rows = await storage.findRulesForUser(userId, tenantId);
-    expect(rows).toEqual([]);
-  });
-
-  it("does not leak rules from another tenant", async () => {
-    const storage = new PrismaPermissionStorage(prisma);
-    const userId = await makeUser();
-    // The user is ACTIVE in `tenantId` but we ask about `otherTenantId`.
-    await prisma.tenantMember.create({
-      data: {
-        id: uuidV7(),
-        userId,
-        tenantId,
-        role: "member",
-        status: "ACTIVE",
-        joinedAt: new Date(),
+        createdAt: new Date(),
       },
     });
     const rows = await storage.findRulesForUser(userId, otherTenantId);
@@ -183,14 +165,13 @@ describe("Story · PrismaPermissionStorage", () => {
         fields: [],
       },
     });
-    await prisma.tenantMember.create({
+    await prisma.member.create({
       data: {
         id: uuidV7(),
         userId,
-        tenantId,
+        organizationId: tenantId,
         role: role.name,
-        status: "ACTIVE",
-        joinedAt: new Date(),
+        createdAt: new Date(),
       },
     });
 
@@ -213,14 +194,13 @@ describe("Story · PrismaPermissionStorage", () => {
     // and don't want the synthesized fallback to shadow it.
     const storage = new PrismaPermissionStorage(prisma, { synthesizeMemberRules: false });
     const userId = await makeUser();
-    await prisma.tenantMember.create({
+    await prisma.member.create({
       data: {
         id: uuidV7(),
         userId,
-        tenantId,
+        organizationId: tenantId,
         role: "member",
-        status: "ACTIVE",
-        joinedAt: new Date(),
+        createdAt: new Date(),
       },
     });
     const rows = await storage.findRulesForUser(userId, tenantId);

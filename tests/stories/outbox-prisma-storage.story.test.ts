@@ -32,11 +32,8 @@ describe("Story · PrismaOutboxStorage", () => {
     prisma = app.get(PrismaService);
     storage = app.get<OutboxStorage>(OUTBOX_STORAGE);
 
-    await prisma.tenant.upsert({
-      where: { id: TENANT_ID },
-      update: {},
-      create: { id: TENANT_ID, name: `outbox-prisma-fixture-${Date.now()}` },
-    });
+    // After issue #118, the old `tenants` table was dropped. outbox_entries.tenant_id
+    // has no FK constraint, so no parent row is required — use the id directly.
   });
 
   afterAll(async () => {
@@ -45,7 +42,7 @@ describe("Story · PrismaOutboxStorage", () => {
         `DELETE FROM outbox_entries WHERE tenant_id = $1::uuid`,
         TENANT_ID,
       );
-      await prisma.tenant.delete({ where: { id: TENANT_ID } }).catch(() => undefined);
+      // No tenant row to delete — tenants table was dropped in issue #118.
     }
     if (app) await app.close();
   });

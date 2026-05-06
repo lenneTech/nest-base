@@ -61,8 +61,8 @@ describe("E2E · /me/tenants + POST /tenants self-service", () => {
       // Best-effort cleanup. Cascade on tenantId removes memberships;
       // the user is removed last.
       for (const id of createdTenantIds) {
-        await prisma.tenantMember.deleteMany({ where: { tenantId: id } });
-        await prisma.tenant.deleteMany({ where: { id } });
+        await prisma.member.deleteMany({ where: { organizationId: id } });
+        await prisma.organization.deleteMany({ where: { id } });
       }
       await prisma.user.deleteMany({ where: { email } });
     } catch {
@@ -125,14 +125,14 @@ describe("E2E · /me/tenants + POST /tenants self-service", () => {
     createdTenantIds.push(res.body.id);
 
     // Verify the row landed in Postgres + the membership FKs back.
-    const tenantRow = await prisma.tenant.findUnique({ where: { id: res.body.id } });
+    const tenantRow = await prisma.organization.findUnique({ where: { id: res.body.id } });
     expect(tenantRow).not.toBeNull();
-    const memberRow = await prisma.tenantMember.findFirst({
-      where: { tenantId: res.body.id },
+    const memberRow = await prisma.member.findFirst({
+      where: { organizationId: res.body.id },
     });
     expect(memberRow).not.toBeNull();
     expect(memberRow!.role).toBe("owner");
-    expect(memberRow!.status).toBe("ACTIVE");
+    // BA member table has no status column; presence of the row implies ACTIVE.
   });
 
   it("authenticated user → GET /me/tenants returns the just-created tenant", async () => {

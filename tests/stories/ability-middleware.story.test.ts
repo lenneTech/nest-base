@@ -11,10 +11,14 @@ import type { PrismaService } from "../../src/core/prisma/prisma.service.js";
  * consult the membership table — `findFirst` is always-null fallback.
  * The middleware-tenant-header-fallback story covers the path where
  * the lookup actually matters.
+ *
+ * After issue #118, the membership table is BA's `member`
+ * (not the old `tenantMember`). The no-header path never calls
+ * findFirst, so this stub is never actually invoked in these tests.
  */
 function prismaStub(): PrismaService {
   return {
-    tenantMember: { findFirst: vi.fn(async () => null) },
+    member: { findFirst: vi.fn(async () => null) },
   } as unknown as PrismaService;
 }
 
@@ -52,8 +56,9 @@ describe("Story · AbilityMiddleware", () => {
     const ability = buildAbility([{ action: "read", subject: "Example" }]);
     const service = makeService(ability);
     const mw = new AbilityMiddleware(service, prismaStub());
-    const req: { user?: { id: string; tenantId: string | null }; ability?: Ability } = {
-      user: { id: "u1", tenantId: "t1" },
+    // After issue #118, the resolver reads activeOrganizationId (not tenantId).
+    const req: { user?: { id: string; activeOrganizationId: string | null }; ability?: Ability } = {
+      user: { id: "u1", activeOrganizationId: "t1" },
     };
     const next = nextFn();
     await mw.use(req as never, res, next);
@@ -66,8 +71,8 @@ describe("Story · AbilityMiddleware", () => {
     const seeded = buildAbility([{ action: "manage", subject: "all" }]);
     const service = makeService(buildAbility([]));
     const mw = new AbilityMiddleware(service, prismaStub());
-    const req: { user?: { id: string; tenantId: string | null }; ability?: Ability } = {
-      user: { id: "u1", tenantId: "t1" },
+    const req: { user?: { id: string; activeOrganizationId: string | null }; ability?: Ability } = {
+      user: { id: "u1", activeOrganizationId: "t1" },
       ability: seeded,
     };
     const next = nextFn();
@@ -80,7 +85,8 @@ describe("Story · AbilityMiddleware", () => {
   it("attaches an empty ability when there is no user", async () => {
     const service = makeService(buildAbility([]));
     const mw = new AbilityMiddleware(service, prismaStub());
-    const req: { user?: { id: string; tenantId: string | null }; ability?: Ability } = {};
+    const req: { user?: { id: string; activeOrganizationId: string | null }; ability?: Ability } =
+      {};
     const next = nextFn();
     await mw.use(req as never, res, next);
     expect(req.ability).toBeDefined();
@@ -89,11 +95,14 @@ describe("Story · AbilityMiddleware", () => {
     expect(next.calls).toBe(1);
   });
 
-  it("attaches an empty ability when the user has no tenantId", async () => {
+  it("attaches an empty ability when the user has no activeOrganizationId", async () => {
+    // After issue #118, the resolver reads activeOrganizationId from the BA
+    // session (not the old User.tenantId FK). A null activeOrganizationId
+    // means no tenant scope → empty ability.
     const service = makeService(buildAbility([]));
     const mw = new AbilityMiddleware(service, prismaStub());
-    const req: { user?: { id: string; tenantId: string | null }; ability?: Ability } = {
-      user: { id: "u1", tenantId: null },
+    const req: { user?: { id: string; activeOrganizationId: string | null }; ability?: Ability } = {
+      user: { id: "u1", activeOrganizationId: null },
     };
     const next = nextFn();
     await mw.use(req as never, res, next);
@@ -109,8 +118,8 @@ describe("Story · AbilityMiddleware", () => {
       }),
     } as unknown as PermissionService;
     const mw = new AbilityMiddleware(service, prismaStub());
-    const req: { user?: { id: string; tenantId: string | null }; ability?: Ability } = {
-      user: { id: "u1", tenantId: "t1" },
+    const req: { user?: { id: string; activeOrganizationId: string | null }; ability?: Ability } = {
+      user: { id: "u1", activeOrganizationId: "t1" },
     };
     const next = nextFn();
     await mw.use(req as never, res, next);

@@ -6,7 +6,6 @@ import { PrismaService } from "../../src/core/prisma/prisma.service.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 
-const TENANT_ID = "00000000-0000-0000-0000-0000000000c1";
 const USER_PAST_GRACE = "00000000-0000-0000-0000-0000000000c2";
 const USER_IN_GRACE = "00000000-0000-0000-0000-0000000000c3";
 
@@ -37,12 +36,8 @@ describe("Story · default GdprErasureRunner reads + anonymises + watermarks", (
     prisma = app.get(PrismaService);
     runner = app.get(GdprErasureRunner);
 
-    // Seed: a Tenant + two Users — one past grace, one inside grace.
-    await prisma.tenant.upsert({
-      where: { id: TENANT_ID },
-      update: {},
-      create: { id: TENANT_ID, name: `gdpr-erasure-fixture-${Date.now()}` },
-    });
+    // After issue #118, the old `tenants` table was dropped and User.tenantId was
+    // removed. Users are created without a tenant FK.
     await prisma.user.upsert({
       where: { id: USER_PAST_GRACE },
       update: {},
@@ -50,7 +45,6 @@ describe("Story · default GdprErasureRunner reads + anonymises + watermarks", (
         id: USER_PAST_GRACE,
         email: `past-grace-${Date.now()}@test.com`,
         name: "Past Grace",
-        tenantId: TENANT_ID,
       },
     });
     await prisma.user.upsert({
@@ -60,7 +54,6 @@ describe("Story · default GdprErasureRunner reads + anonymises + watermarks", (
         id: USER_IN_GRACE,
         email: `in-grace-${Date.now()}@test.com`,
         name: "In Grace",
-        tenantId: TENANT_ID,
       },
     });
   });
@@ -75,7 +68,7 @@ describe("Story · default GdprErasureRunner reads + anonymises + watermarks", (
       await prisma.user
         .deleteMany({ where: { id: { in: [USER_PAST_GRACE, USER_IN_GRACE] } } })
         .catch(() => undefined);
-      await prisma.tenant.delete({ where: { id: TENANT_ID } }).catch(() => undefined);
+      // No tenant row to delete — tenants table was dropped in issue #118.
     }
     if (app) await app.close();
   });

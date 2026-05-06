@@ -8,7 +8,6 @@ import { PrismaService } from "../../src/core/prisma/prisma.service.js";
 import { findUserByEmail } from "../../src/core/auth/user-blind-index.lookup.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
-const TENANT_ID = "00000000-0000-0000-0000-0000000000f1";
 
 /**
  * Story · BlindIndex consumer model — User.emailHash auto-populated +
@@ -50,17 +49,17 @@ describe("Story · User.emailHash auto-populated by BlindIndex extension", () =>
     prisma = app.get(PrismaService);
     blindIndex = app.get<BlindIndex>(BLIND_INDEX);
 
-    await prisma.tenant.upsert({
-      where: { id: TENANT_ID },
-      update: {},
-      create: { id: TENANT_ID, name: `blind-index-fixture-${Date.now()}` },
-    });
+    // After issue #118, the old `tenants` table was dropped and User.tenantId was
+    // removed. User records are created without a tenant FK — no parent row needed.
   });
 
   afterAll(async () => {
     if (prisma) {
-      await prisma.user.deleteMany({ where: { tenantId: TENANT_ID } });
-      await prisma.tenant.delete({ where: { id: TENANT_ID } }).catch(() => undefined);
+      // Clean up test users by email pattern — User.tenantId was removed in
+      // issue #118, so we can no longer scope cleanup by tenantId.
+      await prisma.$executeRawUnsafe(
+        `DELETE FROM users WHERE email LIKE 'iter94-%@example.com' OR email LIKE '%iter94-%@example.com'`,
+      );
     }
     if (app) await app.close();
     delete process.env.BLIND_INDEX_KEY;
@@ -70,11 +69,11 @@ describe("Story · User.emailHash auto-populated by BlindIndex extension", () =>
 
   it("create() through prisma.client.user populates email_hash with the deterministic HMAC", async () => {
     const email = `iter94-create-${Date.now()}@example.com`;
+    // User.tenantId was removed in issue #118 — no tenantId field on User.
     const created = await prisma.client.user.create({
       data: {
         email,
         name: "Iter 94 Create",
-        tenantId: TENANT_ID,
       },
     });
 
@@ -93,7 +92,7 @@ describe("Story · User.emailHash auto-populated by BlindIndex extension", () =>
     const email = `iter94-update-${Date.now()}@example.com`;
     const newEmail = `iter94-update-renamed-${Date.now()}@example.com`;
     const created = await prisma.client.user.create({
-      data: { email, name: "Iter 94 Update", tenantId: TENANT_ID },
+      data: { email, name: "Iter 94 Update" },
     });
 
     await prisma.client.user.update({
@@ -111,7 +110,7 @@ describe("Story · User.emailHash auto-populated by BlindIndex extension", () =>
   it("normalisation: case-folded email lookup finds the user via blind-index hash", async () => {
     const email = `Iter94-CaseFold-${Date.now()}@Example.com`;
     const created = await prisma.client.user.create({
-      data: { email, name: "Iter 94 Case Fold", tenantId: TENANT_ID },
+      data: { email, name: "Iter 94 Case Fold" },
     });
 
     // Look up with a different case — the blind index normalises before HMAC.

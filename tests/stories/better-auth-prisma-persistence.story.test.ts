@@ -50,11 +50,12 @@ describe("Story · Better-Auth Prisma persistence (schema)", () => {
       expect(blockOf("User")).toMatch(/^\s*image\s+String\?/m);
     });
 
-    it("makes tenantId optional so Better-Auth signups can create a user without a tenant pre-pick", () => {
+    it("does NOT have a tenantId column — tenant context is now resolved from the Better-Auth session (issue #118)", () => {
       const b = blockOf("User");
-      // Either `tenantId String?` (canonical) or a `?` after the @db.Uuid attribute is
-      // present. The strict shape we expect is `String? @map(...) @db.Uuid`.
-      expect(b).toMatch(/tenantId\s+String\?/);
+      // The legacy `User.tenantId` column was removed in issue #118.
+      // Organization / membership resolution is done via BA's Organization +
+      // Member tables and session.activeOrganizationId — no FK on User.
+      expect(b).not.toMatch(/tenantId\s+String/);
     });
   });
 

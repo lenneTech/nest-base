@@ -111,22 +111,30 @@ describe("Better-Auth · Session middleware (req.user)", () => {
       .send({ email, password, name: "Session User" });
     expect(signUp.status, JSON.stringify(signUp.body)).toBe(200);
 
-    // Provision the test tenant + pin it as the user's primary so the
-    // unified tenant resolver short-circuits the membership lookup
-    // (header == User.tenantId → trust by `createTenantWithMember`
-    // invariant). Without this the interceptor 403s an authenticated
-    // request whose header points at a tenant the user has no ACTIVE
-    // membership in — which is the cross-tenant write breach fix.
-    await prisma.tenant.upsert({
+    // Provision a BA organization + member row so the unified resolver
+    // accepts the x-tenant-id header (presence of member row = ACTIVE).
+    await prisma.organization.upsert({
       where: { id: TENANT_HEADER },
       update: {},
-      create: { id: TENANT_HEADER, name: `session-${Date.now()}` },
+      create: {
+        id: TENANT_HEADER,
+        name: `session-${Date.now()}`,
+        slug: `session-${TENANT_HEADER}`,
+      },
     });
     const initialUser = await prisma.user.findUnique({ where: { email } });
     if (initialUser) {
-      await prisma.user.update({
-        where: { id: initialUser.id },
-        data: { tenantId: TENANT_HEADER },
+      const memberId = `${initialUser.id}-session-test`;
+      await prisma.member.upsert({
+        where: { id: memberId },
+        update: {},
+        create: {
+          id: memberId,
+          userId: initialUser.id,
+          organizationId: TENANT_HEADER,
+          role: "member",
+          createdAt: new Date(),
+        },
       });
     }
 

@@ -60,12 +60,8 @@ describe("Story · Webhook OutboxDispatcher", () => {
       return { ok: true, status: 200 };
     };
 
-    // Seed: tenant + active webhook endpoint listening for "user.signup".
-    await prisma.tenant.upsert({
-      where: { id: TENANT_ID },
-      update: {},
-      create: { id: TENANT_ID, name: `webhook-fixture-${Date.now()}` },
-    });
+    // After issue #118, the old `tenants` table was dropped. webhook_endpoints.tenant_id
+    // has no FK constraint, so no parent row is required — use the id directly.
   });
 
   afterAll(async () => {
@@ -78,7 +74,7 @@ describe("Story · Webhook OutboxDispatcher", () => {
         `DELETE FROM webhook_endpoints WHERE tenant_id = $1::uuid`,
         TENANT_ID,
       );
-      await prisma.tenant.delete({ where: { id: TENANT_ID } }).catch(() => undefined);
+      // No tenant row to delete — tenants table was dropped in issue #118.
     }
     if (app) await app.close();
     resetWebhookEventRegistryForTests();
@@ -172,28 +168,28 @@ describe("Story · Webhook OutboxDispatcher", () => {
   });
 
   it("skips endpoints in other tenants (cross-tenant isolation)", async () => {
+    // After issue #118, tenants table was dropped — use a plain UUID for the other
+    // tenant. webhook_endpoints.tenant_id has no FK so no parent row is needed.
     httpCalls.length = 0;
-    const otherTenant = await prisma.tenant.create({
-      data: { name: `other-tenant-${Date.now()}` },
+    const otherTenantId = "00000000-0000-0000-0000-0000000000ef";
+    const endpoint = await prisma.webhookEndpoint.create({
+      data: {
+        tenantId: otherTenantId,
+        url: "https://hooks.othertenant.example.com/in",
+        secret: "fixture-secret-3",
+        events: ["user.signup"],
+        status: "ACTIVE",
+      },
     });
-    try {
-      const endpoint = await prisma.webhookEndpoint.create({
-        data: {
-          tenantId: otherTenant.id,
-          url: "https://hooks.othertenant.example.com/in",
-          secret: "fixture-secret-3",
-          events: ["user.signup"],
-          status: "ACTIVE",
-        },
-      });
 
+    try {
       const dispatchers = app.get<readonly OutboxDispatcher[]>(OUTBOX_DISPATCHERS);
       const dispatcher = dispatchers.find((d) => d.name === "webhook-outbox")!;
 
       const entry: OutboxEntry = {
         id: "00000000-0000-0000-0000-0000000000e4",
         seq: 3,
-        tenantId: TENANT_ID, // not otherTenant.id
+        tenantId: TENANT_ID, // not otherTenantId
         type: "user.signup",
         payload: {},
         occurredAt: new Date(),
@@ -208,11 +204,9 @@ describe("Story · Webhook OutboxDispatcher", () => {
         where: { endpointId: endpoint.id },
       });
       expect(deliveries).toHaveLength(0);
-
-      // Cleanup
-      await prisma.webhookEndpoint.delete({ where: { id: endpoint.id } });
     } finally {
-      await prisma.tenant.delete({ where: { id: otherTenant.id } }).catch(() => undefined);
+      // Cleanup endpoint only — no tenant row to delete.
+      await prisma.webhookEndpoint.delete({ where: { id: endpoint.id } }).catch(() => undefined);
     }
   });
 
