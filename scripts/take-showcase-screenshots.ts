@@ -124,6 +124,7 @@ const PAGES: PageSpec[] = [
   { slug: "hub-cron", path: "/hub/cron", waitFor: ["Cron"] },
   { slug: "hub-email-outbox", path: "/hub/email-outbox", waitFor: ["Email Outbox"] },
   // Admin pages (require auth)
+  { slug: "admin-users", path: "/admin/users", waitFor: ["Benutzer"], requiresAuth: true },
   { slug: "admin-roles", path: "/admin/roles", waitFor: ["Roles"], requiresAuth: true },
   { slug: "admin-policies", path: "/admin/policies", waitFor: ["Policies"], requiresAuth: true },
   {

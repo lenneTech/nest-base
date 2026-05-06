@@ -15,6 +15,7 @@ import { BetterAuthSessionMiddleware } from "../auth/session-middleware.js";
 import { ConfigModule } from "../config/config.module.js";
 import { DeviceModule } from "../devices/device.module.js";
 import { DevHubModule } from "../dx/dev-hub.module.js";
+import { UserAdminModule } from "../dx/user-admin.module.js";
 import { HubModule } from "../hub/hub.module.js";
 import { EmailModule } from "../email/email.module.js";
 import { EmailOutboxModule } from "../email/email-outbox.module.js";
@@ -160,6 +161,7 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     TenantSelfServiceModule,
     ApiKeyModule,
     SessionsAdminModule,
+    UserAdminModule,
     AdminCrudModule,
     JobsModule,
     OutboxModule,

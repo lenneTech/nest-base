@@ -94,6 +94,9 @@ const CronPage = lazy(() => import("./pages/CronPage.js").then((m) => ({ default
 const SessionsAdminPage = lazy(() =>
   import("./pages/SessionsAdminPage.js").then((m) => ({ default: m.SessionsAdminPage })),
 );
+const UsersAdminPage = lazy(() =>
+  import("./pages/UsersAdminPage.js").then((m) => ({ default: m.UsersAdminPage })),
+);
 const AdminJobsPage = lazy(() =>
   import("./pages/AdminJobsPage.js").then((m) => ({ default: m.AdminJobsPage })),
 );
@@ -140,6 +143,7 @@ export function App(): ReactNode {
         <Route path="/hub/files" element={<FileManagerPage />} />
         <Route path="/hub/email-outbox" element={<EmailOutboxPage />} />
         <Route path="/hub/cron" element={<CronPage />} />
+        <Route path="/admin/users" element={<UsersAdminPage />} />
         <Route path="/admin/sessions" element={<SessionsAdminPage />} />
         <Route path="/admin/jobs" element={<AdminJobsPage />} />
         <Route path="/admin/roles" element={<RolesAdminPage />} />

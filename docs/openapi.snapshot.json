@@ -2174,6 +2174,126 @@
         ]
       }
     },
+    "/api/admin/users": {
+      "get": {
+        "operationId": "UserAdminController_usersAdminPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserAdmin"
+        ]
+      }
+    },
+    "/api/admin/users/list.json": {
+      "get": {
+        "operationId": "UserAdminController_usersListJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserAdmin"
+        ]
+      }
+    },
+    "/api/admin/users/{id}.json": {
+      "get": {
+        "operationId": "UserAdminController_userDetailJson",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserAdmin"
+        ]
+      }
+    },
+    "/api/admin/users/{id}/ban": {
+      "post": {
+        "operationId": "UserAdminController_banUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserAdmin"
+        ]
+      }
+    },
+    "/api/admin/users/{id}/unban": {
+      "post": {
+        "operationId": "UserAdminController_unbanUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserAdmin"
+        ]
+      }
+    },
+    "/api/admin/users/{id}/revoke-sessions": {
+      "post": {
+        "operationId": "UserAdminController_revokeUserSessions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserAdmin"
+        ]
+      }
+    },
     "/api/admin/roles": {
       "get": {
         "operationId": "RoleAdminController_list",
