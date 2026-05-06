@@ -52,7 +52,8 @@ console.log(
   `[seed] plan: ${plan.tenants.length} tenant, ${plan.roles.length} roles, ` +
     `${plan.policies.length} policies, ${plan.permissions.length} permissions, ` +
     `${plan.users.length} users, ${plan.userProfiles.length} profiles, ` +
-    `${plan.tenantMembers.length} memberships`,
+    `${plan.tenantMembers.length} memberships, ` +
+    `${plan.organizations.length} BA orgs, ${plan.baMembers.length} BA members`,
 );
 
 // Prisma 7 needs an explicit driver adapter — same wiring as
@@ -275,6 +276,39 @@ try {
     });
   }
   console.log(`[seed]   profiles:    ${plan.userProfiles.length}`);
+
+  // BA Organization rows (issue #118) — same ids as Tenant rows.
+  // The prisma adapter writes TEXT ids; our UUIDs are valid TEXT so
+  // no cast is needed here — Prisma handles the mapping.
+  for (const org of plan.organizations) {
+    await prisma.organization.upsert({
+      where: { id: org.id },
+      create: {
+        id: org.id,
+        name: org.name,
+        slug: org.slug,
+        createdAt: org.createdAt,
+      },
+      update: { name: org.name, slug: org.slug },
+    });
+  }
+  console.log(`[seed]   BA orgs:     ${plan.organizations.length}`);
+
+  // BA Member rows (issue #118) — mirrors TenantMember into BA's member table.
+  for (const baMember of plan.baMembers) {
+    await prisma.member.upsert({
+      where: { id: baMember.id },
+      create: {
+        id: baMember.id,
+        organizationId: baMember.organizationId,
+        userId: baMember.userId,
+        role: baMember.role,
+        createdAt: baMember.createdAt,
+      },
+      update: { role: baMember.role },
+    });
+  }
+  console.log(`[seed]   BA members:  ${plan.baMembers.length}`);
 
   console.log("[seed] done.");
   console.log("");

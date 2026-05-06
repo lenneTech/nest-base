@@ -94,6 +94,34 @@ export interface SeedTenantMember {
   createdAt: Date;
 }
 
+/**
+ * BA Organization row (issue #118).
+ *
+ * Mirrors the SeedTenant with the same id (cast to TEXT) so the
+ * RLS/CASL tenantId boundary remains intact after the migration to
+ * Better-Auth Organizations as the canonical tenant layer.
+ */
+export interface SeedOrganization {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt: Date;
+}
+
+/**
+ * BA Member row (issue #118).
+ *
+ * Mirrors each SeedTenantMember into BA's `member` table using the
+ * same id and preserving the tenant → organization_id mapping.
+ */
+export interface SeedBaMember {
+  id: string;
+  organizationId: string;
+  userId: string;
+  role: string;
+  createdAt: Date;
+}
+
 export interface SeedPlan {
   tenants: SeedTenant[];
   roles: SeedRole[];
@@ -103,6 +131,10 @@ export interface SeedPlan {
   users: SeedUser[];
   userProfiles: SeedUserProfile[];
   tenantMembers: SeedTenantMember[];
+  /** BA organization rows — same ids as tenants (issue #118). */
+  organizations: SeedOrganization[];
+  /** BA member rows — mirrors tenantMembers into the BA member table (issue #118). */
+  baMembers: SeedBaMember[];
 }
 
 export interface SeedPlanInput {
@@ -291,6 +323,27 @@ export function buildSeedPlan(input: SeedPlanInput = {}): SeedPlan {
     createdAt: now,
   }));
 
+  // BA Organization rows — same ids as Tenant rows (issue #118).
+  // The seed runner upserts these after the Tenant rows so the FK
+  // from `member.organization_id` is already satisfied.
+  const organizations: SeedOrganization[] = tenants.map((t) => ({
+    id: t.id,
+    name: t.name,
+    slug: t.slug,
+    createdAt: t.createdAt,
+  }));
+
+  // BA Member rows — mirrors TenantMember into the BA `member` table.
+  // Uses the same ids so the data-migration SQL's ON CONFLICT DO
+  // NOTHING is also idempotent against the seed data.
+  const baMembers: SeedBaMember[] = tenantMembers.map((m) => ({
+    id: m.id,
+    organizationId: m.tenantId,
+    userId: m.userId,
+    role: m.role,
+    createdAt: m.createdAt,
+  }));
+
   return {
     tenants,
     roles,
@@ -300,6 +353,8 @@ export function buildSeedPlan(input: SeedPlanInput = {}): SeedPlan {
     users,
     userProfiles,
     tenantMembers,
+    organizations,
+    baMembers,
   };
 }
 

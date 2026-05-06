@@ -87,7 +87,9 @@ const Mcp = togglableDefault(false);
 const FieldEncryption = togglableDefault(false);
 const MagicLink = togglableDefault(false);
 const AdminPlugin = togglableDefault(false);
-const Organization = togglableDefault(false);
+// Organization is on by default (issue #118): the BA organization plugin
+// is now the canonical tenant layer. Opt out via FEATURE_ORGANIZATION_ENABLED=false.
+const Organization = togglableDefault(true);
 const OneTap = togglableDefault(false);
 const OpenAPI = togglableDefault(false);
 const RateLimit = togglableDefault(true);
