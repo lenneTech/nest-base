@@ -35,7 +35,7 @@ spelunking through the directory tree.
 | "How does Prisma 7 work here?"                             | skill: `working-with-prisma.md`                                                      |
 | "Add a new resource / business module"                     | `/add-module` command + `module-scaffolder` agent. Reference: `src/modules/example/` |
 | "Add a feature flag for Y" / "make Y toggleable"           | `/add-feature` command + `feature-toggle-implementer` agent                          |
-| "Add a new dev-hub or admin page"                          | `/add-page` command + skill: `extending-dev-hub.md`                                  |
+| "Add a new Hub or admin page"                              | `/add-page` command + skill: `extending-hub.md`                                      |
 | "Run the six gates and tell me what's broken"              | `quality-gate-runner` agent                                                          |
 | "Scaffold a new module under `src/modules/`"               | `module-scaffolder` agent                                                            |
 | "How do I add a new error code?"                           | skill: `adding-error-code.md`                                                        |
@@ -78,7 +78,7 @@ and gotchas so each contributor doesn't re-discover them.
 | `adding-feature-flag`            | Add a toggleable feature flag — every place it must be wired.                                             | `skills/adding-feature-flag.md`            |
 | `adding-feature-module`          | Scaffold a feature module under `src/modules/`.                                                           | `skills/adding-feature-module.md`          |
 | `adding-error-code`              | Add a new `CORE_*` error code with i18n messages.                                                         | `skills/adding-error-code.md`              |
-| `extending-dev-hub`              | Add a new dev-hub / admin page (JSON viewer wrap or custom layout).                                       | `skills/extending-dev-hub.md`              |
+| `extending-hub`                  | Add a new Hub or admin page (JSON viewer wrap or custom layout).                                          | `skills/extending-hub.md`                  |
 | `running-tdd-slice`              | The red-green-refactor cycle for a single behaviour change.                                               | `skills/running-tdd-slice.md`              |
 | `syncing-from-template`          | Pull latest `src/core/` upstream into a consumer project.                                                 | `skills/syncing-from-template.md`          |
 | `contributing-upstream`          | Decide _when_ a downstream change should travel back to `nest-base`, then sequence the PR safely.         | `skills/contributing-upstream.md`          |

@@ -303,7 +303,7 @@ interface:
 | Driver | Path | Used when |
 |---|---|---|
 | `SmtpEmailDriver` | `src/core/email/drivers/smtp.driver.ts` | `features.email.provider === "smtp"` and `SMTP_HOST` is set. Wraps Nodemailer with a connection pool + 10 s timeouts. |
-| `BrevoEmailDriver` | `src/core/email/drivers/brevo.driver.ts` | `features.email.provider === "brevo"` and `BREVO_API_KEY` is set. Pure-`fetch` HTTP client against `https://api.brevo.com/v3/smtp/email`. Also exposes `listTemplates()` / `getTemplate()` for the Issue #9 read-only Dev-Hub tab. |
+| `BrevoEmailDriver` | `src/core/email/drivers/brevo.driver.ts` | `features.email.provider === "brevo"` and `BREVO_API_KEY` is set. Pure-`fetch` HTTP client against `https://api.brevo.com/v3/smtp/email`. Also exposes `listTemplates()` / `getTemplate()` for the Issue #9 read-only Hub tab. |
 | `LogOnlyEmailDriver` | `src/core/email/email.module.ts` | `features.email.enabled === false` or no relay configured at all (offline dev). Mails go to Pino log lines instead of out the wire. |
 
 The driver-selection planner `selectEmailDriver()` picks `primary` +
@@ -338,19 +338,19 @@ Two compatibility flags matter:
    primary, or keep `provider=smtp` and use Brevo only for templates
    via `sendTemplate({ brevoTemplateId })`.
 4. Templates created in the Brevo UI become callable by ID; the
-   read-only Dev-Hub tab (Issue #9) lists them via
+   read-only Hub tab (Issue #9) lists them via
    `BrevoEmailDriver.listTemplates()`.
 
 Outbox-style retry / DLQ / bounce handling is a separate slice
 (Issue #11) — the drivers themselves return success/failure for a
 single attempt and let the outbox decide what to do next.
 
-## Dev-Portal-Frontend
+## Hub (Dev-Portal Frontend)
 
-Every developer-facing HTML surface — `/dev/*`, `/admin/*`, `/errors`,
+Every developer-facing HTML surface — `/`, `/hub/*`, `/admin/*`, `/errors`,
 `/api/openapi` — is served by a single React 19 single-page app.
 The legacy server-rendered `*-ui.ts` renderers were deleted; the SPA
-is the canonical UI for every developer route. `/dev/*` and
+is the canonical UI for every developer route. `/hub/*` and
 `/admin/*` are developer-only (every route 404s outside
 `NODE_ENV=development`); `/errors` and `/api/openapi` stay reachable
 in any environment because frontends + SDK generators read them.
@@ -360,7 +360,7 @@ in any environment because frontends + SDK generators read them.
 | Shell renderer (planner) | `src/core/dx/dev-portal-shell.ts` | Pure function: title + script URL + token CSS URL → static HTML5 skeleton with `<div id="root">` |
 | SPA source tree | `src/core/dx/clients/` | Browser-only: `main.tsx` (entry), `App.tsx` (router), `layout/`, `pages/`, `components/`, `lib/`, `styles/` |
 | Layout shell | `src/core/dx/clients/layout/AdminShell.tsx` + `nav.ts` + `icons.tsx` | Sidebar + header + SVG icons + active-state highlight |
-| Pages | `src/core/dx/clients/pages/` | One component per route: `DevHubLandingPage`, `FeaturesPage`, `CoveragePage`, `TestsPage`, `DiagnosticsPage`, `LogsPage`, `TracesPage`, `QueriesPage`, `RoutesPage`, `ErdPage`, `EmailPreviewPage`, `PostgrestParsePage`, `ComponentShowcasePage`, `PermissionTesterPage`, `WebhookInspectorPage`, `RealtimeInspectorPage`, `AuditBrowserPage`, `SearchTesterPage`, `ErrorsPage`, `OpenApiPage` — each lazy-loaded via `React.lazy` |
+| Pages | `src/core/dx/clients/pages/` | One component per route: `DevHubLandingPage` (`/`), `FeaturesPage`, `CoveragePage`, `TestsPage`, `DiagnosticsPage`, `LogsPage`, `TracesPage`, `QueriesPage`, `RoutesPage`, `ErdPage`, `EmailPreviewPage`, `PostgrestParsePage`, `ComponentShowcasePage`, `PermissionTesterPage`, `WebhookInspectorPage`, `RealtimeInspectorPage`, `AuditBrowserPage`, `SearchTesterPage`, `ErrorsPage`, `OpenApiPage`, `UsersAdminPage`, `TenantsAdminPage`, `PermissionsAdminPage`, `EmailOutboxPage` — each lazy-loaded via `React.lazy` |
 | UI primitives | `src/core/dx/clients/components/ui/` | **shadcn/ui** components vendored under this tree (badge, button, card, checkbox, dialog, dropdown-menu, input, label, progress, radio-group, select, separator, sheet, sonner, switch, table, tabs, textarea, tooltip), built on **Radix UI**. To add a primitive: copy the canonical source from <https://ui.shadcn.com/docs/components>, retarget imports to `../../lib/utils.js`, append the `.js` suffix to every relative import. |
 | Custom components | `src/core/dx/clients/components/` | `JsonViewer` (reused by `/errors`, `/api/openapi`, `/dev/postgrest-parse`), `PageState` (Loading / Error / Empty / StatTile helpers), `Sparkline` (Webhook-Inspector trends) |
 | Icons | `src/core/dx/clients/layout/icons.tsx` | Sidebar + page icons via **lucide-react** — single import, tree-shaken to ~3 KB gzipped, consistent stroke-width 1.75 |
@@ -368,13 +368,13 @@ in any environment because frontends + SDK generators read them.
 | Styling stack | `src/core/dx/clients/styles/globals.css` | **Tailwind CSS 4** with the CSS-first `@theme` config — `@import "tailwindcss"` + `@theme inline { --color-background: var(--bg); … }`. Built via `bun-plugin-tailwind`, hot-reloaded by the dev-portal watcher. |
 | Design tokens | `src/core/dx/clients/styles/tokens.css` | `:root` custom properties (electric-lime accent, near-black surfaces) — declared once, overridden at runtime by `brand.json` (Issue #5), aliased into Tailwind utilities through the `@theme` bridge above |
 | Build script | `scripts/build-dev-portal.ts` | `Bun.build({ target: "browser", splitting: true, minify: true })` → `dist/dev-portal/` |
-| `/dev/*` JSON sidecars | `dev-hub.controller.ts` | `dashboard.json`, `feature-catalog.json`, `coverage.json`, `tests.json`, `diagnostics.json`, `logs.json`, `traces.json`, `queries.json`, `routes.json`, `erd.json`, `email-preview.json`, `email-builder/templates.json` (with `overridesCore`/`overrideExists` flags), `email-builder/blocks.json`, `email-builder/templates/:name/composition.json` (Issue #49 — decompose `.tsx` source back to JSON composition), `migrations.json` |
-| `/dev/email-builder/*` mutating endpoints | `dev-hub.controller.ts` + `src/core/email/email-builder.ts` | `preview.json` (POST — render draft), `save` (POST — codegen `.tsx` to `src/modules/email/templates/`), `templates/:name/override` (DELETE — Issue #49 reset-to-default); defense-in-depth path validation, 404 outside development |
-| `/dev/migrations/*` mutating endpoints | `dev-hub.controller.ts` + `migrations/migrations.service.ts` | `deploy`, `apply-one`, `dry-run`, `retry`, `create`, `apply-draft`, `draft/:name` (DELETE) — Postgres advisory-lock-gated, 404 outside development |
-| `/admin/*` JSON sidecars | `admin-spa.controller.ts` | `permissions/test.json`, `webhooks.json`, `realtime.json`, `realtime/channels.json`, `audit.json`, `search.json` |
-| `/admin/*` POST actions | `admin-spa.controller.ts` | `realtime/sockets/:id/disconnect`, `realtime/sockets/:id/send`, `realtime/events/replay` — all dev-only, all 404 in production |
-| Static asset endpoint | `GET /dev/static/:filename` | 404 outside development; allow-list filename, MIME-detect, stream from `dist/dev-portal/` |
-| Catch-all | `GET /dev/*splat` | Returns the SPA shell so client-side routes work without a server change |
+| `/api/hub/*` JSON sidecars | `dev-hub.controller.ts` | `dashboard.json`, `feature-catalog.json`, `coverage.json`, `tests.json`, `diagnostics.json`, `logs.json`, `traces.json`, `queries.json`, `routes.json`, `erd.json`, `email-preview.json`, `email-builder/templates.json` (with `overridesCore`/`overrideExists` flags), `email-builder/blocks.json`, `email-builder/templates/:name/composition.json` (Issue #49 — decompose `.tsx` source back to JSON composition), `migrations.json` |
+| `/api/hub/email-builder/*` mutating endpoints | `dev-hub.controller.ts` + `src/core/email/email-builder.ts` | `preview.json` (POST — render draft), `save` (POST — codegen `.tsx` to `src/modules/email/templates/`), `templates/:name/override` (DELETE — Issue #49 reset-to-default); defense-in-depth path validation, 404 outside development |
+| `/api/hub/migrations/*` mutating endpoints | `dev-hub.controller.ts` + `migrations/migrations.service.ts` | `deploy`, `apply-one`, `dry-run`, `retry`, `create`, `apply-draft`, `draft/:name` (DELETE) — Postgres advisory-lock-gated, 404 outside development |
+| `/api/admin/*` JSON sidecars | `admin-spa.controller.ts` | `permissions/test.json`, `webhooks.json`, `realtime.json`, `realtime/channels.json`, `audit.json`, `search.json` |
+| `/api/admin/*` POST actions | `admin-spa.controller.ts` | `realtime/sockets/:id/disconnect`, `realtime/sockets/:id/send`, `realtime/events/replay` — all dev-only, all 404 in production |
+| Static asset endpoint | `GET /hub/static/:filename` | 404 outside development; allow-list filename, MIME-detect, stream from `dist/dev-portal/` |
+| Catch-all | `GET /*splat` | Returns the SPA shell so client-side routes work without a server change |
 | Server tsconfig | `tsconfig.json` (excludes `src/core/dx/clients/**`) | Server build never sees browser code |
 | Client tsconfig | `tsconfig.client.json` | `jsx: "react-jsx"`, `lib: ["ES2022","DOM","DOM.Iterable"]`, `types: []` |
 
@@ -421,12 +421,14 @@ the trust boundary (server → browser).
   `tsconfig.client.json` excludes Node types so this fails at compile
   time.
 - **No server-rendered HTML left.** Every `Controller` returning HTML
-  returns the dev-portal SPA shell; React + react-router decide what
+  returns the Hub SPA shell; React + react-router decide what
   to render based on the URL.
 
 The detailed walkthrough (how to add a page, how to add a primitive,
 which Tailwind utilities map to which token, build pipeline) lives in
 [`src/core/dx/clients/CLAUDE.md`](../src/core/dx/clients/CLAUDE.md).
+The skill for adding new pages is
+[`.claude/skills/extending-hub.md`](../.claude/skills/extending-hub.md).
 
 ## Security mechanisms (overview)
 

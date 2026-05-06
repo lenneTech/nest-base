@@ -1,7 +1,7 @@
-# Extending the Dev Hub
+# Extending the Hub
 
-The dev-hub at `/dev`, every `/admin/*` page, `/errors`, and
-`/api/openapi` are served by a single **React 19 SPA** rooted at
+The Hub at `/`, every `/hub/*` page, every `/admin/*` page, `/errors`,
+and `/api/openapi` are served by a single **React 19 SPA** rooted at
 `src/core/dx/clients/`. The shell is dark-mode (pure-black + electric-
 lime accent `#c5fb45`) and lives in `clients/layout/AdminShell.tsx`;
 every page plugs into it via the `<AdminShell>` wrapper. The legacy
@@ -100,7 +100,7 @@ Every page is a **React component** that:
 ### Add the controller route + JSON sidecar
 
 ```typescript
-// In dev-hub.controller.ts (for /dev/*) or admin-spa.controller.ts (for /admin/*)
+// In dev-hub.controller.ts (for /hub/* surfaces) or admin-spa.controller.ts (for /admin/*)
 @Get("things")
 @Header("content-type", "text/html; charset=utf-8")
 thingsPage(): string {
@@ -117,13 +117,13 @@ thingsJson(): { things: Thing[] } {
 
 ### Wire the route + sidebar
 
-1. **App.tsx** — add `<Route path="/dev/things" element={<ThingsPage />} />`
+1. **App.tsx** — add `<Route path="/hub/things" element={<ThingsPage />} />`
    (lazy-loaded).
 2. **nav.ts** — add the sidebar entry to the appropriate section, and
-   add `/dev/things` to `SPA_ROUTES` so the link uses react-router.
+   add `/hub/things` to `SPA_ROUTES` so the link uses react-router.
 3. **layout/icons.tsx** — if the icon doesn't exist, add it (16x16 SVG,
    single colour, stroke-width 1.75).
-4. **dev-portal-pages.story.test.ts** — add `/dev/things` to
+4. **dev-portal-pages.story.test.ts** — add `/hub/things` to
    `expectedRoutes`, `spaPaths`, and the JSON-endpoint list. The
    story test pins the route ↔ sidebar ↔ JSON contract mechanically.
 
@@ -225,3 +225,7 @@ the JSON sidecar consume the planner.
 - **Don't skip the story test.** Even when the React page is mostly
   glue, the route ↔ sidebar ↔ JSON-endpoint contract must be pinned in
   `tests/stories/dev-portal-pages.story.test.ts`.
+- **Don't add Hub pages under `/api/hub/*` or `/api/admin/*` without
+  authentication.** Hub operator pages at `/hub/*` require a login
+  session; admin CRUD pages at `/api/admin/*` require
+  `@Can('manage', 'Subject')`.

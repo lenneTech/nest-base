@@ -1,5 +1,5 @@
 ---
-description: Add a new dev-hub or admin page to the React 19 + shadcn/ui SPA shell (JSON viewer wrap or custom layout).
+description: Add a new Hub or admin page to the React 19 + shadcn/ui SPA shell (JSON viewer wrap or custom layout).
 allowed-tools:
   - Read
   - Edit
@@ -11,7 +11,7 @@ allowed-tools:
 
 # /add-page
 
-Adds a new page that lives in the dev-hub or admin sidebar, served by
+Adds a new page that lives in the Hub or admin sidebar, served by
 the shared React 19 SPA at `src/core/dx/clients/`. Two flavours:
 
 - **JSON viewer wrap** — for endpoints that return structured data
@@ -26,7 +26,7 @@ the shared React 19 SPA at `src/core/dx/clients/`. Two flavours:
   4 utility classes that resolve through the `@theme` bridge to the
   brand-aware tokens.
 
-Read [`.claude/skills/extending-dev-hub.md`](../skills/extending-dev-hub.md)
+Read [`.claude/skills/extending-hub.md`](../skills/extending-hub.md)
 first — it is the canonical guide. This command sequences the steps
 under TDD.
 
@@ -36,11 +36,11 @@ under TDD.
 /add-page <slug> "<title>" [<flavour>]
 ```
 
-- **`<slug>`** — kebab-case URL fragment, e.g. `widgets` for `/dev/widgets`.
+- **`<slug>`** — kebab-case URL fragment, e.g. `widgets` for `/hub/widgets`.
 - **`<title>`** — display name, e.g. "Widget Inspector".
 - **`<flavour>`** — `json-viewer` or `custom`. Default: ask the user.
 
-If the page lives under `/admin/` instead of `/dev/`, prefix the slug
+If the page lives under `/admin/` instead of `/hub/`, prefix the slug
 with `admin/` (e.g. `admin/orders`).
 
 ## Workflow
@@ -174,7 +174,7 @@ export default function <Slug>Page(): JSX.Element {
 
 **Custom flavour** — three pieces:
 
-1. **JSON sidecar route** in `dev-hub.controller.ts` (for `/dev/*`)
+1. **JSON sidecar route** in `dev-hub.controller.ts` (for `/hub/*`)
    or `admin-spa.controller.ts` (for `/admin/*`):
 
    ```typescript
