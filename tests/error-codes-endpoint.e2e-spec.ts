@@ -55,7 +55,7 @@ describe("Error-Code registry endpoint", () => {
     // through the shared `JsonViewer` component.
     expect(res.text).toContain("Error Catalog — nest-server");
     expect(res.text).toContain('<div id="root"></div>');
-    expect(res.text).toMatch(/<script\s+type="module"\s+src="\/api\/dev\/static\/main\.js"/);
+    expect(res.text).toMatch(/<script\s+type="module"\s+src="\/api\/hub\/static\/main\.js"/);
   });
 
   it("GET /errors?format=json overrides Accept and returns JSON", async () => {
