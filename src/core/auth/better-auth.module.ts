@@ -156,7 +156,9 @@ const MIN_SECRET_LEN = 32;
           // BETTER_AUTH_RATE_LIMIT_ENABLED: defaults false in test/dev
           // (rapid runs exhaust the window and generate spurious 429s),
           // true in production and staging. Explicit env override wins.
-          rateLimitEnabled: isBetterAuthRateLimitEnabled(process.env as Record<string, string | undefined>),
+          rateLimitEnabled: isBetterAuthRateLimitEnabled(
+            process.env as Record<string, string | undefined>,
+          ),
           // Password policy enforcement is opt-in via env. The
           // service exposes the policy validator (entropy + optional
           // HIBP breach check) so signup / change-password run the

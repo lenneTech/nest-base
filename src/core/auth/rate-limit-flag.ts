@@ -18,9 +18,7 @@
  * Override: set `BETTER_AUTH_RATE_LIMIT_ENABLED=true|false` to force a
  * specific value regardless of NODE_ENV.
  */
-export function isBetterAuthRateLimitEnabled(
-  env: Record<string, string | undefined>,
-): boolean {
+export function isBetterAuthRateLimitEnabled(env: Record<string, string | undefined>): boolean {
   const explicit = env["BETTER_AUTH_RATE_LIMIT_ENABLED"];
   if (explicit !== undefined) {
     return explicit !== "false";

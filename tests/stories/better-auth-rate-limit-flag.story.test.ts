@@ -115,18 +115,12 @@ describe("Story · BETTER_AUTH_RATE_LIMIT_ENABLED flag", () => {
 
   describe("BetterAuthModule source wires the flag", () => {
     it("module reads BETTER_AUTH_RATE_LIMIT_ENABLED at factory time", () => {
-      const src = readFileSync(
-        resolve(ROOT, "src/core/auth/better-auth.module.ts"),
-        "utf8",
-      );
+      const src = readFileSync(resolve(ROOT, "src/core/auth/better-auth.module.ts"), "utf8");
       expect(src).toContain("BETTER_AUTH_RATE_LIMIT_ENABLED");
     });
 
     it("module imports isBetterAuthRateLimitEnabled", () => {
-      const src = readFileSync(
-        resolve(ROOT, "src/core/auth/better-auth.module.ts"),
-        "utf8",
-      );
+      const src = readFileSync(resolve(ROOT, "src/core/auth/better-auth.module.ts"), "utf8");
       expect(src).toContain("isBetterAuthRateLimitEnabled");
     });
   });

@@ -137,15 +137,9 @@ function renderEnvExample(answers: WizardAnswers): string {
   lines.push("");
   lines.push("# ── Auth (Better-Auth) ─────────────────────────────────────────");
   lines.push("BETTER_AUTH_SECRET=change-me-32-chars-minimum-XXXXXX");
-  lines.push(
-    "# Rate-limiter for /api/auth/* routes (credential-stuffing protection).",
-  );
-  lines.push(
-    "# Defaults to false in test/development (rapid runs exhaust the window),",
-  );
-  lines.push(
-    "# true in production. Set explicitly to override the NODE_ENV default.",
-  );
+  lines.push("# Rate-limiter for /api/auth/* routes (credential-stuffing protection).");
+  lines.push("# Defaults to false in test/development (rapid runs exhaust the window),");
+  lines.push("# true in production. Set explicitly to override the NODE_ENV default.");
   lines.push("# BETTER_AUTH_RATE_LIMIT_ENABLED=false");
   lines.push("");
   lines.push("# ── System bootstrap (matched pair, unset to skip auto-admin) ──");
