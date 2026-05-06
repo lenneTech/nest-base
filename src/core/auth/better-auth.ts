@@ -13,6 +13,7 @@ import { twoFactor } from "better-auth/plugins/two-factor";
 
 import type { DeviceHandlingRunner } from "../devices/device-handling.runner.js";
 import { validatePasswordPolicy } from "./password-policy.js";
+import { isPreHashedSha256 } from "./prehashed-password.js";
 import { resolveBetterAuthMountPath } from "./better-auth-config.js";
 import {
   createEmailHookRunner,
@@ -428,6 +429,15 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
       ? {
           password: {
             async hash(password: string): Promise<string> {
+              // SDK clients that hash the password locally before
+              // transmission send `sha256:<64-char-hex>`. The entropy
+              // check would reject a single-class hex digest even though
+              // the original password may be arbitrarily strong, so we
+              // skip policy validation for this sentinel and hash as-is.
+              if (isPreHashedSha256(password)) {
+                const { hashPassword } = await import("better-auth/crypto");
+                return hashPassword(password);
+              }
               const opts: { minEntropyBits?: number } = {};
               if (passwordPolicyInput.minEntropyBits !== undefined) {
                 opts.minEntropyBits = passwordPolicyInput.minEntropyBits;
