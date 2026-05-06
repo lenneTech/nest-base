@@ -48,7 +48,16 @@ import { parseTenantHeader } from "./tenant-header.js";
 export { getCurrentTenantId, runWithTenant };
 
 interface AuthenticatedRequest extends Request {
-  user?: { id: string; tenantId: string | null };
+  user?: {
+    id: string;
+    tenantId: string | null;
+    /**
+     * Active organization id from the Better-Auth session (issue #103).
+     * Projected by `BetterAuthSessionMiddleware`; undefined when the
+     * org plugin is off or no org has been activated this session.
+     */
+    activeOrganizationId?: string | null;
+  };
 }
 
 @Injectable()

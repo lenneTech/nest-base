@@ -8,7 +8,18 @@ import { type Ability, buildAbility } from "./casl-ability.js";
 import { PermissionService } from "./permission.service.js";
 
 interface AuthenticatedRequest extends Request {
-  user?: { id: string; tenantId: string | null };
+  user?: {
+    id: string;
+    tenantId: string | null;
+    /**
+     * Active organization id from the Better-Auth session (issue #103).
+     * Projected by `BetterAuthSessionMiddleware`; undefined when the
+     * org plugin is off or no org has been activated this session.
+     * `resolveRequestTenantId` reads this as the preferred fallback
+     * when no `x-tenant-id` header is present.
+     */
+    activeOrganizationId?: string | null;
+  };
   ability?: Ability;
 }
 

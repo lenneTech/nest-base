@@ -18,10 +18,24 @@ import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from "./better-auth.tok
  *
  * Mirrors what `PermissionInterceptor` and the `@Ability()` param
  * decorator already expect on the request. Kept minimal — middleware
- * downstream / domain code only reads `id` and `tenantId`.
+ * downstream / domain code only reads `id`, `tenantId`, and (when the
+ * Better-Auth organization plugin is active) `activeOrganizationId`.
  */
 export interface AuthenticatedRequest extends Request {
-  user?: { id: string; tenantId: string | null };
+  user?: {
+    id: string;
+    tenantId: string | null;
+    /**
+     * Active organization id set by the Better-Auth organization plugin
+     * when the client calls `POST /api/auth/organization/set-active`.
+     * Projected from the session's `activeOrganizationId` field;
+     * undefined when the org plugin is disabled or no org has been
+     * activated for this session. Used by `resolveRequestTenantId` as
+     * the preferred tenant fallback when no `x-tenant-id` header is
+     * present (issue #103).
+     */
+    activeOrganizationId?: string | null;
+  };
 }
 
 /**
@@ -90,6 +104,11 @@ export class BetterAuthSessionMiddleware implements NestMiddleware {
       req.user = {
         id: session.user.id,
         tenantId: extractTenantId(session.user),
+        // Project the Better-Auth organization plugin's `activeOrganizationId`
+        // from the session row onto req.user so `resolveRequestTenantId` can
+        // use it as a per-request tenant fallback without requiring clients to
+        // send `x-tenant-id` on every request (issue #103).
+        activeOrganizationId: extractActiveOrganizationId(session),
       };
       next();
       return;
@@ -107,13 +126,37 @@ interface SessionUser {
   tenantId?: string | null;
 }
 
-type SessionLookup = { user: SessionUser } | null;
+interface SessionRecord {
+  /**
+   * The session row fields. When the Better-Auth organization plugin is
+   * active, the session row carries `activeOrganizationId` (set by the
+   * client calling `POST /api/auth/organization/set-active`). The field
+   * is optional because it is absent when the plugin is disabled or no
+   * org has been activated for this session.
+   */
+  activeOrganizationId?: string | null;
+}
+
+type SessionLookup = { user: SessionUser; session: SessionRecord } | null;
 
 function extractTenantId(user: SessionUser): string | null {
   // `tenantId` is declared as `additionalFields.tenantId` on the
   // Better-Auth user; the adapter projects it through. May be null
   // for users that haven't been linked to a tenant yet.
   return user.tenantId ?? null;
+}
+
+function extractActiveOrganizationId(lookup: {
+  user: SessionUser;
+  session: SessionRecord;
+}): string | null {
+  // The Better-Auth organization plugin stores the user's active org in
+  // the session row so the server knows which tenant context to use
+  // without requiring the client to send a header on every request.
+  // This is undefined when the plugin is off; null when the plugin is on
+  // but no org has been activated. Both map to null here — the resolver
+  // treats them identically (fall through to `req.user.tenantId`).
+  return lookup.session.activeOrganizationId ?? null;
 }
 
 function stripQuery(path: string): string {

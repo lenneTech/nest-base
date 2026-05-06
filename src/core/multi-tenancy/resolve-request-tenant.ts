@@ -37,9 +37,15 @@ import type { PrismaService } from "../prisma/prisma.service.js";
  *      `ForbiddenException`. Storage failure → re-throw (callers
  *      decide; the middleware fails closed = empty ability rather
  *      than fail open = silent fallback to a foreign tenant).
- *   4. No header, `req.user.tenantId` non-null → return it. This is
+ *   4. No header, `req.user.activeOrganizationId` non-null → return it.
+ *      The Better-Auth organization plugin writes this to the session
+ *      when the client calls POST /api/auth/organization/set-active.
+ *      `BetterAuthSessionMiddleware` projects it onto `req.user` so
+ *      clients can omit the x-tenant-id header after activating an org
+ *      (issue #103).
+ *   5. No header, `req.user.tenantId` non-null → return it. This is
  *      the "session tenant" for users with a single primary tenant.
- *   5. No header, no session tenant → return `null`.
+ *   6. No header, no session tenant → return `null`.
  *
  * The cache hint on `req.__resolvedTenantId` is intentionally not set
  * here — both call sites are independent (interceptor runs before
@@ -56,7 +62,19 @@ const TENANT_HEADER = "x-tenant-id";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface AuthenticatedRequest extends Request {
-  user?: { id: string; tenantId: string | null };
+  user?: {
+    id: string;
+    tenantId: string | null;
+    /**
+     * Active organization id set by the Better-Auth organization plugin
+     * when the client called `POST /api/auth/organization/set-active`.
+     * The session row carries this value; `BetterAuthSessionMiddleware`
+     * projects it onto `req.user` so downstream code never has to reach
+     * back into the session. May be undefined when the org plugin is
+     * disabled or when no org has been activated for this session.
+     */
+    activeOrganizationId?: string | null;
+  };
 }
 
 export async function resolveRequestTenantId(
@@ -113,8 +131,13 @@ export async function resolveRequestTenantId(
     return tenantId;
   }
 
-  // No header → fall back to the user's primary / session tenant.
-  // May be null on anonymous routes; callers (interceptor on exempt
-  // paths, middleware for unauthenticated requests) decide.
-  return req.user?.tenantId ?? null;
+  // No header → fall back to the session's active organization id first
+  // (issue #103). When the Better-Auth organization plugin is enabled,
+  // the client can call POST /api/auth/organization/set-active once and
+  // then omit the x-tenant-id header on subsequent requests; the active
+  // org id travels in the session and is projected here by
+  // BetterAuthSessionMiddleware. If that is absent, fall back to the
+  // user's primary tenant id. Either value may be null (anonymous route,
+  // or user not yet linked to a tenant); callers decide what null means.
+  return req.user?.activeOrganizationId ?? req.user?.tenantId ?? null;
 }
