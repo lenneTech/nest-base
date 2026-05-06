@@ -35,7 +35,7 @@ describe("Story · resolveRequestTenantId", () => {
   const VALID_TENANT_B = "00000000-0000-4000-8000-000000000002";
 
   type Req = {
-    user?: { id: string; tenantId: string | null };
+    user?: { id: string; tenantId: string | null; activeOrganizationId?: string | null };
     headers?: Record<string, string | string[] | undefined>;
   };
 
@@ -211,5 +211,64 @@ describe("Story · resolveRequestTenantId", () => {
     const result = await resolveRequestTenantId(req as never, prisma);
     expect(result).toBeNull();
     expect(prisma.tenantMember.findFirst).not.toHaveBeenCalled();
+  });
+
+  // Issue #103 — session.activeOrganizationId fallback
+  it("falls back to session.activeOrganizationId when no header is present (issue #103)", async () => {
+    // When the caller has authenticated and the Better-Auth organization
+    // plugin wrote an `activeOrganizationId` to the session, that value
+    // should serve as the tenant id for requests that arrive without an
+    // explicit `x-tenant-id` header. This allows mobile / web clients
+    // that set the active org once (via /api/auth/organization/set-active)
+    // to omit the header on every subsequent request.
+    const prisma = makePrismaWithRow(null);
+    const req: Req = {
+      user: { id: "u1", tenantId: null, activeOrganizationId: VALID_TENANT_A },
+      headers: {},
+    };
+    const result = await resolveRequestTenantId(req as never, prisma);
+    expect(result).toBe(VALID_TENANT_A);
+    // No header → no DB lookup needed (same short-circuit as the tenantId path).
+    expect(prisma.tenantMember.findFirst).not.toHaveBeenCalled();
+  });
+
+  it("prefers header over session.activeOrganizationId when both are present (header wins)", async () => {
+    // The `x-tenant-id` header is the explicit per-request override.
+    // A client that wants to act in a different tenant than the session
+    // default can always supply the header — the header always wins.
+    const prisma = makePrismaWithRow({ id: "m1", status: "ACTIVE" });
+    const req: Req = {
+      user: { id: "u1", tenantId: null, activeOrganizationId: VALID_TENANT_B },
+      headers: { "x-tenant-id": VALID_TENANT_A },
+    };
+    const result = await resolveRequestTenantId(req as never, prisma);
+    expect(result).toBe(VALID_TENANT_A);
+  });
+
+  it("prefers session.activeOrganizationId over req.user.tenantId when no header is set", async () => {
+    // When the user has both a primary tenant (tenantId) and an active
+    // organization in their session (activeOrganizationId), the session
+    // active organization wins — it is the more specific, user-selected
+    // context. The primary tenantId remains as the ultimate fallback
+    // when activeOrganizationId is absent.
+    const prisma = makePrismaWithRow(null);
+    const req: Req = {
+      user: { id: "u1", tenantId: VALID_TENANT_B, activeOrganizationId: VALID_TENANT_A },
+      headers: {},
+    };
+    const result = await resolveRequestTenantId(req as never, prisma);
+    expect(result).toBe(VALID_TENANT_A);
+  });
+
+  it("falls back to req.user.tenantId when activeOrganizationId is null and no header is set", async () => {
+    // Preserves existing behaviour: users without an active organization
+    // still get their primary tenant as the resolved tenant id.
+    const prisma = makePrismaWithRow(null);
+    const req: Req = {
+      user: { id: "u1", tenantId: VALID_TENANT_B, activeOrganizationId: null },
+      headers: {},
+    };
+    const result = await resolveRequestTenantId(req as never, prisma);
+    expect(result).toBe(VALID_TENANT_B);
   });
 });

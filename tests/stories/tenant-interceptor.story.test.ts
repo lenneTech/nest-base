@@ -115,6 +115,50 @@ describe("Story · Tenant-Interceptor + RLS", () => {
       await expect(Promise.resolve(result).then((r) => lastValueFrom(r))).rejects.toThrow();
     });
 
+    // Issue #103 — session.activeOrganizationId fallback
+    it("resolves the tenant from session.activeOrganizationId when no header is present (issue #103)", async () => {
+      // Authenticated request with an active organization in the session but
+      // without an x-tenant-id header: the interceptor must use the session's
+      // activeOrganizationId as the tenant id. This allows clients that invoke
+      // POST /api/auth/organization/set-active once to omit the header on
+      // subsequent requests.
+      const tenantId = "0af76519-16cd-43dd-8448-eb211c80319c";
+      const fakePrisma = {
+        tenantMember: {
+          findFirst: async () => null,
+        },
+      };
+      // The unauthenticated code-path only uses parseTenantHeader and
+      // never calls `resolveRequestTenantId`, so we test the authenticated
+      // path by passing a user + prisma stub. `TenantInterceptor` uses
+      // `resolveRequestTenantId` for auth'd requests, which now reads
+      // `req.user.activeOrganizationId` when no header is present.
+      const interceptor = new TenantInterceptor(fakePrisma as never);
+      const req = {
+        headers: {},
+        originalUrl: "/api/users",
+        url: "/api/users",
+        user: { id: "u1", tenantId: null, activeOrganizationId: tenantId },
+      };
+      const ctx = {
+        switchToHttp: () => ({
+          getRequest: () => req,
+          getResponse: () => ({}),
+          getNext: () => null,
+        }),
+        getType: () => "http",
+      } as unknown as import("@nestjs/common").ExecutionContext;
+      let observed: string | undefined;
+      const result$ = interceptor.intercept(ctx, {
+        handle: () => {
+          observed = getCurrentTenantId();
+          return of("ok");
+        },
+      });
+      await lastValueFrom(await Promise.resolve(result$));
+      expect(observed).toBe(tenantId);
+    });
+
     it("integrates with request-context — tenant is visible alongside requestId/traceId", async () => {
       const tenantId = "0af76519-16cd-43dd-8448-eb211c80319c";
       const interceptor = new TenantInterceptor();
