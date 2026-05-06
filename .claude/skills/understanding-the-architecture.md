@@ -102,9 +102,9 @@ files.
 
 ---
 
-## The dev hub layer
+## The Hub layer
 
-Every developer-facing HTML surface — `/dev/*`, `/admin/*`, `/errors`,
+Every developer-facing HTML surface — `/hub/*`, `/admin/*`, `/errors`,
 `/api/openapi` — is served by a single React 19 SPA bundled by
 `bun build` and emitted to `dist/dev-portal/`. The Nest controllers
 (`dev-hub.controller.ts`, `admin-spa.controller.ts`,
@@ -129,7 +129,7 @@ clients/                  ← React 19 SPA source (TypeScript + shadcn/ui + Tail
 └── styles/               ← tokens.css (brand-aware vars) + globals.css (Tailwind 4 + @theme bridge)
 
 dev-portal-shell.ts       ← server-side shell renderer (`<div id="root">`)
-dev-hub.controller.ts     ← /dev/* SPA shell + JSON sidecars
+dev-hub.controller.ts     ← /hub/* SPA shell + JSON sidecars
 admin-spa.controller.ts   ← /admin/* SPA shell + JSON sidecars
 ```
 
@@ -177,7 +177,7 @@ The admin UI for testing rules is at `/admin/permissions/test`.
 attaches the tenant to the request context, the Prisma extension
 (`SET LOCAL app.tenant_id`) makes RLS see it.
 
-Public routes (`/`, `/health/*`, `/api/auth/*`, `/dev/*`, `/admin/*`,
+Public routes (`/`, `/health/*`, `/api/auth/*`, `/hub/*`, `/admin/*`,
 `/errors/*`) are exempt — see `tenant-guard.ts:isTenantExempt`.
 Query strings + fragments are stripped before matching.
 
@@ -228,7 +228,7 @@ See skill `working-with-prisma` for the full migration + concat workflow.
 
 1. Probes `127.0.0.1:443` to see if portless proxy is alive
 2. Spawns either `portless run` (if alive) or `bun --watch src/main.ts`
-3. **Watches `.env`** — when it changes (e.g. via /dev/features
+3. **Watches `.env`** — when it changes (e.g. via /hub/features
    toggle), kills the child and respawns. Without this, env vars stay
    cached because `bun --watch` only reloads source, not env.
 4. **Writes a dev-session lock** at
@@ -253,7 +253,7 @@ here:
 
 - `clients/layout/AdminShell.tsx` — React shell rendered for every dev/admin route
 - `dashboard-ui.ts`, `*-ui.ts` — per-page renderers
-- `feature-catalog.ts` — drives `/dev/features` UI
+- `feature-catalog.ts` — drives `/hub/features` UI
 - `service-status.ts` — probes for the dashboard's service grid
 - `coverage-report.ts`, `test-summary.ts` — parse Vitest output
 - `log-buffer.ts` — in-memory ring of last 500 Pino records

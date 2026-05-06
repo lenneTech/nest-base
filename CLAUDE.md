@@ -106,7 +106,7 @@ These are the recurring workflows; each has a step-by-step skill in
 | Wire permissions on a handler | [`wiring-permissions`](./.claude/skills/wiring-permissions.md) |
 | Add a feature flag | [`adding-feature-flag`](./.claude/skills/adding-feature-flag.md) |
 | Add a new error code | [`adding-error-code`](./.claude/skills/adding-error-code.md) |
-| Add a new admin/dev page | [`extending-dev-hub`](./.claude/skills/extending-dev-hub.md) |
+| Add a new Hub or admin page | [`extending-hub`](./.claude/skills/extending-hub.md) |
 | Update from upstream template | [`syncing-from-template`](./.claude/skills/syncing-from-template.md) |
 | PR a `src/core/` fix back upstream | [`contributing-upstream`](./.claude/skills/contributing-upstream.md) + `/upstream-pr` |
 
@@ -133,7 +133,7 @@ For the user, the slash command [`/add-feature <key> "<description>"`](./.claude
 - **Pure planners over runners** — every `dx/`, `setup/`, error/audit
   helper splits into a pure planner (testable) + thin runner (I/O). When
   you add a new helper, follow this split.
-- **HTML renderers escape everything** — all `/admin/*` and `/dev/*` page
+- **HTML renderers escape everything** — all `/admin/*` and `/hub/*` page
   renderers HTML-escape user-controlled values via the standard 5-char
   table. The Search-Tester is the only renderer that trusts a payload
   fragment (`ts_headline`'s `<b>` tags).
@@ -174,7 +174,7 @@ Every HTTP-handler method on a controller in `src/core/**` and
 3. **Path-allowlisted** in `src/core/auth/jwt-middleware.ts`
    `PUBLIC_PREFIXES`/`PUBLIC_EXACT` and/or
    `src/core/multi-tenancy/tenant-guard.ts` `EXEMPT_*` — for
-   subsystem-wide patterns (`/health/*`, `/api/auth/*`, `/dev/*`,
+   subsystem-wide patterns (`/health/*`, `/api/auth/*`, `/api/hub/*`,
    `/me/*`). Adding a path here is a deliberate cross-cutting
    decision; prefer `@Public()` for individual routes.
 

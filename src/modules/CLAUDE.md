@@ -200,7 +200,7 @@ export class AppModule {}
 ```
 
 Feature toggles also gate Prisma schema concatenation, env-var
-requirements, and the Dev-Hub link list — wire them once, get
+requirements, and the Hub nav — wire them once, get
 end-to-end zero-cost when off.
 
 ## Don't add here

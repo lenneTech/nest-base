@@ -16,7 +16,7 @@ sequence so you stop guessing and start verifying.
 
 ## What you'll need
 
-- The dev server running (`bun run dev`) — `/dev/logs` and
+- The dev server running (`bun run dev`) — `/hub/logs` and
   `/admin/permissions/test` are dev-only routes
 - The user-id and tenant-id of the affected user (from the request
   log, the auth-cookie, or the test fixture)
@@ -30,11 +30,11 @@ The user-facing error message is intentionally generic
 the structured log:
 
 ```bash
-curl -s 'http://localhost:3000/dev/logs.json?level=warn&q=forbidden' \
+curl -s 'http://localhost:3000/hub/logs.json?level=warn&q=forbidden' \
   | jq '.records[] | { ts, msg, requestId }'
 ```
 
-Or in the browser at `/dev/logs` filter by `forbidden`. Each denial
+Or in the browser at `/hub/logs` filter by `forbidden`. Each denial
 emits a line like `forbidden: read:Project denied`. That tells you
 the `(action, subject)` pair the guard checked.
 
@@ -136,7 +136,7 @@ silently coming back.
   query, not the permission. Symptom is usually empty result, not
   403 — but a `findOrThrow` turns "row not visible" into
   `NotFoundException`, which a poorly-shaped controller can convert
-  to 403. Check `/dev/logs` for the actual exception class.
+  to 403. Check `/hub/logs` for the actual exception class.
 - **"Permission added but still denied"** — caching. Restart the dev
   server (`.env` watcher catches edits but not DB changes). The
   PermissionService has no cache today, so this is rare, but worth

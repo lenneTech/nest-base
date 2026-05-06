@@ -70,7 +70,7 @@ The URL is "where the container would run", not "is the API using it".
 
 ### Catalog entry is mandatory for the UI
 
-The `/dev/features` page reads `FEATURE_CATALOG`. A schema entry
+The `/hub/features` page reads `FEATURE_CATALOG`. A schema entry
 without a catalog entry → no toggle in the UI. Always add both.
 
 ---
@@ -91,7 +91,7 @@ resolves correctly.
 ### Off-by-default for new routes
 
 When you add a new route, decide: tenant-scoped (default) or public
-(exempt-list). Auth/health/docs/dev/admin/errors are public.
+(exempt-list). Auth/health/docs/hub/admin/errors are public.
 Everything else needs the header.
 
 ---
@@ -105,7 +105,7 @@ Everything else needs the header.
 effect.
 
 `scripts/dev.ts` watches `.env` separately and respawns the child
-process on change (debounced 200ms). That's how `/dev/features`
+process on change (debounced 200ms). That's how `/hub/features`
 toggles take effect.
 
 If you write a tool that edits `.env` outside this watcher, you need

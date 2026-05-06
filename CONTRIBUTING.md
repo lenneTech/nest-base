@@ -37,8 +37,8 @@ For deeper context:
   for historical reference.
 - For a feature flag: read
   [`.claude/skills/adding-feature-flag.md`](./.claude/skills/adding-feature-flag.md).
-- For a new dev/admin page: read
-  [`.claude/skills/extending-dev-hub.md`](./.claude/skills/extending-dev-hub.md).
+- For a new Hub/admin page: read
+  [`.claude/skills/extending-hub.md`](./.claude/skills/extending-hub.md).
 - For a new resource module: read
   [`.claude/skills/adding-feature-module.md`](./.claude/skills/adding-feature-module.md)
   and copy [`src/modules/example/`](./src/modules/example/) as the
@@ -53,7 +53,7 @@ bun install
 bun run setup            # generates .env with strong random secrets
 docker compose up -d postgres
 bun run prisma:generate
-bun run dev              # opens the dev hub at /dev
+bun run dev              # opens the Hub at /hub
 ```
 
 ## The TDD cycle

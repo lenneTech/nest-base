@@ -81,13 +81,13 @@ Lookup precedence: project overlay → template default → schema built-in.
 
 Three options, in order of safety:
 
-1. **Through the UI** at `/dev/brand` — the page reads `/dev/brand.json`
-   and writes the project overlay via `POST /dev/brand`. The dev runner's
+1. **Through the UI** at `/hub/brand` — the page reads `/hub/brand.json`
+   and writes the project overlay via `POST /hub/brand`. The dev runner's
    watcher detects the file change and restarts the API so OpenAPI title,
    Better-Auth issuer, and email defaults pick up the new values.
 2. **Direct edit** of `src/modules/branding/brand.json`. The file is in
    git — review-friendly diff, no surprise rollbacks.
-3. **Reset** with `POST /dev/brand/reset` (or delete the file manually).
+3. **Reset** with `POST /hub/brand/reset` (or delete the file manually).
    Falls back to the template default.
 
 ### Schema (subset)
@@ -113,7 +113,7 @@ Three options, in order of safety:
 Hex colors must be 6-digit (`#RRGGBB`); shorthand `#fff` is rejected for
 deterministic CSS-var generation. Email and URL fields are validated by
 the same Zod schema (`src/core/branding/brand-schema.ts`) on every load
-and on every `POST /dev/brand` write.
+and on every `POST /hub/brand` write.
 
 ### Where the brand surfaces
 

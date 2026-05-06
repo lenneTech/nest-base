@@ -8,10 +8,10 @@ This card gets you productive in 60 seconds. Read it top-to-bottom
 
 **nest-base** is a production-grade NestJS template on Bun + Prisma 7
 
-- Postgres + Better-Auth. It ships with a developer cockpit at `/dev`
-  (dark theme + electric-lime accent, 14 toggleable features, live
-  status / coverage / tests / logs / feature toggles). The repo is the
-  sync source for `src/core/` — many projects fork off this template.
+- Postgres + Better-Auth. It ships with a Hub at `/` (dark theme +
+  electric-lime accent, 14 toggleable features, live status / coverage /
+  tests / logs / feature toggles). The repo is the sync source for
+  `src/core/` — many projects fork off this template.
 
 ## The 5 things that shape every decision
 
@@ -31,16 +31,19 @@ This card gets you productive in 60 seconds. Read it top-to-bottom
 
 ```bash
 docker compose up -d postgres   # boot Postgres only (others optional)
-bun run dev                     # auto-spawns Prisma Studio + opens /dev
+bun run dev                     # auto-spawns Prisma Studio + opens /
 ```
 
-After `bun run prisma:migrate && bun run seed` you have 3 demo users:
+After `bun run prisma:migrate && bun run seed` you have 3 demo users.
+Log in at the Hub (`/`):
 
 | Email | Password | Role |
 |---|---|---|
 | `system-admin@lenne.tech` | `system-admin` | System Admin (full bypass) |
 | `admin@lenne.tech` | `admin` | Admin (manage tenant resources) |
 | `user@lenne.tech` | `user` | User (read tenant, update own profile) |
+
+> To reset a password from the CLI: `bun run hub:reset-password`.
 
 > **Fresh `lt fullstack init --next` workspace?** Run `bun run setup`
 > first — the CLI ships the API `.env` template but does NOT invoke
@@ -56,7 +59,7 @@ if you have [portless](https://github.com/portless/portless) installed,
 otherwise the bare `http://localhost:<port>` it announces (`:3000` when
 free, a dynamic fallback like `:4266` when it isn't). Always trust the
 printed URL over a hard-coded `localhost:3000` — concurrent runs and
-test suites can shift the port. Dev cockpit at `/dev`.
+test suites can shift the port. Hub at `/`.
 
 If `bun install` hasn't run: `bun install && bun run prisma:generate`.
 
@@ -78,7 +81,7 @@ If `bun install` hasn't run: `bun install && bun run prisma:generate`.
 | ------------------------------ | ------------------------------------------------------------------------------- |
 | "Add a feature flag"           | `/add-feature` command + `feature-toggle-implementer` agent                     |
 | "Add a tenant-scoped module"   | `/add-module` command, `module-scaffolder` agent, or `bun run add:module <name>` |
-| "Add an admin/dev page"        | `/add-page` command + skill `extending-dev-hub`                                 |
+| "Add a Hub or admin page"      | `/add-page` command + skill `extending-hub`                                     |
 | "Run all gates"                | `quality-gate-runner` agent                                                     |
 | "Why does X work this way?"    | skill `understanding-the-architecture`                                          |
 | "I keep hitting Y error"       | skill `avoiding-common-pitfalls`                                                |
@@ -118,7 +121,7 @@ add files to the exclude list without strong justification.
 - **Tenant-isolation 400 on a public route?** Add the path to
   `EXEMPT_EXACT` or `EXEMPT_PREFIXES` in
   `src/core/multi-tenancy/tenant-guard.ts`.
-- **Feature flag doesn't show in `/dev/features`?** Missing entry in
+- **Feature flag doesn't show in `/hub/features`?** Missing entry in
   `src/core/dx/feature-catalog.ts`.
 - **Toggling a feature doesn't take effect after restart?** Bun's
   `--watch` reloads source but **caches `process.env`**. The dev

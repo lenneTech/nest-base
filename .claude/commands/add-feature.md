@@ -105,7 +105,7 @@ User clicks **Features** in the sidebar. Confirm:
   badges, and `FEATURE_<KEY>_ENABLED=false ✓` line
 - Toggling the switch shows the "Restarting server…" overlay
 - After respawn the card flips to ON
-- `/dev/diagnostics` shows the flag in the active-features matrix
+- `/hub/diagnostics` shows the flag in the active-features matrix
 
 ### 5 · Commit + push
 
