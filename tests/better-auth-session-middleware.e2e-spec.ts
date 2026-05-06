@@ -120,6 +120,7 @@ describe("Better-Auth · Session middleware (req.user)", () => {
         id: TENANT_HEADER,
         name: `session-${Date.now()}`,
         slug: `session-${TENANT_HEADER}`,
+        createdAt: new Date(),
       },
     });
     const initialUser = await prisma.user.findUnique({ where: { email } });

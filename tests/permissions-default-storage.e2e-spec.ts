@@ -80,7 +80,12 @@ describe("Permissions · default Prisma storage end-to-end", () => {
     //    focused on "ACTIVE member → unlock" rather than auth wiring.
     const orgId = crypto.randomUUID();
     const tenant = await prisma.organization.create({
-      data: { id: orgId, name: `perm-default-${Date.now()}`, slug: `perm-default-${orgId}` },
+      data: {
+        id: orgId,
+        name: `perm-default-${Date.now()}`,
+        slug: `perm-default-${orgId}`,
+        createdAt: new Date(),
+      },
     });
 
     // 2. Sign up — Better-Auth creates the User row and sets a cookie.

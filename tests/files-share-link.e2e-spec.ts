@@ -8,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { bootstrap } from "../src/core/app/bootstrap.js";
 import { PrismaService } from "../src/core/prisma/prisma.service.js";
+import { uuidV7 } from "../src/core/uuid/uuid-v7.js";
 import { signShareLink } from "../src/core/files/share-link.js";
 import { emerald8x8Png } from "./lib/png-fixture.js";
 
@@ -50,7 +51,21 @@ describe("Files · share-link round-trip", () => {
     app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
     prisma = app.get(PrismaService);
 
-    const tenant = await prisma.tenant.create({ data: { name: `share-${Date.now()}` } });
+    const orgName = `share-${Date.now()}`;
+    const tenant = await prisma.organization.create({
+      data: {
+        id: uuidV7(),
+        name: orgName,
+        slug:
+          orgName
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .slice(0, 50) +
+          "-" +
+          Date.now(),
+        createdAt: new Date(),
+      },
+    });
     tenantId = tenant.id;
 
     const email = `share-e2e-${Date.now()}@example.com`;
@@ -69,7 +84,15 @@ describe("Files · share-link round-trip", () => {
         : undefined;
     sessionCookie = (cookies ?? []).map((c) => c.split(";")[0]).join("; ");
     const userId = signUp.body.user.id as string;
-    await prisma.user.update({ where: { id: userId }, data: { tenantId } });
+    await prisma.member.create({
+      data: {
+        id: uuidV7(),
+        userId,
+        organizationId: tenantId,
+        role: "owner",
+        createdAt: new Date(),
+      },
+    });
 
     const bytes = emerald8x8Png();
     const upload = await request(app.getHttpServer())
@@ -95,7 +118,8 @@ describe("Files · share-link round-trip", () => {
     try {
       await prisma.file.deleteMany({ where: { tenantId } });
       await prisma.folder.deleteMany({ where: { tenantId } });
-      await prisma.tenant.delete({ where: { id: tenantId } });
+      await prisma.member.deleteMany({ where: { organizationId: tenantId } });
+      await prisma.organization.delete({ where: { id: tenantId } });
     } catch {
       // best-effort
     }
