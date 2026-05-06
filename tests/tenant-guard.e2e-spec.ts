@@ -46,12 +46,9 @@ describe("Tenant Guard", () => {
   });
 
   // Hub paths are exempt (no tenant needed for the Hub SPA).
-  it.each(["/hub/login", "/hub/logout"])(
-    "treats %s as tenant-exempt (Hub SPA)",
-    (path) => {
-      expect(isTenantExempt(path)).toBe(true);
-    },
-  );
+  it.each(["/hub/login", "/hub/logout"])("treats %s as tenant-exempt (Hub SPA)", (path) => {
+    expect(isTenantExempt(path)).toBe(true);
+  });
 
   it("rejects empty input defensively", () => {
     expect(() => requiresTenant("")).toThrow();

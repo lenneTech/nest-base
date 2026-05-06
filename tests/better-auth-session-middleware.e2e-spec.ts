@@ -160,7 +160,9 @@ describe("Better-Auth · Session middleware (req.user)", () => {
       .send({ email, password });
     expect(signIn.status, JSON.stringify(signIn.body)).toBe(200);
 
-    const res = await agent.get("/api/test-session/can-restricted").set("x-tenant-id", TENANT_HEADER);
+    const res = await agent
+      .get("/api/test-session/can-restricted")
+      .set("x-tenant-id", TENANT_HEADER);
     expect(res.status).toBe(403);
   });
 });

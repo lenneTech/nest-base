@@ -330,7 +330,9 @@ describe("Dev-Hub · /dev/email-builder", () => {
       it("never touches the core template file", async () => {
         const corePath = resolve(repoRoot, `src/core/email/templates/${slug}.tsx`);
         expect(existsSync(corePath)).toBe(true);
-        await request(app.getHttpServer()).delete(`/api/dev/email-builder/templates/${slug}/override`);
+        await request(app.getHttpServer()).delete(
+          `/api/dev/email-builder/templates/${slug}/override`,
+        );
         expect(existsSync(corePath)).toBe(true);
       });
     });

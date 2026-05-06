@@ -416,7 +416,9 @@ function DetailDrawer({ deliveryId, csrfToken }: DetailDrawerProps): ReactNode {
   const detailQuery = useQuery({
     queryKey: ["admin", "webhooks", "detail", deliveryId],
     queryFn: () =>
-      fetchJson<DeliveryDetailResponse>(`/api/admin/webhooks/${encodeURIComponent(deliveryId!)}.json`),
+      fetchJson<DeliveryDetailResponse>(
+        `/api/admin/webhooks/${encodeURIComponent(deliveryId!)}.json`,
+      ),
     enabled: deliveryId !== null,
   });
 

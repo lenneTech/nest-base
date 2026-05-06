@@ -24,7 +24,9 @@ describe("Error-Code registry endpoint", () => {
   });
 
   it("GET /errors with Accept: application/json returns the registered codes as JSON", async () => {
-    const res = await request(app.getHttpServer()).get("/api/errors").set("Accept", "application/json");
+    const res = await request(app.getHttpServer())
+      .get("/api/errors")
+      .set("Accept", "application/json");
     expect(res.status).toBe(200);
     expect(res.headers["content-type"]).toMatch(/application\/json/);
     expect(Array.isArray(res.body)).toBe(true);
@@ -66,7 +68,9 @@ describe("Error-Code registry endpoint", () => {
   });
 
   it("seeded with the CORE_* defaults", async () => {
-    const res = await request(app.getHttpServer()).get("/api/errors").set("Accept", "application/json");
+    const res = await request(app.getHttpServer())
+      .get("/api/errors")
+      .set("Accept", "application/json");
     const codes = (res.body as Array<{ code: string }>).map((d) => d.code);
     expect(codes).toContain("CORE_INTERNAL");
     expect(codes).toContain("CORE_NOT_FOUND");

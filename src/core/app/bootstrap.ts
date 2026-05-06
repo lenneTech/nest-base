@@ -196,7 +196,9 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
       // and request-context e2e tests that assert on these headers for
       // GET / would fail.
       {
-        const traceparentHeader = (req.headers as Record<string, string | undefined>)["traceparent"];
+        const traceparentHeader = (req.headers as Record<string, string | undefined>)[
+          "traceparent"
+        ];
         const parsed = traceparentHeader ? parseTraceparent(traceparentHeader) : null;
         const requestId = generateRequestId();
         const traceId = parsed ? parsed.traceId : generateTraceId();
@@ -210,9 +212,7 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
       // AppEnv is "development" | "staging" | "production"; the Hub stage
       // includes "local" and "test" as additional values for test tooling.
       const stage = (
-        cfg.env === "development" ? "local"
-        : cfg.env === "production" ? "production"
-        : "staging"
+        cfg.env === "development" ? "local" : cfg.env === "production" ? "production" : "staging"
       ) as "local" | "production" | "test" | "staging";
       const authCfg = buildHubAuthConfig({ stage });
 
@@ -266,9 +266,7 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
       res
         .status(200)
         .type("text/html; charset=utf-8")
-        .send(
-          renderDevPortalShell(buildDevPortalShellInput({ title: "Hub", brand: "central" })),
-        );
+        .send(renderDevPortalShell(buildDevPortalShellInput({ title: "Hub", brand: "central" })));
     });
   }
 

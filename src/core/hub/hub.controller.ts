@@ -1,11 +1,4 @@
-import {
-  Body,
-  Controller,
-  HttpCode,
-  Post,
-  Res,
-  UnauthorizedException,
-} from "@nestjs/common";
+import { Body, Controller, HttpCode, Post, Res, UnauthorizedException } from "@nestjs/common";
 import type { Response } from "express";
 
 import { Public } from "../permissions/public.decorator.js";
@@ -66,10 +59,7 @@ export class HubController {
   @Post("hub/login")
   @HttpCode(200)
   @Public("Hub login endpoint — verifies the Hub password and issues a session cookie")
-  async login(
-    @Body() body: { password?: unknown },
-    @Res() res: Response,
-  ): Promise<void> {
+  async login(@Body() body: { password?: unknown }, @Res() res: Response): Promise<void> {
     const candidate = typeof body?.password === "string" ? body.password : "";
     if (!candidate) {
       throw new UnauthorizedException("password required");

@@ -132,7 +132,9 @@ describe("Files · share-link round-trip", () => {
     expect(issue.status).toBe(201);
 
     // No cookie, no x-tenant-id — the share token is the auth.
-    const fetch = await request(app.getHttpServer()).get(`/api/files/share/${issue.body.shareToken}`);
+    const fetch = await request(app.getHttpServer()).get(
+      `/api/files/share/${issue.body.shareToken}`,
+    );
     expect(fetch.status).toBe(200);
     expect(fetch.body.id).toBe(fileId);
     expect(fetch.body.filename).toBe("shared.png");

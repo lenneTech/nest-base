@@ -68,7 +68,11 @@ export function SearchTesterPage(): ReactNode {
             <CardTitle>Query</CardTitle>
           </CardHeader>
           <CardContent>
-            <form className="flex flex-wrap items-end gap-3" method="get" action="/api/admin/search">
+            <form
+              className="flex flex-wrap items-end gap-3"
+              method="get"
+              action="/api/admin/search"
+            >
               <div className="flex flex-1 min-w-72 flex-col gap-1.5">
                 <Label htmlFor="q">Query</Label>
                 <Input

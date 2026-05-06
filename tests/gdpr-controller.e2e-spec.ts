@@ -32,7 +32,9 @@ describe("GdprController · /me/*", () => {
   });
 
   it("DELETE /me/account 403s when unauthenticated", async () => {
-    const res = await request(app.getHttpServer()).delete("/api/me/account").set("x-tenant-id", TENANT);
+    const res = await request(app.getHttpServer())
+      .delete("/api/me/account")
+      .set("x-tenant-id", TENANT);
     expect(res.status).toBe(403);
   });
 

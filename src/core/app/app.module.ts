@@ -99,12 +99,14 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
         return {
           pinoHttp: {
             logger: pinoLogger,
-            autoLogging: !isTest && {
-              ignore: (req) =>
-                !!req.url?.startsWith("/health") ||
-                req.url === "/" ||
-                !!req.url?.startsWith("/api/dev/"),
-            },
+            autoLogging: isTest
+              ? false
+              : {
+                  ignore: (req) =>
+                    !!req.url?.startsWith("/health") ||
+                    req.url === "/" ||
+                    !!req.url?.startsWith("/api/dev/"),
+                },
             quietReqLogger: isTest,
             customLogLevel: (_req, res) => {
               if (res.statusCode >= 500) return "error";

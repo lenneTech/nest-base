@@ -144,7 +144,9 @@ describe("Dev Jobs Dashboard · /dev/jobs/*", () => {
       expect(res.body.id).not.toBe(original);
       // Drain so the retried job ages into a terminal state.
       await queue.drain();
-      const retried = await request(app.getHttpServer()).get(`/api/dev/jobs/jobs/${res.body.id}.json`);
+      const retried = await request(app.getHttpServer()).get(
+        `/api/dev/jobs/jobs/${res.body.id}.json`,
+      );
       expect(retried.status).toBe(200);
       expect(retried.body.attempt).toBe(2);
     });
