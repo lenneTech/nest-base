@@ -11,6 +11,7 @@ import {
   NotFoundException,
   Optional,
   Param,
+  Patch,
   Post,
   Res,
 } from "@nestjs/common";
@@ -19,6 +20,7 @@ import type { Response } from "express";
 import { buildDevPortalShellInput, renderDevPortalShell } from "../dx/dev-portal-shell.js";
 
 import { PrismaService } from "../prisma/prisma.service.js";
+import { buildPermissionMatrix } from "./admin-permissions-planner.js";
 import {
   buildPermissionReport,
   type PermissionReport,
@@ -65,6 +67,12 @@ interface PermissionCreateBody {
 interface RolePolicyAttachBody {
   roleId?: unknown;
   policyId?: unknown;
+}
+
+interface RolePatchBody {
+  name?: unknown;
+  description?: unknown;
+  parentId?: unknown;
 }
 
 const ALLOWED_ACTIONS = ["CREATE", "READ", "UPDATE", "DELETE", "SHARE"] as const;
@@ -171,6 +179,36 @@ class RoleAdminService {
       throw new NotFoundException(`role not found: ${id}`);
     }
   }
+  async update(id: string, tenantId: string, body: RolePatchBody) {
+    // Scope to the operator's tenant — same defense-in-depth as create().
+    const existing = await this.prisma.role.findFirst({ where: { id, tenantId } });
+    if (!existing) throw new NotFoundException(`role not found: ${id}`);
+    return this.prisma.role.update({
+      where: { id },
+      data: {
+        ...(typeof body.name === "string" && body.name.length > 0 ? { name: body.name } : {}),
+        ...(body.description !== undefined
+          ? { description: asOptionalString(body.description) }
+          : {}),
+        // Allow clearing parentId by passing null explicitly.
+        ...(body.parentId !== undefined
+          ? {
+              parentId:
+                typeof body.parentId === "string" && body.parentId.length > 0
+                  ? body.parentId
+                  : null,
+            }
+          : {}),
+      },
+    });
+  }
+  listPolicies(id: string, tenantId: string) {
+    // Return the policies (with their permissions) attached to a role.
+    return this.prisma.rolePolicy.findMany({
+      where: { role: { id, tenantId } },
+      include: { policy: { include: { permissions: true } } },
+    });
+  }
 }
 
 @Injectable()
@@ -197,6 +235,15 @@ class PolicyAdminService {
   }
   async delete(id: string) {
     return this.prisma.policy.delete({ where: { id } });
+  }
+  listRoles(id: string) {
+    // Return the roles that have this policy attached — used by the
+    // "Verwendung" column on PoliciesAdminPage to show which roles
+    // consume a given policy.
+    return this.prisma.rolePolicy.findMany({
+      where: { policyId: id },
+      include: { role: true },
+    });
   }
 }
 
@@ -253,6 +300,34 @@ class PermissionAdminService {
       throw new NotFoundException(`role not found: ${roleId}`);
     }
     return this.prisma.rolePolicy.delete({ where: { roleId_policyId: { roleId, policyId } } });
+  }
+  async buildMatrix(tenantId: string) {
+    // Resolve roles scoped to the tenant, then join through RolePolicy
+    // → Policy → Permission to produce the full matrix input.
+    const roles = await this.prisma.role.findMany({
+      where: { tenantId },
+      orderBy: { name: "asc" },
+    });
+    const rolePolicies = await this.prisma.rolePolicy.findMany({
+      where: { role: { tenantId } },
+      include: { policy: { include: { permissions: true } } },
+    });
+
+    // Flatten the join into a MatrixInput.permissions list where each
+    // permission row gets the roleId that owns the policy carrying it.
+    const permissions = rolePolicies.flatMap((rp) =>
+      rp.policy.permissions.map((perm) => ({
+        id: perm.id,
+        policyId: perm.policyId,
+        resource: perm.resource,
+        action: String(perm.action),
+        roleId: rp.roleId,
+      })),
+    );
+    return buildPermissionMatrix({
+      permissions,
+      roles: roles.map((r) => ({ id: r.id, name: r.name })),
+    });
   }
 }
 
@@ -320,6 +395,28 @@ class RoleAdminController {
     this.permissions?.invalidateAll();
     return { removed: true };
   }
+  @Patch(":id")
+  async update(
+    @Headers("x-tenant-id") tenantHeader: string | undefined,
+    @Param("id") id: string,
+    @Body() body: RolePatchBody,
+  ) {
+    const tenantId = requireTenantHeader(tenantHeader);
+    const updated = await this.service.update(id, tenantId, body);
+    this.permissions?.invalidateAll();
+    return updated;
+  }
+  @Get(":id/policies")
+  async listPolicies(
+    @Headers("x-tenant-id") tenantHeader: string | undefined,
+    @Param("id") id: string,
+  ) {
+    const tenantId = requireTenantHeader(tenantHeader);
+    // Verify the role belongs to the operator's tenant before exposing data.
+    const role = await this.service.get(id, tenantId);
+    if (!role) throw new NotFoundException(`role not found: ${id}`);
+    return this.service.listPolicies(id, tenantId);
+  }
 }
 
 @Controller("admin/policies")
@@ -355,6 +452,12 @@ class PolicyAdminController {
     this.permissions?.invalidateAll();
     return { removed: true };
   }
+  @Get(":id/roles")
+  async listRoles(@Param("id") id: string) {
+    const policy = await this.service.get(id);
+    if (!policy) throw new NotFoundException(`policy not found: ${id}`);
+    return this.service.listRoles(id);
+  }
 }
 
 @Controller("admin/permissions")
@@ -389,6 +492,12 @@ class PermissionAdminController {
     }
     this.permissions?.invalidateAll();
     return { removed: true };
+  }
+
+  @Get("matrix.json")
+  async matrix(@Headers("x-tenant-id") tenantHeader: string | undefined) {
+    const tenantId = requireTenantHeader(tenantHeader);
+    return this.service.buildMatrix(tenantId);
   }
 
   @Post("attach")

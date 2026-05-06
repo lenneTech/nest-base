@@ -1,7 +1,8 @@
 /**
  * `/admin/policies` — Prisma-backed Policy CRUD (CF.MTPERM, iter-128).
- * Reads/writes the `/admin/policies` REST endpoints from
- * `AdminCrudModule` (iter-115).
+ * Enhanced in Issue #84 with a "Verwendung" column: a "Rollen anzeigen"
+ * button per policy row fetches `GET /admin/policies/:id/roles` on
+ * demand and shows the results in a Dialog.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
@@ -9,6 +10,13 @@ import { toast } from "sonner";
 
 import { Button } from "../components/ui/button.js";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog.js";
 import { Input } from "../components/ui/input.js";
 import { Label } from "../components/ui/label.js";
 import {
@@ -36,10 +44,23 @@ interface PolicyRecord {
   permissions?: PermissionLite[];
 }
 
+interface RoleLite {
+  id: string;
+  name: string;
+  tenantId: string;
+}
+
+interface RolePolicyLink {
+  roleId: string;
+  policyId: string;
+  role: RoleLite;
+}
+
 export function PoliciesAdminPage(): ReactNode {
   const qc = useQueryClient();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [usagePolicy, setUsagePolicy] = useState<PolicyRecord | null>(null);
 
   const list = useQuery({
     queryKey: ["admin", "policies"],
@@ -67,7 +88,7 @@ export function PoliciesAdminPage(): ReactNode {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/admin/policies/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/admin/policies/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error(`policy delete failed (${res.status})`);
       return res.json();
     },
@@ -140,6 +161,7 @@ export function PoliciesAdminPage(): ReactNode {
                     <TableHead>Name</TableHead>
                     <TableHead>Beschreibung</TableHead>
                     <TableHead>Permissions</TableHead>
+                    <TableHead>Verwendung</TableHead>
                     <TableHead className="text-right">Aktion</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -152,6 +174,11 @@ export function PoliciesAdminPage(): ReactNode {
                         {p.description ?? "—"}
                       </TableCell>
                       <TableCell className="text-xs">{p.permissions?.length ?? 0}</TableCell>
+                      <TableCell>
+                        <Button variant="outline" size="sm" onClick={() => setUsagePolicy(p)}>
+                          Rollen anzeigen
+                        </Button>
+                      </TableCell>
                       <TableCell className="text-right">
                         <Button
                           variant="destructive"
@@ -178,6 +205,56 @@ export function PoliciesAdminPage(): ReactNode {
           </Card>
         )}
       </div>
+
+      <Dialog
+        open={usagePolicy !== null}
+        onOpenChange={(open) => {
+          if (!open) setUsagePolicy(null);
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Rollen für Policy „{usagePolicy?.name}"</DialogTitle>
+            <DialogDescription>
+              Diese Rollen verwenden die Richtlinie direkt über einen RolePolicy-Eintrag.
+            </DialogDescription>
+          </DialogHeader>
+          {usagePolicy ? <PolicyRolesPanel policyId={usagePolicy.id} /> : null}
+        </DialogContent>
+      </Dialog>
     </AdminShell>
+  );
+}
+
+function PolicyRolesPanel({ policyId }: { policyId: string }): ReactNode {
+  const roles = useQuery({
+    queryKey: ["admin", "policies", policyId, "roles"],
+    queryFn: () => fetchJson<RolePolicyLink[]>(`/api/admin/policies/${policyId}/roles`),
+  });
+
+  if (roles.isPending) return <PageLoading>Lade Rollen…</PageLoading>;
+  if (roles.isError) return <PageError>Konnte Rollen nicht laden.</PageError>;
+  if ((roles.data ?? []).length === 0)
+    return <PageEmpty>Keine Rollen verwenden diese Policy.</PageEmpty>;
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Name</TableHead>
+          <TableHead>Tenant</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {roles.data?.map((rp) => (
+          <TableRow key={rp.roleId}>
+            <TableCell>{rp.role.name}</TableCell>
+            <TableCell className="font-mono text-xs text-fg-muted">
+              {rp.role.tenantId.slice(0, 8)}…
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }

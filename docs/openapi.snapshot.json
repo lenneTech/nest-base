@@ -2242,6 +2242,50 @@
         "tags": [
           "RoleAdmin"
         ]
+      },
+      "patch": {
+        "operationId": "RoleAdminController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RoleAdmin"
+        ]
+      }
+    },
+    "/api/admin/roles/{id}/policies": {
+      "get": {
+        "operationId": "RoleAdminController_listPolicies",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RoleAdmin"
+        ]
       }
     },
     "/api/admin/policies": {
@@ -2294,6 +2338,29 @@
       },
       "delete": {
         "operationId": "PolicyAdminController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PolicyAdmin"
+        ]
+      }
+    },
+    "/api/admin/policies/{id}/roles": {
+      "get": {
+        "operationId": "PolicyAdminController_listRoles",
         "parameters": [
           {
             "name": "id",
@@ -2374,6 +2441,20 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PermissionAdmin"
+        ]
+      }
+    },
+    "/api/admin/permissions/matrix.json": {
+      "get": {
+        "operationId": "PermissionAdminController_matrix",
+        "parameters": [],
         "responses": {
           "200": {
             "description": ""
