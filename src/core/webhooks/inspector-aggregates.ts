@@ -23,6 +23,13 @@ export interface DeliveryAggregateInput {
   /** ISO-8601 timestamp; older records are excluded by the window. */
   occurredAt: string;
   errorMessage?: string;
+  /**
+   * True for deliveries triggered via the inspector "Send test event"
+   * button. Test deliveries are visible in the list (when the toggle
+   * is on) but excluded from aggregate metrics so they don't skew
+   * production failure-rate or p95-latency calculations.
+   */
+  isTest?: boolean;
 }
 
 export interface EndpointAggregate {
@@ -82,7 +89,10 @@ export function buildEndpointAggregates(input: BuildEndpointAggregatesInput): En
     let failed = 0;
     let pending = 0;
     const deliveredLatencies: number[] = [];
-    for (const r of records) {
+    // Exclude test deliveries from aggregate metrics — they are inspector
+    // health-checks and should not inflate failure-rate or p95 latency.
+    const productionRecords = records.filter((r) => !r.isTest);
+    for (const r of productionRecords) {
       if (r.status === "DELIVERED") {
         delivered += 1;
         if (typeof r.latencyMs === "number" && r.latencyMs >= 0) {
@@ -95,7 +105,7 @@ export function buildEndpointAggregates(input: BuildEndpointAggregatesInput): En
       }
     }
 
-    const total = records.length;
+    const total = productionRecords.length;
     result.push({
       endpointId,
       endpointUrl: latest.endpointUrl,

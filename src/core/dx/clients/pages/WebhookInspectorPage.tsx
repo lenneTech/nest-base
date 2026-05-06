@@ -11,6 +11,13 @@ import { Sparkline } from "../components/Sparkline.js";
 import { Badge } from "../components/ui/badge.js";
 import { Button } from "../components/ui/button.js";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog.js";
 import { Input } from "../components/ui/input.js";
 import { Label } from "../components/ui/label.js";
 import {
@@ -40,6 +47,8 @@ interface DeliveryListEntry {
   occurredAt: string;
   errorMessage?: string;
   traceId?: string;
+  /** True for deliveries triggered via the inspector "Send test event" button. */
+  isTest?: boolean;
 }
 
 interface WebhookInspectorResponse {
@@ -83,11 +92,17 @@ interface DeliveryDetailResponse {
   curl: string;
 }
 
+interface EventTypesResponse {
+  eventTypes: string[];
+}
+
 interface FilterState {
   status: DeliveryStatus | "ALL";
   endpointId?: string;
   eventType?: string;
   search?: string;
+  /** When false (default), test deliveries are hidden from the list. */
+  showTestDeliveries?: boolean;
 }
 
 const ROW_HEIGHT = 44;
@@ -106,17 +121,35 @@ export function WebhookInspectorPage(): ReactNode {
     queryFn: () => fetchJson<AggregatesResponse>("/api/admin/webhooks/aggregates.json"),
   });
 
+  const eventTypesQuery = useQuery({
+    queryKey: ["admin", "webhooks", "event-types"],
+    queryFn: () => fetchJson<EventTypesResponse>("/api/admin/webhooks/event-types.json"),
+  });
+
   const handleSelectEndpoint = useCallback(
     (endpointId: string | undefined) =>
       setFilter((prev) => {
         const next: FilterState = { status: prev.status };
         if (prev.eventType) next.eventType = prev.eventType;
         if (prev.search) next.search = prev.search;
+        if (prev.showTestDeliveries) next.showTestDeliveries = prev.showTestDeliveries;
         if (endpointId) next.endpointId = endpointId;
         return next;
       }),
     [],
   );
+
+  // Apply client-side test-delivery filter on top of the server response.
+  const filteredDeliveries = useMemo(() => {
+    const deliveries = listQuery.data?.deliveries ?? [];
+    if (filter.showTestDeliveries) return deliveries;
+    return deliveries.filter((d) => !d.isTest);
+  }, [listQuery.data?.deliveries, filter.showTestDeliveries]);
+
+  const filteredResponse = useMemo(() => {
+    if (!listQuery.data) return undefined;
+    return { ...listQuery.data, deliveries: filteredDeliveries };
+  }, [listQuery.data, filteredDeliveries]);
 
   return (
     <AdminShell
@@ -146,7 +179,7 @@ export function WebhookInspectorPage(): ReactNode {
           <CardContent>
             <FilterBar filter={filter} onChange={setFilter} />
             <DeliveriesList
-              response={listQuery.data}
+              response={filteredResponse}
               isError={listQuery.isError}
               isLoading={listQuery.isLoading}
               selectedId={selectedId}
@@ -159,7 +192,12 @@ export function WebhookInspectorPage(): ReactNode {
             <CardTitle>Detail</CardTitle>
           </CardHeader>
           <CardContent>
-            <DetailDrawer deliveryId={selectedId} csrfToken={listQuery.data?.csrfToken} />
+            <DetailDrawer
+              deliveryId={selectedId}
+              csrfToken={listQuery.data?.csrfToken}
+              endpointId={filter.endpointId}
+              eventTypes={eventTypesQuery.data?.eventTypes ?? []}
+            />
           </CardContent>
         </Card>
       </div>
@@ -306,6 +344,15 @@ function FilterBar({ filter, onChange }: FilterBarProps): ReactNode {
           }
         />
       </div>
+      <label className="flex cursor-pointer items-center gap-2 text-xs text-fg-muted">
+        <input
+          type="checkbox"
+          checked={filter.showTestDeliveries ?? false}
+          onChange={(e) => onChange({ ...filter, showTestDeliveries: e.target.checked })}
+          className="h-3.5 w-3.5 accent-accent"
+        />
+        Testlieferungen anzeigen
+      </label>
       {filter.endpointId ? (
         <Button variant="outline" onClick={() => onChange({ ...filter, endpointId: undefined })}>
           Clear endpoint filter ({filter.endpointId})
@@ -410,9 +457,18 @@ function StatusBadge({ status }: { status: DeliveryStatus }): ReactNode {
 interface DetailDrawerProps {
   deliveryId: string | null;
   csrfToken: string | undefined;
+  /** The currently active endpoint filter — used to know which endpoint to test. */
+  endpointId: string | undefined;
+  /** Available event types from the registry for the test dialog dropdown. */
+  eventTypes: string[];
 }
 
-function DetailDrawer({ deliveryId, csrfToken }: DetailDrawerProps): ReactNode {
+function DetailDrawer({
+  deliveryId,
+  csrfToken,
+  endpointId,
+  eventTypes,
+}: DetailDrawerProps): ReactNode {
   const detailQuery = useQuery({
     queryKey: ["admin", "webhooks", "detail", deliveryId],
     queryFn: () =>
@@ -449,7 +505,38 @@ function DetailDrawer({ deliveryId, csrfToken }: DetailDrawerProps): ReactNode {
     }
   }, []);
 
-  if (deliveryId === null) return <PageEmpty>Select a delivery to view its details.</PageEmpty>;
+  // Test-event dialog state
+  const [testDialogOpen, setTestDialogOpen] = useState(false);
+
+  if (deliveryId === null) {
+    // No delivery selected — show the "Send test event" button if an
+    // endpoint is active in the sidebar filter.
+    return (
+      <div className="flex flex-col gap-4">
+        <PageEmpty>Select a delivery to view its details.</PageEmpty>
+        {endpointId ? (
+          <>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setTestDialogOpen(true)}
+            >
+              Testevent senden
+            </Button>
+            <TestEventDialog
+              open={testDialogOpen}
+              onClose={() => setTestDialogOpen(false)}
+              endpointId={endpointId}
+              eventTypes={eventTypes}
+              onSuccess={() => {
+                void queryClient.invalidateQueries({ queryKey: ["admin", "webhooks"] });
+              }}
+            />
+          </>
+        ) : null}
+      </div>
+    );
+  }
   if (detailQuery.isError) return <PageError>Failed to load delivery detail.</PageError>;
   if (detailQuery.isLoading || !detailQuery.data) return <PageLoading>Loading…</PageLoading>;
 
@@ -458,7 +545,14 @@ function DetailDrawer({ deliveryId, csrfToken }: DetailDrawerProps): ReactNode {
     <div className="flex flex-col gap-4">
       <header className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
-          <StatusBadge status={delivery.status} />
+          <div className="flex items-center gap-2">
+            <StatusBadge status={delivery.status} />
+            {delivery.isTest ? (
+              <span className="rounded bg-fg-faint/20 px-1.5 py-0.5 font-mono text-[0.6rem] text-fg-dim">
+                TEST
+              </span>
+            ) : null}
+          </div>
           <span className="font-mono text-[0.7rem] text-fg-muted">{delivery.id}</span>
         </div>
         <div className="flex flex-col gap-1 text-xs text-fg-muted">
@@ -486,6 +580,13 @@ function DetailDrawer({ deliveryId, csrfToken }: DetailDrawerProps): ReactNode {
           </Button>
           <Button size="sm" variant="outline" onClick={() => copyCurl(curl)}>
             {copied ? "Copied!" : "Copy curl"}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setTestDialogOpen(true)}
+          >
+            Testevent senden
           </Button>
         </div>
         {redeliverMutation.isError ? (
@@ -519,7 +620,138 @@ function DetailDrawer({ deliveryId, csrfToken }: DetailDrawerProps): ReactNode {
           </pre>
         </TabsContent>
       </Tabs>
+      <TestEventDialog
+        open={testDialogOpen}
+        onClose={() => setTestDialogOpen(false)}
+        endpointId={delivery.endpointId}
+        eventTypes={eventTypes}
+        onSuccess={() => {
+          void queryClient.invalidateQueries({ queryKey: ["admin", "webhooks"] });
+        }}
+      />
     </div>
+  );
+}
+
+interface TestEventDialogProps {
+  open: boolean;
+  onClose: () => void;
+  endpointId: string;
+  eventTypes: string[];
+  onSuccess: () => void;
+}
+
+function TestEventDialog({
+  open,
+  onClose,
+  endpointId,
+  eventTypes,
+  onSuccess,
+}: TestEventDialogProps): ReactNode {
+  const defaultEventType = eventTypes[0] ?? "";
+  const [selectedEventType, setSelectedEventType] = useState(defaultEventType);
+  const [payloadText, setPayloadText] = useState("{}");
+  const [result, setResult] = useState<{ deliveryId: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const sendMutation = useMutation({
+    mutationFn: async () => {
+      let payload: unknown = undefined;
+      try {
+        payload = JSON.parse(payloadText);
+      } catch {
+        throw new Error("Payload ist kein gültiges JSON");
+      }
+      const res = await fetch(
+        `/api/admin/webhooks/${encodeURIComponent(endpointId)}/test`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify({ eventType: selectedEventType, payload }),
+        },
+      );
+      if (!res.ok) {
+        const text = await res.text().catch(() => String(res.status));
+        throw new Error(`Fehler ${res.status}: ${text}`);
+      }
+      return (await res.json()) as { deliveryId: string };
+    },
+    onSuccess: (data) => {
+      setResult(data);
+      setError(null);
+      onSuccess();
+    },
+    onError: (err) => {
+      setError(err instanceof Error ? err.message : String(err));
+      setResult(null);
+    },
+  });
+
+  function handleClose(): void {
+    // Reset dialog state when closed so next open starts fresh.
+    setResult(null);
+    setError(null);
+    sendMutation.reset();
+    onClose();
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Testevent senden</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-4 py-2">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="test-event-type">Event-Typ</Label>
+            <Select
+              value={selectedEventType}
+              onValueChange={setSelectedEventType}
+            >
+              <SelectTrigger id="test-event-type">
+                <SelectValue placeholder="Event-Typ wählen" />
+              </SelectTrigger>
+              <SelectContent>
+                {eventTypes.map((et) => (
+                  <SelectItem key={et} value={et}>
+                    {et}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="test-payload">Payload (JSON)</Label>
+            <textarea
+              id="test-payload"
+              value={payloadText}
+              onChange={(e) => setPayloadText(e.target.value)}
+              rows={5}
+              className="w-full rounded-md border border-line bg-surface-2 p-2 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-accent"
+            />
+          </div>
+          {result ? (
+            <p className="rounded-md bg-ok/10 px-3 py-2 text-xs text-ok">
+              Gesendet — Delivery-ID: <span className="font-mono">{result.deliveryId}</span>
+            </p>
+          ) : null}
+          {error ? (
+            <p className="rounded-md bg-err/10 px-3 py-2 text-xs text-err">{error}</p>
+          ) : null}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose}>
+            Schließen
+          </Button>
+          <Button
+            disabled={sendMutation.isPending || !selectedEventType}
+            onClick={() => sendMutation.mutate()}
+          >
+            {sendMutation.isPending ? "Wird gesendet…" : "Senden"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

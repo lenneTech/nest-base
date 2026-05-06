@@ -342,6 +342,10 @@ model WebhookDelivery {
   attemptCount Int                   @default(0) @map("attempt_count")
   nextRetryAt  DateTime?             @map("next_retry_at")
   lastError    String?               @map("last_error")
+  /// Marks deliveries triggered by the inspector "Send test event" button.
+  /// Test deliveries are excluded from production aggregate metrics so
+  /// they don't skew failure-rate or p95-latency calculations.
+  isTest       Boolean               @default(false) @map("is_test")
   createdAt    DateTime              @default(now()) @map("created_at")
   updatedAt    DateTime              @updatedAt @map("updated_at")
 

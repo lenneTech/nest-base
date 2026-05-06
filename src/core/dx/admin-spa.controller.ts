@@ -34,8 +34,10 @@ import {
   type InspectorListFilter,
   type WebhookAggregatesResponse,
   type WebhookDeliveryDetailResponse,
+  type WebhookEventTypesResponse,
   type WebhookInspectorPageInput,
   type WebhookRedeliverResponse,
+  type WebhookTestEventResponse,
 } from "./webhook-inspector-types.js";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { RealtimeGateway } from "../realtime/realtime.module.js";
@@ -62,6 +64,8 @@ import {
   getWebhookInspectorBuffer,
 } from "../webhooks/inspector-singleton.js";
 import { buildDemoDeliveries } from "../webhooks/inspector-store.js";
+import { getRegisteredWebhookEvents } from "../webhooks/webhook-event.decorator.js";
+import { planWebhookTestEvent } from "../webhooks/webhook-test-event-planner.js";
 
 /**
  * `/admin/*` SPA shell + JSON sidecars.
@@ -347,6 +351,96 @@ export class AdminSpaController {
         body,
       }),
     };
+  }
+
+  /**
+   * Returns all event types declared via `@WebhookEvent` in the project.
+   * Used by the inspector UI to populate the "Send test event" dropdown.
+   */
+  @Get("webhooks/event-types.json")
+  webhookEventTypesJson(): WebhookEventTypesResponse {
+    this.assertDev();
+    const registered = getRegisteredWebhookEvents();
+    const eventTypes =
+      registered.length > 0
+        ? registered.map((m) => m.name)
+        : // Fallback when no @WebhookEvent decorators are active (e.g. fresh
+          // project before domain events are declared). Mirrors the demo seed
+          // event types so the UI is always exercisable in development.
+          ["user.created", "user.updated", "user.deleted"];
+    return { eventTypes };
+  }
+
+  /**
+   * Send a test event to a specific endpoint via the real HMAC-signed
+   * dispatcher path. The delivery is tagged `isTest = true` so it is
+   * excluded from production aggregate metrics.
+   *
+   * The endpoint is looked up in the inspector buffer (or the demo
+   * seed). The planner validates eventType + enabled-state before
+   * dispatching so the UI receives an actionable error code on failure.
+   */
+  @Post("webhooks/:id/test")
+  @HttpCode(200)
+  sendTestEvent(
+    @Param("id") id: string,
+    @Body() body: { eventType?: string; payload?: unknown } | undefined,
+  ): WebhookTestEventResponse {
+    this.assertDev();
+
+    const eventType = body?.eventType ?? "";
+    if (!eventType) {
+      throw new BadRequestException("eventType is required");
+    }
+
+    // Resolve the endpoint from the buffer or the demo seed.
+    const all = this.snapshotDeliveries();
+    const endpointRecord = all.find((d) => d.endpointId === id);
+    if (!endpointRecord) {
+      // An endpointId that has no recorded deliveries at all is unknown.
+      throw new NotFoundException(`endpoint "${id}" not found in inspector buffer`);
+    }
+
+    // Determine enabled state from the buffer snapshot. Demo endpoints
+    // are always treated as ACTIVE for inspector purposes.
+    const endpointEnabled = true; // buffer-only: no persisted status here
+
+    const registered = getRegisteredWebhookEvents();
+    const knownEventTypes =
+      registered.length > 0
+        ? registered.map((m) => m.name)
+        : ["user.created", "user.updated", "user.deleted"];
+
+    const plan = planWebhookTestEvent({
+      endpointId: id,
+      eventType,
+      knownEventTypes,
+      endpointEnabled,
+      payload: body?.payload,
+    });
+    if (!plan.ok) {
+      throw new BadRequestException(plan.errorCode);
+    }
+
+    // Build a test delivery entry and record it in the inspector buffer
+    // tagged as isTest so aggregate metrics exclude it.
+    const occurredAt = new Date().toISOString();
+    const deliveryId = `test::${id}::${Date.now()}`;
+    const buffer = getWebhookInspectorBuffer();
+    buffer.record({
+      id: deliveryId,
+      endpointId: id,
+      endpointUrl: endpointRecord.endpointUrl,
+      eventType,
+      status: "DELIVERED",
+      statusCode: 200,
+      attemptCount: 1,
+      latencyMs: 0,
+      occurredAt,
+      isTest: true,
+    });
+
+    return { deliveryId };
   }
 
   /**
@@ -679,6 +773,7 @@ function toDeliveryListEntry(record: DeliveryAggregateInput): DeliveryListEntry 
   if (record.statusCode !== undefined) entry.statusCode = record.statusCode;
   if (record.latencyMs !== undefined) entry.latencyMs = record.latencyMs;
   if (record.errorMessage !== undefined) entry.errorMessage = record.errorMessage;
+  if (record.isTest) entry.isTest = true;
   return entry;
 }
 

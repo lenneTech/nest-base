@@ -1,0 +1,1 @@
+ALTER TABLE "webhook_deliveries" ADD COLUMN IF NOT EXISTS "is_test" BOOLEAN NOT NULL DEFAULT false;
