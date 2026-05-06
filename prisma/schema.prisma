@@ -356,6 +356,9 @@ enum EmailOutboxStatus {
   PENDING
   SENT
   DEAD_LETTER
+  // CANCELLED is set by the admin cancel action (issue #91).
+  // A cancelled record is never retried by the worker.
+  CANCELLED
 }
 
 enum EmailOutboxKind {

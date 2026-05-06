@@ -18,6 +18,7 @@ import { DevHubModule } from "../dx/dev-hub.module.js";
 import { HubModule } from "../hub/hub.module.js";
 import { EmailModule } from "../email/email.module.js";
 import { EmailOutboxModule } from "../email/email-outbox.module.js";
+import { EmailOutboxAdminModule } from "../email/email-outbox-admin.module.js";
 import { EncryptionModule } from "../encryption/encryption.module.js";
 import { ErrorCodesModule } from "../errors/error-codes.module.js";
 import { FilesModule } from "../files/files.module.js";
@@ -153,6 +154,8 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     // factory runs (it picks the recorder up via optional inject).
     EmailOutboxModule,
     EmailModule,
+    // Admin surface for email-outbox operator actions (issue #91).
+    EmailOutboxAdminModule,
     TenantMemberModule,
     TenantSelfServiceModule,
     ApiKeyModule,

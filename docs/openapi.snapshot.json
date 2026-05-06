@@ -1607,6 +1607,103 @@
         ]
       }
     },
+    "/api/admin/email-outbox/list.json": {
+      "get": {
+        "operationId": "EmailOutboxAdminController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "EmailOutboxAdmin"
+        ]
+      }
+    },
+    "/api/admin/email-outbox/{id}.json": {
+      "get": {
+        "operationId": "EmailOutboxAdminController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "EmailOutboxAdmin"
+        ]
+      }
+    },
+    "/api/admin/email-outbox/{id}/retry": {
+      "post": {
+        "operationId": "EmailOutboxAdminController_retry",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "EmailOutboxAdmin"
+        ]
+      }
+    },
+    "/api/admin/email-outbox/{id}/cancel": {
+      "post": {
+        "operationId": "EmailOutboxAdminController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "EmailOutboxAdmin"
+        ]
+      }
+    },
+    "/api/admin/email-outbox/test-send": {
+      "post": {
+        "operationId": "EmailOutboxAdminController_testSend",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "EmailOutboxAdmin"
+        ]
+      }
+    },
     "/api/tenant-members/{tenantId}": {
       "get": {
         "operationId": "TenantMemberController_list",

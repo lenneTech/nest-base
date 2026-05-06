@@ -7,8 +7,8 @@
  * scheduling logic is unit-testable without DB or driver wiring.
  */
 
-/** Terminal status values produced by the worker for a record. */
-export type EmailOutboxTerminalStatus = "sent" | "dead-letter";
+/** Terminal status values produced by the worker or admin actions for a record. */
+export type EmailOutboxTerminalStatus = "sent" | "dead-letter" | "cancelled";
 
 /** All status values an email-outbox record can hold. */
 export type EmailOutboxStatus = "pending" | EmailOutboxTerminalStatus;

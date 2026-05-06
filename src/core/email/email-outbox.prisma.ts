@@ -4,11 +4,14 @@ import { STALE_CLAIM_THRESHOLD_MS } from "./email-outbox-planner.js";
 import type {
   AppendInput,
   EmailOutboxKind,
+  EmailOutboxListFilter,
+  EmailOutboxListResult,
   EmailOutboxPayload,
   EmailOutboxRecord,
   EmailOutboxStorage,
 } from "./email-outbox.js";
 import type { EmailOutboxStatus } from "./email-outbox-planner.js";
+import { decodeCursor, encodeCursor } from "../pagination/cursor.js";
 
 /**
  * Prisma-backed EmailOutboxStorage.
@@ -38,13 +41,15 @@ const STATUS_DB_TO_DOMAIN = {
   PENDING: "pending",
   SENT: "sent",
   DEAD_LETTER: "dead-letter",
+  CANCELLED: "cancelled",
 } as const satisfies Record<string, EmailOutboxStatus>;
 
 const STATUS_DOMAIN_TO_DB = {
   pending: "PENDING",
   sent: "SENT",
   "dead-letter": "DEAD_LETTER",
-} as const satisfies Record<EmailOutboxStatus, "PENDING" | "SENT" | "DEAD_LETTER">;
+  cancelled: "CANCELLED",
+} as const satisfies Record<EmailOutboxStatus, "PENDING" | "SENT" | "DEAD_LETTER" | "CANCELLED">;
 
 const KIND_DB_TO_DOMAIN = {
   SEND: "send",
@@ -100,6 +105,80 @@ export class PrismaEmailOutboxStorage implements EmailOutboxStorage {
       where: { idempotencyKey: key },
     });
     return row ? toRecord(row as PrismaEmailOutboxRow) : null;
+  }
+
+  async findById(id: string): Promise<EmailOutboxRecord | null> {
+    const row = await this.prisma.emailOutbox.findUnique({ where: { id } });
+    return row ? toRecord(row as PrismaEmailOutboxRow) : null;
+  }
+
+  async listFiltered(filter: EmailOutboxListFilter): Promise<EmailOutboxListResult> {
+    const limit = filter.limit ?? 50;
+    const where: Record<string, unknown> = {};
+
+    if (filter.status) {
+      where.status = STATUS_DOMAIN_TO_DB[filter.status as EmailOutboxStatus] ?? filter.status;
+    }
+    if (filter.recipient) {
+      where.payload = { path: ["to"], string_contains: filter.recipient };
+    }
+    if (filter.template) {
+      // Prisma JSON path filter for the `template` field inside the payload object.
+      // We replace the recipient filter here because Prisma can only apply one JSON
+      // path filter per `where` key — template takes priority when both are set.
+      where.payload = { path: ["template"], equals: filter.template };
+    }
+    if (filter.dateFrom || filter.dateTo) {
+      const createdAt: Record<string, Date> = {};
+      if (filter.dateFrom) createdAt.gte = filter.dateFrom;
+      if (filter.dateTo) createdAt.lte = filter.dateTo;
+      where.createdAt = createdAt;
+    }
+
+    const orderBy =
+      filter.sortBy === "attempts"
+        ? [{ attemptCount: "desc" as const }, { id: "asc" as const }]
+        : [{ createdAt: "desc" as const }, { id: "asc" as const }];
+
+    // Resolve cursor for forward pagination
+    let cursorCondition: Record<string, unknown> | undefined;
+    if (filter.cursor) {
+      try {
+        const decoded = decodeCursor(filter.cursor);
+        cursorCondition = {
+          OR: [
+            { createdAt: { lt: new Date(decoded.sortValue) } },
+            { createdAt: { equals: new Date(decoded.sortValue) }, id: { gt: decoded.id } },
+          ],
+        };
+      } catch {
+        // ignore malformed cursor — start from beginning
+      }
+    }
+
+    const finalWhere = cursorCondition ? { AND: [where, cursorCondition] } : where;
+
+    const [rows, total] = await Promise.all([
+      this.prisma.emailOutbox.findMany({
+        where: finalWhere,
+        orderBy,
+        take: limit + 1,
+      }),
+      this.prisma.emailOutbox.count({ where }),
+    ]);
+
+    const typedRows = rows as PrismaEmailOutboxRow[];
+    const hasMore = typedRows.length > limit;
+    const items = (hasMore ? typedRows.slice(0, limit) : typedRows).map(toRecord);
+    const nextCursor =
+      hasMore && items.length > 0
+        ? encodeCursor({
+            sortValue: items[items.length - 1]!.createdAt.getTime(),
+            id: items[items.length - 1]!.id,
+          })
+        : undefined;
+
+    return { items, nextCursor, total };
   }
 
   async listDispatchable(now: Date, limit: number): Promise<EmailOutboxRecord[]> {
@@ -163,6 +242,31 @@ export class PrismaEmailOutboxStorage implements EmailOutboxStorage {
     const result = await this.prisma.emailOutbox.updateMany({
       where: { id },
       data: { attemptCount, nextAttemptAt, lastError: error, claimedAt: null },
+    });
+    return result.count > 0;
+  }
+
+  async markRetry(id: string, at: Date): Promise<boolean> {
+    // Reset attempts and nextAttemptAt so the worker picks up the record immediately.
+    // Only allowed when status is PENDING or DEAD_LETTER (not SENT or CANCELLED).
+    const result = await this.prisma.emailOutbox.updateMany({
+      where: { id, status: { in: ["PENDING", "DEAD_LETTER"] } },
+      data: {
+        status: "PENDING",
+        attemptCount: 0,
+        nextAttemptAt: null,
+        claimedAt: null,
+        updatedAt: at,
+      },
+    });
+    return result.count > 0;
+  }
+
+  async markCancelled(id: string, at: Date): Promise<boolean> {
+    // Cancel is only allowed when status is PENDING or DEAD_LETTER (not SENT or already CANCELLED).
+    const result = await this.prisma.emailOutbox.updateMany({
+      where: { id, status: { in: ["PENDING", "DEAD_LETTER"] } },
+      data: { status: "CANCELLED", claimedAt: null, updatedAt: at },
     });
     return result.count > 0;
   }

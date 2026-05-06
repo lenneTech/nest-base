@@ -63,12 +63,33 @@ export interface AppendInput {
   updatedAt: Date;
 }
 
+export interface EmailOutboxListFilter {
+  status?: string;
+  recipient?: string;
+  template?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+  sortBy?: "time" | "attempts";
+  cursor?: string;
+  limit?: number;
+}
+
+export interface EmailOutboxListResult {
+  items: EmailOutboxRecord[];
+  nextCursor?: string;
+  total: number;
+}
+
 export interface EmailOutboxStorage {
   append(record: AppendInput): Promise<void>;
   /** Returns the existing record for `key`, or null if free. */
   findByIdempotencyKey(key: string): Promise<EmailOutboxRecord | null>;
+  /** Returns a single record by id, or null. */
+  findById(id: string): Promise<EmailOutboxRecord | null>;
   /** Returns dispatchable records (pending, due, no fresh claim). */
   listDispatchable(now: Date, limit: number): Promise<EmailOutboxRecord[]>;
+  /** Paginated list with optional filters for the admin UI. */
+  listFiltered(filter: EmailOutboxListFilter): Promise<EmailOutboxListResult>;
   /** Atomic claim — returns false if a sibling already grabbed the record. */
   claim(id: string, claimedAt: Date): Promise<boolean>;
   markSent(id: string, at: Date): Promise<boolean>;
@@ -79,6 +100,10 @@ export interface EmailOutboxStorage {
     nextAttemptAt: Date,
     error: string,
   ): Promise<boolean>;
+  /** Admin action: reset attempts and nextAttemptAt so the worker picks it up. */
+  markRetry(id: string, at: Date): Promise<boolean>;
+  /** Admin action: set status to cancelled. */
+  markCancelled(id: string, at: Date): Promise<boolean>;
   countPending(): Promise<number>;
   /** Age in ms of the oldest pending record, or 0 if none. */
   oldestPendingAge(now: Date): Promise<number>;
