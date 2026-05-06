@@ -476,6 +476,44 @@ Schemas in `prisma/schema.prisma` (always present) and
 `prisma/features/<feature>.prisma` (concatenated by
 `bun run prepare:schema` based on `features.ts`).
 
+## Seed data
+
+`bun run seed` (runner: `scripts/seed.ts`, pure planner:
+`src/core/setup/seed-plan.ts`) upserts a login-ready demo dataset.
+Every record uses a deterministic id derived from a stable seed key so
+re-running the seed is fully idempotent — no duplicates accumulate.
+
+**Tenant**
+
+| Field | Value |
+|---|---|
+| `name` | `Lenne Tech` |
+| `slug` | `lenne` |
+
+**Roles** (per-tenant)
+
+| Role | `isSystem` | Policy |
+|---|---|---|
+| `System Admin` | `true` | `manage` on `all`, no `itemFilter` — CASL full bypass |
+| `Admin` | `false` | `manage` on each project resource, scoped to `$CURRENT_TENANT` |
+| `User` | `false` | `READ` on each project resource (tenant-scoped); `UPDATE` on `User`/`UserProfile` (user-scoped) |
+
+**Users**
+
+| Email | Role | Password |
+|---|---|---|
+| `system-admin@lenne.tech` | System Admin | `system-admin` |
+| `admin@lenne.tech` | Admin | `admin` |
+| `user@lenne.tech` | User | `user` |
+
+Passwords are hashed via `better-auth/crypto` `hashPassword` (scrypt)
+— the same function the sign-up flow uses, so `POST /api/auth/sign-in/email`
+works immediately after seeding. Each user gets a `UserProfile` row with
+a deterministic `displayName` and a `TenantMember` row (status `ACTIVE`).
+
+The production guard (`NODE_ENV=production` check) is in the runner; the
+planner is a pure function with no I/O and is safe to call from tests.
+
 ## Where to read more
 
 - Coding conventions → [`code-guidelines.md`](./code-guidelines.md)

@@ -4,19 +4,23 @@ import { createHash } from "node:crypto";
  * Pure planner for `bun run seed`.
  *
  * Produces the demo data shape the seed runner upserts via Prisma.
- * Two tenants × three users × role/membership rows give every
- * downstream slice (permission tester, story tests, manual playing-
- * around) a realistic starting point without each contributor
- * having to assemble fixtures by hand.
+ * The shape gives every downstream slice (permission tester, story
+ * tests, manual playing-around) a realistic starting point:
+ *   - 1 tenant: "Lenne Tech" (slug: "lenne")
+ *   - 3 roles: "System Admin" (bypass), "Admin" (manage:tenant), "User" (read:tenant)
+ *   - 1 policy per role with appropriate permission rows
+ *   - 3 users: system-admin@lenne.tech / admin@lenne.tech / user@lenne.tech
+ *     (password = email local-part, hashed by the runner via Better-Auth's scrypt)
+ *   - 1 UserProfile per user with deterministic placeholder data
+ *   - 1 TenantMember per user (status=ACTIVE)
  *
  * Determinism: every id is derived from a stable seed string via
  * `seededUuidV7()` so the same input → the same output, every run.
  * That means the seed is idempotent: `upsert(id, ...)` matches the
  * existing row, no duplicates accumulate.
- *
- * Naming: emails are `<role>@<tenant-slug>.test` so a contributor
- * looking at a row can immediately tell which tenant + role it is.
  */
+
+// ---------- Public interfaces ----------
 
 export interface SeedTenant {
   id: string;
@@ -25,10 +29,57 @@ export interface SeedTenant {
   createdAt: Date;
 }
 
+export interface SeedRole {
+  id: string;
+  name: string;
+  tenantId: string;
+  isSystem: boolean;
+  createdAt: Date;
+}
+
+export interface SeedPolicy {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: Date;
+}
+
+export interface SeedRolePolicy {
+  roleId: string;
+  policyId: string;
+}
+
+// `MANAGE` is in-memory only (not a DB PermissionAction enum value) but
+// we use it here so the planner output matches the DB enum for real actions
+// and uses "MANAGE" for the special CASL wildcard on the bypass row.
+export type SeedPermissionAction = "CREATE" | "READ" | "UPDATE" | "DELETE" | "SHARE" | "MANAGE";
+
+export interface SeedPermission {
+  id: string;
+  policyId: string;
+  resource: string;
+  action: SeedPermissionAction;
+  itemFilter: Record<string, unknown> | null;
+  fields: string[];
+  createdAt: Date;
+}
+
 export interface SeedUser {
   id: string;
   email: string;
+  name: string;
+  emailVerified: boolean;
+  /** Plain-text password. The runner hashes it before writing to the DB. */
+  password: string;
   tenantId: string;
+  createdAt: Date;
+}
+
+export interface SeedUserProfile {
+  id: string;
+  userId: string;
+  tenantId: string;
+  displayName: string;
   createdAt: Date;
 }
 
@@ -36,7 +87,8 @@ export interface SeedTenantMember {
   id: string;
   userId: string;
   tenantId: string;
-  role: "admin" | "member";
+  /** Matches the role name so PrismaPermissionStorage can look it up. */
+  role: string;
   status: "ACTIVE";
   joinedAt: Date;
   createdAt: Date;
@@ -44,7 +96,12 @@ export interface SeedTenantMember {
 
 export interface SeedPlan {
   tenants: SeedTenant[];
+  roles: SeedRole[];
+  policies: SeedPolicy[];
+  rolePolicies: SeedRolePolicy[];
+  permissions: SeedPermission[];
   users: SeedUser[];
+  userProfiles: SeedUserProfile[];
   tenantMembers: SeedTenantMember[];
 }
 
@@ -53,58 +110,200 @@ export interface SeedPlanInput {
   now?: Date;
 }
 
-interface TenantSpec {
-  slug: string;
-  name: string;
-}
+// ---------- Spec constants ----------
 
-const TENANT_SPECS: TenantSpec[] = [
-  { slug: "acme", name: "Acme Inc" },
-  { slug: "globex", name: "Globex Corp" },
-];
+const TENANT_SLUG = "lenne";
+const TENANT_NAME = "Lenne Tech";
 
-const ROLES_PER_TENANT: Array<{ role: "admin" | "member"; localPart: string }> = [
-  { role: "admin", localPart: "admin" },
-  { role: "member", localPart: "alice" },
-  { role: "member", localPart: "bob" },
-];
+/**
+ * Project-facing resources the Admin and User roles cover. Kept in sync
+ * with `DEFAULT_MEMBER_RESOURCES` in `member-role-rules.ts` — the intent
+ * is that the seeded roles mirror what the synthesized member rules grant
+ * so the seed round-trips correctly in permission tests.
+ */
+const PROJECT_RESOURCES = ["Example", "UserProfile", "File", "Folder", "Address"] as const;
+
+// ---------- Main builder ----------
 
 export function buildSeedPlan(input: SeedPlanInput = {}): SeedPlan {
   const now = input.now ?? new Date("2026-01-01T00:00:00Z");
 
-  const tenants: SeedTenant[] = TENANT_SPECS.map((spec) => ({
-    id: seededUuidV7(`tenant:${spec.slug}`, now),
-    name: spec.name,
-    slug: spec.slug,
+  // Tenant
+  const tenantId = seededUuidV7(`tenant:${TENANT_SLUG}`, now);
+  const tenants: SeedTenant[] = [
+    { id: tenantId, name: TENANT_NAME, slug: TENANT_SLUG, createdAt: now },
+  ];
+
+  // Roles
+  const systemAdminRole: SeedRole = {
+    id: seededUuidV7(`role:${TENANT_SLUG}:system-admin`, now),
+    name: "System Admin",
+    tenantId,
+    isSystem: true,
+    createdAt: now,
+  };
+  const adminRole: SeedRole = {
+    id: seededUuidV7(`role:${TENANT_SLUG}:admin`, now),
+    name: "Admin",
+    tenantId,
+    isSystem: false,
+    createdAt: now,
+  };
+  const userRole: SeedRole = {
+    id: seededUuidV7(`role:${TENANT_SLUG}:user`, now),
+    name: "User",
+    tenantId,
+    isSystem: false,
+    createdAt: now,
+  };
+  const roles = [systemAdminRole, adminRole, userRole];
+
+  // Policies — one per role, named after the role
+  const systemAdminPolicy: SeedPolicy = {
+    id: seededUuidV7(`policy:system-admin`, now),
+    name: "System Admin",
+    description: "Full bypass — every action on every resource",
+    createdAt: now,
+  };
+  const adminPolicy: SeedPolicy = {
+    id: seededUuidV7(`policy:admin`, now),
+    name: "Admin",
+    description: "Manage all project resources scoped to the current tenant",
+    createdAt: now,
+  };
+  const userPolicy: SeedPolicy = {
+    id: seededUuidV7(`policy:user`, now),
+    name: "User",
+    description: "Read all project resources in tenant; update own User/UserProfile",
+    createdAt: now,
+  };
+  const policies = [systemAdminPolicy, adminPolicy, userPolicy];
+
+  // RolePolicy links
+  const rolePolicies: SeedRolePolicy[] = [
+    { roleId: systemAdminRole.id, policyId: systemAdminPolicy.id },
+    { roleId: adminRole.id, policyId: adminPolicy.id },
+    { roleId: userRole.id, policyId: userPolicy.id },
+  ];
+
+  // Permissions
+
+  // System Admin: bypass — manage:all, no item filter
+  const systemAdminPermissions: SeedPermission[] = [
+    {
+      id: seededUuidV7(`perm:system-admin:manage:all`, now),
+      policyId: systemAdminPolicy.id,
+      resource: "all",
+      action: "MANAGE",
+      itemFilter: null,
+      fields: [],
+      createdAt: now,
+    },
+  ];
+
+  // Admin: manage on each project resource, scoped to $CURRENT_TENANT
+  const adminPermissions: SeedPermission[] = PROJECT_RESOURCES.map((resource) => ({
+    id: seededUuidV7(`perm:admin:manage:${resource}`, now),
+    policyId: adminPolicy.id,
+    resource,
+    action: "MANAGE" as SeedPermissionAction,
+    itemFilter: { tenantId: { _eq: "$CURRENT_TENANT" } },
+    fields: [],
     createdAt: now,
   }));
 
-  const users: SeedUser[] = [];
-  const tenantMembers: SeedTenantMember[] = [];
+  // User: READ on each project resource (tenant-scoped)
+  //       + UPDATE on User / UserProfile (user-scoped)
+  const userReadPermissions: SeedPermission[] = PROJECT_RESOURCES.map((resource) => ({
+    id: seededUuidV7(`perm:user:read:${resource}`, now),
+    policyId: userPolicy.id,
+    resource,
+    action: "READ" as SeedPermissionAction,
+    itemFilter: { tenantId: { _eq: "$CURRENT_TENANT" } },
+    fields: [],
+    createdAt: now,
+  }));
+  const userUpdatePermissions: SeedPermission[] = [
+    {
+      id: seededUuidV7(`perm:user:update:User`, now),
+      policyId: userPolicy.id,
+      resource: "User",
+      action: "UPDATE",
+      // Self-update: item's userId must equal the caller's id.
+      itemFilter: { userId: { _eq: "$CURRENT_USER" } },
+      fields: [],
+      createdAt: now,
+    },
+    {
+      id: seededUuidV7(`perm:user:update:UserProfile`, now),
+      policyId: userPolicy.id,
+      resource: "UserProfile",
+      action: "UPDATE",
+      itemFilter: { userId: { _eq: "$CURRENT_USER" } },
+      fields: [],
+      createdAt: now,
+    },
+  ];
+  const permissions: SeedPermission[] = [
+    ...systemAdminPermissions,
+    ...adminPermissions,
+    ...userReadPermissions,
+    ...userUpdatePermissions,
+  ];
 
-  for (const tenant of tenants) {
-    for (const { role, localPart } of ROLES_PER_TENANT) {
-      const userId = seededUuidV7(`user:${tenant.slug}:${localPart}`, now);
-      users.push({
-        id: userId,
-        email: `${localPart}@${tenant.slug}.test`,
-        tenantId: tenant.id,
-        createdAt: now,
-      });
-      tenantMembers.push({
-        id: seededUuidV7(`member:${tenant.slug}:${localPart}`, now),
-        userId,
-        tenantId: tenant.id,
-        role,
-        status: "ACTIVE",
-        joinedAt: now,
-        createdAt: now,
-      });
-    }
-  }
+  // Users — password = local-part of email (hashed by the runner)
+  const userSpecs = [
+    { localPart: "system-admin", role: "System Admin", displayName: "System Administrator" },
+    { localPart: "admin", role: "Admin", displayName: "Tenant Administrator" },
+    { localPart: "user", role: "User", displayName: "Demo User" },
+  ] as const;
 
-  return { tenants, users, tenantMembers };
+  const users: SeedUser[] = userSpecs.map(({ localPart, displayName: _ }) => ({
+    id: seededUuidV7(`user:${TENANT_SLUG}:${localPart}`, now),
+    email: `${localPart}@${TENANT_SLUG}.tech`,
+    name: localPart
+      .split("-")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" "),
+    emailVerified: true,
+    password: localPart,
+    tenantId,
+    createdAt: now,
+  }));
+
+  // UserProfiles
+  const userProfiles: SeedUserProfile[] = userSpecs.map(({ localPart, displayName }, i) => ({
+    id: seededUuidV7(`profile:${TENANT_SLUG}:${localPart}`, now),
+    userId: users[i]!.id,
+    tenantId,
+    displayName,
+    createdAt: now,
+  }));
+
+  // TenantMembers
+  const tenantMembers: SeedTenantMember[] = userSpecs.map(({ localPart, role }, i) => ({
+    id: seededUuidV7(`member:${TENANT_SLUG}:${localPart}`, now),
+    userId: users[i]!.id,
+    tenantId,
+    role,
+    status: "ACTIVE",
+    joinedAt: now,
+    createdAt: now,
+  }));
+
+  return {
+    tenants,
+    roles,
+    policies,
+    rolePolicies,
+    permissions,
+    users,
+    userProfiles,
+    tenantMembers,
+  };
 }
+
+// ---------- UUID helpers ----------
 
 /**
  * Deterministic UUID v7 derived from a seed string. Real UUID v7 is

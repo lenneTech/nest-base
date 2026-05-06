@@ -34,6 +34,14 @@ docker compose up -d postgres   # boot Postgres only (others optional)
 bun run dev                     # auto-spawns Prisma Studio + opens /dev
 ```
 
+After `bun run prisma:migrate && bun run seed` you have 3 demo users:
+
+| Email | Password | Role |
+|---|---|---|
+| `system-admin@lenne.tech` | `system-admin` | System Admin (full bypass) |
+| `admin@lenne.tech` | `admin` | Admin (manage tenant resources) |
+| `user@lenne.tech` | `user` | User (read tenant, update own profile) |
+
 > **Fresh `lt fullstack init --next` workspace?** Run `bun run setup`
 > first — the CLI ships the API `.env` template but does NOT invoke
 > the wizard, so the frontend env-bridge (which retargets

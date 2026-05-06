@@ -48,8 +48,12 @@ bun run setup
 bun run prisma:generate
 bun run prisma:migrate
 
-# 5. (optional) Insert demo data — 2 tenants, 6 users, sample records
+# 5. (optional) Insert demo data — 1 tenant, 3 roles, 3 users
 bun run seed
+# Demo credentials:
+#   system-admin@lenne.tech / system-admin  (System Admin — full bypass)
+#   admin@lenne.tech        / admin         (Admin — manage all tenant resources)
+#   user@lenne.tech         / user          (User — read tenant, update own profile)
 
 # 6. (optional) Verify everything is wired correctly
 bun run onboard          # quick sanity check (Bun / .env / Postgres / Prisma)
