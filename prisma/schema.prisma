@@ -583,7 +583,9 @@ model PendingErasure {
 // feature-gated table that some installs have and others don't.
 model AuditLog {
   id          String      @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-  tenantId    String      @map("tenant_id") @db.Uuid
+  /// Nullable for system-level events (e.g. Better-Auth user creation
+  /// before the user is associated with any tenant — issue #99).
+  tenantId    String?     @map("tenant_id") @db.Uuid
   actorUserId String?     @map("actor_user_id") @db.Uuid
   targetModel String      @map("target_model")
   targetId    String      @map("target_id")

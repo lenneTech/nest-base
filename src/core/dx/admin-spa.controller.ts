@@ -126,7 +126,9 @@ interface AuditLogRow {
   targetModel: string;
   targetId: string;
   actorUserId: string | null;
-  tenantId: string;
+  // Nullable since issue #99: system-level events (e.g. user creation
+  // via Better-Auth before a tenant is assigned) have no tenant scope.
+  tenantId: string | null;
   createdAt: Date;
   diff: unknown;
 }
@@ -141,7 +143,7 @@ function mapAuditLogRow(row: AuditLogRow): AuditLogEntry {
     action: row.action.toLowerCase(),
     resource: row.targetModel,
     resourceId: row.targetId,
-    tenantId: row.tenantId,
+    ...(row.tenantId ? { tenantId: row.tenantId } : {}),
     occurredAt: row.createdAt.toISOString(),
   };
   if (row.actorUserId) entry.actorUserId = row.actorUserId;

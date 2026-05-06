@@ -1,0 +1,14 @@
+-- Make audit_log.tenant_id nullable (issue #99).
+--
+-- User-creation events fired by Better-Auth's `databaseHooks.user.create.after`
+-- happen before the user is associated with any tenant (self-signup via
+-- /api/auth/sign-up/email). Forcing a NOT NULL constraint on tenant_id would
+-- either require a sentinel UUID (misleading) or silently skip the audit row
+-- (defeating the purpose of the hook).
+--
+-- Relaxing the constraint to NULL means the Audit Browser can surface
+-- "global" events (no tenant scope) alongside the per-tenant events. The
+-- RLS policy uses `current_setting('app.tenant_id', true)` which returns
+-- an empty string when not set — rows with `tenant_id IS NULL` are NOT
+-- surfaced by that policy, keeping per-tenant isolation intact.
+ALTER TABLE "audit_log" ALTER COLUMN "tenant_id" DROP NOT NULL;

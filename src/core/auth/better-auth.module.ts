@@ -114,6 +114,55 @@ const MIN_SECRET_LEN = 32;
           secret,
           baseUrl: cfg.baseUrl,
           sessionExpiresInSeconds: 60 * 60 * 24 * 7,
+          // Audit hook (issue #99): write a CREATE row to audit_log after
+          // every user creation, regardless of the creation path. The hook
+          // mirrors the impersonation + session-revoke sinks: $executeRaw
+          // bypasses the Prisma model-delegate proxy issue (iter-84) and
+          // maps directly to the canonical audit_log columns. Feature gating
+          // respects FEATURE_AUDIT_ENABLED — same semantics as other sinks.
+          userCreatedAudit: {
+            async onUserCreated(user: { id: string; tenantId?: string | null }): Promise<void> {
+              const { loadFeatures } = await import("../features/features.js");
+              const feats = loadFeatures(process.env as Record<string, string | undefined>);
+              if (!feats.audit.enabled) return;
+
+              const occurredAtIso = new Date().toISOString();
+              const metadataJson = JSON.stringify({ source: "better-auth" });
+              // tenantId is nullable on User — pass NULL when not set.
+              // actorUserId = the new user's own id (self-signup semantics).
+              if (user.tenantId) {
+                await prisma.$executeRaw`
+                  INSERT INTO audit_log
+                    (id, tenant_id, actor_user_id, target_model, target_id, action, diff, metadata, created_at)
+                  VALUES
+                    (gen_random_uuid(),
+                     ${user.tenantId}::uuid,
+                     ${user.id}::uuid,
+                     ${"User"},
+                     ${user.id},
+                     ${"CREATE"}::audit_action,
+                     '{}'::jsonb,
+                     ${metadataJson}::jsonb,
+                     ${occurredAtIso}::timestamp)
+                `;
+              } else {
+                await prisma.$executeRaw`
+                  INSERT INTO audit_log
+                    (id, tenant_id, actor_user_id, target_model, target_id, action, diff, metadata, created_at)
+                  VALUES
+                    (gen_random_uuid(),
+                     NULL,
+                     ${user.id}::uuid,
+                     ${"User"},
+                     ${user.id},
+                     ${"CREATE"}::audit_action,
+                     '{}'::jsonb,
+                     ${metadataJson}::jsonb,
+                     ${occurredAtIso}::timestamp)
+                `;
+              }
+            },
+          },
           // `prisma` is the global PrismaService — passing it switches
           // Better-Auth from the in-memory storage (which silently
           // dropped registrations on every restart) to the real
