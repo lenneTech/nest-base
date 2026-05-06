@@ -10,13 +10,7 @@
  * to the Better-Auth admin API.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "../components/ui/badge.js";
@@ -37,12 +31,7 @@ import {
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu.js";
 import { Input } from "../components/ui/input.js";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "../components/ui/sheet.js";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../components/ui/sheet.js";
 import {
   Table,
   TableBody,
@@ -101,10 +90,7 @@ function buildListUrl(q: string): string {
   return `/admin/users/list.json?${params.toString()}`;
 }
 
-async function postAction(
-  path: string,
-  body?: Record<string, string>,
-): Promise<void> {
+async function postAction(path: string, body?: Record<string, string>): Promise<void> {
   const res = await fetch(path, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -241,9 +227,7 @@ function UserDetailSheet({
             <Tabs defaultValue="overview">
               <TabsList className="mb-4">
                 <TabsTrigger value="overview">Übersicht</TabsTrigger>
-                <TabsTrigger value="sessions">
-                  Sitzungen ({user.sessions.length})
-                </TabsTrigger>
+                <TabsTrigger value="sessions">Sitzungen ({user.sessions.length})</TabsTrigger>
                 <TabsTrigger value="accounts">Konten ({user.accounts.length})</TabsTrigger>
               </TabsList>
 
@@ -298,9 +282,7 @@ function UserDetailSheet({
                           <TableCell className="text-xs text-fg-muted whitespace-nowrap">
                             {formatDate(s.createdAt)}
                           </TableCell>
-                          <TableCell className="font-mono text-xs">
-                            {s.ipAddress ?? "—"}
-                          </TableCell>
+                          <TableCell className="font-mono text-xs">{s.ipAddress ?? "—"}</TableCell>
                           <TableCell className="text-xs max-w-[180px] truncate">
                             {s.userAgent ?? "—"}
                           </TableCell>
@@ -356,7 +338,13 @@ interface RowActionsProps {
   disabled: boolean;
 }
 
-function RowActions({ user, onBan, onUnban, onRevokeSessions, disabled }: RowActionsProps): ReactNode {
+function RowActions({
+  user,
+  onBan,
+  onUnban,
+  onRevokeSessions,
+  disabled,
+}: RowActionsProps): ReactNode {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -371,19 +359,12 @@ function RowActions({ user, onBan, onUnban, onRevokeSessions, disabled }: RowAct
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {!user.banned && (
-          <DropdownMenuItem
-            className="text-destructive focus:text-destructive"
-            onClick={onBan}
-          >
+          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onBan}>
             Sperren
           </DropdownMenuItem>
         )}
-        {user.banned && (
-          <DropdownMenuItem onClick={onUnban}>Entsperren</DropdownMenuItem>
-        )}
-        <DropdownMenuItem onClick={onRevokeSessions}>
-          Sitzungen widerrufen
-        </DropdownMenuItem>
+        {user.banned && <DropdownMenuItem onClick={onUnban}>Entsperren</DropdownMenuItem>}
+        <DropdownMenuItem onClick={onRevokeSessions}>Sitzungen widerrufen</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -467,9 +448,7 @@ export function UsersAdminPage(): ReactNode {
             onChange={(e) => setSearch(e.target.value)}
             aria-label="Suche"
           />
-          {listQuery.isFetching && (
-            <span className="text-xs text-fg-muted">Lädt…</span>
-          )}
+          {listQuery.isFetching && <span className="text-xs text-fg-muted">Lädt…</span>}
         </div>
 
         {/* Table */}
@@ -482,9 +461,7 @@ export function UsersAdminPage(): ReactNode {
         ) : (
           <Card>
             <CardHeader>
-              <CardTitle>
-                Benutzer ({listQuery.data?.total ?? users.length})
-              </CardTitle>
+              <CardTitle>Benutzer ({listQuery.data?.total ?? users.length})</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
@@ -526,10 +503,7 @@ export function UsersAdminPage(): ReactNode {
                         {formatDate(u.createdAt)}
                       </TableCell>
                       <TableCell className="text-xs text-fg-muted">{u.sessionCount}</TableCell>
-                      <TableCell
-                        className="text-right"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <RowActions
                           user={u}
                           disabled={mutate.isPending}

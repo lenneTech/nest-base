@@ -44,10 +44,7 @@ export function filterUsers(
   return matched.slice(0, limit);
 }
 
-function matchesUser(
-  user: { email: string; name: string | null },
-  needle: string,
-): boolean {
+function matchesUser(user: { email: string; name: string | null }, needle: string): boolean {
   if (user.email.toLowerCase().includes(needle)) return true;
   if (user.name !== null && user.name.toLowerCase().includes(needle)) return true;
   return false;
