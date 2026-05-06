@@ -49,10 +49,10 @@ if (!host || (host.includes(".") && host !== "localhost")) {
 
 const plan = buildSeedPlan();
 console.log(
-  `[seed] plan: ${plan.tenants.length} tenant, ${plan.roles.length} roles, ` +
+  `[seed] plan: ${plan.roles.length} roles, ` +
     `${plan.policies.length} policies, ${plan.permissions.length} permissions, ` +
     `${plan.users.length} users, ${plan.userProfiles.length} profiles, ` +
-    `${plan.tenantMembers.length} memberships`,
+    `${plan.organizations.length} BA orgs, ${plan.baMembers.length} BA members`,
 );
 
 // Prisma 7 needs an explicit driver adapter — same wiring as
@@ -67,16 +67,6 @@ const { hashPassword } = await import("better-auth/crypto");
 const passwordHashes = await Promise.all(plan.users.map((user) => hashPassword(user.password)));
 
 try {
-  // Tenant
-  for (const tenant of plan.tenants) {
-    await prisma.tenant.upsert({
-      where: { id: tenant.id },
-      create: { id: tenant.id, name: tenant.name, createdAt: tenant.createdAt },
-      update: { name: tenant.name },
-    });
-  }
-  console.log(`[seed]   tenants:     ${plan.tenants.length}`);
-
   // Roles
   for (const role of plan.roles) {
     await prisma.role.upsert({
@@ -203,10 +193,9 @@ try {
         email: user.email,
         name: user.name,
         emailVerified: user.emailVerified,
-        tenantId: user.tenantId,
         createdAt: user.createdAt,
       },
-      update: { email: user.email, name: user.name, tenantId: user.tenantId },
+      update: { email: user.email, name: user.name },
     });
   }
   console.log(`[seed]   users:       ${plan.users.length}`);
@@ -242,24 +231,6 @@ try {
   }
   console.log(`[seed]   accounts:    ${plan.users.length}`);
 
-  // TenantMembers
-  for (const member of plan.tenantMembers) {
-    await prisma.tenantMember.upsert({
-      where: { id: member.id },
-      create: {
-        id: member.id,
-        userId: member.userId,
-        tenantId: member.tenantId,
-        role: member.role,
-        status: member.status,
-        joinedAt: member.joinedAt,
-        createdAt: member.createdAt,
-      },
-      update: { role: member.role, status: member.status },
-    });
-  }
-  console.log(`[seed]   members:     ${plan.tenantMembers.length}`);
-
   // UserProfiles
   for (const profile of plan.userProfiles) {
     await prisma.userProfile.upsert({
@@ -275,6 +246,39 @@ try {
     });
   }
   console.log(`[seed]   profiles:    ${plan.userProfiles.length}`);
+
+  // BA Organization rows (issue #118) — canonical tenant layer.
+  // The prisma adapter writes TEXT ids; our UUIDs are valid TEXT so
+  // no cast is needed here — Prisma handles the mapping.
+  for (const org of plan.organizations) {
+    await prisma.organization.upsert({
+      where: { id: org.id },
+      create: {
+        id: org.id,
+        name: org.name,
+        slug: org.slug,
+        createdAt: org.createdAt,
+      },
+      update: { name: org.name, slug: org.slug },
+    });
+  }
+  console.log(`[seed]   BA orgs:     ${plan.organizations.length}`);
+
+  // BA Member rows (issue #118) — canonical membership layer.
+  for (const baMember of plan.baMembers) {
+    await prisma.member.upsert({
+      where: { id: baMember.id },
+      create: {
+        id: baMember.id,
+        organizationId: baMember.organizationId,
+        userId: baMember.userId,
+        role: baMember.role,
+        createdAt: baMember.createdAt,
+      },
+      update: { role: baMember.role },
+    });
+  }
+  console.log(`[seed]   BA members:  ${plan.baMembers.length}`);
 
   console.log("[seed] done.");
   console.log("");

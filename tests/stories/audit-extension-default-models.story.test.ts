@@ -37,11 +37,19 @@ describe("Story · Audit extension default opt-in", () => {
     app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
     prisma = app.get(PrismaService);
 
-    // Seed a tenant out-of-band (bare client + no tenant context, so
-    // no audit row for this seeding step). Used as the tenant context
-    // for the actual story bodies.
-    const seeded = await prisma.tenant.create({
-      data: { name: `audit-default-fixture-${Date.now()}-${Math.floor(Math.random() * 1e6)}` },
+    // After issue #118, the old `tenants` table was dropped. Seed a BA
+    // organization out-of-band (bare client + no tenant context, so no
+    // audit row for this seeding step). Used as the tenant context for
+    // the actual story bodies.
+    const slug = `audit-fix-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const { uuidV7 } = await import("../../src/core/uuid/uuid-v7.js");
+    const seeded = await prisma.organization.create({
+      data: {
+        id: uuidV7(),
+        name: `audit-default-fixture-${Date.now()}`,
+        slug,
+        createdAt: new Date(),
+      },
     });
     tenantId = seeded.id;
   });
@@ -50,7 +58,7 @@ describe("Story · Audit extension default opt-in", () => {
     if (prisma && tenantId) {
       await prisma.auditLog.deleteMany({ where: { tenantId } });
       await prisma.role.deleteMany({ where: { tenantId } });
-      await prisma.tenant.delete({ where: { id: tenantId } });
+      await prisma.organization.delete({ where: { id: tenantId } });
     }
     if (app) await app.close();
     delete process.env.FEATURE_AUDIT_ENABLED;

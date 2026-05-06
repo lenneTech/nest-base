@@ -32,13 +32,13 @@ describe("Story · UUID v7 schema defaults (CF.UUID.01 — iter-210)", () => {
     const { readFileSync } = await import("node:fs");
     const schema = readFileSync("prisma/schema.prisma", "utf8");
     const v7Count = (schema.match(/dbgenerated\("uuid_generate_v7\(\)"\)/g) ?? []).length;
-    // 25 id-bearing models in the core schema (HealthPing, Tenant,
-    // TenantMember, User, Session, Account, Verification, Jwks,
-    // TwoFactor, Passkey, ApiKey, FileBlob, Folder, File,
-    // WebhookEndpoint, WebhookDelivery, EmailOutbox, Role, Policy,
-    // Permission, Example, UserProfile, OutboxEntry, PendingErasure,
-    // AuditLog).
-    expect(v7Count).toBeGreaterThanOrEqual(25);
+    // 23 id-bearing models after issue #118 removed Tenant + TenantMember
+    // (HealthPing, User, Session, Account, Verification, Jwks, TwoFactor,
+    // Passkey, ApiKey, FileBlob, Folder, File, WebhookEndpoint,
+    // WebhookDelivery, EmailOutbox, Role, Policy, Permission, Example,
+    // UserProfile, OutboxEntry, PendingErasure, AuditLog).
+    // BA Organization/Member/Invitation use TEXT PKs — no uuid_generate_v7.
+    expect(v7Count).toBeGreaterThanOrEqual(23);
   });
 
   it("the migration file `20260506210000_uuid_v7_defaults_core` exists and ALTERs every id column", async () => {

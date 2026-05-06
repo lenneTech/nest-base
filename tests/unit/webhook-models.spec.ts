@@ -57,8 +57,11 @@ describe("Webhook persistence schema", () => {
       expect(b).toMatch(/consecutiveFailures[\s\S]*@map\(\s*"consecutive_failures"\s*\)/);
     });
 
-    it("cascades on tenant delete", () => {
-      expect(block()).toMatch(/tenant\s+Tenant\s+@relation\([\s\S]*onDelete:\s*Cascade/);
+    it("carries tenantId column scoped to a tenant", () => {
+      // After issue #118 the FK to the legacy Tenant table is removed;
+      // tenantId is a plain column (no Prisma relation) — isolation is
+      // enforced via RLS at the Postgres layer.
+      expect(block()).toMatch(/tenantId[\s\S]*@map\(\s*"tenant_id"\s*\)/);
     });
 
     it("exposes deliveries[] back-relation to WebhookDelivery", () => {
@@ -89,9 +92,10 @@ describe("Webhook persistence schema", () => {
     });
   });
 
-  describe("Tenant relation", () => {
-    it("Tenant exposes webhookEndpoints[] back-relation", () => {
-      expect(blockOf("Tenant")).toMatch(/webhookEndpoints\s+WebhookEndpoint\[\]/);
+  describe("Organization relation", () => {
+    it("Organization model exists (canonical tenant layer — issue #118)", () => {
+      // The legacy Tenant model is removed; Organization is the BA canonical table.
+      expect(blockOf("Organization")).toMatch(/@@map\(\s*"organization"\s*\)/);
     });
   });
 });

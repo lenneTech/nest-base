@@ -83,8 +83,8 @@ describe("E2E · Tenant-scoped CRUD median latency (SC.PERF.03)", () => {
   afterAll(async () => {
     try {
       for (const id of createdTenantIds) {
-        await prisma.tenantMember.deleteMany({ where: { tenantId: id } });
-        await prisma.tenant.deleteMany({ where: { id } });
+        await prisma.member.deleteMany({ where: { organizationId: id } });
+        await prisma.organization.deleteMany({ where: { id } });
       }
       await prisma.user.deleteMany({ where: { email } });
     } catch {

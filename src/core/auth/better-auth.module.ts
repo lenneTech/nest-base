@@ -215,6 +215,12 @@ const MIN_SECRET_LEN = 32;
           rateLimitEnabled: isBetterAuthRateLimitEnabled(
             process.env as Record<string, string | undefined>,
           ),
+          // Organization plugin (issue #118): enabled by default to back
+          // the BA Organizations-as-Tenants migration. When active, BA
+          // manages org/member/invitation rows and the session carries
+          // `activeOrganizationId` so clients can omit the x-tenant-id
+          // header after a POST /api/auth/organization/set-active call.
+          ...(features.organization.enabled ? { organization: {} } : {}),
           // Password policy enforcement is opt-in via env. The
           // service exposes the policy validator (entropy + optional
           // HIBP breach check) so signup / change-password run the

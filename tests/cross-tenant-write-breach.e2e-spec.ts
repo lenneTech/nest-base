@@ -4,6 +4,7 @@ import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { PrismaService } from "../src/core/prisma/prisma.service.js";
+import { uuidV7 } from "../src/core/uuid/uuid-v7.js";
 
 /**
  * E2E · Cross-tenant write breach (regression for LLM-test 2026-05-03 #20:21)
@@ -62,8 +63,20 @@ describe("E2E · Cross-tenant write breach", () => {
 
     // Provision Alice's tenant directly — we don't need her to log in;
     // we only need the tenant id (so Bob can target it via header).
-    const aliceTenant = await prisma.tenant.create({
-      data: { id: crypto.randomUUID(), name: `breach-alice-tenant-${stamp}` },
+    const aliceOrgName = `breach-alice-tenant-${stamp}`;
+    const aliceTenant = await prisma.organization.create({
+      data: {
+        id: uuidV7(),
+        name: aliceOrgName,
+        slug:
+          aliceOrgName
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .slice(0, 50) +
+          "-" +
+          stamp,
+        createdAt: new Date(),
+      },
     });
     aliceTenantId = aliceTenant.id;
 
@@ -79,25 +92,32 @@ describe("E2E · Cross-tenant write breach", () => {
     expect(aliceSignUp.status, JSON.stringify(aliceSignUp.body)).toBe(200);
     const aliceUser = await prisma.user.findUnique({ where: { email: aliceEmail } });
     expect(aliceUser).not.toBeNull();
-    await prisma.user.update({
-      where: { id: aliceUser!.id },
-      data: { tenantId: aliceTenant.id },
-    });
-    await prisma.tenantMember.create({
+    await prisma.member.create({
       data: {
-        id: crypto.randomUUID(),
+        id: uuidV7(),
         userId: aliceUser!.id,
-        tenantId: aliceTenant.id,
+        organizationId: aliceTenant.id,
         role: "owner",
-        status: "ACTIVE",
-        joinedAt: new Date(),
+        createdAt: new Date(),
       },
     });
 
     // Provision Bob's tenant + ACTIVE membership for Bob (he is a
     // legit user — just NOT a member of Alice's tenant).
-    const bobTenant = await prisma.tenant.create({
-      data: { id: crypto.randomUUID(), name: `breach-bob-tenant-${stamp}` },
+    const bobOrgName = `breach-bob-tenant-${stamp}`;
+    const bobTenant = await prisma.organization.create({
+      data: {
+        id: uuidV7(),
+        name: bobOrgName,
+        slug:
+          bobOrgName
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .slice(0, 50) +
+          "-" +
+          stamp,
+        createdAt: new Date(),
+      },
     });
     bobTenantId = bobTenant.id;
   });
@@ -108,10 +128,10 @@ describe("E2E · Cross-tenant write breach", () => {
       await prisma.example.deleteMany({
         where: { tenantId: { in: [aliceTenantId, bobTenantId].filter(Boolean) } },
       });
-      await prisma.tenantMember.deleteMany({
-        where: { tenantId: { in: [aliceTenantId, bobTenantId].filter(Boolean) } },
+      await prisma.member.deleteMany({
+        where: { organizationId: { in: [aliceTenantId, bobTenantId].filter(Boolean) } },
       });
-      await prisma.tenant.deleteMany({
+      await prisma.organization.deleteMany({
         where: { id: { in: [aliceTenantId, bobTenantId].filter(Boolean) } },
       });
       await prisma.user.deleteMany({ where: { email: { in: [bobEmail, aliceEmail] } } });
@@ -139,18 +159,13 @@ describe("E2E · Cross-tenant write breach", () => {
     // Pin Bob to his own primary tenant + ACTIVE membership. He is a
     // real, authenticated user with a real session tenant — he just
     // has NO right to act in Alice's tenant.
-    await prisma.user.update({
-      where: { id: bob!.id },
-      data: { tenantId: bobTenantId },
-    });
-    await prisma.tenantMember.create({
+    await prisma.member.create({
       data: {
-        id: crypto.randomUUID(),
+        id: uuidV7(),
         userId: bob!.id,
-        tenantId: bobTenantId,
+        organizationId: bobTenantId,
         role: "owner",
-        status: "ACTIVE",
-        joinedAt: new Date(),
+        createdAt: new Date(),
       },
     });
 

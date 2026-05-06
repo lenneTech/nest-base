@@ -9,9 +9,11 @@ const SCHEMA = readFileSync(resolve(ROOT, "prisma/schema.prisma"), "utf8");
 /**
  * Prisma schema v1.
  *
- * Slice deliverable: User / Tenant / Role models with `@@map` (table)
- * and `@map` (column) snake_case mappings. Real foreign-keys + RLS
- * policies land in the multi-tenancy and permissions slices.
+ * Slice deliverable: User / Organization / Role models with `@@map` (table)
+ * and `@map` (column) snake_case mappings.
+ *
+ * After issue #118 the legacy `Tenant`/`TenantMember` models are gone —
+ * Better-Auth's `Organization`/`Member` tables are the canonical tenant layer.
  */
 describe("Prisma schema v1", () => {
   function blockOf(model: string): string {
@@ -43,29 +45,30 @@ describe("Prisma schema v1", () => {
       expect(b).toMatch(/updatedAt[\s\S]*@map\(\s*"updated_at"\s*\)/);
     });
 
-    it("belongs to a tenant via tenantId mapped to tenant_id", () => {
+    it("has orgMemberships relation to BA Member table (issue #118)", () => {
+      // After issue #118 User.tenantId is removed; membership is via BA Member.
       const b = block();
-      expect(b).toMatch(/tenantId[\s\S]*@map\(\s*"tenant_id"\s*\)/);
+      expect(b).toMatch(/orgMemberships\s+Member\[\]/);
     });
   });
 
-  describe("Tenant model", () => {
-    const block = (): string => blockOf("Tenant");
+  describe("Organization model (BA canonical tenant — issue #118)", () => {
+    const block = (): string => blockOf("Organization");
 
-    it("exists and maps to snake_case table `tenants`", () => {
-      expect(block()).toMatch(/@@map\(\s*"tenants"\s*\)/);
+    it("exists and maps to snake_case table `organization`", () => {
+      expect(block()).toMatch(/@@map\(\s*"organization"\s*\)/);
     });
 
-    it("has id and unique name", () => {
+    it("has id and name", () => {
       const b = block();
       expect(b).toMatch(/^\s*id\s+String\s+@id/m);
-      expect(b).toMatch(/name\s+String\s+@unique/);
+      expect(b).toMatch(/name\s+String/);
     });
 
-    it("exposes one-to-many relations to users and roles", () => {
+    it("exposes members[] and invitations[] relations", () => {
       const b = block();
-      expect(b).toMatch(/users\s+User\[\]/);
-      expect(b).toMatch(/roles\s+Role\[\]/);
+      expect(b).toMatch(/members\s+Member\[\]/);
+      expect(b).toMatch(/invitations\s+Invitation\[\]/);
     });
   });
 

@@ -2,6 +2,7 @@ import type { INestApplication } from "@nestjs/common";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { PrismaService } from "../src/core/prisma/prisma.service.js";
+import { uuidV7 } from "../src/core/uuid/uuid-v7.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 
@@ -62,8 +63,20 @@ describe("E2E · Field-encryption Prisma extension fires through the extended cl
     app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
     prisma = app.get(PrismaService);
 
-    const tenant = await prisma.tenant.create({
-      data: { name: `field-enc-e2e-${crypto.randomUUID()}` },
+    const orgName = `field-enc-e2e-${crypto.randomUUID()}`;
+    const tenant = await prisma.organization.create({
+      data: {
+        id: uuidV7(),
+        name: orgName,
+        slug:
+          orgName
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .slice(0, 50) +
+          "-" +
+          Date.now(),
+        createdAt: new Date(),
+      },
     });
     tenantId = tenant.id;
   });
@@ -71,7 +84,7 @@ describe("E2E · Field-encryption Prisma extension fires through the extended cl
   afterAll(async () => {
     try {
       await prisma.role.deleteMany({ where: { tenantId } });
-      await prisma.tenant.delete({ where: { id: tenantId } });
+      await prisma.organization.delete({ where: { id: tenantId } });
     } catch {
       /* best-effort cleanup */
     }

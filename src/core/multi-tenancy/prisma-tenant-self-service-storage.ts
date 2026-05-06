@@ -5,15 +5,17 @@ import type {
   TenantSelfServiceStorage,
   TenantWithMembership,
 } from "./tenant-self-service.service.js";
-import type { TenantMemberRecord, TenantMemberStatus } from "./tenant-member.service.js";
+import type { TenantMemberRecord } from "./tenant-member.types.js";
 
 /**
  * Prisma-backed `TenantSelfServiceStorage`.
  *
- * Persists tenant + first-member rows in a single `$transaction` so
- * `POST /tenants` never leaves a tenant without an owner. The lookup
- * path on `listMembershipsForUser()` joins through the relation Prisma
- * already declares (`User.memberships → tenant`).
+ * After issue #118 the canonical tenant layer is Better-Auth's
+ * `organization`/`member` tables. This adapter:
+ *   - replaces `tx.tenant.create(...)` with `tx.organization.create(...)`
+ *   - replaces `tenantMember` references with `member` + organizationId
+ *   - removes the `User.tenantId` update (the column was dropped in
+ *     migration 20260508120000_drop_old_tenant_tables)
  *
  * The class has no business rules of its own; it adapts the storage
  * interface declared in `tenant-self-service.service.ts`. Validation
@@ -22,65 +24,55 @@ import type { TenantMemberRecord, TenantMemberStatus } from "./tenant-member.ser
  */
 
 interface PrismaSlice {
-  tenant: {
+  organization: {
     findUnique(input: {
-      where: { name: string };
+      where: { slug: string };
     }): Promise<{ id: string; name: string; createdAt: Date } | null>;
   };
-  tenantMember: {
+  member: {
     findMany(input: {
       where: { userId: string };
-      include: { tenant: true };
+      include: { organization: true };
       orderBy?: { createdAt: "asc" | "desc" };
-    }): Promise<TenantMemberWithTenant[]>;
+    }): Promise<MemberWithOrganization[]>;
   };
   $transaction<T>(fn: (tx: PrismaTxSlice) => Promise<T>): Promise<T>;
 }
 
 interface PrismaTxSlice {
-  tenant: {
-    create(input: { data: { id: string; name: string; createdAt: Date } }): Promise<{
+  organization: {
+    create(input: { data: { id: string; name: string; slug: string; createdAt: Date } }): Promise<{
       id: string;
       name: string;
       createdAt: Date;
     }>;
   };
-  tenantMember: {
+  member: {
     create(input: {
       data: {
         id: string;
         userId: string;
-        tenantId: string;
+        organizationId: string;
         role: string;
-        status: TenantMemberStatus;
-        joinedAt: Date;
+        createdAt: Date;
       };
     }): Promise<{
       id: string;
       userId: string;
-      tenantId: string;
+      organizationId: string;
       role: string;
-      status: TenantMemberStatus;
-      joinedAt: Date | null;
+      createdAt: Date;
     }>;
-  };
-  user: {
-    updateMany(input: {
-      where: { id: string; tenantId: null };
-      data: { tenantId: string };
-    }): Promise<{ count: number }>;
   };
 }
 
-interface TenantMemberWithTenant {
+interface MemberWithOrganization {
   id: string;
   userId: string;
-  tenantId: string;
+  organizationId: string;
   role: string;
-  status: TenantMemberStatus;
-  invitedAt: Date | null;
-  joinedAt: Date | null;
-  tenant: {
+  createdAt: Date;
+  organization: {
     id: string;
     name: string;
     createdAt: Date;
@@ -89,10 +81,7 @@ interface TenantMemberWithTenant {
 
 export class PrismaTenantSelfServiceStorage implements TenantSelfServiceStorage {
   constructor(
-    private readonly prisma: Pick<
-      PrismaClient,
-      "tenant" | "tenantMember" | "user" | "$transaction"
-    >,
+    private readonly prisma: Pick<PrismaClient, "organization" | "member" | "$transaction">,
   ) {}
 
   /**
@@ -111,8 +100,11 @@ export class PrismaTenantSelfServiceStorage implements TenantSelfServiceStorage 
   }
 
   async findTenantByName(name: string): Promise<TenantPlanRow | null> {
-    const row = await this.slice().tenant.findUnique({
-      where: { name },
+    // BA's Organization uses `slug` as the unique discriminator.
+    // Derive the slug from the name using the same logic as createTenantWithMember.
+    const slug = nameToSlug(name);
+    const row = await this.slice().organization.findUnique({
+      where: { slug },
     });
     return row ? { id: row.id, name: row.name, createdAt: row.createdAt } : null;
   }
@@ -125,67 +117,67 @@ export class PrismaTenantSelfServiceStorage implements TenantSelfServiceStorage 
     member: TenantMemberRecord;
   }): Promise<{ tenant: TenantPlanRow; member: TenantMemberRecord }> {
     return this.slice().$transaction(async (tx) => {
-      const insertedTenant = await tx.tenant.create({
-        data: { id: tenant.id, name: tenant.name, createdAt: tenant.createdAt },
+      const insertedOrg = await tx.organization.create({
+        data: {
+          id: tenant.id,
+          name: tenant.name,
+          slug: nameToSlug(tenant.name),
+          createdAt: tenant.createdAt,
+        },
       });
       const joinedAt = member.joinedAt ?? new Date();
-      const insertedMember = await tx.tenantMember.create({
+      const insertedMember = await tx.member.create({
         data: {
           id: member.id,
           userId: member.userId,
-          tenantId: tenant.id,
+          organizationId: tenant.id,
           role: member.role,
-          status: member.status,
-          joinedAt,
+          createdAt: joinedAt,
         },
-      });
-      // Promote the just-created tenant to the user's primary
-      // tenant — but only if they don't already have one. The
-      // `tenantId: null` guard makes this a no-op for users who are
-      // creating their second/third tenant: we never silently
-      // re-primary them, otherwise their existing tenant context
-      // would flip on every POST /tenants. Closes friction-log
-      // blocker (LLM-test 2026-05-03 #4): without this update the
-      // session's `user.tenantId` stays null and `AbilityMiddleware`
-      // resolves to an empty ability, 403'ing every `@Can()` route
-      // for the freshly-onboarded user.
-      await tx.user.updateMany({
-        where: { id: member.userId, tenantId: null },
-        data: { tenantId: tenant.id },
       });
       return {
         tenant: {
-          id: insertedTenant.id,
-          name: insertedTenant.name,
-          createdAt: insertedTenant.createdAt,
+          id: insertedOrg.id,
+          name: insertedOrg.name,
+          createdAt: insertedOrg.createdAt,
         },
         member: {
           id: insertedMember.id,
           userId: insertedMember.userId,
-          tenantId: insertedMember.tenantId,
+          // Surface organizationId as tenantId for the service layer.
+          tenantId: insertedMember.organizationId,
           role: insertedMember.role,
-          status: insertedMember.status,
-          ...(insertedMember.joinedAt ? { joinedAt: insertedMember.joinedAt } : {}),
+          // BA member rows are always active — presence implies ACTIVE status.
+          status: "ACTIVE",
+          joinedAt: insertedMember.createdAt,
         },
       };
     });
   }
 
   async listMembershipsForUser(userId: string): Promise<TenantWithMembership[]> {
-    const rows = await this.slice().tenantMember.findMany({
+    const rows = await this.slice().member.findMany({
       where: { userId },
-      include: { tenant: true },
+      include: { organization: true },
       orderBy: { createdAt: "asc" },
     });
     return rows.map((r) => ({
-      tenantId: r.tenant.id,
-      tenantName: r.tenant.name,
-      tenantCreatedAt: r.tenant.createdAt,
+      tenantId: r.organization.id,
+      tenantName: r.organization.name,
+      tenantCreatedAt: r.organization.createdAt,
       memberId: r.id,
       role: r.role,
-      status: r.status,
-      ...(r.invitedAt ? { invitedAt: r.invitedAt } : {}),
-      ...(r.joinedAt ? { joinedAt: r.joinedAt } : {}),
+      // BA member table only stores active members.
+      status: "ACTIVE" as const,
+      joinedAt: r.createdAt,
     }));
   }
+}
+
+/**
+ * Derive a URL-safe slug from a tenant name.
+ * Used as the BA Organization's unique `slug` discriminator.
+ */
+function nameToSlug(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 }

@@ -10,7 +10,6 @@ import { PermissionService } from "./permission.service.js";
 interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
-    tenantId: string | null;
     /**
      * Active organization id from the Better-Auth session (issue #103).
      * Projected by `BetterAuthSessionMiddleware`; undefined when the

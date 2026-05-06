@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { bootstrap } from "../src/core/app/bootstrap.js";
 import { PrismaService } from "../src/core/prisma/prisma.service.js";
+import { uuidV7 } from "../src/core/uuid/uuid-v7.js";
 import { emerald8x8Png } from "./lib/png-fixture.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
@@ -56,8 +57,20 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
     app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
     prisma = app.get(PrismaService);
 
-    const tenant = await prisma.tenant.create({
-      data: { name: `files-e2e-${Date.now()}` },
+    const orgName = `files-e2e-${Date.now()}`;
+    const tenant = await prisma.organization.create({
+      data: {
+        id: uuidV7(),
+        name: orgName,
+        slug:
+          orgName
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .slice(0, 50) +
+          "-" +
+          Date.now(),
+        createdAt: new Date(),
+      },
     });
     tenantId = tenant.id;
 
@@ -82,9 +95,14 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
 
     // Activate the user's tenant membership so RLS policies + the
     // permission ability include the tenant we just created.
-    await prisma.user.update({
-      where: { id: userId },
-      data: { tenantId },
+    await prisma.member.create({
+      data: {
+        id: uuidV7(),
+        userId,
+        organizationId: tenantId,
+        role: "owner",
+        createdAt: new Date(),
+      },
     });
   });
 
@@ -92,7 +110,8 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
     try {
       await prisma.file.deleteMany({ where: { tenantId } });
       await prisma.folder.deleteMany({ where: { tenantId } });
-      await prisma.tenant.delete({ where: { id: tenantId } });
+      await prisma.member.deleteMany({ where: { organizationId: tenantId } });
+      await prisma.organization.delete({ where: { id: tenantId } });
     } catch {
       // best-effort: testcontainer is tossed by global-setup anyway
     }

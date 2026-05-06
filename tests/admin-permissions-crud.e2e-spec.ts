@@ -42,8 +42,17 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     process.env.APP_BASE_URL = "http://localhost:3000";
     app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
     prisma = app.get(PrismaService);
-    const tenant = await prisma.tenant.create({ data: { name: `admin-crud-${Date.now()}` } });
-    tenantId = tenant.id;
+    // Organization.id is String in BA schema; use a UUID so Role.tenantId
+    // (still @db.Uuid) remains compatible.
+    tenantId = crypto.randomUUID();
+    await prisma.organization.create({
+      data: {
+        id: tenantId,
+        name: `admin-crud-${Date.now()}`,
+        slug: `admin-crud-${tenantId}`,
+        createdAt: new Date(),
+      },
+    });
 
     const email = `admin-crud-e2e-${Date.now()}@example.com`;
     const signUp = await request(app.getHttpServer())
@@ -61,7 +70,16 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
         : undefined;
     sessionCookie = (cookies ?? []).map((c) => c.split(";")[0]).join("; ");
     const userId = signUp.body.user.id as string;
-    await prisma.user.update({ where: { id: userId }, data: { tenantId } });
+    // Create a BA member row so resolveRequestTenantId validates membership.
+    await prisma.member.create({
+      data: {
+        id: crypto.randomUUID(),
+        userId,
+        organizationId: tenantId,
+        role: "owner",
+        createdAt: new Date(),
+      },
+    });
   });
 
   afterAll(async () => {
@@ -81,7 +99,8 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
       }
       await prisma.policy.deleteMany({ where: policyFilter });
       await prisma.role.deleteMany({ where: { tenantId } });
-      await prisma.tenant.delete({ where: { id: tenantId } });
+      await prisma.member.deleteMany({ where: { organizationId: tenantId } });
+      await prisma.organization.delete({ where: { id: tenantId } });
     } catch {
       // best-effort
     }
@@ -216,8 +235,14 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     // Insert a role under a DIFFERENT tenant directly via Prisma. The
     // GET /admin/roles call (with OUR x-tenant-id header) must not
     // include it, even though the same DB connection sees both rows.
-    const otherTenant = await prisma.tenant.create({
-      data: { name: `admin-crud-other-${crypto.randomUUID()}` },
+    const otherId = crypto.randomUUID();
+    const otherTenant = await prisma.organization.create({
+      data: {
+        id: otherId,
+        name: `admin-crud-other-${otherId}`,
+        slug: `admin-crud-other-${otherId}`,
+        createdAt: new Date(),
+      },
     });
     const otherRole = await prisma.role.create({
       data: { name: `other-leak-${crypto.randomUUID()}`, tenantId: otherTenant.id },
@@ -233,7 +258,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
       expect(ids).not.toContain(otherRole.id);
     } finally {
       await prisma.role.delete({ where: { id: otherRole.id } });
-      await prisma.tenant.delete({ where: { id: otherTenant.id } });
+      await prisma.organization.delete({ where: { id: otherTenant.id } });
     }
   });
 
@@ -241,8 +266,14 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     // Iter-202: the per-id read uses `findFirst({ id, tenantId })` so
     // a probe for another tenant's UUID falls back to NotFound rather
     // than returning the row.
-    const otherTenant = await prisma.tenant.create({
-      data: { name: `admin-crud-other-${crypto.randomUUID()}` },
+    const otherId2 = crypto.randomUUID();
+    const otherTenant = await prisma.organization.create({
+      data: {
+        id: otherId2,
+        name: `admin-crud-other-${otherId2}`,
+        slug: `admin-crud-other2-${otherId2}`,
+        createdAt: new Date(),
+      },
     });
     const otherRole = await prisma.role.create({
       data: { name: `other-id-probe-${crypto.randomUUID()}`, tenantId: otherTenant.id },
@@ -256,7 +287,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
       expect(res.status).toBe(404);
     } finally {
       await prisma.role.delete({ where: { id: otherRole.id } });
-      await prisma.tenant.delete({ where: { id: otherTenant.id } });
+      await prisma.organization.delete({ where: { id: otherTenant.id } });
     }
   });
 
@@ -264,8 +295,14 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     // Defense-in-depth: a malicious / buggy operator could pass a
     // different tenantId in the body to escape their scope. Iter-202
     // surfaces a 400 instead of trusting body over header.
-    const otherTenant = await prisma.tenant.create({
-      data: { name: `admin-crud-mismatch-${crypto.randomUUID()}` },
+    const otherId3 = crypto.randomUUID();
+    const otherTenant = await prisma.organization.create({
+      data: {
+        id: otherId3,
+        name: `admin-crud-mismatch-${otherId3}`,
+        slug: `admin-crud-mismatch-${otherId3}`,
+        createdAt: new Date(),
+      },
     });
     try {
       const res = await request(app.getHttpServer())
@@ -277,7 +314,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
       expect(res.status).toBe(400);
       expect(JSON.stringify(res.body)).toMatch(/tenantId/i);
     } finally {
-      await prisma.tenant.delete({ where: { id: otherTenant.id } });
+      await prisma.organization.delete({ where: { id: otherTenant.id } });
     }
   });
 
@@ -285,8 +322,14 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     // Cross-tenant DELETE attempt: must NOT remove the other tenant's
     // role. Iter-202's `deleteMany({id, tenantId})` returns count=0 →
     // 404 instead of touching the row.
-    const otherTenant = await prisma.tenant.create({
-      data: { name: `admin-crud-delete-other-${crypto.randomUUID()}` },
+    const otherId4 = crypto.randomUUID();
+    const otherTenant = await prisma.organization.create({
+      data: {
+        id: otherId4,
+        name: `admin-crud-delete-other-${otherId4}`,
+        slug: `admin-crud-del-${otherId4}`,
+        createdAt: new Date(),
+      },
     });
     const otherRole = await prisma.role.create({
       data: { name: `other-delete-${crypto.randomUUID()}`, tenantId: otherTenant.id },
@@ -303,7 +346,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
       expect(stillThere).not.toBeNull();
     } finally {
       await prisma.role.delete({ where: { id: otherRole.id } });
-      await prisma.tenant.delete({ where: { id: otherTenant.id } });
+      await prisma.organization.delete({ where: { id: otherTenant.id } });
     }
   });
 
@@ -321,8 +364,14 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     // Create a Role in a DIFFERENT tenant directly via Prisma. The
     // attach handler now `findFirst({id: roleId, tenantId: ourTenant})`
     // so it surfaces a 404 instead of silently creating the link.
-    const otherTenant = await prisma.tenant.create({
-      data: { name: `admin-attach-other-${crypto.randomUUID()}` },
+    const otherId5 = crypto.randomUUID();
+    const otherTenant = await prisma.organization.create({
+      data: {
+        id: otherId5,
+        name: `admin-attach-other-${otherId5}`,
+        slug: `admin-attach-${otherId5}`,
+        createdAt: new Date(),
+      },
     });
     const otherRole = await prisma.role.create({
       data: { name: `attach-foreign-${crypto.randomUUID()}`, tenantId: otherTenant.id },
@@ -350,13 +399,19 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     } finally {
       await prisma.policy.delete({ where: { id: policy.body.id } });
       await prisma.role.delete({ where: { id: otherRole.id } });
-      await prisma.tenant.delete({ where: { id: otherTenant.id } });
+      await prisma.organization.delete({ where: { id: otherTenant.id } });
     }
   });
 
   it("/admin/permissions/attach DELETE refuses to detach a foreign tenant's Role link (404)", async () => {
-    const otherTenant = await prisma.tenant.create({
-      data: { name: `admin-detach-other-${crypto.randomUUID()}` },
+    const otherId6 = crypto.randomUUID();
+    const otherTenant = await prisma.organization.create({
+      data: {
+        id: otherId6,
+        name: `admin-detach-other-${otherId6}`,
+        slug: `admin-detach-${otherId6}`,
+        createdAt: new Date(),
+      },
     });
     const otherRole = await prisma.role.create({
       data: { name: `detach-foreign-${crypto.randomUUID()}`, tenantId: otherTenant.id },
@@ -385,7 +440,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
       });
       await prisma.policy.delete({ where: { id: policy.id } });
       await prisma.role.delete({ where: { id: otherRole.id } });
-      await prisma.tenant.delete({ where: { id: otherTenant.id } });
+      await prisma.organization.delete({ where: { id: otherTenant.id } });
     }
   });
 
@@ -404,8 +459,14 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
   });
 
   it("POST /admin/permissions/test rejects body.tenantId mismatch with header", async () => {
-    const otherTenant = await prisma.tenant.create({
-      data: { name: `admin-test-mismatch-${crypto.randomUUID()}` },
+    const otherId7 = crypto.randomUUID();
+    const otherTenant = await prisma.organization.create({
+      data: {
+        id: otherId7,
+        name: `admin-test-mismatch-${otherId7}`,
+        slug: `admin-test-mm-${otherId7}`,
+        createdAt: new Date(),
+      },
     });
     try {
       const res = await request(app.getHttpServer())
@@ -422,7 +483,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
       expect(res.status).toBe(400);
       expect(JSON.stringify(res.body)).toMatch(/tenantId/i);
     } finally {
-      await prisma.tenant.delete({ where: { id: otherTenant.id } });
+      await prisma.organization.delete({ where: { id: otherTenant.id } });
     }
   });
 

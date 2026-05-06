@@ -6,7 +6,6 @@ import { PrismaService } from "../../src/core/prisma/prisma.service.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 
-const TENANT_ID = "00000000-0000-0000-0000-0000000000aa";
 const USER_ID = "00000000-0000-0000-0000-0000000000bb";
 
 /**
@@ -51,12 +50,8 @@ describe("Story · default ApiKeyExpiryRunner reads + notifies + watermarks", ()
       return { id: "spy:email", payload: { dispatch } };
     };
 
-    // Seed: a User in TENANT_ID + an ApiKey expiring in 3 days.
-    await prisma.tenant.upsert({
-      where: { id: TENANT_ID },
-      update: {},
-      create: { id: TENANT_ID, name: `api-key-expiry-fixture-${Date.now()}` },
-    });
+    // After issue #118, the old `tenants` table was dropped and User.tenantId was
+    // removed. Users are created without a tenant FK.
     await prisma.user.upsert({
       where: { id: USER_ID },
       update: {},
@@ -64,7 +59,6 @@ describe("Story · default ApiKeyExpiryRunner reads + notifies + watermarks", ()
         id: USER_ID,
         email: `api-key-expiry-${Date.now()}@test.com`,
         name: "Expiry Test",
-        tenantId: TENANT_ID,
       },
     });
   });
@@ -73,7 +67,7 @@ describe("Story · default ApiKeyExpiryRunner reads + notifies + watermarks", ()
     if (prisma) {
       await prisma.apiKey.deleteMany({ where: { userId: USER_ID } });
       await prisma.user.delete({ where: { id: USER_ID } }).catch(() => undefined);
-      await prisma.tenant.delete({ where: { id: TENANT_ID } }).catch(() => undefined);
+      // No tenant row to delete — tenants table was dropped in issue #118.
     }
     if (app) await app.close();
   });

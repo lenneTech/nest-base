@@ -9,7 +9,6 @@ import {
 } from "../../src/core/search/user-search.executor.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
-const TENANT_ID = "00000000-0000-0000-0000-000000000201";
 const USER_ALICE = "00000000-0000-0000-0000-000000000202";
 const USER_BOB = "00000000-0000-0000-0000-000000000203";
 
@@ -64,11 +63,8 @@ describe("Story · PrismaUserSearchExecutor", () => {
       prisma = app.get(PrismaService);
       executor = new PrismaUserSearchExecutor(prisma);
 
-      await prisma.tenant.upsert({
-        where: { id: TENANT_ID },
-        update: {},
-        create: { id: TENANT_ID, name: `user-search-fixture-${Date.now()}` },
-      });
+      // After issue #118, the old `tenants` table was dropped and User.tenantId was
+      // removed. Users are created without a tenant FK — no parent row needed.
       await prisma.user.upsert({
         where: { id: USER_ALICE },
         update: {},
@@ -76,7 +72,6 @@ describe("Story · PrismaUserSearchExecutor", () => {
           id: USER_ALICE,
           email: `alice-${Date.now()}@example.com`,
           name: "Alice Anderson",
-          tenantId: TENANT_ID,
         },
       });
       await prisma.user.upsert({
@@ -86,7 +81,6 @@ describe("Story · PrismaUserSearchExecutor", () => {
           id: USER_BOB,
           email: `bob-${Date.now()}@example.com`,
           name: "Bob Brown",
-          tenantId: TENANT_ID,
         },
       });
     });
@@ -96,7 +90,7 @@ describe("Story · PrismaUserSearchExecutor", () => {
         await prisma.user
           .deleteMany({ where: { id: { in: [USER_ALICE, USER_BOB] } } })
           .catch(() => undefined);
-        await prisma.tenant.delete({ where: { id: TENANT_ID } }).catch(() => undefined);
+        // No tenant row to delete — tenants table was dropped in issue #118.
       }
       if (app) await app.close();
     });

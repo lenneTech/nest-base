@@ -66,8 +66,9 @@ export type ExtendedPrismaClient = ReturnType<PrismaService["buildExtendedClient
  * models into auditable can extend this map at module-init time.
  */
 export const MODEL_TABLE_MAP: Record<string, string> = {
-  Tenant: "tenants",
-  TenantMember: "tenant_members",
+  // Organization and Member are the canonical tenant tables after issue #118.
+  Organization: "organization",
+  Member: "member",
   Role: "roles",
   RolePolicy: "role_policies",
   Policy: "policies",
@@ -255,8 +256,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       // default; their churn doesn't carry compliance value and
       // would dwarf the audit-log volume.
       auditableModels: [
-        "Tenant",
-        "TenantMember",
+        // Organization and Member replace the legacy Tenant/TenantMember (issue #118).
+        "Organization",
+        "Member",
         "Role",
         "RolePolicy",
         "Policy",

@@ -49,9 +49,9 @@ interface MemberStub {
 }
 
 interface FakePrismaSubset {
-  tenantMember: {
+  member: {
     findFirst: (args: {
-      where: { userId: string; tenantId: string; status: string };
+      where: { userId: string; organizationId: string };
       select: { id: true; role: true };
     }) => Promise<MemberStub | null>;
   };
@@ -62,7 +62,7 @@ interface FakePrismaSubset {
 
 function fakePrismaWithMember(): FakePrismaSubset {
   return {
-    tenantMember: {
+    member: {
       async findFirst() {
         return { id: "m1", role: "member" };
       },

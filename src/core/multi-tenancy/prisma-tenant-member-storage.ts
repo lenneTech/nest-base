@@ -4,71 +4,68 @@ import type {
   TenantMemberRecord,
   TenantMemberStatus,
   TenantMemberStorage,
-} from "./tenant-member.service.js";
+} from "./tenant-member.types.js";
 
 /**
- * Prisma-backed TenantMemberStorage.
+ * Prisma-backed TenantMemberStorage backed by Better-Auth's `member` table.
  *
- * Persists memberships to the `tenant_members` table declared in
- * `prisma/schema.prisma`. The earlier `InMemoryTenantMemberStorage`
- * is kept around for tests / fake-prisma scenarios; this class is the
- * production default wired up in `tenant-member.module.ts`.
+ * After issue #118 migrated the canonical tenant layer from the hand-rolled
+ * `tenant_members` table to Better-Auth's `organization`/`member` tables,
+ * this adapter now reads/writes `prisma.member` instead of the old
+ * `prisma.tenantMember`. The interface contract (`TenantMemberStorage`) is
+ * unchanged so all callers remain unaffected.
  *
- * Why a separate class instead of inlining into `TenantMemberService`:
- * the service stays storage-agnostic (matches the rest of the core's
- * pure-planner / thin-runner split — every storage adapter passes the
- * same `TenantMemberStorage` interface).
+ * Model mapping:
+ *   - `prisma.tenantMember` → `prisma.member`
+ *   - `tenantId`            → `organizationId`
+ *   - BA's `member` table only stores active members; a found row = ACTIVE.
+ *     Invitations live in the `invitation` table (not managed here).
  */
 export class PrismaTenantMemberStorage implements TenantMemberStorage {
-  constructor(private readonly prisma: Pick<PrismaClient, "tenantMember">) {}
+  constructor(private readonly prisma: Pick<PrismaClient, "member">) {}
 
   async findByUserAndTenant(userId: string, tenantId: string): Promise<TenantMemberRecord | null> {
-    const row = await this.prisma.tenantMember.findFirst({
-      where: { userId, tenantId },
+    const row = await this.prisma.member.findFirst({
+      where: { userId, organizationId: tenantId },
     });
     return row ? toRecord(row) : null;
   }
 
   async listByTenant(tenantId: string): Promise<TenantMemberRecord[]> {
-    const rows = await this.prisma.tenantMember.findMany({
-      where: { tenantId },
+    const rows = await this.prisma.member.findMany({
+      where: { organizationId: tenantId },
       orderBy: { createdAt: "asc" },
     });
     return rows.map(toRecord);
   }
 
   async insert(record: TenantMemberRecord): Promise<TenantMemberRecord> {
-    const row = await this.prisma.tenantMember.create({
+    const row = await this.prisma.member.create({
       data: {
         id: record.id,
         userId: record.userId,
-        tenantId: record.tenantId,
+        organizationId: record.tenantId,
         role: record.role,
-        status: record.status,
-        invitedAt: record.invitedAt ?? null,
-        joinedAt: record.joinedAt ?? null,
+        createdAt: record.joinedAt ?? new Date(),
       },
     });
     return toRecord(row);
   }
 
+  // BA's `member` table has no explicit status column — presence = ACTIVE.
+  // `updateStatus` is a no-op for ACTIVE (nothing to write), and removes
+  // the row for SUSPENDED (the closest equivalent to revoking membership).
   async updateStatus(id: string, status: TenantMemberStatus): Promise<TenantMemberRecord | null> {
     try {
-      const row = await this.prisma.tenantMember.update({
-        where: { id },
-        data: {
-          status,
-          // Stamp `joined_at` on the INVITED → ACTIVE transition. The
-          // service's `activate()` does the same, but we set it here too
-          // so a direct adapter call doesn't need a follow-up write.
-          ...(status === "ACTIVE" ? { joinedAt: new Date() } : {}),
-        },
-      });
-      return toRecord(row);
+      if (status === "SUSPENDED") {
+        // BA has no suspended state — remove the membership row instead.
+        await this.prisma.member.delete({ where: { id } });
+        return null;
+      }
+      // For ACTIVE: the row already exists, return it as-is.
+      const row = await this.prisma.member.findFirst({ where: { id } });
+      return row ? toRecord(row) : null;
     } catch (err) {
-      // Prisma 7 throws P2025 for "record not found"; the contract
-      // says "return null" so the service can map it to its own
-      // not-found error.
       if (isPrismaNotFound(err)) return null;
       throw err;
     }
@@ -76,7 +73,7 @@ export class PrismaTenantMemberStorage implements TenantMemberStorage {
 
   async remove(id: string): Promise<boolean> {
     try {
-      await this.prisma.tenantMember.delete({ where: { id } });
+      await this.prisma.member.delete({ where: { id } });
       return true;
     } catch (err) {
       if (isPrismaNotFound(err)) return false;
@@ -85,25 +82,24 @@ export class PrismaTenantMemberStorage implements TenantMemberStorage {
   }
 }
 
-interface TenantMemberRow {
+interface MemberRow {
   id: string;
   userId: string;
-  tenantId: string;
+  organizationId: string;
   role: string;
-  status: TenantMemberStatus;
-  invitedAt: Date | null;
-  joinedAt: Date | null;
+  createdAt: Date;
 }
 
-function toRecord(row: TenantMemberRow): TenantMemberRecord {
+function toRecord(row: MemberRow): TenantMemberRecord {
   return {
     id: row.id,
     userId: row.userId,
-    tenantId: row.tenantId,
+    // Surface organizationId as tenantId so callers see the same interface.
+    tenantId: row.organizationId,
     role: row.role,
-    status: row.status,
-    ...(row.invitedAt ? { invitedAt: row.invitedAt } : {}),
-    ...(row.joinedAt ? { joinedAt: row.joinedAt } : {}),
+    // BA member rows are always active — presence implies ACTIVE status.
+    status: "ACTIVE",
+    joinedAt: row.createdAt,
   };
 }
 

@@ -22,8 +22,8 @@ import { buildSeedPlan } from "../../src/core/setup/seed-plan.js";
 describe("Story · buildSeedPlan", () => {
   it("returns exactly 1 tenant — Lenne Tech / lenne", () => {
     const plan = buildSeedPlan();
-    expect(plan.tenants).toHaveLength(1);
-    const [tenant] = plan.tenants;
+    expect(plan.organizations).toHaveLength(1);
+    const [tenant] = plan.organizations;
     expect(tenant!.name).toBe("Lenne Tech");
     expect(tenant!.slug).toBe("lenne");
     expect(tenant!.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
@@ -44,7 +44,7 @@ describe("Story · buildSeedPlan", () => {
 
   it("roles are scoped to the single tenant", () => {
     const plan = buildSeedPlan();
-    const tenantId = plan.tenants[0]!.id;
+    const tenantId = plan.organizations[0]!.id;
     for (const role of plan.roles) {
       expect(role.tenantId).toBe(tenantId);
     }
@@ -152,25 +152,27 @@ describe("Story · buildSeedPlan", () => {
     expect(user.password).toBe("user");
   });
 
-  it("each user belongs to the single tenant", () => {
+  it("each user has a ba member row linking them to the organization", () => {
     const plan = buildSeedPlan();
-    const tenantId = plan.tenants[0]!.id;
-    for (const user of plan.users) {
-      expect(user.tenantId).toBe(tenantId);
-    }
+    const orgId = plan.organizations[0]!.id;
+    const memberOrgIds = new Set(plan.baMembers.map((m) => m.organizationId));
+    expect(memberOrgIds.has(orgId)).toBe(true);
+    expect(plan.baMembers).toHaveLength(plan.users.length);
   });
 
-  it("returns exactly 3 tenant members — one per user, all ACTIVE", () => {
+  it("returns exactly 3 BA members — one per user", () => {
     const plan = buildSeedPlan();
-    expect(plan.tenantMembers).toHaveLength(3);
-    for (const member of plan.tenantMembers) {
-      expect(member.status).toBe("ACTIVE");
+    expect(plan.baMembers).toHaveLength(3);
+    // BA member table stores only active members; presence of row = active membership.
+    const userIds = new Set(plan.users.map((u) => u.id));
+    for (const member of plan.baMembers) {
+      expect(userIds.has(member.userId)).toBe(true);
     }
   });
 
   it("each tenant member role matches the user's assigned role name", () => {
     const plan = buildSeedPlan();
-    const memberByUserId = new Map(plan.tenantMembers.map((m) => [m.userId, m]));
+    const memberByUserId = new Map(plan.baMembers.map((m) => [m.userId, m]));
 
     const systemAdminUser = plan.users.find((u) => u.email === "system-admin@lenne.tech")!;
     const adminUser = plan.users.find((u) => u.email === "admin@lenne.tech")!;
@@ -194,7 +196,7 @@ describe("Story · buildSeedPlan", () => {
 
   it("user profiles are scoped to the tenant", () => {
     const plan = buildSeedPlan();
-    const tenantId = plan.tenants[0]!.id;
+    const tenantId = plan.organizations[0]!.id;
     for (const profile of plan.userProfiles) {
       expect(profile.tenantId).toBe(tenantId);
     }
@@ -207,13 +209,13 @@ describe("Story · buildSeedPlan", () => {
   it("ids are time-ordered UUIDs (v7-shaped) and all unique", () => {
     const plan = buildSeedPlan();
     const allIds = [
-      ...plan.tenants.map((t) => t.id),
+      ...plan.organizations.map((t) => t.id),
       ...plan.roles.map((r) => r.id),
       ...plan.policies.map((p) => p.id),
       ...plan.permissions.map((p) => p.id),
       ...plan.users.map((u) => u.id),
       ...plan.userProfiles.map((p) => p.id),
-      ...plan.tenantMembers.map((m) => m.id),
+      ...plan.baMembers.map((m) => m.id),
     ];
     for (const id of allIds) {
       expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
@@ -223,7 +225,7 @@ describe("Story · buildSeedPlan", () => {
 
   it("supports a custom `now` so tests get reproducible timestamps", () => {
     const plan = buildSeedPlan({ now: new Date("2026-01-01T00:00:00Z") });
-    for (const tenant of plan.tenants) {
+    for (const tenant of plan.organizations) {
       expect(tenant.createdAt.toISOString()).toBe("2026-01-01T00:00:00.000Z");
     }
     for (const user of plan.users) {

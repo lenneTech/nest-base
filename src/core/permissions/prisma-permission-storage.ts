@@ -18,9 +18,10 @@ import type { PermissionStorage } from "./permission.service.js";
  *     Permission`, matched by the user's role memberships within the
  *     requested tenant. Authored via the `/admin/*` CRUD UIs.
  *  2. **Implicit "Member" rules** — synthesized in-memory from
- *     `buildMemberRoleRules()` whenever the user has an `ACTIVE`
- *     `TenantMember` row in the requested tenant. Without this layer
- *     a fresh sign-up would 403 on every project-resource route.
+ *     `buildMemberRoleRules()` whenever the user has a `member` row in
+ *     the requested organization (BA stores only active members, so
+ *     presence implies ACTIVE). Without this layer a fresh sign-up
+ *     would 403 on every project-resource route.
  *
  * The synthesized rules are NEVER written to the DB. They live for
  * the duration of the request (and the 60s `PermissionService`
@@ -82,7 +83,7 @@ export interface PrismaPermissionStorageExtras {
   extraUserResources?: readonly (readonly string[])[];
 }
 
-type PrismaSubset = Pick<PrismaClient, "tenantMember" | "permission">;
+type PrismaSubset = Pick<PrismaClient, "member" | "permission">;
 
 interface PermissionRow {
   resource: string;
@@ -117,12 +118,11 @@ export class PrismaPermissionStorage implements PermissionStorage {
   }
 
   async findRulesForUser(userId: string, tenantId: string): Promise<DbPermissionRow[]> {
-    // Anonymous-style guard: a user without an ACTIVE membership in
-    // the requested tenant has no rules at all. Returning `[]` here
-    // is exactly what the previous fake did — the change is that
-    // members DO get rules.
-    const member = await this.prisma.tenantMember.findFirst({
-      where: { userId, tenantId, status: "ACTIVE" },
+    // Anonymous-style guard: a user without a membership row in the
+    // requested organization has no rules at all. BA's `member` table
+    // only stores active members, so a found row implies ACTIVE status.
+    const member = await this.prisma.member.findFirst({
+      where: { userId, organizationId: tenantId },
       select: { id: true, role: true },
     });
     if (!member) return [];

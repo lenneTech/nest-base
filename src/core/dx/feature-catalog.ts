@@ -85,6 +85,25 @@ export const FEATURE_CATALOG: readonly FeatureMeta[] = [
     exposes: ["McpModule", "@McpTool", "@McpResource"],
   },
   {
+    key: "organization",
+    label: "BA Organizations (Tenants)",
+    // Default-on (issue #118): Better-Auth Organizations replace the
+    // legacy Tenant/TenantMember tables as the canonical tenant layer.
+    // The feature flag stays opt-out so projects that migrated can
+    // disable the BA plugin while keeping the legacy tables.
+    description:
+      "Better-Auth Organizations plugin as canonical tenant layer. Enables /api/auth/organization/* routes + session.activeOrganizationId fallback. Default ON — disable via FEATURE_ORGANIZATION_ENABLED=false.",
+    envKey: "FEATURE_ORGANIZATION_ENABLED",
+    category: "infrastructure",
+    exposes: [
+      "/api/auth/organization/create",
+      "/api/auth/organization/invite-member",
+      "/api/auth/organization/set-active",
+      "session.activeOrganizationId",
+      "BA member table",
+    ],
+  },
+  {
     key: "fieldEncryption",
     label: "Field Encryption",
     description: "AES-256-GCM transparent column encryption with KEK rotation.",
