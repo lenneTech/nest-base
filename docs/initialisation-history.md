@@ -158,3 +158,16 @@ For the present-day reference docs, see:
 - [x] CI-Pipeline (`.gitlab-ci.yml`: lint, test, audit, build) — **kein** Container-Build, -Signing oder Deploy auf Template-Ebene
 - [x] Test-Containers-Setup für Integration-Tests (Postgres + RustFS)
 - [x] Dokumentation für Konsumenten + API-Stability-Promise + Webhook-Spec
+
+## Phase 9 — Hub overhaul — Better-Auth Organizations + Hub UI (Issues #83–#88, #87, #118)
+
+- **#83** — Hub promotion: `/dev` → `/` root-mounted SPA with Hub branding and login
+- **#84** — Permission matrix UI: role × subject × action visual editor with tester
+- **#85** — Seed data: three demo users (system-admin, admin, user) and default tenant
+- **#86** — User management UI: list, search, ban/unban, session revocation
+- **#87** — Tenant management UI: CRUD, member management, settings, stats on BA Organizations
+- **#88** — Operator dashboard: status groups, charts, quick-access command palette
+- **#90** — Cmd+K command palette across all Hub pages
+- **#91** — Email Outbox viewer with retry/cancel
+- **#92** — Webhook inspector test-event button
+- **#118** — Better-Auth Organizations migration: replaced custom `Tenant`/`TenantMember` Prisma models with BA `Organization`/`Member`/`Invitation`; `User.tenantId` removed, tenant context resolved from `session.activeOrganizationId`

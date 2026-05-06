@@ -29,7 +29,7 @@ session that costs 30 minutes and still leaves the agent guessing.
 |---|---|
 | "Add an Order resource with CRUD" | `/add-module order` (sequences red-green-six-gates-commit) |
 | "Make webhooks toggleable" / "Add a feature flag" | `/add-feature` |
-| "Add a /dev page that shows X" | `/add-page` |
+| "Add a Hub page that shows X" | `/add-page` |
 | "Run the six gates and tell me what's broken" | `quality-gate-runner` agent |
 | "Why is X structured this way?" | skill: `understanding-the-architecture` |
 | "I keep hitting Y error" | skill: `avoiding-common-pitfalls` |
@@ -50,17 +50,17 @@ reads the skill and does the right thing the first time — no
 "explore the codebase to learn the conventions" session, no drift
 between agent runs.
 
-### 2. The dev hub is observable
+### 2. The Hub is observable
 
 Most software is opaque to an agent — it has to guess whether a
 change worked. Here:
 
-- `/dev` shows live status, coverage, tests, logs, features
-- `/dev/coverage` reads the JSON the agent just wrote with `bun run test:coverage`
-- `/dev/logs` is the in-memory ring buffer of every Pino record
-- `/dev/features` flips toggleable features without restart wrangling
+- `/hub` shows live status, coverage, tests, logs, features
+- `/hub/coverage` reads the JSON the agent just wrote with `bun run test:coverage`
+- `/hub/logs` is the in-memory ring buffer of every Pino record
+- `/hub/features` flips toggleable features without restart wrangling
 
-The agent can `curl /dev/status.json` and know — not guess — whether
+The agent can `curl /api/hub/status.json` and know — not guess — whether
 its change broke the boot.
 
 ### 3. TDD enforces correctness
@@ -227,8 +227,8 @@ to **offer**, the user defaults to **decide**.
 - **Commit each slice yourself if you want to review.** The agent
   will commit by default; you can always `git reset --soft HEAD~1`
   if the rationale isn't right.
-- **Use the dev hub.** `/dev` is the agent's sense-check tool too.
-  After "I'm done" the agent can `curl /dev/status.json` and report
+- **Use the Hub.** `/hub` is the agent's sense-check tool too.
+  After "I'm done" the agent can `curl /api/hub/status.json` and report
   back what's live. You can verify the same way visually.
 - **Trust but verify.** Even with the six gates, a passing test can
   cover the wrong contract. The PR template's "verification" section

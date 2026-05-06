@@ -21,7 +21,7 @@ new route?
   │   catalogue, anonymous webhook with own HMAC verification)
   │     → @Public("<one-sentence reason>")
   └── part of a subsystem-wide pattern (`/health/*`, `/api/auth/*`,
-      `/dev/*`, `/me/*`) where every route in the subtree is public
+      `/hub/*`, `/me/*`) where every route in the subtree is public
         → path-allowlist in `src/core/auth/jwt-middleware.ts`
           (`PUBLIC_PREFIXES` / `PUBLIC_EXACT`) and/or
           `src/core/multi-tenancy/tenant-guard.ts` (`EXEMPT_*`)
@@ -58,7 +58,7 @@ health(): { ok: true } {
 
 ### Migrating an existing ungated route
 
-Two options when an audit (or `/dev/routes`) flags a handler as
+Two options when an audit (or `/hub/routes`) flags a handler as
 `unguarded`:
 
 ```diff

@@ -5,7 +5,7 @@ activation. Every conditional module reads `FeaturesSchema.parse(...)`
 — never hard-code `if (process.env.FOO_ENABLED === 'true')`.
 
 This skill walks through every place a new toggleable feature must be
-wired. The end state: the feature appears on **/dev/features** with
+wired. The end state: the feature appears on **/hub/features** with
 description + on/off toggle, the user can flip it from the UI, the
 server respawns, the new providers light up.
 
@@ -79,7 +79,7 @@ const SECTION_TO_KEY: Record<string, FeatureKey> = {
 
 ### 3. Feature catalog — `src/core/dx/feature-catalog.ts`
 
-This drives the `/dev/features` UI. **Without a catalog entry, the
+This drives the `/hub/features` UI. **Without a catalog entry, the
 toggle does not appear in the dashboard.**
 
 ```typescript
@@ -247,7 +247,7 @@ All six must pass before commit.
 3. Flip the lime toggle → page shows "Restarting server…" overlay
 4. Server respawns (`scripts/dev.ts` watches `.env`), page reloads
 5. Card now shows ON chip, services tile appears (if applicable)
-6. `/dev/diagnostics` reflects the new flag in the active-features matrix
+6. `/hub/diagnostics` reflects the new flag in the active-features matrix
 
 ---
 

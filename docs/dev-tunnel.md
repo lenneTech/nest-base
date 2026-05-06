@@ -46,10 +46,10 @@ Tunnel
   Public URL          https://example-cute-name-123.trycloudflare.com
 ```
 
-The URL is also visible at `GET /dev/tunnel.json`:
+The URL is also visible at `GET /hub/tunnel.json`:
 
 ```bash
-curl http://localhost:3001/dev/tunnel.json
+curl http://localhost:3001/hub/tunnel.json
 # { "active": true, "url": "https://example-...", "startedAt": "2026-..." }
 ```
 
@@ -128,7 +128,7 @@ must be wired in your Slack receiver before adding the URL.
   imported production data, kill the tunnel first.
 - **Authentication still applies.** All Nest guards / auth middleware
   run unchanged — the tunnel just routes traffic to your `localhost`.
-- **The tunnel is dev-only**. The `/dev/tunnel.json` endpoint and the
+- **The tunnel is dev-only**. The `/hub/tunnel.json` endpoint and the
   banner block both 404 outside `NODE_ENV=development`, so a stale
   state file in production cannot leak the URL.
 
@@ -140,4 +140,4 @@ must be wired in your Slack receiver before adding the URL.
 | 30s warning, no URL                    | cloudflared edge unreachable — check `cloudflared --version`, retry, or use a different network |
 | Tunnel up, webhook 404                 | wrong path on the URL — your handler is at `/webhooks/<provider>`, not `/`                    |
 | URL changes after each restart         | quick-tunnels are ephemeral by design; use a named tunnel for stability                       |
-| Stale URL after Ctrl-C in `/dev/tunnel.json` | the runner clears state on shutdown — if you see a stale URL, check that `bun run dev` exited cleanly |
+| Stale URL after Ctrl-C in `/hub/tunnel.json` | the runner clears state on shutdown — if you see a stale URL, check that `bun run dev` exited cleanly |

@@ -14,7 +14,7 @@ the project's TDD discipline.
 
 The repo uses `FeaturesSchema` (Zod) as the single source of truth for
 runtime module activation. Every conditional module reads it. The
-**dev hub** at `/dev/features` renders a card per feature, driven by
+**Hub** at `/hub/features` renders a card per feature, driven by
 `src/core/dx/feature-catalog.ts`. Toggling a card writes to `.env`,
 the dev runner respawns, the feature lights up.
 
@@ -107,10 +107,10 @@ without strong reason — those are excluded already.
 State to the user that the implementation is ready and ask them to
 verify in the dev hub:
 
-> Wired the `<key>` flag. Open `/dev/features`, find it under
+> Wired the `<key>` flag. Open `/hub/features`, find it under
 > `<category>`. Toggle the switch — server should respawn within ~5
 > seconds and the page reloads with the ON state. Confirm
-> `/dev/diagnostics` lists the new flag in the active-features matrix.
+> `/hub/diagnostics` lists the new flag in the active-features matrix.
 
 ### Phase 6 — commit
 

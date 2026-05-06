@@ -88,7 +88,7 @@ SPA (issue #19):
   and ID-search.
 - **Detail drawer** — Request / Response / Curl tabs with
   `X-Webhook-*` header highlighting, a CSRF-protected re-deliver
-  action, a copy-curl button, and a deep link to `/dev/traces` when a
+  action, a copy-curl button, and a deep link to `/hub/traces` when a
   `traceId` is recorded.
 
 JSON sidecars (all gated to `NODE_ENV=development`):

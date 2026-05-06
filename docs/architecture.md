@@ -362,9 +362,9 @@ in any environment because frontends + SDK generators read them.
 | Layout shell | `src/core/dx/clients/layout/AdminShell.tsx` + `nav.ts` + `icons.tsx` | Sidebar + header + SVG icons + active-state highlight |
 | Pages | `src/core/dx/clients/pages/` | One component per route: `DevHubLandingPage` (`/`), `FeaturesPage`, `CoveragePage`, `TestsPage`, `DiagnosticsPage`, `LogsPage`, `TracesPage`, `QueriesPage`, `RoutesPage`, `ErdPage`, `EmailPreviewPage`, `PostgrestParsePage`, `ComponentShowcasePage`, `PermissionTesterPage`, `WebhookInspectorPage`, `RealtimeInspectorPage`, `AuditBrowserPage`, `SearchTesterPage`, `ErrorsPage`, `OpenApiPage`, `UsersAdminPage`, `TenantsAdminPage`, `PermissionsAdminPage`, `EmailOutboxPage` — each lazy-loaded via `React.lazy` |
 | UI primitives | `src/core/dx/clients/components/ui/` | **shadcn/ui** components vendored under this tree (badge, button, card, checkbox, dialog, dropdown-menu, input, label, progress, radio-group, select, separator, sheet, sonner, switch, table, tabs, textarea, tooltip), built on **Radix UI**. To add a primitive: copy the canonical source from <https://ui.shadcn.com/docs/components>, retarget imports to `../../lib/utils.js`, append the `.js` suffix to every relative import. |
-| Custom components | `src/core/dx/clients/components/` | `JsonViewer` (reused by `/errors`, `/api/openapi`, `/dev/postgrest-parse`), `PageState` (Loading / Error / Empty / StatTile helpers), `Sparkline` (Webhook-Inspector trends) |
+| Custom components | `src/core/dx/clients/components/` | `JsonViewer` (reused by `/errors`, `/api/openapi`, `/hub/postgrest-parse`), `PageState` (Loading / Error / Empty / StatTile helpers), `Sparkline` (Webhook-Inspector trends) |
 | Icons | `src/core/dx/clients/layout/icons.tsx` | Sidebar + page icons via **lucide-react** — single import, tree-shaken to ~3 KB gzipped, consistent stroke-width 1.75 |
-| Toasts | `sonner` | Notification primitive mounted in `main.tsx` + the `<Toaster>` component, used for save / delete confirmations across `/dev/*` |
+| Toasts | `sonner` | Notification primitive mounted in `main.tsx` + the `<Toaster>` component, used for save / delete confirmations across `/hub/*` and `/admin/*` |
 | Styling stack | `src/core/dx/clients/styles/globals.css` | **Tailwind CSS 4** with the CSS-first `@theme` config — `@import "tailwindcss"` + `@theme inline { --color-background: var(--bg); … }`. Built via `bun-plugin-tailwind`, hot-reloaded by the dev-portal watcher. |
 | Design tokens | `src/core/dx/clients/styles/tokens.css` | `:root` custom properties (electric-lime accent, near-black surfaces) — declared once, overridden at runtime by `brand.json` (Issue #5), aliased into Tailwind utilities through the `@theme` bridge above |
 | Build script | `scripts/build-dev-portal.ts` | `Bun.build({ target: "browser", splitting: true, minify: true })` → `dist/dev-portal/` |
@@ -390,10 +390,10 @@ in any environment because frontends + SDK generators read them.
 - `bun run dev` runs an awaited initial portal build *before* the API
   child spawns, then starts `bun run build:dev-portal --watch` for
   incremental rebuilds (~80 ms warm). This eliminates the startup
-  race where a request to `/dev/static/main.js` could hit a missing
+  race where a request to `/hub/static/main.js` could hit a missing
   bundle.
 - `bun run setup` builds the SPA once after `bun install` so
-  `/dev/static/main.js` exists before the first dev start.
+  `/hub/static/main.js` exists before the first dev start.
 
 ### Coverage
 
@@ -416,7 +416,7 @@ the trust boundary (server → browser).
   through the `@theme` bridge in `styles/globals.css` to the
   brand-aware tokens in `styles/tokens.css`. The full inventory of
   available primitives + variants lives in
-  `pages/ComponentShowcasePage.tsx` (`/dev/components`).
+  `pages/ComponentShowcasePage.tsx` (`/hub/components`).
 - **No `process.env.*` / Node imports.** This tree is browser-only;
   `tsconfig.client.json` excludes Node types so this fails at compile
   time.
