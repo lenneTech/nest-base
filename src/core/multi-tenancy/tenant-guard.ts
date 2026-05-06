@@ -6,7 +6,23 @@
  * present and parseable as a UUID.
  *
  * The actual NestJS Guard wraps this classifier in a future slice.
+ *
+ * Issue #101: the Better-Auth prefix is derived from
+ * `BETTER_AUTH_BASE_PATH` at runtime so a custom mount keeps the
+ * tenant-header exemption without additional code changes.
  */
+
+import { BETTER_AUTH_DEFAULT_MOUNT_PATH } from "../auth/better-auth-config.js";
+
+/**
+ * Resolve the Better-Auth prefix that should be exempt from the
+ * tenant-header requirement. Reads `BETTER_AUTH_BASE_PATH` at call
+ * time so tests that mutate the env variable get the correct value.
+ */
+function resolveAuthExemptPrefix(): string {
+  const raw = process.env.BETTER_AUTH_BASE_PATH ?? BETTER_AUTH_DEFAULT_MOUNT_PATH;
+  return raw.endsWith("/") ? raw : `${raw}/`;
+}
 
 // `/api-docs-json` is the deprecated legacy alias for
 // `/api/openapi.json` — exempt from the tenant header because SDK
@@ -31,9 +47,8 @@ const EXEMPT_EXACT = new Set([
 // not on a specific tenant. `/api/tenants` is the self-service tenant CRUD
 // surface — a signed-up user creates their first tenant here, so the
 // header cannot be required at the bootstrap step.
-const EXEMPT_PREFIXES = [
+const STATIC_EXEMPT_PREFIXES = [
   "/health/",
-  "/api/auth/",
   "/docs/",
   "/api/hub/",
   "/api/admin/",
@@ -58,7 +73,11 @@ export function isTenantExempt(path: string): boolean {
   const cut = Math.min(...[queryAt, hashAt].filter((i) => i >= 0), path.length);
   const pure = path.slice(0, cut);
   if (EXEMPT_EXACT.has(pure)) return true;
-  for (const prefix of EXEMPT_PREFIXES) {
+  // Derive the auth prefix dynamically so BETTER_AUTH_BASE_PATH is
+  // honoured without requiring a restart-triggered module reload.
+  const authPrefix = resolveAuthExemptPrefix();
+  if (pure.startsWith(authPrefix) || pure === authPrefix.slice(0, -1)) return true;
+  for (const prefix of STATIC_EXEMPT_PREFIXES) {
     if (pure.startsWith(prefix) || pure === prefix.slice(0, -1)) return true;
   }
   return false;

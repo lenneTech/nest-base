@@ -164,6 +164,13 @@ const MIN_SECRET_LEN = 32;
               }
             },
           },
+          // Allow operators to mount Better-Auth under a custom prefix
+          // (issue #101). When unset, `resolveBetterAuthMountPath()`
+          // falls back to the `/api/auth` default — back-compat is
+          // preserved for existing deployments.
+          ...(process.env.BETTER_AUTH_BASE_PATH
+            ? { basePath: process.env.BETTER_AUTH_BASE_PATH }
+            : {}),
           // `prisma` is the global PrismaService — passing it switches
           // Better-Auth from the in-memory storage (which silently
           // dropped registrations on every restart) to the real
