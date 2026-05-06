@@ -34,10 +34,7 @@ export function planWebhookTestEvent(input: WebhookTestEventInput): WebhookTestE
     return { ok: false, errorCode: "ENDPOINT_DISABLED" };
   }
 
-  if (
-    input.knownEventTypes.length === 0 ||
-    !input.knownEventTypes.includes(input.eventType)
-  ) {
+  if (input.knownEventTypes.length === 0 || !input.knownEventTypes.includes(input.eventType)) {
     return { ok: false, errorCode: "UNKNOWN_EVENT_TYPE" };
   }
 

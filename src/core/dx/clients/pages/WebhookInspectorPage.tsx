@@ -516,11 +516,7 @@ function DetailDrawer({
         <PageEmpty>Select a delivery to view its details.</PageEmpty>
         {endpointId ? (
           <>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setTestDialogOpen(true)}
-            >
+            <Button size="sm" variant="outline" onClick={() => setTestDialogOpen(true)}>
               Testevent senden
             </Button>
             <TestEventDialog
@@ -581,11 +577,7 @@ function DetailDrawer({
           <Button size="sm" variant="outline" onClick={() => copyCurl(curl)}>
             {copied ? "Copied!" : "Copy curl"}
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setTestDialogOpen(true)}
-          >
+          <Button size="sm" variant="outline" onClick={() => setTestDialogOpen(true)}>
             Testevent senden
           </Button>
         </div>
@@ -662,14 +654,11 @@ function TestEventDialog({
       } catch {
         throw new Error("Payload ist kein gültiges JSON");
       }
-      const res = await fetch(
-        `/api/admin/webhooks/${encodeURIComponent(endpointId)}/test`,
-        {
-          method: "POST",
-          headers: { "content-type": "application/json", accept: "application/json" },
-          body: JSON.stringify({ eventType: selectedEventType, payload }),
-        },
-      );
+      const res = await fetch(`/api/admin/webhooks/${encodeURIComponent(endpointId)}/test`, {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json" },
+        body: JSON.stringify({ eventType: selectedEventType, payload }),
+      });
       if (!res.ok) {
         const text = await res.text().catch(() => String(res.status));
         throw new Error(`Fehler ${res.status}: ${text}`);
@@ -696,7 +685,12 @@ function TestEventDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) handleClose();
+      }}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Testevent senden</DialogTitle>
@@ -704,10 +698,7 @@ function TestEventDialog({
         <div className="flex flex-col gap-4 py-2">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="test-event-type">Event-Typ</Label>
-            <Select
-              value={selectedEventType}
-              onValueChange={setSelectedEventType}
-            >
+            <Select value={selectedEventType} onValueChange={setSelectedEventType}>
               <SelectTrigger id="test-event-type">
                 <SelectValue placeholder="Event-Typ wählen" />
               </SelectTrigger>
