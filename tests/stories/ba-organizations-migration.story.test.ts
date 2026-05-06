@@ -127,7 +127,6 @@ describe("Story · BA Organizations Migration", () => {
     function makeAuthenticatedContext(opts: {
       headerTenantId?: string;
       activeOrganizationId?: string;
-      userTenantId?: string;
       path?: string;
     }): { ctx: ExecutionContext; fakePrisma: object } {
       const headers: Record<string, string> = {};
@@ -137,7 +136,6 @@ describe("Story · BA Organizations Migration", () => {
 
       const user = {
         id: "00000000-0000-7000-a000-000000000001",
-        tenantId: opts.userTenantId ?? null,
         activeOrganizationId: opts.activeOrganizationId ?? null,
       };
 
@@ -148,12 +146,12 @@ describe("Story · BA Organizations Migration", () => {
         user,
       };
 
-      // Fake Prisma that returns a member when the tenantId matches the header
+      // Fake Prisma that returns a member when the organizationId matches the header
       const fakePrisma = {
-        tenantMember: {
-          findFirst: async ({ where }: { where: { tenantId: string } }) => {
-            // Simulate ACTIVE membership for the header tenant id
-            if (where.tenantId === opts.headerTenantId) {
+        member: {
+          findFirst: async ({ where }: { where: { organizationId: string } }) => {
+            // Simulate active membership for the header organization id
+            if (where.organizationId === opts.headerTenantId) {
               return { id: "member-1" };
             }
             return null;
@@ -180,7 +178,6 @@ describe("Story · BA Organizations Migration", () => {
       const { ctx, fakePrisma } = makeAuthenticatedContext({
         headerTenantId: headerTenant,
         activeOrganizationId: sessionTenant,
-        userTenantId: headerTenant, // matches header so no DB lookup needed
       });
 
       const interceptor = new TenantInterceptor(fakePrisma as never);
@@ -201,7 +198,6 @@ describe("Story · BA Organizations Migration", () => {
 
       const { ctx, fakePrisma } = makeAuthenticatedContext({
         activeOrganizationId: sessionTenant,
-        userTenantId: null,
       });
 
       const interceptor = new TenantInterceptor(fakePrisma as never);
@@ -216,11 +212,8 @@ describe("Story · BA Organizations Migration", () => {
       expect(observed).toBe(sessionTenant);
     });
 
-    it("falls back to user.tenantId when no header and no activeOrganizationId", async () => {
-      const userTenant = "00000000-0000-7000-a000-000000000030";
-
+    it("returns null when no header and no activeOrganizationId", async () => {
       const { ctx, fakePrisma } = makeAuthenticatedContext({
-        userTenantId: userTenant,
         activeOrganizationId: null,
       });
 
@@ -233,38 +226,30 @@ describe("Story · BA Organizations Migration", () => {
         },
       });
       await lastValueFrom(await Promise.resolve(result$));
-      expect(observed).toBe(userTenant);
+      // No header + no activeOrganizationId → tenantId is null/undefined
+      expect(observed == null).toBe(true);
     });
   });
 
   // ---------- Test 4: seed plan includes BA org + member rows ----------
 
   describe("Seed plan", () => {
-    it("includes BA organization rows with the same ids as tenants", () => {
+    it("includes BA organization rows", () => {
       const plan = buildSeedPlan();
       expect(plan.organizations).toBeDefined();
       expect(plan.organizations.length).toBeGreaterThanOrEqual(1);
-      // Every org id must match a tenant id
+      // Every org must have required fields
       for (const org of plan.organizations) {
-        const matching = plan.tenants.find((t) => t.id === org.id);
-        expect(matching, `org ${org.id} has no matching tenant`).toBeDefined();
-        expect(org.name).toBe(matching!.name);
-        expect(org.slug).toBe(matching!.slug);
+        expect(org.id).toBeTruthy();
+        expect(org.name).toBeTruthy();
+        expect(org.slug).toBeTruthy();
       }
     });
 
-    it("includes BA member rows for each seeded TenantMember", () => {
+    it("includes BA member rows for each seeded user", () => {
       const plan = buildSeedPlan();
       expect(plan.baMembers).toBeDefined();
-      expect(plan.baMembers.length).toBe(plan.tenantMembers.length);
-      // Every BA member must mirror the corresponding TenantMember
-      for (const baMember of plan.baMembers) {
-        const matching = plan.tenantMembers.find((m) => m.id === baMember.id);
-        expect(matching, `baMember ${baMember.id} has no matching tenantMember`).toBeDefined();
-        expect(baMember.organizationId).toBe(matching!.tenantId);
-        expect(baMember.userId).toBe(matching!.userId);
-        expect(baMember.role).toBe(matching!.role);
-      }
+      expect(plan.baMembers.length).toBe(plan.users.length);
     });
 
     it("BA member organizationId references a valid organization id", () => {
@@ -281,6 +266,12 @@ describe("Story · BA Organizations Migration", () => {
       for (const baMember of plan.baMembers) {
         expect(userIds.has(baMember.userId)).toBe(true);
       }
+    });
+
+    it("does not include legacy tenants or tenantMembers arrays", () => {
+      const plan = buildSeedPlan();
+      expect((plan as Record<string, unknown>)["tenants"]).toBeUndefined();
+      expect((plan as Record<string, unknown>)["tenantMembers"]).toBeUndefined();
     });
   });
 });

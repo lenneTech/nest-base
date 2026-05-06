@@ -6,13 +6,17 @@ import { createHash } from "node:crypto";
  * Produces the demo data shape the seed runner upserts via Prisma.
  * The shape gives every downstream slice (permission tester, story
  * tests, manual playing-around) a realistic starting point:
- *   - 1 tenant: "Lenne Tech" (slug: "lenne")
- *   - 3 roles: "System Admin" (bypass), "Admin" (manage:tenant), "User" (read:tenant)
+ *   - 1 BA Organization: "Lenne Tech" (slug: "lenne")
+ *   - 3 roles: "System Admin" (bypass), "Admin" (manage:org), "User" (read:org)
  *   - 1 policy per role with appropriate permission rows
  *   - 3 users: system-admin@lenne.tech / admin@lenne.tech / user@lenne.tech
  *     (password = email local-part, hashed by the runner via Better-Auth's scrypt)
  *   - 1 UserProfile per user with deterministic placeholder data
- *   - 1 TenantMember per user (status=ACTIVE)
+ *   - 1 BA Member per user (active, via BA organization table)
+ *
+ * After issue #118 the canonical tenant layer is Better-Auth's
+ * `organization`/`member` tables. The legacy `tenants` / `tenant_members`
+ * tables have been dropped (migration 20260508120000_drop_old_tenant_tables).
  *
  * Determinism: every id is derived from a stable seed string via
  * `seededUuidV7()` so the same input → the same output, every run.
@@ -21,13 +25,6 @@ import { createHash } from "node:crypto";
  */
 
 // ---------- Public interfaces ----------
-
-export interface SeedTenant {
-  id: string;
-  name: string;
-  slug: string;
-  createdAt: Date;
-}
 
 export interface SeedRole {
   id: string;
@@ -71,7 +68,6 @@ export interface SeedUser {
   emailVerified: boolean;
   /** Plain-text password. The runner hashes it before writing to the DB. */
   password: string;
-  tenantId: string;
   createdAt: Date;
 }
 
@@ -83,23 +79,11 @@ export interface SeedUserProfile {
   createdAt: Date;
 }
 
-export interface SeedTenantMember {
-  id: string;
-  userId: string;
-  tenantId: string;
-  /** Matches the role name so PrismaPermissionStorage can look it up. */
-  role: string;
-  status: "ACTIVE";
-  joinedAt: Date;
-  createdAt: Date;
-}
-
 /**
  * BA Organization row (issue #118).
  *
- * Mirrors the SeedTenant with the same id (cast to TEXT) so the
- * RLS/CASL tenantId boundary remains intact after the migration to
- * Better-Auth Organizations as the canonical tenant layer.
+ * The canonical tenant representation. The legacy `Tenant` model has
+ * been removed (migration 20260508120000_drop_old_tenant_tables).
  */
 export interface SeedOrganization {
   id: string;
@@ -111,8 +95,8 @@ export interface SeedOrganization {
 /**
  * BA Member row (issue #118).
  *
- * Mirrors each SeedTenantMember into BA's `member` table using the
- * same id and preserving the tenant → organization_id mapping.
+ * The canonical membership representation. The legacy `TenantMember`
+ * model has been removed (migration 20260508120000_drop_old_tenant_tables).
  */
 export interface SeedBaMember {
   id: string;
@@ -123,17 +107,15 @@ export interface SeedBaMember {
 }
 
 export interface SeedPlan {
-  tenants: SeedTenant[];
   roles: SeedRole[];
   policies: SeedPolicy[];
   rolePolicies: SeedRolePolicy[];
   permissions: SeedPermission[];
   users: SeedUser[];
   userProfiles: SeedUserProfile[];
-  tenantMembers: SeedTenantMember[];
-  /** BA organization rows — same ids as tenants (issue #118). */
+  /** BA organization rows — canonical tenant layer (issue #118). */
   organizations: SeedOrganization[];
-  /** BA member rows — mirrors tenantMembers into the BA member table (issue #118). */
+  /** BA member rows — canonical membership layer (issue #118). */
   baMembers: SeedBaMember[];
 }
 
@@ -160,11 +142,9 @@ const PROJECT_RESOURCES = ["Example", "UserProfile", "File", "Folder", "Address"
 export function buildSeedPlan(input: SeedPlanInput = {}): SeedPlan {
   const now = input.now ?? new Date("2026-01-01T00:00:00Z");
 
-  // Tenant
+  // Stable tenant id derived from the slug — same algorithm as before
+  // so existing DB rows keep the same ids across re-seeds.
   const tenantId = seededUuidV7(`tenant:${TENANT_SLUG}`, now);
-  const tenants: SeedTenant[] = [
-    { id: tenantId, name: TENANT_NAME, slug: TENANT_SLUG, createdAt: now },
-  ];
 
   // Roles
   const systemAdminRole: SeedRole = {
@@ -299,7 +279,6 @@ export function buildSeedPlan(input: SeedPlanInput = {}): SeedPlan {
       .join(" "),
     emailVerified: true,
     password: localPart,
-    tenantId,
     createdAt: now,
   }));
 
@@ -312,47 +291,27 @@ export function buildSeedPlan(input: SeedPlanInput = {}): SeedPlan {
     createdAt: now,
   }));
 
-  // TenantMembers
-  const tenantMembers: SeedTenantMember[] = userSpecs.map(({ localPart, role }, i) => ({
+  // BA Organization — canonical tenant layer (issue #118).
+  const organizations: SeedOrganization[] = [
+    { id: tenantId, name: TENANT_NAME, slug: TENANT_SLUG, createdAt: now },
+  ];
+
+  // BA Member rows — one active member per user.
+  const baMembers: SeedBaMember[] = userSpecs.map(({ localPart, role }, i) => ({
     id: seededUuidV7(`member:${TENANT_SLUG}:${localPart}`, now),
+    organizationId: tenantId,
     userId: users[i]!.id,
-    tenantId,
     role,
-    status: "ACTIVE",
-    joinedAt: now,
     createdAt: now,
   }));
 
-  // BA Organization rows — same ids as Tenant rows (issue #118).
-  // The seed runner upserts these after the Tenant rows so the FK
-  // from `member.organization_id` is already satisfied.
-  const organizations: SeedOrganization[] = tenants.map((t) => ({
-    id: t.id,
-    name: t.name,
-    slug: t.slug,
-    createdAt: t.createdAt,
-  }));
-
-  // BA Member rows — mirrors TenantMember into the BA `member` table.
-  // Uses the same ids so the data-migration SQL's ON CONFLICT DO
-  // NOTHING is also idempotent against the seed data.
-  const baMembers: SeedBaMember[] = tenantMembers.map((m) => ({
-    id: m.id,
-    organizationId: m.tenantId,
-    userId: m.userId,
-    role: m.role,
-    createdAt: m.createdAt,
-  }));
-
   return {
-    tenants,
     roles,
     policies,
     rolePolicies,
     permissions,
     users,
     userProfiles,
-    tenantMembers,
     organizations,
     baMembers,
   };

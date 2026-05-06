@@ -64,7 +64,6 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
-    tenantId: string | null;
     /**
      * Active organization id set by the Better-Auth organization plugin
      * when the client called `POST /api/auth/organization/set-active`.
@@ -79,7 +78,7 @@ interface AuthenticatedRequest extends Request {
 
 export async function resolveRequestTenantId(
   req: AuthenticatedRequest,
-  prisma: Pick<PrismaService, "tenantMember">,
+  prisma: Pick<PrismaService, "member">,
 ): Promise<string | null> {
   const headerValue = req.headers?.[TENANT_HEADER];
   const raw = Array.isArray(headerValue) ? headerValue[0] : headerValue;
@@ -104,17 +103,13 @@ export async function resolveRequestTenantId(
       // for system / health / docs routes.)
       return null;
     }
-    // Short-circuit when the header just echoes the user's primary
-    // tenant. By the `createTenantWithMember` invariant (PR #63 part
-    // 1), a non-null `User.tenantId` implies an ACTIVE `TenantMember`
-    // row for the same tenant — so the lookup would round-trip just
-    // to confirm what we already know. The breach is the
-    // header ≠ session-tenant case; this branch is the no-op case.
-    if (req.user?.tenantId && req.user.tenantId === tenantId) {
-      return tenantId;
-    }
-    const member = await prisma.tenantMember.findFirst({
-      where: { userId, tenantId, status: "ACTIVE" },
+    // Validate membership via BA's `member` table. A row in `member`
+    // implies ACTIVE membership (BA stores only active members; invitations
+    // live in the `invitation` table). The breach is the
+    // header ≠ session-org case; this lookup closes the cross-tenant
+    // write vector.
+    const member = await prisma.member.findFirst({
+      where: { userId, organizationId: tenantId },
       select: { id: true },
     });
     if (!member) {
@@ -131,13 +126,12 @@ export async function resolveRequestTenantId(
     return tenantId;
   }
 
-  // No header → fall back to the session's active organization id first
-  // (issue #103). When the Better-Auth organization plugin is enabled,
-  // the client can call POST /api/auth/organization/set-active once and
-  // then omit the x-tenant-id header on subsequent requests; the active
-  // org id travels in the session and is projected here by
-  // BetterAuthSessionMiddleware. If that is absent, fall back to the
-  // user's primary tenant id. Either value may be null (anonymous route,
-  // or user not yet linked to a tenant); callers decide what null means.
-  return req.user?.activeOrganizationId ?? req.user?.tenantId ?? null;
+  // No header → fall back to the session's active organization id.
+  // When the Better-Auth organization plugin is enabled, the client can
+  // call POST /api/auth/organization/set-active once and then omit the
+  // x-tenant-id header on subsequent requests; the active org id travels
+  // in the session and is projected here by BetterAuthSessionMiddleware.
+  // Either value may be null (anonymous route, or user not yet linked
+  // to an org); callers decide what null means.
+  return req.user?.activeOrganizationId ?? null;
 }

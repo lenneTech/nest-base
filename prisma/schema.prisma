@@ -24,47 +24,6 @@ model HealthPing {
 
 // ---------- Domain v1 ----------
 
-model Tenant {
-  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-  name      String   @unique
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  users            User[]
-  roles            Role[]
-  members          TenantMember[]
-  fileBlobs        FileBlob[]
-  folders          Folder[]
-  files            File[]
-  webhookEndpoints WebhookEndpoint[]
-
-  @@map("tenants")
-}
-
-enum TenantMemberStatus {
-  ACTIVE
-  INVITED
-  SUSPENDED
-}
-
-model TenantMember {
-  id        String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-  userId    String             @map("user_id") @db.Uuid
-  tenantId  String             @map("tenant_id") @db.Uuid
-  role      String
-  status    TenantMemberStatus @default(INVITED)
-  invitedAt DateTime?          @map("invited_at")
-  joinedAt  DateTime?          @map("joined_at")
-  createdAt DateTime           @default(now()) @map("created_at")
-  updatedAt DateTime           @updatedAt @map("updated_at")
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, tenantId])
-  @@map("tenant_members")
-}
-
 // `User` is owned by Better-Auth (per the project rule "Reuse
 // Better-Auth's user. Don't shadow it"). The Prisma adapter
 // (`better-auth/adapters/prisma`) reads/writes this model directly.
@@ -73,13 +32,11 @@ model TenantMember {
 // createdAt, updatedAt (all the model below). Optional: image,
 // twoFactorEnabled.
 //
-// Project-owned extension fields:
-//  - `tenantId` — nullable so a Better-Auth signup can create a user
-//    before the tenant pre-pick happens. The TenantMember join-table
-//    is the canonical source of truth for "which tenants does this
-//    user belong to"; `tenantId` here is the user's *primary* tenant
-//    (set on first membership-activate or by the system-setup admin
-//    bootstrap).
+// Tenant context is now resolved from `session.activeOrganizationId`
+// via the interceptor (issue #118). The legacy `tenantId` column on
+// User and the hand-rolled `TenantMember` join-table have been removed
+// — Better-Auth's `Organization` / `Member` tables are the canonical
+// source of truth.
 model User {
   id               String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   email            String   @unique
@@ -95,21 +52,18 @@ model User {
   emailVerified    Boolean  @default(false) @map("email_verified")
   image            String?
   twoFactorEnabled Boolean? @map("two_factor_enabled")
-  tenantId         String?  @map("tenant_id") @db.Uuid
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  tenant           Tenant?          @relation(fields: [tenantId], references: [id], onDelete: SetNull)
-  memberships      TenantMember[]
-  apiKeys          ApiKey[]
-  sessions         Session[]
-  accounts         Account[]
-  twoFactors       TwoFactor[]
-  passkeys         Passkey[]
-  pendingErasures  PendingErasure[]
+  apiKeys         ApiKey[]
+  sessions        Session[]
+  accounts        Account[]
+  twoFactors      TwoFactor[]
+  passkeys        Passkey[]
+  pendingErasures PendingErasure[]
   // Better-Auth organization plugin (issue #118)
-  orgMemberships   Member[]
-  sentInvitations  Invitation[]     @relation("InviterUser")
+  orgMemberships  Member[]
+  sentInvitations Invitation[] @relation("InviterUser")
 
   @@map("users")
 }
@@ -313,22 +267,19 @@ model FileBlob {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
   @@unique([tenantId, key])
   @@map("file_blobs")
 }
 
 model Folder {
-  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-  tenantId  String   @map("tenant_id") @db.Uuid
-  parentId  String?  @map("parent_id") @db.Uuid
+  id        String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  tenantId  String    @map("tenant_id") @db.Uuid
+  parentId  String?   @map("parent_id") @db.Uuid
   name      String
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   parent   Folder?  @relation("FolderTree", fields: [parentId], references: [id])
   children Folder[] @relation("FolderTree")
   files    File[]
@@ -357,7 +308,6 @@ model File {
   updatedAt     DateTime       @updatedAt @map("updated_at")
   deletedAt     DateTime?      @map("deleted_at")
 
-  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   folder Folder? @relation(fields: [folderId], references: [id])
 
   @@map("files")
@@ -385,7 +335,6 @@ model WebhookEndpoint {
   createdAt           DateTime              @default(now()) @map("created_at")
   updatedAt           DateTime              @updatedAt @map("updated_at")
 
-  tenant     Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   deliveries WebhookDelivery[]
 
   @@map("webhook_endpoints")
@@ -469,7 +418,6 @@ model Role {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  tenant   Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   parent   Role?        @relation("RoleHierarchy", fields: [parentId], references: [id])
   children Role[]       @relation("RoleHierarchy")
   policies RolePolicy[]

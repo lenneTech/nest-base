@@ -1,9 +1,5 @@
 import { uuidV7 } from "../uuid/uuid-v7.js";
-import {
-  TenantMemberService,
-  type TenantMemberRecord,
-  type TenantMemberStatus,
-} from "./tenant-member.service.js";
+import type { TenantMemberRecord, TenantMemberStatus } from "./tenant-member.types.js";
 
 /**
  * Tenant self-service.
@@ -89,19 +85,7 @@ export interface CreateTenantInput {
 const OWNER_ROLE = "owner";
 
 export class TenantSelfServiceService {
-  // Kept as a constructor-injected dependency (even though the storage
-  // adapter handles the atomic insert today) so future flows — e.g.
-  // linking an already-signed-up user as the second member of a new
-  // tenant — have access to the membership domain rules without
-  // reaching for a second injection. The unused-private-property lint
-  // is silenced via the leading underscore.
-  constructor(
-    private readonly storage: TenantSelfServiceStorage,
-    _members: TenantMemberService,
-  ) {
-    // Discard reference; the parameter exists for the DI contract above.
-    void _members;
-  }
+  constructor(private readonly storage: TenantSelfServiceStorage) {}
 
   async createForUser(
     input: CreateTenantInput,
@@ -130,10 +114,8 @@ export class TenantSelfServiceService {
       userId: input.ownerId,
       tenantId: tenant.id,
       role: OWNER_ROLE,
+      // BA member rows are always active — no invite flow for self-service.
       status: "ACTIVE",
-      // Stamp `joinedAt` so the row matches what `TenantMemberService.activate()`
-      // would have produced via the regular invite flow. No `invitedAt` —
-      // self-service skips the invite step.
       joinedAt: now,
     };
 

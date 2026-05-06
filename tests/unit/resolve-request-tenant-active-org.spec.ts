@@ -17,74 +17,69 @@ describe("resolveRequestTenantId · activeOrganizationId fallback (issue #103)",
   const TENANT_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
   const TENANT_B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
+  // After issue #118, User.tenantId is dropped. The resolver uses
+  // session.activeOrganizationId as the sole no-header fallback.
   type Req = {
-    user?: { id: string; tenantId: string | null; activeOrganizationId?: string | null };
+    user?: { id: string; activeOrganizationId?: string | null };
     headers?: Record<string, string | string[] | undefined>;
   };
 
   function noDbPrisma(): PrismaService {
     return {
-      tenantMember: { findFirst: vi.fn(async () => null) },
+      member: { findFirst: vi.fn(async () => null) },
     } as unknown as PrismaService;
   }
 
   it("returns activeOrganizationId when no header is present", async () => {
     const prisma = noDbPrisma();
     const req: Req = {
-      user: { id: "u1", tenantId: null, activeOrganizationId: TENANT_A },
+      user: { id: "u1", activeOrganizationId: TENANT_A },
       headers: {},
     };
     expect(await resolveRequestTenantId(req as never, prisma)).toBe(TENANT_A);
     // No membership lookup — the org id comes straight from the session.
-    expect(prisma.tenantMember.findFirst).not.toHaveBeenCalled();
+    expect(prisma.member.findFirst).not.toHaveBeenCalled();
   });
 
-  it("prefers activeOrganizationId over tenantId when both are set and no header is present", async () => {
+  it("returns null when activeOrganizationId is null and no header", async () => {
+    // After issue #118 there is no User.tenantId fallback — null means no tenant context.
     const prisma = noDbPrisma();
     const req: Req = {
-      user: { id: "u1", tenantId: TENANT_B, activeOrganizationId: TENANT_A },
+      user: { id: "u1", activeOrganizationId: null },
       headers: {},
     };
-    expect(await resolveRequestTenantId(req as never, prisma)).toBe(TENANT_A);
+    expect(await resolveRequestTenantId(req as never, prisma)).toBeNull();
   });
 
-  it("falls back to tenantId when activeOrganizationId is null", async () => {
+  it("returns null when activeOrganizationId is undefined (plugin disabled)", async () => {
+    // No fallback to a legacy tenantId field — just null.
     const prisma = noDbPrisma();
     const req: Req = {
-      user: { id: "u1", tenantId: TENANT_B, activeOrganizationId: null },
+      user: { id: "u1", activeOrganizationId: undefined },
       headers: {},
     };
-    expect(await resolveRequestTenantId(req as never, prisma)).toBe(TENANT_B);
-  });
-
-  it("falls back to tenantId when activeOrganizationId is undefined (plugin disabled)", async () => {
-    const prisma = noDbPrisma();
-    const req: Req = {
-      user: { id: "u1", tenantId: TENANT_B, activeOrganizationId: undefined },
-      headers: {},
-    };
-    expect(await resolveRequestTenantId(req as never, prisma)).toBe(TENANT_B);
+    expect(await resolveRequestTenantId(req as never, prisma)).toBeNull();
   });
 
   it("header still wins over activeOrganizationId when both are present", async () => {
     // The x-tenant-id header is the explicit per-request override and
     // always takes precedence over any session-derived value.
     const prisma = {
-      tenantMember: {
-        findFirst: vi.fn(async () => ({ id: "m1", status: "ACTIVE" })),
+      member: {
+        findFirst: vi.fn(async () => ({ id: "m1" })),
       },
     } as unknown as PrismaService;
     const req: Req = {
-      user: { id: "u1", tenantId: null, activeOrganizationId: TENANT_B },
+      user: { id: "u1", activeOrganizationId: TENANT_B },
       headers: { "x-tenant-id": TENANT_A },
     };
     expect(await resolveRequestTenantId(req as never, prisma)).toBe(TENANT_A);
   });
 
-  it("returns null when user has no activeOrganizationId and no tenantId and no header", async () => {
+  it("returns null when user has no activeOrganizationId and no header", async () => {
     const prisma = noDbPrisma();
     const req: Req = {
-      user: { id: "u1", tenantId: null, activeOrganizationId: null },
+      user: { id: "u1", activeOrganizationId: null },
       headers: {},
     };
     expect(await resolveRequestTenantId(req as never, prisma)).toBeNull();

@@ -37,8 +37,6 @@ import {
   type TenantSelfServiceStorage,
   type TenantWithMembership,
 } from "./tenant-self-service.service.js";
-import { TenantMemberModule } from "./tenant-member.module.js";
-import { TenantMemberService } from "./tenant-member.service.js";
 
 interface AuthedRequest extends Request {
   user?: { id: string; tenantId: string | null };
@@ -163,12 +161,12 @@ function toMeTenantsRow(row: TenantWithMembership): MeTenantsRowDto {
  * Self-service Tenant module.
  *
  * Wires the planner (`TenantSelfServiceService`), the Prisma adapter,
- * and the two HTTP controllers (`/me/tenants`, `/tenants`). Imported
- * by `AppModule` alongside the existing `TenantMemberModule` — the
- * two modules share the `TenantMemberService` provider via export.
+ * and the two HTTP controllers (`/me/tenants`, `/tenants`). After
+ * issue #118, the module no longer depends on `TenantMemberModule` —
+ * the BA `organization`/`member` tables are the canonical tenant layer
+ * and are accessed directly via `PrismaTenantSelfServiceStorage`.
  */
 @Module({
-  imports: [TenantMemberModule],
   controllers: [MeTenantsController, TenantSelfServiceController],
   providers: [
     {
@@ -178,9 +176,8 @@ function toMeTenantsRow(row: TenantWithMembership): MeTenantsRowDto {
     },
     {
       provide: TenantSelfServiceService,
-      useFactory: (storage: TenantSelfServiceStorage, members: TenantMemberService) =>
-        new TenantSelfServiceService(storage, members),
-      inject: [TENANT_SELF_SERVICE_STORAGE, TenantMemberService],
+      useFactory: (storage: TenantSelfServiceStorage) => new TenantSelfServiceService(storage),
+      inject: [TENANT_SELF_SERVICE_STORAGE],
     },
   ],
   exports: [TenantSelfServiceService],

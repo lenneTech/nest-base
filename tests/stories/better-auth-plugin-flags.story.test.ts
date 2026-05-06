@@ -34,8 +34,13 @@ describe("Story · Better-Auth plugin flags", () => {
   });
 
   describe("organization plugin", () => {
-    it("is absent by default", () => {
+    it("is present by default (default ON since issue #118)", () => {
       const features = FeaturesSchema.parse({});
+      expect(listAuthPluginNames(features)).toContain("organization");
+    });
+
+    it("is absent when features.organization.enabled is false", () => {
+      const features = FeaturesSchema.parse({ organization: { enabled: false } });
       expect(listAuthPluginNames(features)).not.toContain("organization");
     });
 
