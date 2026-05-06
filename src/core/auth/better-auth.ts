@@ -114,6 +114,17 @@ export interface BuildBetterAuthInput {
    */
   deviceHandling?: { runner: DeviceHandlingRunner };
   /**
+   * Optional user-created audit sink (issue #99). When wired, every
+   * user creation — regardless of path (sign-up, admin create-user,
+   * plugin) — invokes the callback after the user row lands in the DB.
+   * The callback is responsible for writing the audit row to the
+   * `audit_log` table. Typically supplied by `BetterAuthModule` using
+   * `PrismaService.$executeRaw`.
+   */
+  userCreatedAudit?: {
+    onUserCreated: (user: { id: string; tenantId?: string | null }) => Promise<void>;
+  };
+  /**
    * Password policy enforcement (CF.AUTH.passwordPolicy). When
    * supplied, every Better-Auth signup / change-password flow runs
    * the password through `validatePasswordPolicy` before hashing —
@@ -503,33 +514,69 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
   // unconditionally when supplied — the runner itself short-circuits
   // when the feature flag is off.
   const deviceRunner = input.deviceHandling?.runner;
-  const databaseHooks = deviceRunner
-    ? {
-        session: {
-          create: {
-            async after(
-              session: {
-                id: string;
-                userId: string;
-                userAgent?: string | null;
-                ipAddress?: string | null;
-              } & Record<string, unknown>,
-            ): Promise<void> {
-              await deviceRunner.handleSessionCreated({
-                sessionId: session.id,
-                // Better-Auth's session payload doesn't carry the
-                // user's email/name — the runner resolves both via
-                // its injected `userLookup` adapter at email-send
-                // time. We forward only the id here.
-                user: { id: session.userId },
-                userAgent: session.userAgent ?? null,
-                ipAddress: session.ipAddress ?? null,
-              });
-            },
-          },
-        },
-      }
-    : undefined;
+  const userCreatedAuditSink = input.userCreatedAudit?.onUserCreated;
+
+  // Build databaseHooks only when at least one hook is supplied.
+  // The session and user hooks compose into a single `databaseHooks`
+  // object so both fire without overwriting each other.
+  const databaseHooks =
+    deviceRunner || userCreatedAuditSink
+      ? {
+          ...(deviceRunner
+            ? {
+                session: {
+                  create: {
+                    async after(
+                      session: {
+                        id: string;
+                        userId: string;
+                        userAgent?: string | null;
+                        ipAddress?: string | null;
+                      } & Record<string, unknown>,
+                    ): Promise<void> {
+                      await deviceRunner.handleSessionCreated({
+                        sessionId: session.id,
+                        // Better-Auth's session payload doesn't carry the
+                        // user's email/name — the runner resolves both via
+                        // its injected `userLookup` adapter at email-send
+                        // time. We forward only the id here.
+                        user: { id: session.userId },
+                        userAgent: session.userAgent ?? null,
+                        ipAddress: session.ipAddress ?? null,
+                      });
+                    },
+                  },
+                },
+              }
+            : {}),
+          ...(userCreatedAuditSink
+            ? {
+                user: {
+                  create: {
+                    // Fires after Better-Auth persists the user row. The
+                    // hook runs for every creation path (email sign-up,
+                    // admin create-user, OAuth first-login, magic-link).
+                    // We forward only the fields the audit sink needs —
+                    // the sink is responsible for writing the `audit_log`
+                    // row via `$executeRaw` (same pattern as the session-
+                    // revoke and impersonation sinks).
+                    async after(
+                      user: {
+                        id: string;
+                        tenantId?: string | null;
+                      } & Record<string, unknown>,
+                    ): Promise<void> {
+                      await userCreatedAuditSink({
+                        id: user.id,
+                        tenantId: user.tenantId ?? null,
+                      });
+                    },
+                  },
+                },
+              }
+            : {}),
+        }
+      : undefined;
 
   const options: BetterAuthOptions = {
     secret: input.secret,
