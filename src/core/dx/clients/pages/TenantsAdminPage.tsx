@@ -104,10 +104,7 @@ function buildListUrl(q: string, filter: string): string {
   return `/admin/tenants/list.json?${params.toString()}`;
 }
 
-async function postAction(
-  path: string,
-  body?: Record<string, string | number>,
-): Promise<unknown> {
+async function postAction(path: string, body?: Record<string, string | number>): Promise<unknown> {
   const res = await fetch(path, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -207,11 +204,7 @@ interface CreateTenantDialogProps {
   onCreated: () => void;
 }
 
-function CreateTenantDialog({
-  open,
-  onOpenChange,
-  onCreated,
-}: CreateTenantDialogProps): ReactNode {
+function CreateTenantDialog({ open, onOpenChange, onCreated }: CreateTenantDialogProps): ReactNode {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [contactEmail, setContactEmail] = useState("");
@@ -276,10 +269,7 @@ function CreateTenantDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Abbrechen
           </Button>
-          <Button
-            disabled={!name.trim() || create.isPending}
-            onClick={() => create.mutate()}
-          >
+          <Button disabled={!name.trim() || create.isPending} onClick={() => create.mutate()}>
             {create.isPending ? "Erstelle…" : "Erstellen"}
           </Button>
         </DialogFooter>
@@ -296,11 +286,7 @@ interface InviteMemberDialogProps {
   onInvited: () => void;
 }
 
-function InviteMemberDialog({
-  tenantId,
-  onClose,
-  onInvited,
-}: InviteMemberDialogProps): ReactNode {
+function InviteMemberDialog({ tenantId, onClose, onInvited }: InviteMemberDialogProps): ReactNode {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("member");
 
@@ -355,10 +341,7 @@ function InviteMemberDialog({
           <Button variant="outline" onClick={onClose}>
             Abbrechen
           </Button>
-          <Button
-            disabled={!email.trim() || invite.isPending}
-            onClick={() => invite.mutate()}
-          >
+          <Button disabled={!email.trim() || invite.isPending} onClick={() => invite.mutate()}>
             {invite.isPending ? "Sendet…" : "Einladen"}
           </Button>
         </DialogFooter>
@@ -408,7 +391,10 @@ function TenantDetailSheet({
                 <Button
                   size="sm"
                   variant="destructive"
-                  onClick={() => { onClose(); onSoftDelete(tenant.id); }}
+                  onClick={() => {
+                    onClose();
+                    onSoftDelete(tenant.id);
+                  }}
                 >
                   Archivieren
                 </Button>
@@ -416,7 +402,10 @@ function TenantDetailSheet({
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => { onClose(); onRestore(tenant.id); }}
+                  onClick={() => {
+                    onClose();
+                    onRestore(tenant.id);
+                  }}
                 >
                   Wiederherstellen
                 </Button>
@@ -424,7 +413,10 @@ function TenantDetailSheet({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => { onClose(); onInvite(tenant.id); }}
+                onClick={() => {
+                  onClose();
+                  onInvite(tenant.id);
+                }}
               >
                 Mitglied einladen
               </Button>
@@ -433,9 +425,7 @@ function TenantDetailSheet({
             <Tabs defaultValue="overview">
               <TabsList className="mb-4">
                 <TabsTrigger value="overview">Übersicht</TabsTrigger>
-                <TabsTrigger value="members">
-                  Mitglieder ({tenant.members.length})
-                </TabsTrigger>
+                <TabsTrigger value="members">Mitglieder ({tenant.members.length})</TabsTrigger>
                 <TabsTrigger value="settings">Einstellungen</TabsTrigger>
                 <TabsTrigger value="stats">Statistiken</TabsTrigger>
               </TabsList>
@@ -482,9 +472,7 @@ function TenantDetailSheet({
                             <TableCell className="text-xs">{inv.email}</TableCell>
                             <TableCell className="text-xs">{inv.role ?? "—"}</TableCell>
                             <TableCell>
-                              <Badge
-                                variant={inv.status === "pending" ? "secondary" : "outline"}
-                              >
+                              <Badge variant={inv.status === "pending" ? "secondary" : "outline"}>
                                 {inv.status}
                               </Badge>
                             </TableCell>
@@ -519,9 +507,7 @@ function TenantDetailSheet({
                             {m.userEmail ?? m.userId}
                           </TableCell>
                           <TableCell>
-                            <Badge
-                              variant={m.role === "owner" ? "default" : "secondary"}
-                            >
+                            <Badge variant={m.role === "owner" ? "default" : "secondary"}>
                               {m.role}
                             </Badge>
                           </TableCell>
@@ -625,7 +611,8 @@ export function TenantsAdminPage(): ReactNode {
       }
     },
     onSuccess: (_d, action) => {
-      const label = action.kind === "soft-delete" ? "Mandant archiviert" : "Mandant wiederhergestellt";
+      const label =
+        action.kind === "soft-delete" ? "Mandant archiviert" : "Mandant wiederhergestellt";
       toast.success(label);
       qc.invalidateQueries({ queryKey: ["admin", "tenants"] });
     },

@@ -972,7 +972,11 @@ function QuickLinks(): ReactNode {
     { href: "/admin/realtime", label: "Realtime Inspector", hint: "Aktive Sockets + Events" },
     { href: "/admin/audit", label: "Audit Browser", hint: "Audit-Log-Einträge filtern" },
     { href: "/admin/search", label: "Search Tester", hint: "FTS-Abfrage + tsquery Debug" },
-    { href: "/admin/tenants", label: "Mandantenverwaltung", hint: "Mandanten anlegen, archivieren und Mitglieder verwalten" },
+    {
+      href: "/admin/tenants",
+      label: "Mandantenverwaltung",
+      hint: "Mandanten anlegen, archivieren und Mitglieder verwalten",
+    },
     { href: "/errors", label: "Fehlerkatalog", hint: "Alle CORE_*-Fehlercodes" },
     {
       href: "/hub/postgrest-parse?status=eq.draft&age=gte.18",

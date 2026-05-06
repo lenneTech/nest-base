@@ -65,17 +65,12 @@ export function filterTenants(
   }
 
   const matched =
-    needle.length === 0
-      ? candidates
-      : candidates.filter((o) => matchesTenant(o, needle));
+    needle.length === 0 ? candidates : candidates.filter((o) => matchesTenant(o, needle));
 
   return matched.slice(0, limit);
 }
 
-function matchesTenant(
-  org: { name: string; slug: string | null },
-  needle: string,
-): boolean {
+function matchesTenant(org: { name: string; slug: string | null }, needle: string): boolean {
   if (org.name.toLowerCase().includes(needle)) return true;
   if (org.slug !== null && org.slug.toLowerCase().includes(needle)) return true;
   return false;
