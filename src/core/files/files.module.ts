@@ -82,6 +82,7 @@ import {
 import type { StorageAdapter } from "./storage-adapter.js";
 import { tusUploadConfigDefaults } from "./tus-upload-config.js";
 import type { TusServerLike } from "./tus.module.js";
+import { buildTusFinishHook } from "./tus-finish-hook.js";
 
 const FILE_STORAGE = Symbol.for("lt:FileStorage");
 const FOLDER_STORAGE = Symbol.for("lt:FolderStorage");
@@ -586,6 +587,7 @@ function buildCacheAdapter(
       useFactory: async (
         origin: StorageAdapter,
         config: { mountPath: string; chunkExpirationSeconds: number },
+        fileService: FileService,
       ): Promise<TusServerLike | null> => {
         const features = loadFeatures(process.env as Record<string, string | undefined>);
         if (!features.files.tus) return null;
@@ -607,6 +609,11 @@ function buildCacheAdapter(
             path: config.mountPath,
             datastore:
               bridgePrismaDelegate<ConstructorParameters<typeof Server>[0]["datastore"]>(dataStore),
+            // Issue #102: after all bytes are received, promote the
+            // upload into FileService and expose the resulting File.id
+            // + storageKey as response headers so callers don't need a
+            // follow-up GET /files/:id request.
+            onUploadFinish: buildTusFinishHook({ fileService, dataStore }),
           });
           return bridgePrismaDelegate<TusServerLike>(server);
         } catch (err) {
@@ -619,7 +626,7 @@ function buildCacheAdapter(
           return null;
         }
       },
-      inject: [STORAGE_ORIGIN, TUS_CONFIG],
+      inject: [STORAGE_ORIGIN, TUS_CONFIG, FileService],
     },
   ],
   exports: [
