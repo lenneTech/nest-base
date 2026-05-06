@@ -1,0 +1,27 @@
+// PowerSync CRUD storage (CF.PS.04 closure — iter-216).
+//
+// Generic key/value persistence for the `/powersync/crud` upload
+// endpoint. The mobile client's offline queue ships rows of arbitrary
+// shape (`{type, id, data}`) — the backend persists them keyed by
+// `(type, id)` with the JSON payload + an `updatedAt` timestamp the
+// conflict resolver consumes.
+//
+// Domain modules can override per-resource by binding their own
+// `PowerSyncStore` adapter (the controller injects via DI), but the
+// default Prisma-backed adapter gives every project a durable
+// fallback so process restart doesn't drop offline-queued mutations.
+
+model PowerSyncRow {
+  /// Composite primary key — `(tenantId, type, id)`. Allows the
+  /// same client-supplied id under multiple resource types and
+  /// scopes the rows by tenant for RLS.
+  tenantId  String   @map("tenant_id") @db.Uuid
+  type      String
+  id        String
+  data      Json
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@id([tenantId, type, id])
+  @@index([tenantId, type, updatedAt])
+  @@map("power_sync_rows")
+}
