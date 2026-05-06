@@ -17,6 +17,7 @@ import { Link, useLocation } from "react-router-dom";
 
 import { cn } from "../lib/utils.js";
 
+import { CommandPalette, pushRecentItem } from "../components/CommandPalette.js";
 import { BRAND_LOGO, ICONS } from "./icons.js";
 import { isSpaRoute, NAV_SECTIONS } from "./nav.js";
 
@@ -74,6 +75,8 @@ export function AdminShell({
 
   return (
     <div className="flex min-h-screen w-full bg-background text-foreground">
+      {/* Cmd+K palette — mounted once per shell instance, available on all pages */}
+      <CommandPalette />
       <Sidebar currentNav={currentNav} />
       <main className="flex min-h-screen flex-1 flex-col">
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-line bg-surface-1/60 px-8 py-5">
@@ -122,9 +125,17 @@ function Sidebar({ currentNav }: SidebarProps): ReactNode {
                   : "text-fg-muted hover:bg-surface-hover hover:text-fg",
               );
               const icon = ICONS[item.icon] ?? null;
+              // Track every nav-link click in the palette recents list.
+              const handleClick = () =>
+                pushRecentItem({
+                  id: item.id,
+                  title: item.label,
+                  href: item.href,
+                  category: section.title,
+                });
               if (isSpaRoute(item.href)) {
                 return (
-                  <Link key={item.id} to={item.href} className={className}>
+                  <Link key={item.id} to={item.href} className={className} onClick={handleClick}>
                     <span className="flex h-4 w-4 items-center justify-center text-current">
                       {icon}
                     </span>
@@ -140,6 +151,7 @@ function Sidebar({ currentNav }: SidebarProps): ReactNode {
                   key={item.id}
                   href={item.href}
                   className={className}
+                  onClick={handleClick}
                   {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                 >
                   <span className="flex h-4 w-4 items-center justify-center text-current">
@@ -152,7 +164,9 @@ function Sidebar({ currentNav }: SidebarProps): ReactNode {
           </div>
         ))}
       </nav>
-      <div className="border-t border-line px-4 py-3">
+      <div className="border-t border-line px-4 py-3 space-y-1">
+        {/* Cmd+K palette hint — clicking it opens the palette for mouse users */}
+        <PaletteHint />
         <a
           href="https://docs.nestjs.com"
           target="_blank"
@@ -173,6 +187,39 @@ function Sidebar({ currentNav }: SidebarProps): ReactNode {
         </a>
       </div>
     </aside>
+  );
+}
+
+/**
+ * Small keyboard shortcut hint in the sidebar footer. Clicking it
+ * dispatches a synthetic Cmd+K event so mouse users can open the palette
+ * without knowing the shortcut.
+ */
+function PaletteHint(): ReactNode {
+  const isMac =
+    typeof navigator !== "undefined" && /mac/i.test(navigator.platform || navigator.userAgent);
+
+  function openPalette() {
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "k", metaKey: isMac, ctrlKey: !isMac, bubbles: true }),
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={openPalette}
+      className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs text-fg-muted hover:bg-surface-hover hover:text-fg transition-colors"
+      title="Befehlspalette öffnen"
+    >
+      <span>Suchen</span>
+      <span className="flex items-center gap-1 font-mono text-[0.6rem] text-fg-faint">
+        <kbd className="rounded border border-line bg-surface-2 px-1 py-0.5">
+          {isMac ? "⌘" : "Ctrl"}
+        </kbd>
+        <kbd className="rounded border border-line bg-surface-2 px-1 py-0.5">K</kbd>
+      </span>
+    </button>
   );
 }
 

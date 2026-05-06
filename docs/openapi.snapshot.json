@@ -1436,6 +1436,20 @@
         ]
       }
     },
+    "/api/hub/palette/search.json": {
+      "get": {
+        "operationId": "DevHubController_paletteSearchJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
     "/api/hub/{splat}": {
       "get": {
         "operationId": "DevHubController_spaCatchAll",
