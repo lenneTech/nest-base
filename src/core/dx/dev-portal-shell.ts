@@ -80,9 +80,9 @@ export interface DevPortalShellInputOverrides {
 }
 
 const DEFAULT_TITLE = "Dev Portal";
-const DEFAULT_SCRIPT_URL = "/dev/static/main.js";
-const DEFAULT_TOKEN_CSS_URL = "/dev/static/tokens.css";
-const DEFAULT_EXTRA_STYLESHEETS: readonly string[] = ["/dev/static/main.css"];
+const DEFAULT_SCRIPT_URL = "/api/dev/static/main.js";
+const DEFAULT_TOKEN_CSS_URL = "/api/dev/static/tokens.css";
+const DEFAULT_EXTRA_STYLESHEETS: readonly string[] = ["/api/dev/static/main.css"];
 const DEFAULT_BRAND_NAME = "nest-server";
 const DEFAULT_BOOT_BACKGROUND = "#020203";
 
@@ -168,7 +168,7 @@ ${brandScript}
 </head>
 <body>
 <div id="root"></div>
-<noscript>This page requires JavaScript. The Dev Portal is a developer-only single-page app and ships only in NODE_ENV=development.</noscript>
+<noscript>This page requires JavaScript. The Hub is a single-page app.</noscript>
 <script type="module" src="${scriptUrl}"></script>
 </body>
 </html>`;

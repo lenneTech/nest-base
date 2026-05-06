@@ -42,17 +42,38 @@ const HTTP_METHOD_DECORATORS = new Set(["Get", "Post", "Put", "Patch", "Delete",
  * Keep this in sync with the runtime middleware allowlist; the audit
  * planner's job is to surface the consent decision, not to invent it.
  */
+// The audit planner operates on RAW CONTROLLER PATHS (from source code),
+// NOT the final deployed HTTP paths. The global `/api/` prefix (issue #83)
+// is NOT reflected here — the planner doesn't know about bootstrap-time
+// route prefix. Instead, controllers that need public-by-design treatment
+// either:
+//   (a) carry `@Public("<reason>")` on each handler (preferred), or
+//   (b) have their raw path prefix listed here.
+//
+// Concretely: `@Controller("dev")` → raw path `/dev/*`, deployed at
+// `/api/dev/*` due to global prefix. The planner sees `/dev/*`.
 export const DEFAULT_PUBLIC_PREFIXES: readonly string[] = [
   "/health/",
-  "/api/auth/",
+  // Better-Auth: raw path is /auth/* (controller uses @Public() anyway).
+  "/auth/",
   "/docs/",
+  // Dev-Hub and Admin SPA are dev-only (404 in production); the planner
+  // treats them as public-by-design since assertDev() is the runtime gate.
   "/dev/",
   "/admin/",
   "/errors/",
   "/api/openapi",
+  // Hub SPA routes (raw controller paths, not the global-prefix-applied paths).
+  "/hub/",
 ];
 
-export const DEFAULT_PUBLIC_EXACT: readonly string[] = ["/", "/errors", "/api/openapi"];
+export const DEFAULT_PUBLIC_EXACT: readonly string[] = [
+  "/",
+  "/errors",
+  "/api/openapi",
+  "/hub/login",
+  "/hub/logout",
+];
 
 export type RouteClassification = "gated" | "public-by-design" | "ungated-bug";
 

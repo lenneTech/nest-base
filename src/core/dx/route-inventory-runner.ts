@@ -81,9 +81,11 @@ export class RouteInventoryService {
       // Keep this list tight — it's the seam an auditor checks first.
       publicAllowlist: [
         { prefix: "/health/", kind: "public" },
-        { prefix: "/api/openapi", kind: "public" },
-        { prefix: "/api/docs", kind: "public" },
-        { prefix: "/api/auth/", kind: "public" },
+        // Note: these are raw controller paths (before the global /api/ prefix)
+        { prefix: "/openapi", kind: "public" },
+        { prefix: "/docs", kind: "public" },
+        // BetterAuthController uses @Controller("auth") — raw path is /auth/
+        { prefix: "/auth/", kind: "public" },
         { prefix: "/errors", kind: "public" },
         { prefix: "/dev", kind: "dev-only" },
         { prefix: "/admin", kind: "dev-only" },

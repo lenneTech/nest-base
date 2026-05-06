@@ -98,22 +98,22 @@ export function planStartupBanner(input: BannerInput): BannerPlan {
       ],
     },
     {
-      title: "Dev Hub",
+      title: "Hub",
       entries: [
-        { label: "Landing", url: `${base}/dev` },
-        { label: "Features", url: `${base}/dev/features` },
-        { label: "Diagnostics", url: `${base}/dev/diagnostics` },
-        { label: "PostgREST Parser", url: `${base}/dev/postgrest-parse?status=eq.draft` },
+        { label: "Landing", url: `${base}/` },
+        { label: "Features", url: `${base}/api/dev/features` },
+        { label: "Diagnostics", url: `${base}/api/dev/diagnostics` },
+        { label: "PostgREST Parser", url: `${base}/api/dev/postgrest-parse?status=eq.draft` },
       ],
     },
     {
       title: "Admin",
       entries: [
-        { label: "Permission Tester", url: `${base}/admin/permissions/test` },
-        { label: "Webhook Inspector", url: `${base}/admin/webhooks` },
-        { label: "Realtime Inspector", url: `${base}/admin/realtime` },
-        { label: "Audit Browser", url: `${base}/admin/audit` },
-        { label: "Search Tester", url: `${base}/admin/search` },
+        { label: "Permission Tester", url: `${base}/api/admin/permissions/test` },
+        { label: "Webhook Inspector", url: `${base}/api/admin/webhooks` },
+        { label: "Realtime Inspector", url: `${base}/api/admin/realtime` },
+        { label: "Audit Browser", url: `${base}/api/admin/audit` },
+        { label: "Search Tester", url: `${base}/api/admin/search` },
       ],
     },
   ];
@@ -184,7 +184,7 @@ function planRestartBanner(input: BannerInput, variant: BannerVariant, base: str
   const lines = [
     "",
     `${DIM}─────${RESET} ${BOLD}${CYAN}♻ Server neu gestartet${RESET} ${DIM}(${reason}, ${ts})${RESET} ${DIM}${"─".repeat(20)}${RESET}`,
-    `${DIM}Base URL:${RESET} ${CYAN}${base}${RESET}   ${DIM}Dev Hub:${RESET} ${CYAN}${base}/dev${RESET}`,
+    `${DIM}Base URL:${RESET} ${CYAN}${base}${RESET}   ${DIM}Hub:${RESET} ${CYAN}${base}/${RESET}`,
   ];
   if (input.features.tunnelUrl) {
     lines.push(`${DIM}Tunnel:${RESET}   ${CYAN}${input.features.tunnelUrl}${RESET}`);
