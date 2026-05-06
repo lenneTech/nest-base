@@ -97,6 +97,12 @@ import {
   buildDashboardStatusGroups,
   type DashboardStatusGroup,
 } from "./dashboard-health-planner.js";
+import {
+  searchPalettePages,
+  type PalettePageEntry,
+  type PaletteSearchResult,
+} from "./palette-search-planner.js";
+import { Public } from "../permissions/public.decorator.js";
 
 /**
  * `/hub/*` — Developer-only landing + JSON inspection routes.
@@ -1421,6 +1427,25 @@ export class DevHubController {
   }
 
   /**
+   * `GET /hub/palette/search.json?q=<query>` — fuzzy page search for
+   * the Cmd+K command palette (Issue #90). Returns matching Hub pages
+   * ranked by score (exact > prefix > substring > fuzzy). Marked
+   * `@Public` because the dev-portal itself runs without auth and this
+   * endpoint is gated by `assertDev()` — it 404s in production.
+   */
+  @Get("palette/search.json")
+  @Public(
+    "Dev-Hub palette search — fuzzy page lookup for Cmd+K. Dev portal only; assertDev() guards production.",
+  )
+  paletteSearchJson(@Query("q") q: string | undefined): { pages: PaletteSearchResult[] } {
+    this.assertDev();
+    const query = typeof q === "string" ? q.trim() : "";
+    const pages = buildHubPageCatalog();
+    const results = searchPalettePages({ query, pages, maxResults: 30 });
+    return { pages: results };
+  }
+
+  /**
    * Catch-all for `/hub/*` paths that don't match a more specific
    * handler. Always returns the SPA shell — react-router on the client
    * decides what to render. NestJS dispatches to the most specific
@@ -1571,6 +1596,254 @@ function isSafeJobId(value: string): boolean {
 function isSafeQueueName(value: string): boolean {
   if (!value || value.length > 64) return false;
   return /^[a-zA-Z0-9._-]+$/.test(value);
+}
+
+/**
+ * Static catalog of all Hub pages known to the SPA router.
+ * Mirrors `nav.ts` + `App.tsx` so the palette can search them without
+ * importing React modules on the server side.
+ */
+function buildHubPageCatalog(): readonly PalettePageEntry[] {
+  return [
+    {
+      id: "dev-hub",
+      title: "Dev Hub",
+      href: "/hub",
+      aliases: ["home", "landing"],
+      category: "Übersicht",
+    },
+    {
+      id: "diagnostics",
+      title: "Diagnostics",
+      href: "/hub/diagnostics",
+      aliases: ["health", "memory", "runtime"],
+      category: "Übersicht",
+    },
+    {
+      id: "features",
+      title: "Features",
+      href: "/hub/features",
+      aliases: ["flags", "toggles", "feature-flags"],
+      category: "Übersicht",
+    },
+    {
+      id: "brand",
+      title: "Brand",
+      href: "/hub/brand",
+      aliases: ["logo", "theme", "colors"],
+      category: "Übersicht",
+    },
+    {
+      id: "coverage",
+      title: "Coverage",
+      href: "/hub/coverage",
+      aliases: ["test-coverage", "code-coverage"],
+      category: "Übersicht",
+    },
+    {
+      id: "tests",
+      title: "Tests",
+      href: "/hub/tests",
+      aliases: ["test-results", "vitest"],
+      category: "Übersicht",
+    },
+    {
+      id: "logs",
+      title: "Logs",
+      href: "/hub/logs",
+      aliases: ["Protokolle", "logging", "log-buffer"],
+      category: "Übersicht",
+    },
+    {
+      id: "traces",
+      title: "Traces",
+      href: "/hub/traces",
+      aliases: ["tracing", "spans", "opentelemetry"],
+      category: "Übersicht",
+    },
+    {
+      id: "queries",
+      title: "Queries",
+      href: "/hub/queries",
+      aliases: ["sql", "prisma-queries", "database-queries"],
+      category: "Übersicht",
+    },
+    {
+      id: "migrations",
+      title: "Migrations",
+      href: "/hub/migrations",
+      aliases: ["schema", "migrate", "database-migrations"],
+      category: "Übersicht",
+    },
+    {
+      id: "jobs",
+      title: "Jobs",
+      href: "/hub/jobs",
+      aliases: ["queue", "workers", "background-jobs"],
+      category: "Übersicht",
+    },
+    {
+      id: "cron",
+      title: "Cron",
+      href: "/hub/cron",
+      aliases: ["scheduled-jobs", "schedule", "cron-jobs"],
+      category: "Übersicht",
+    },
+    {
+      id: "email-outbox",
+      title: "Email Outbox",
+      href: "/hub/email-outbox",
+      aliases: ["outbox", "email-queue"],
+      category: "Übersicht",
+    },
+    {
+      id: "files",
+      title: "File Manager",
+      href: "/hub/files",
+      aliases: ["uploads", "assets", "tus"],
+      category: "Übersicht",
+    },
+    {
+      id: "scalar",
+      title: "API Reference",
+      href: "/api/docs",
+      aliases: ["scalar", "swagger", "openapi-ui"],
+      category: "API & Docs",
+    },
+    {
+      id: "openapi",
+      title: "OpenAPI Spec",
+      href: "/api/openapi",
+      aliases: ["openapi-json", "spec"],
+      category: "API & Docs",
+    },
+    {
+      id: "routes",
+      title: "Routes",
+      href: "/hub/routes",
+      aliases: ["endpoints", "http-routes", "route-inventory"],
+      category: "API & Docs",
+    },
+    {
+      id: "errors",
+      title: "Error Codes",
+      href: "/errors",
+      aliases: ["error-registry", "error-catalog"],
+      category: "API & Docs",
+    },
+    {
+      id: "erd",
+      title: "ERD",
+      href: "/hub/erd",
+      aliases: ["entity-relation", "schema-diagram", "database-diagram"],
+      category: "API & Docs",
+    },
+    {
+      id: "email-preview",
+      title: "Email Preview",
+      href: "/hub/email-preview",
+      aliases: ["email-templates", "mail-preview"],
+      category: "API & Docs",
+    },
+    {
+      id: "email-builder",
+      title: "Email Builder",
+      href: "/hub/email-builder",
+      aliases: ["email-composer", "template-builder"],
+      category: "API & Docs",
+    },
+    {
+      id: "json",
+      title: "JSON Viewer",
+      href: "/hub/json",
+      aliases: ["json-inspector", "json-explorer"],
+      category: "API & Docs",
+    },
+    {
+      id: "postgrest-parse",
+      title: "PostgREST Parser",
+      href: "/hub/postgrest-parse",
+      aliases: ["postgrest", "query-parser"],
+      category: "API & Docs",
+    },
+    {
+      id: "components",
+      title: "Component Showcase",
+      href: "/hub/components",
+      aliases: ["ui-components", "design-system"],
+      category: "API & Docs",
+    },
+    {
+      id: "roles",
+      title: "Roles",
+      href: "/admin/roles",
+      aliases: ["role-management", "rbac"],
+      category: "Admin",
+    },
+    {
+      id: "policies",
+      title: "Policies",
+      href: "/admin/policies",
+      aliases: ["policy-management", "casl-policies"],
+      category: "Admin",
+    },
+    {
+      id: "permissions-crud",
+      title: "Permissions",
+      href: "/admin/permissions",
+      aliases: ["permission-management", "grants"],
+      category: "Admin",
+    },
+    {
+      id: "permissions",
+      title: "Permission Tester",
+      href: "/admin/permissions/test",
+      aliases: ["casl", "test-permissions", "ability-tester"],
+      category: "Admin",
+    },
+    {
+      id: "sessions",
+      title: "Sessions",
+      href: "/admin/sessions",
+      aliases: ["active-sessions", "user-sessions"],
+      category: "Admin",
+    },
+    {
+      id: "admin-jobs",
+      title: "Jobs (Admin)",
+      href: "/admin/jobs",
+      aliases: ["admin-queue", "admin-jobs"],
+      category: "Admin",
+    },
+    {
+      id: "webhooks",
+      title: "Webhook Inspector",
+      href: "/admin/webhooks",
+      aliases: ["webhook-events", "webhooks"],
+      category: "Admin",
+    },
+    {
+      id: "realtime",
+      title: "Realtime Inspector",
+      href: "/admin/realtime",
+      aliases: ["websocket", "socket-io", "realtime"],
+      category: "Admin",
+    },
+    {
+      id: "audit",
+      title: "Audit Browser",
+      href: "/admin/audit",
+      aliases: ["audit-log", "activity-log"],
+      category: "Admin",
+    },
+    {
+      id: "search",
+      title: "Search Tester",
+      href: "/admin/search",
+      aliases: ["fulltext-search", "postgres-search", "fts"],
+      category: "Admin",
+    },
+  ];
 }
 
 function mimeForExtension(name: string): string {
