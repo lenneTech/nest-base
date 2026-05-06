@@ -98,8 +98,20 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
         return {
           pinoHttp: {
             logger: pinoLogger,
-            autoLogging: !isTest,
+            autoLogging: isTest
+              ? false
+              : {
+                  ignore: (req) =>
+                    !!req.url?.startsWith("/health") ||
+                    req.url === "/dev" ||
+                    !!req.url?.startsWith("/dev/"),
+                },
             quietReqLogger: isTest,
+            customLogLevel: (_req, res) => {
+              if (res.statusCode >= 500) return "error";
+              if (res.statusCode >= 400) return "warn";
+              return "debug";
+            },
             // Skip the per-request `req.id` generation in tests — pino-http
             // calls genReqId on every request which adds measurable
             // overhead under the /health/live tight loop.
