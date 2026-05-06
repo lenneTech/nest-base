@@ -100,8 +100,33 @@ model Organization {
 
   members     Member[]
   invitations Invitation[]
+  settings    TenantSettings?
 
   @@map("organization")
+}
+
+// ---------- TenantSettings (issue #87) ----------
+//
+// Operator-managed metadata for each Better-Auth Organization.
+// One row per org (unique FK on organization_id). Not tenant-RLS-scoped
+// because it is managed by global admins only — the @Can("manage",
+// "TenantAdmin") guard on the controller is the access gate.
+// `deletedAt` is the soft-delete watermark used by the restore/archive
+// workflow; it does NOT drive RLS on the org itself.
+model TenantSettings {
+  id             String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  organizationId String    @unique @map("organization_id")
+  logoUrl        String?   @map("logo_url")
+  primaryColor   String?   @map("primary_color")
+  storageLimitMb Int?      @map("storage_limit_mb")
+  contactEmail   String?   @map("contact_email")
+  deletedAt      DateTime? @map("deleted_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_settings")
 }
 
 model Member {

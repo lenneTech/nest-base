@@ -1915,6 +1915,223 @@
         ]
       }
     },
+    "/api/admin/tenants": {
+      "get": {
+        "operationId": "TenantAdminController_tenantsAdminPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "TenantAdmin"
+        ]
+      },
+      "post": {
+        "operationId": "TenantAdminController_createTenant",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "TenantAdmin"
+        ]
+      }
+    },
+    "/api/admin/tenants/list.json": {
+      "get": {
+        "operationId": "TenantAdminController_tenantsListJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "TenantAdmin"
+        ]
+      }
+    },
+    "/api/admin/tenants/{id}.json": {
+      "get": {
+        "operationId": "TenantAdminController_tenantDetailJson",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "TenantAdmin"
+        ]
+      }
+    },
+    "/api/admin/tenants/{id}": {
+      "patch": {
+        "operationId": "TenantAdminController_updateTenant",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "TenantAdmin"
+        ]
+      }
+    },
+    "/api/admin/tenants/{id}/soft-delete": {
+      "delete": {
+        "operationId": "TenantAdminController_softDeleteTenant",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "TenantAdmin"
+        ]
+      }
+    },
+    "/api/admin/tenants/{id}/restore": {
+      "post": {
+        "operationId": "TenantAdminController_restoreTenant",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "TenantAdmin"
+        ]
+      }
+    },
+    "/api/admin/tenants/{id}/members/invite": {
+      "post": {
+        "operationId": "TenantAdminController_inviteMember",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "TenantAdmin"
+        ]
+      }
+    },
+    "/api/admin/tenants/{id}/members/{memberId}": {
+      "delete": {
+        "operationId": "TenantAdminController_removeMember",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "memberId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "TenantAdmin"
+        ]
+      }
+    },
+    "/api/admin/tenants/{id}/members/{memberId}/role": {
+      "patch": {
+        "operationId": "TenantAdminController_updateMemberRole",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "memberId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "TenantAdmin"
+        ]
+      }
+    },
     "/api/api-keys/{userId}": {
       "get": {
         "operationId": "ApiKeyController_list",

@@ -34,6 +34,7 @@ import { McpModule } from "../mcp/mcp.module.js";
 import { MetricsModule } from "../metrics/metrics.module.js";
 import { OutboxModule } from "../outbox/outbox.module.js";
 import { WebhooksModule } from "../webhooks/webhooks.module.js";
+import { TenantAdminModule } from "../multi-tenancy/tenant-admin.module.js";
 import { TenantSelfServiceModule } from "../multi-tenancy/tenant-self-service.module.js";
 import { TenantInterceptor } from "../multi-tenancy/tenant.interceptor.js";
 import { OutputPipelineInterceptor } from "../output-pipeline/output-pipeline.interceptor.js";
@@ -158,6 +159,7 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     // Admin surface for email-outbox operator actions (issue #91).
     EmailOutboxAdminModule,
     TenantSelfServiceModule,
+    TenantAdminModule,
     ApiKeyModule,
     SessionsAdminModule,
     UserAdminModule,

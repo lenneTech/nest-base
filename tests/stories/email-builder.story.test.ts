@@ -226,7 +226,7 @@ describe("Story · Email-Builder", () => {
       expect(source).toContain("AUTO-GENERATED");
       // Imports — Barebone layout, the blocks the composition uses,
       // BrandConfig type from the email module.
-      expect(source).toContain('import { Barebone } from "../layouts/Barebone.js";');
+      expect(source).toContain('import { Barebone } from "../../core/email/layouts/Barebone.js";');
       expect(source).toContain("Greeting");
       expect(source).toContain("Paragraph");
       expect(source).toContain("CTA");
