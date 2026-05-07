@@ -70,7 +70,19 @@ describe("E2E · APP_FILTER inheritance via Test.createTestingModule({ imports: 
     // Mirror bootstrap.ts: set the global /api/ prefix so the probe
     // controller at @Controller("hub/...") registers under /hub/...
     app.setGlobalPrefix("api", {
-      exclude: ["/", "hub/login", "hub/logout", "health", "health/(.*)"],
+      exclude: [
+        "hub",
+        "hub/(.*)",
+        "admin",
+        "admin/(.*)",
+        "errors",
+        "errors/(.*)",
+        "openapi",
+        "hub/login",
+        "hub/logout",
+        "health",
+        "health/(.*)",
+      ],
     });
     await app.init();
   });

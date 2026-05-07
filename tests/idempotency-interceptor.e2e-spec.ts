@@ -57,7 +57,19 @@ describe("E2E · Idempotency-Key interceptor through HTTP layer", () => {
     // Mirror bootstrap.ts so routes register under /hub/... —
     // the probe controller is @Controller("hub/...").
     app.setGlobalPrefix("api", {
-      exclude: ["/", "hub/login", "hub/logout", "health", "health/(.*)"],
+      exclude: [
+        "hub",
+        "hub/(.*)",
+        "admin",
+        "admin/(.*)",
+        "errors",
+        "errors/(.*)",
+        "openapi",
+        "hub/login",
+        "hub/logout",
+        "health",
+        "health/(.*)",
+      ],
     });
     await app.init();
   });
