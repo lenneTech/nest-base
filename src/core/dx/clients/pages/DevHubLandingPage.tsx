@@ -196,7 +196,7 @@ export function DevHubLandingPage(): ReactNode {
 
   return (
     <AdminShell
-      title="Dev Hub"
+      title="Hub"
       subtitle="Echtzeit-Cockpit für alle Systeme dieses Servers."
       currentNav="dev-hub"
     >

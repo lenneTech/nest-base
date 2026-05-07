@@ -28,7 +28,7 @@ export const NAV_SECTIONS: readonly AdminNavSection[] = [
   {
     title: "Übersicht",
     items: [
-      { id: "dev-hub", label: "Dev Hub", href: "/hub", icon: "home" },
+      { id: "dev-hub", label: "Hub", href: "/hub", icon: "home" },
       { id: "diagnostics", label: "Diagnostics", href: "/hub/diagnostics", icon: "heart" },
       { id: "features", label: "Features", href: "/hub/features", icon: "toggle" },
       { id: "brand", label: "Brand", href: "/hub/brand", icon: "heart" },

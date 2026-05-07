@@ -177,6 +177,7 @@ export class EmailOutboxWorkerLifecycle implements OnModuleInit, OnModuleDestroy
   private readonly worker: EmailOutboxWorker;
   private timer?: ReturnType<typeof setInterval>;
   private readonly tickMs: number;
+  private readonly isTest: boolean;
   private bossActive = false;
 
   constructor(
@@ -191,6 +192,7 @@ export class EmailOutboxWorkerLifecycle implements OnModuleInit, OnModuleDestroy
     const env = process.env as Record<string, string | undefined>;
     const raw = env.EMAIL_OUTBOX_TICK_MS ? Number.parseInt(env.EMAIL_OUTBOX_TICK_MS, 10) : NaN;
     this.tickMs = Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_TICK_MS;
+    this.isTest = env.NODE_ENV === "test";
     this.worker = new EmailOutboxWorker({ storage, driver });
   }
 
@@ -216,6 +218,11 @@ export class EmailOutboxWorkerLifecycle implements OnModuleInit, OnModuleDestroy
         );
       }
     }
+    // In test environments the automatic tick races with specs that share
+    // the email_outbox table — concurrent AppModule instances would claim
+    // each other's rows before the owning test's worker can dispatch them.
+    // Tests that need dispatch call tickOnce() explicitly.
+    if (this.isTest) return;
     this.timer = setInterval(() => {
       this.worker.runOnce().catch((err) => {
         // Logger.error(rawError) collapses non-Error throws to "{}"
