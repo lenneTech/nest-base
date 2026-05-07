@@ -8,21 +8,21 @@
 
 Pure-black dark theme. Electric-lime accent. Live status, coverage, tests, logs, feature toggles — all in one screen, rendered by a React 19 SPA built on shadcn/ui (Radix) + Tailwind CSS 4 + lucide-react + sonner. No cloud dependencies. No bloat.
 
-[Quick Start](#-quick-start) · [Dev Hub](#-the-dev-hub) · [Showcase](docs/showcase/README.md) · [Features](#-features) · [Architecture](#-architecture) · [Testing](#-testing)
+[Quick Start](#-quick-start) · [Hub](#-the-hub) · [Showcase](docs/showcase/README.md) · [Features](#-features) · [Architecture](#-architecture) · [Testing](#-testing)
 
 ---
 
-[![Dev Hub Cockpit](docs/showcase/screenshots/dev-landing-desktop.png)](docs/showcase/README.md)
+[![Hub](docs/showcase/screenshots/dev-landing-desktop.png)](docs/showcase/README.md)
 
-> The full screenshot index — every `/dev/*`, `/admin/*`, `/errors`, `/api/openapi` page at desktop + mobile — is in [`docs/showcase/`](docs/showcase/README.md).
+> The full screenshot index — every Hub page — `/hub`, `/hub/features`, `/hub/email-builder`, `/admin/*`, `/errors`, `/api/openapi` — at desktop + mobile is in [`docs/showcase/`](docs/showcase/README.md).
 
 </div>
 
 ## ✦ Why this template
 
-Most NestJS starters give you a `Hello World` and call it a day. This one ships you a server you can actually run on day one **plus** a full-blown developer cockpit at `/dev` that knows what's running, what's failing, and what's available to switch on.
+Most NestJS starters give you a `Hello World` and call it a day. This one ships you a server you can actually run on day one **plus** a full-blown operator cockpit at `/hub` that knows what's running, what's failing, and what's available to switch on.
 
-- **Real cockpit, not a JSON dump** — the `/dev` dashboard pulls live health, coverage, test summary, log tail, feature matrix, and service status into one view.
+- **Real cockpit, not a JSON dump** — the `/hub` dashboard pulls live health, coverage, test summary, log tail, feature matrix, and service status into one view.
 - **Toggle features from the UI** — no `.env` editing dance: flip a feature on, the server restarts, the page reloads. 14 toggleable features ship with sensible defaults.
 - **Template-owned core** — `src/core/` is the synced template surface, `src/modules/` is yours. Pull upstream improvements without losing your domain code.
 - **Battle-tested defaults** — Postgres RLS multi-tenancy, ETag concurrency, idempotency keys, RFC 7807 errors, AES-256-GCM field encryption, OpenAPI 3.1, OWASP-aligned headers.
@@ -59,7 +59,7 @@ bun run seed
 bun run onboard          # quick sanity check (Bun / .env / Postgres / Prisma)
 bun run doctor           # deep health check (containers, services, secrets, disk)
 
-# 7. Start the dev server — boots Postgres if needed, opens the Dev Hub
+# 7. Start the dev server — boots Postgres if needed, opens the Hub
 bun run dev
 ```
 
@@ -79,9 +79,9 @@ bun run dev
 >
 > **Two workspaces with the same project name?** `bun run setup` writes `COMPOSE_PROJECT_NAME=<name>-<6-hex-of-path>` so two `my-app` checkouts in different directories get separate Postgres volumes (`my-app-a1b2c3_postgres_data` vs `my-app-d4e5f6_postgres_data`). The volume-collision check honours the path-hash, so duplicate names across cache dirs no longer abort the wizard. Existing `.env` files keep whatever `COMPOSE_PROJECT_NAME` they already carry — only fresh inits get the hashed namespace.
 
-The Dev Hub opens automatically at the URL the dev runner prints — `https://api.<project>.localhost/dev` if you use [portless](https://github.com/portless/portless), otherwise the bare `http://localhost:<port>/dev`. The runner picks `:3000` when free and falls back to a dynamic port (e.g. `:4266`) when it isn't, so always trust the printed URL over a hard-coded `:3000`.
+The Hub opens automatically at the URL the dev runner prints — `https://api.<project>.localhost/` if you use [portless](https://github.com/portless/portless), otherwise the bare `http://localhost:<port>/`. The runner picks `:3000` when free and falls back to a dynamic port (e.g. `:4266`) when it isn't, so always trust the printed URL over a hard-coded `:3000`.
 
-> **What `bun run dev` does for you**: starts Postgres via `docker compose up -d postgres` if the container isn't running, spawns Prisma Studio on `:5555`, watches `.env` for changes (so feature toggles take effect without a manual restart), and opens the Dev Hub in your browser. Set `NO_OPEN=1` to skip the auto-open, `SKIP_DB_BOOT=1` to skip the Postgres boot.
+> **What `bun run dev` does for you**: starts Postgres via `docker compose up -d postgres` if the container isn't running, spawns Prisma Studio on `:5555`, watches `.env` for changes (so feature toggles take effect without a manual restart), and opens the Hub in your browser at `http://localhost:3000/`. Set `NO_OPEN=1` to skip the auto-open, `SKIP_DB_BOOT=1` to skip the Postgres boot.
 >
 > **Need a public URL?** `bun run dev --tunnel` exposes `localhost:<port>` to the internet via Cloudflare Tunnel — handy for testing webhook receivers (Stripe, GitHub, Slack, OAuth callbacks) without deploying. Requires `cloudflared` (`brew install cloudflared`). See [`docs/dev-tunnel.md`](./docs/dev-tunnel.md).
 >
@@ -89,52 +89,52 @@ The Dev Hub opens automatically at the URL the dev runner prints — `https://ap
 
 ---
 
-## 🎯 The Dev Hub
+## 🎯 The Hub
 
-A black + lime developer console powered by a React 19 SPA (`src/core/dx/clients/`) built on **shadcn/ui (Radix) + Tailwind CSS 4 + lucide-react + sonner + TanStack Query**. Every developer-facing page — `/dev/*`, `/admin/*`, `/errors`, `/api/openapi` — is rendered by the same shell; the Nest controllers return JSON sidecars + the SPA shell, the SPA decides which page to mount. Every page is reachable from the sidebar.
+A black + lime operator console powered by a React 19 SPA (`src/core/dx/clients/`) built on **shadcn/ui (Radix) + Tailwind CSS 4 + lucide-react + sonner + TanStack Query**. Hub pages (`/hub`, `/hub/features`, `/hub/diagnostics`, `/hub/logs`, `/hub/jobs`, …), `/admin/*` CRUD surfaces, `/errors`, and `/api/openapi` are all rendered by the same SPA shell; the Nest controllers return JSON sidecars + the SPA shell, the SPA decides which page to mount. Every page is reachable from the sidebar.
 
 > Full screenshot gallery: [`docs/showcase/`](docs/showcase/README.md).
 
-### Cockpit Dashboard — `/dev`
+### Cockpit Dashboard — `/hub`
 
 Live overview of the running server: health verdict, uptime, heap, 4 stat tiles (Coverage / Tests / Features / Logs), service probes, log preview, feature matrix, quick navigation.
 
-![Dev Hub Cockpit](docs/showcase/screenshots/dev-landing-desktop.png)
+![Hub Cockpit](docs/showcase/screenshots/dev-landing-desktop.png)
 
-### Feature Toggles — `/dev/features`
+### Feature Toggles — `/hub/features`
 
 23 feature flags grouped by category (PRD § Success Criteria pin —
 verified by `verify-spec.sh` SC.FUSION.04). Each card shows description, exposed surfaces, and the matching `FEATURE_*` env-var. **Flip the switch → `.env` is patched → server respawns → page reloads.** No manual restarts.
 
 ![Feature Toggles](docs/showcase/screenshots/dev-features-desktop.png)
 
-### Brand — `/dev/brand`
+### Brand — `/hub/brand`
 
-Single-file brand config (`src/modules/branding/brand.json`, with template default at `src/core/branding/brand.default.json`) drives every Dev-Portal CSS variable, the OpenAPI title, the email layouts (`Barebone` + EJS legacy), the Better-Auth issuer/RP-name, and the `EmailService` default `From:`. Edit via the UI, save, the dev runner restarts the API, every surface picks up the new look. Schema-validated hex colors + email + URL — bad input fails at load time, not at next mail send. See [docs/customization-guide.md#branding](docs/customization-guide.md#branding).
+Single-file brand config (`src/modules/branding/brand.json`, with template default at `src/core/branding/brand.default.json`) drives every Hub CSS variable, the OpenAPI title, the email layouts (`Barebone` + EJS legacy), the Better-Auth issuer/RP-name, and the `EmailService` default `From:`. Edit via the UI, save, the dev runner restarts the API, every surface picks up the new look. Schema-validated hex colors + email + URL — bad input fails at load time, not at next mail send. See [docs/customization-guide.md#branding](docs/customization-guide.md#branding).
 
-### Test Summary — `/dev/tests`
+### Test Summary — `/hub/tests`
 
 Reads `coverage/test-summary.json` (populated by `bun run test:summary`). Failed suites floated to the top with embedded failure snippets.
 
-### Coverage Report — `/dev/coverage`
+### Coverage Report — `/hub/coverage`
 
 Reads `reports/coverage/coverage-summary.json` (populated by `bun run test:coverage`). Per-tier gate badges (core ≥ 80% lines / modules ≥ 75% lines), per-file table sorted worst-first.
 
 ![Coverage](docs/showcase/screenshots/dev-coverage-desktop.png)
 
-### Live Log Tail — `/dev/logs`
+### Live Log Tail — `/hub/logs`
 
 In-memory ring buffer of the last 500 Pino records. Auto-polls every 2 seconds. Level chips (info / warn / error / fatal) with subtle color tints.
 
-### Diagnostics — `/dev/diagnostics`
+### Diagnostics — `/hub/diagnostics`
 
 Heap usage bar (turns warn/bad above 70%/90%, clamped to 100% — Bun's JSC heap accounting can briefly show used > committed and that's not a leak), versions (Node, Bun, platform), active features matrix, app metadata.
 
-### Live Request Traces — `/dev/traces`
+### Live Request Traces — `/hub/traces`
 
-In-memory ring buffer (200 entries) of recent HTTP request traces with method, status, duration, and request-id. Bound-height container with sticky header, polled every 2 s — newest entries flash in at the top. **Click a row** to inline-expand the DB queries that ran during that request (cross-references `/dev/queries` via `requestId`).
+In-memory ring buffer (200 entries) of recent HTTP request traces with method, status, duration, and request-id. Bound-height container with sticky header, polled every 2 s — newest entries flash in at the top. **Click a row** to inline-expand the DB queries that ran during that request (cross-references `/hub/queries` via `requestId`).
 
-### DB Query Performance — `/dev/queries`
+### DB Query Performance — `/hub/queries`
 
 Every Prisma query event lands in a 500-entry ring buffer. The page surfaces:
 - the **slowest 10 queries** colour-coded against thresholds (warn > 50 ms, critical > 200 ms),
@@ -144,16 +144,16 @@ Every Prisma query event lands in a 500-entry ring buffer. The page surfaces:
 
 If a slice you just shipped lands in the slowest section, that's your next thing to fix.
 
-### Jobs Dashboard — `/dev/jobs`
+### Jobs Dashboard — `/hub/jobs`
 
 Two-tab view of the in-memory `JobQueueService` (the future pg-boss adapter exposes the same JSON contract):
 
 - **Queues** — per-queue counts, p95 latency, failure rate. Click a queue to filter the Jobs tab.
-- **Jobs** — paginated, queue + state filterable list. Inspect opens a drawer with the full payload (rendered in the JSON viewer), the captured error stack on failed jobs, and a Retry button that POSTs to `/dev/jobs/jobs/:id/retry` and re-enqueues a failed job with a bumped attempt counter.
+- **Jobs** — paginated, queue + state filterable list. Inspect opens a drawer with the full payload (rendered in the JSON viewer), the captured error stack on failed jobs, and a Retry button that POSTs to `/api/hub/jobs/:id/retry` and re-enqueues a failed job with a bumped attempt counter.
 
 Pure planner (`buildJobAggregates()`) computes counts / p95 / failure-rate over a flat `JobRecord` list, so the same dashboard renders unchanged once a Postgres-backed adapter ships. Auto-refresh every 4 s. Schedules / Workers / Archive tabs are deferred to the pg-boss adapter slice.
 
-### File Manager — `/dev/files`
+### File Manager — `/hub/files`
 
 Two-column file browser over the Prisma file/folder metadata + storage adapter pipeline (issues #16 + #17 wired the foundations):
 
@@ -163,37 +163,37 @@ Two-column file browser over the Prisma file/folder metadata + storage adapter p
 - **Sort + filter** toolbar — name / size / createdAt / updatedAt / mimeType, asc/desc, free-text filename search.
 - **Folder create** + **file delete** — wired to the existing `/folders` and `/files` REST endpoints.
 
-Tenant id resolves from the `x-tenant-id` cookie or a manual UUID input (debug-only). The page 404s outside `NODE_ENV=development`, identical to every other dev-hub surface.
+Tenant id resolves from the `x-tenant-id` header or the active session organization. The page 404s outside `NODE_ENV=development`, identical to every other Hub surface.
 
 Out of scope for this slice (deferred to follow-up issues): TUS upload UI, drag-and-drop move, multi-select bulk actions, lightbox, share-link creator, visibility toggle, server-side zip download.
 
-### Routes Inventory — `/dev/routes`
+### Routes Inventory — `/hub/routes`
 
-Live audit of every endpoint registered in NestJS, with its decorator-derived guard kind: `@Can(action, subject)` (guarded), `public` (allowlist), `dev-only` (404s in prod), or `unguarded` (red). 5-tile summary with per-kind counts so an auditor can spot gaps. JSON endpoint at `/dev/routes.json` for SDK / agent tooling.
+Live audit of every endpoint registered in NestJS, with its decorator-derived guard kind: `@Can(action, subject)` (guarded), `public` (allowlist), `dev-only` (404s in prod), or `unguarded` (red). 5-tile summary with per-kind counts so an auditor can spot gaps. JSON endpoint at `/api/hub/routes.json` for SDK / agent tooling.
 
-### Prisma ERD — `/dev/erd`
+### Prisma ERD — `/hub/erd`
 
 Live Mermaid `erDiagram` of the active Prisma schema (concat'd from `schema.prisma` + `prisma/features/*.prisma`). One-to-many vs many-to-many relations inferred from list-typed fields. Toggle source / copy Mermaid buttons.
 
-### Email Preview — `/dev/email-preview`
+### Email Preview — `/hub/email-preview`
 
 Every registered email template rendered with a realistic sample payload. Subject + sandboxed HTML iframe + plain-text version side-by-side, plus the sample-payload JSON. Mailpit at `:8025` shows actually-sent emails; this page is for "did my edit to the welcome template break anything?".
 
-### Email Outbox — `/dev/outbox.json`
+### Email Outbox — `/hub/email-outbox`
 
 JSON snapshot of the email-outbox subsystem (issue #11 — at-least-once delivery). Shows the lag classification (pending count, oldest age, threshold) plus the 100 most-recent dispatchable rows. Better-Auth hooks (verify / reset / welcome / invitation) enqueue via the outbox by default with a deterministic idempotency-key (recipient + token), so a "click resend twice" collapses into one row and a server crash between trigger and SMTP-ACK never loses a verification mail. Worker tick is configurable via `EMAIL_OUTBOX_TICK_MS` (default 1s); records that fail transiently retry with exponential backoff (1m → 5m → 25m, 2h cap, 5 attempts) before graduating to `dead-letter`. The `/health/ready` probe trips to 503 when lag exceeds 30s.
 
-### Email Builder — `/dev/email-builder`
+### Email Builder — `/hub/email-builder`
 
-Visual editor for transactional templates. Gallery lists every discovered `.tsx` template (core + module overlay) with rendered subject and a `Core (default)` / `Core (overridden)` / `Module` badge. Composer is three columns: block palette (Greeting · Paragraph · CTA · Footer · Code · Divider), ordered children with reorder/delete, live preview iframe. Save POSTs the JSON composition to `/dev/email-builder/save`, which codegens a deterministic `.tsx` source file under `src/modules/email/templates/<slug>.tsx`. Defense-in-depth path validation (planner-side `resolveEmailTemplateTarget` + runner-side prefix anchor) keeps path-traversal payloads off disk. Live preview goes through the same `@react-email/render` pipeline the saved templates use, so what-you-see-is-what-you-send.
+Visual editor for transactional templates. Gallery lists every discovered `.tsx` template (core + module overlay) with rendered subject and a `Core (default)` / `Core (overridden)` / `Module` badge. Composer is three columns: block palette (Greeting · Paragraph · CTA · Footer · Code · Divider), ordered children with reorder/delete, live preview iframe. Save POSTs the JSON composition to `/api/hub/email-builder/save`, which codegens a deterministic `.tsx` source file under `src/modules/email/templates/<slug>.tsx`. Defense-in-depth path validation (planner-side `resolveEmailTemplateTarget` + runner-side prefix anchor) keeps path-traversal payloads off disk. Live preview goes through the same `@react-email/render` pipeline the saved templates use, so what-you-see-is-what-you-send.
 
-**Editing core templates (Issue #49):** every gallery card has an `Anpassen` button that fetches `/dev/email-builder/templates/:name/composition.json`, decomposes the `.tsx` back into a JSON composition, and opens the composer pre-filled. Saving always writes a *module overlay* under `src/modules/email/templates/<name>.tsx` — the core file is never touched. `Core (overridden)` entries get a `Reset to default` action that DELETEs the overlay file (confirm dialog). Templates whose source uses JSX outside the composer grammar (e.g. ternaries, custom elements) open in a read-only source view instead of breaking the structural editor.
+**Editing core templates (Issue #49):** every gallery card has an `Anpassen` button that fetches `/api/hub/email-builder/templates/:name/composition.json`, decomposes the `.tsx` back into a JSON composition, and opens the composer pre-filled. Saving always writes a *module overlay* under `src/modules/email/templates/<name>.tsx` — the core file is never touched. `Core (overridden)` entries get a `Reset to default` action that DELETEs the overlay file (confirm dialog). Templates whose source uses JSX outside the composer grammar (e.g. ternaries, custom elements) open in a read-only source view instead of breaking the structural editor.
 
-### Migrations — `/dev/migrations`
+### Migrations — `/hub/migrations`
 
 Five-tab handler for Prisma schema evolution: **Status** (rows from `_prisma_migrations` with retry on failed), **Pending** (preview SQL · apply one · apply all · dry-run in a transaction), **Diff** (`prisma migrate diff` between live DB and `schema.prisma`), **History** (timeline of applied migrations), **Create New** (kebab-case validated → `prisma migrate dev --create-only` → SQL preview → apply or discard). Drift banner above all tabs. Every mutating endpoint is gated by a Postgres advisory lock (409 on contention) and 404s outside `NODE_ENV=development`.
 
-### JSON Endpoints — `/errors`, `/api/openapi`, `/dev/postgrest-parse`
+### JSON Endpoints — `/errors`, `/api/openapi`, `/api/hub/postgrest-parse`
 
 Every JSON endpoint has a sister HTML page that mounts the React SPA's shared **JSON viewer** — syntax-highlighted, collapsible tree, copy button, key-filter search. Browser default → viewer; `Accept: application/json` or `?format=json` → raw JSON for SDKs.
 
@@ -323,7 +323,7 @@ Currently **1712 tests** across 194 files. Coverage 95.48% lines (well above the
 
 ```bash
 # Development
-bun run dev                   # Dev server + Prisma Studio + auto-open Dev Hub
+bun run dev                   # Dev server + Prisma Studio + auto-open Hub
 bun run dev --tunnel          # …same, plus a public Cloudflare-Tunnel URL
 bun run lint                  # oxlint (95 rules, 30ms)
 bun run format                # oxfmt --check
@@ -390,12 +390,12 @@ BETTER_AUTH_SECRET=<32 bytes>
 MAILPIT_WEB_URL=http://localhost:8025
 POWERSYNC_URL=http://localhost:8080
 
-# Dev Hub controls
+# Hub controls
 NO_OPEN=1                     # Skip browser auto-open
 PRISMA_STUDIO=0               # Skip Prisma Studio sibling spawn
 DISABLE_PORTLESS=1            # Force http://localhost:<port>
 
-# Feature toggles (all 14 listed via /dev/features)
+# Feature toggles (all 14 listed via /hub/features)
 FEATURE_WEBHOOKS_ENABLED=true
 FEATURE_REALTIME_ENABLED=true
 # ...
@@ -405,13 +405,13 @@ FEATURE_REALTIME_ENABLED=true
 
 ## 🤖 AI-driven Development
 
-This project is **optimised for AI-assisted development** with [Claude Code](https://claude.com/claude-code) — every convention, test pattern, and dev-hub page exists with an AI agent as a first-class user.
+This project is **optimised for AI-assisted development** with [Claude Code](https://claude.com/claude-code) — every convention, test pattern, and Hub page exists with an AI agent as a first-class user.
 
 ```bash
 # Slash commands ship with the repo
 /add-module <name>              # New project resource (controller / service / DTO / tests)
 /add-feature <key> "<desc>"     # Toggleable feature flag end-to-end
-/add-page <slug> "<title>"      # New /dev or /admin page in the dark-mode shell
+/add-page <slug> "<title>"      # New /hub or /admin page in the dark-mode shell
 /upstream-pr                    # PR a src/core/ fix back to nest-base (downstream projects)
 ```
 
@@ -430,7 +430,7 @@ This project is **optimised for AI-assisted development** with [Claude Code](htt
 | `adding-feature-flag` | New toggleable feature, end-to-end |
 | `adding-feature-module` | Scaffold a feature module under `src/modules/` |
 | `adding-error-code` | New `CORE_*` error code with i18n |
-| `extending-dev-hub` | New dev-hub or admin page in the shared shell |
+| `extending-dev-hub` | New Hub or admin page in the shared shell |
 | `syncing-from-template` | Pull `src/core/` updates from upstream |
 | `contributing-upstream` | When and how to PR a fix back to `nest-base` |
 
@@ -464,7 +464,7 @@ A fresh agent reads [`.claude/QUICKSTART.md`](./.claude/QUICKSTART.md) (60 sec) 
 - [`docs/template-update-workflow.md`](./docs/template-update-workflow.md) — pulling upstream changes
 - [`docs/customization-guide.md`](./docs/customization-guide.md) — adding domain modules in `src/modules/`
 - [`docs/core-contribution-guide.md`](./docs/core-contribution-guide.md) — contributing back to `src/core/`
-- [`docs/showcase/README.md`](./docs/showcase/README.md) — every `/dev/*`, `/admin/*`, `/errors`, `/api/openapi` page at desktop + mobile, plus the `bun run docs:screenshots` reproduction command
+- [`docs/showcase/README.md`](./docs/showcase/README.md) — every `/hub/*`, `/admin/*`, `/errors`, `/api/openapi` page at desktop + mobile, plus the `bun run docs:screenshots` reproduction command
 
 **Community**
 - [`SECURITY.md`](./SECURITY.md) — vulnerability disclosure
@@ -498,5 +498,5 @@ imposes the provider's terms.
 ---
 
 <div align="center">
-<sub>Built with the discipline of strict TDD, the rigor of six quality gates per commit, and the joy of a dev hub that actually <strong>knallt</strong>.</sub>
+<sub>Built with the discipline of strict TDD, the rigor of six quality gates per commit, and the joy of a Hub that actually <strong>knallt</strong>.</sub>
 </div>
