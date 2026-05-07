@@ -50,7 +50,7 @@ createRoot(container).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider delayDuration={200}>
-        <BrowserRouter>
+        <BrowserRouter basename="/api">
           <App />
         </BrowserRouter>
         <Toaster position="bottom-right" richColors />

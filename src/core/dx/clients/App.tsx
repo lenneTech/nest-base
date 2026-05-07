@@ -163,7 +163,7 @@ export function App(): ReactNode {
         <Route path="/admin/search" element={<SearchTesterPage />} />
         <Route path="/admin/rate-limits" element={<RateLimitsAdminPage />} />
         <Route path="/errors" element={<ErrorsPage />} />
-        <Route path="/api/openapi" element={<OpenApiPage />} />
+        <Route path="/openapi" element={<OpenApiPage />} />
       </Routes>
     </Suspense>
   );

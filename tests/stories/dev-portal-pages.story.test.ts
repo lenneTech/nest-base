@@ -66,7 +66,7 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       "/admin/audit",
       "/admin/search",
       "/errors",
-      "/api/openapi",
+      "/openapi",
     ];
 
     for (const path of expectedRoutes) {
@@ -108,7 +108,7 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       "/admin/audit",
       "/admin/search",
       "/errors",
-      "/api/openapi",
+      "/openapi",
     ];
     for (const p of spaPaths) {
       it(`nav.ts SPA_ROUTES includes ${p}`, () => {

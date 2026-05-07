@@ -48,7 +48,7 @@ export const NAV_SECTIONS: readonly AdminNavSection[] = [
     title: "API & Docs",
     items: [
       { id: "scalar", label: "API Reference", href: "/api/docs", icon: "book" },
-      { id: "openapi", label: "OpenAPI Spec", href: "/api/openapi", icon: "file" },
+      { id: "openapi", label: "OpenAPI Spec", href: "/openapi", icon: "file" },
       { id: "routes", label: "Routes", href: "/hub/routes", icon: "route" },
       { id: "errors", label: "Error Codes", href: "/errors", icon: "bug" },
       { id: "erd", label: "ERD", href: "/hub/erd", icon: "network" },
@@ -127,7 +127,7 @@ export const SPA_ROUTES = new Set<string>([
   "/admin/search",
   "/admin/rate-limits",
   "/errors",
-  "/api/openapi",
+  "/openapi",
 ]);
 
 export function isSpaRoute(href: string): boolean {
