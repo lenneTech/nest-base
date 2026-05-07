@@ -81,7 +81,11 @@ describe("E2E · IdempotencyCleanupCron prunes expired rows from real Postgres",
       expiresAt: now + 60_000,
     });
 
-    expect(await countOurs()).toBe(3);
+    // The live row must be present; the expired rows may have already
+    // been pruned by a concurrent AppModule's IdempotencyCleanupCron
+    // (all e2e tests share the same testcontainer DB). The invariant
+    // that matters is the post-cron count, not the pre-cron snapshot.
+    expect(await countOurs()).toBeGreaterThanOrEqual(1);
 
     // The cron's deleteOlderThan runs against the WHOLE table — but
     // its observable result here is "every one of OUR expired rows

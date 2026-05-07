@@ -1,8 +1,15 @@
-import { Injectable, type OnModuleDestroy, type OnModuleInit } from "@nestjs/common";
+import {
+  Inject,
+  Injectable,
+  Optional,
+  type OnModuleDestroy,
+  type OnModuleInit,
+} from "@nestjs/common";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Prisma, PrismaClient } from "@prisma/client";
 
 import { buildUserEmailBlindIndexExtension } from "../auth/user-blind-index.extension.js";
+import { EXTRA_AUDITABLE_MODELS } from "./prisma-tokens.js";
 import { getQueryBuffer } from "../dx/query-buffer.js";
 import { BlindIndex, planBlindIndexFromEnv } from "../encryption/blind-index.js";
 import { EnvKekProvider, type KekProvider } from "../encryption/kek-provider.js";
@@ -65,6 +72,24 @@ export type ExtendedPrismaClient = ReturnType<PrismaService["buildExtendedClient
  * wraps the PrismaService instance). Project code that opts new
  * models into auditable can extend this map at module-init time.
  */
+/**
+ * Framework-managed models opted into audit by default.
+ *
+ * Separated from the runtime `buildExtendedClient` call so the list
+ * can be exported (for tests / docs) and so `EXTRA_AUDITABLE_MODELS`
+ * can be merged without mutating a constant.
+ */
+export const CORE_AUDITABLE_MODELS: readonly string[] = [
+  // Organization and Member replace the legacy Tenant/TenantMember (issue #118).
+  "Organization",
+  "Member",
+  "Role",
+  "RolePolicy",
+  "Policy",
+  "Permission",
+  "ApiKey",
+];
+
 export const MODEL_TABLE_MAP: Record<string, string> = {
   // Organization and Member are the canonical tenant tables after issue #118.
   Organization: "organization",
@@ -93,7 +118,15 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     | ReturnType<typeof PrismaService.prototype.buildExtendedClient>
     | undefined;
 
-  constructor() {
+  constructor(
+    // Project modules can extend the audit log's opt-in list by
+    // registering `{ provide: EXTRA_AUDITABLE_MODELS, useValue: ["Todo"] }`
+    // in any module. The token is optional so projects that don't need
+    // project-level audit tracking don't have to configure anything.
+    @Optional()
+    @Inject(EXTRA_AUDITABLE_MODELS)
+    private readonly extraAuditableModels: string[] = [],
+  ) {
     const url = process.env.DATABASE_URL;
     if (!url) {
       throw new Error("DATABASE_URL is required to construct PrismaService");
@@ -242,29 +275,14 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
           return null;
         }
       },
-      // Default opt-in for the framework-managed governance models —
-      // Tenants, role/permission/policy assignments, API keys. The
-      // PRD pins "Prisma extension capture (every CUD on opted-in
-      // models)" as a Success Criterion (CF.AUDIT.02); shipping with
-      // an empty list would silently disable the entire subsystem in
-      // every consuming project. Project code adds its own resource
-      // models via `setAuditableModels()` (project-specific defaults
-      // can override this list, e.g. dropping API keys if a tenant
-      // doesn't use them, or adding User if the project's policy
-      // demands it). Anonymous-access models (Session, Account,
+      // Merge the framework-managed core models with any project-provided
+      // extras. `CORE_AUDITABLE_MODELS` are always present; project code
+      // extends the list via `{ provide: EXTRA_AUDITABLE_MODELS, useValue: [...] }`
+      // (see prisma-tokens.ts). Anonymous-access models (Session, Account,
       // Verification — all Better-Auth internals) stay out of the
       // default; their churn doesn't carry compliance value and
       // would dwarf the audit-log volume.
-      auditableModels: [
-        // Organization and Member replace the legacy Tenant/TenantMember (issue #118).
-        "Organization",
-        "Member",
-        "Role",
-        "RolePolicy",
-        "Policy",
-        "Permission",
-        "ApiKey",
-      ],
+      auditableModels: [...CORE_AUDITABLE_MODELS, ...this.extraAuditableModels],
     });
 
     // BlindIndex extension auto-populates `User.emailHash` on every

@@ -68,12 +68,20 @@ The order matters:
 # 1. Concatenate base schema + active feature schemas
 bun run prepare:schema
 
-# 2. Create the migration (Prisma reads schema.generated.prisma)
-bunx prisma migrate dev --name add_invoice_model
+# 2. Create the migration FILE only — do NOT apply yet
+#    (--create-only stops before executing the SQL so you can add RLS
+#    in step 4 before anything touches the database)
+bunx prisma migrate dev --name add_invoice_model --create-only
 
-# 3. Generate the client so TS picks up the new types
-bunx prisma generate
+# The client types are NOT updated yet — do that in step 5 after applying.
 ```
+
+> **Why `--create-only`?** `prisma migrate dev` without this flag creates
+> AND immediately applies the migration file. If you edit the file afterward
+> to add RLS policies, those edits never reach the dev database — Prisma
+> marks the migration as applied before you open it. Always use
+> `--create-only` when your migration needs SQL that Prisma cannot
+> generate (RLS policies, custom triggers, partitioning, etc.).
 
 **Why prepare:schema first:** `prisma migrate dev` reads
 `schema.generated.prisma`, not the source. If you skip the concat
@@ -81,6 +89,12 @@ step, Prisma sees a stale schema and may generate an empty migration
 or, worse, drop tables for features that should be active.
 
 ### 4 · Add RLS for tenant-scoped tables
+
+> **IMPORTANT:** Edit the migration file BEFORE applying it. Step 3
+> used `--create-only` precisely so this window exists. Editing the
+> file after `prisma migrate dev` (without `--create-only`) would have
+> no effect on the dev database because Prisma already applied and
+> recorded it.
 
 The migration Prisma generated only handles columns/indexes. RLS
 policies are SQL. Open `prisma/migrations/<timestamp>_add_invoice_model/migration.sql`
@@ -94,6 +108,16 @@ ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
 -- variable set by the Prisma extension (`SET app.tenant_id = $1`)
 CREATE POLICY invoices_tenant_isolation ON invoices
   USING (tenant_id::text = current_setting('app.tenant_id', true));
+```
+
+Then apply the migration (now containing the RLS SQL):
+
+```bash
+# Apply the migration (and all pending ones) to the dev database
+bunx prisma migrate dev
+
+# Generate the client so TS picks up the new types
+bunx prisma generate
 ```
 
 Verify the migration is idempotent — `prisma migrate deploy` runs it
