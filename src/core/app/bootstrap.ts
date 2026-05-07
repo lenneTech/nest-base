@@ -35,6 +35,8 @@ import { createOtelSdk, planOtelBootstrap } from "../observability/otel-sdk-boot
 import { PinoLoggerService } from "../observability/pino-logger.service.js";
 import { applyZodSchemaRegistry } from "../openapi/zod-openapi-bridge.js";
 import { serverConfigFromEnv } from "../server/server-config.js";
+import { planAutoMigration } from "../setup/auto-migrate.js";
+import { runAutoMigrate } from "../setup/auto-migrate-runner.js";
 import { checkEnvPrerequisites, renderEnvBanner } from "../setup/env-prerequisites.js";
 import { buildHubAuthConfig } from "../hub/hub-auth-planner.js";
 import { HubSessionService } from "../hub/hub-session.service.js";
@@ -87,6 +89,14 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
       process.stdout.write(renderEnvBanner(plan));
       process.exit(1);
     }
+
+    // Auto-migrate — run prisma migrate deploy before DI boots so the
+    // schema is always current when modules initialise.
+    const migratePlan = planAutoMigration({
+      env: process.env.NODE_ENV,
+      listen,
+    });
+    await runAutoMigrate(migratePlan);
   }
 
   const cfg = serverConfigFromEnv(process.env);
@@ -263,10 +273,11 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
         }
       }
 
-      res
-        .status(200)
-        .type("text/html; charset=utf-8")
-        .send(renderDevPortalShell(buildDevPortalShellInput({ title: "Hub", brand: "central" })));
+      // Redirect to /api/hub so BrowserRouter (basename="/api") can
+      // match the /hub route. Serving the SPA shell at "/" directly
+      // causes a blank page because React Router strips the basename
+      // and sees "/" which matches no declared route.
+      res.redirect(302, "/api/hub");
     });
   }
 
