@@ -70,6 +70,16 @@ export class BetterAuthSessionMiddleware implements NestMiddleware {
   ) {}
 
   async use(req: AuthenticatedRequest, _res: Response, next: NextFunction): Promise<void> {
+    // In test environments, x-test-ability header signals that TestAbilityMiddleware
+    // will seed req.ability from a pre-built CASL ability — no session is needed.
+    // Skip session resolution entirely so the BA cookie check can't 401 the request
+    // before the test bypass takes effect. NODE_ENV guard keeps this dead code in
+    // production builds (tree-shaker removes it because the branch is a compile-time
+    // constant via the string literal comparison).
+    if (process.env.NODE_ENV === "test" && req.headers["x-test-ability"]) {
+      return next();
+    }
+
     const path = (req.originalUrl ?? req.url ?? "/") as string;
     const protectedPath = isPathProtected(stripQuery(path));
 

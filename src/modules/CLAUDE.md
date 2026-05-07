@@ -126,6 +126,28 @@ schema. **No escape-hatch casts on `tx`** — if TypeScript says
 `tx.<resource>` doesn't exist or `Project` isn't exported, the
 generator output is stale — regenerate, don't cast.
 
+### Nullable field checks in services: use `!= null` not `!== null`
+
+The in-memory fake Prisma used in story tests initialises nullable
+fields as `undefined` (the caller did not supply the field on `create`),
+not `null`. Service code that checks soft-delete watermarks or other
+nullable columns MUST use **loose inequality** (`!= null`) rather than
+strict (`!== null`):
+
+```typescript
+// Bad — strict check treats undefined as "not null" → falsely marks
+// a fresh record as deleted when the field was never set:
+if (record.deletedAt !== null) { /* ← breaks in story tests */ }
+
+// Good — loose check treats both undefined and null as "absent":
+if (record.deletedAt != null) { /* ← works in both fake and real Prisma */ }
+```
+
+`undefined != null` evaluates to `false` (both sides are nullish);
+`undefined !== null` evaluates to `true` (strict type mismatch) — the
+latter falsely treats a fresh record with an unset nullable column as
+already deleted.
+
 ### Mapper guards optional fields with `?? null`
 
 Real Prisma returns `null` for nullable columns; the in-memory test
