@@ -128,7 +128,7 @@ model TenantSettings {
 model Member {
   id             String       @id
   organizationId String       @map("organization_id")
-  userId         String       @map("user_id")
+  userId         String       @map("user_id") @db.Uuid
   role           String
   createdAt      DateTime     @map("created_at")
 
@@ -145,7 +145,7 @@ model Invitation {
   role           String?
   status         String
   expiresAt      DateTime     @map("expires_at")
-  inviterId      String       @map("inviter_id")
+  inviterId      String       @map("inviter_id") @db.Uuid
 
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   inviter        User         @relation("InviterUser", fields: [inviterId], references: [id], onDelete: Cascade)

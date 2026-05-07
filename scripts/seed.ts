@@ -20,10 +20,16 @@
 
 import { createHash } from "node:crypto";
 
+import { config as loadEnv } from "dotenv";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 
 import { buildSeedPlan } from "../src/core/setup/seed-plan.js";
+
+// Override existing shell env vars so a stale DATABASE_URL from a
+// different project doesn't send the seed to the wrong database.
+// (Bun auto-loads .env but never overrides existing process.env values.)
+loadEnv({ override: true });
 
 if (process.env.NODE_ENV === "production") {
   console.error("[seed] refusing: NODE_ENV=production. `bun run seed` is dev-only.");
@@ -67,6 +73,25 @@ const { hashPassword } = await import("better-auth/crypto");
 const passwordHashes = await Promise.all(plan.users.map((user) => hashPassword(user.password)));
 
 try {
+  // BA Organization rows (issue #118) — canonical tenant layer. Must be
+  // first: roles carry a tenantId that references the organization UUID,
+  // so the org rows must exist before role upserts run.
+  // The prisma adapter writes TEXT ids; our UUIDs are valid TEXT so
+  // no cast is needed here — Prisma handles the mapping.
+  for (const org of plan.organizations) {
+    await prisma.organization.upsert({
+      where: { id: org.id },
+      create: {
+        id: org.id,
+        name: org.name,
+        slug: org.slug,
+        createdAt: org.createdAt,
+      },
+      update: { name: org.name, slug: org.slug },
+    });
+  }
+  console.log(`[seed]   BA orgs:     ${plan.organizations.length}`);
+
   // Roles
   for (const role of plan.roles) {
     await prisma.role.upsert({
@@ -246,23 +271,6 @@ try {
     });
   }
   console.log(`[seed]   profiles:    ${plan.userProfiles.length}`);
-
-  // BA Organization rows (issue #118) — canonical tenant layer.
-  // The prisma adapter writes TEXT ids; our UUIDs are valid TEXT so
-  // no cast is needed here — Prisma handles the mapping.
-  for (const org of plan.organizations) {
-    await prisma.organization.upsert({
-      where: { id: org.id },
-      create: {
-        id: org.id,
-        name: org.name,
-        slug: org.slug,
-        createdAt: org.createdAt,
-      },
-      update: { name: org.name, slug: org.slug },
-    });
-  }
-  console.log(`[seed]   BA orgs:     ${plan.organizations.length}`);
 
   // BA Member rows (issue #118) — canonical membership layer.
   for (const baMember of plan.baMembers) {
