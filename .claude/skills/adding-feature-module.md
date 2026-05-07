@@ -248,6 +248,29 @@ Same three commands. The feature key must already exist in
 `FeaturesSchema` — otherwise schema-concat won't know to include the
 file.
 
+### ENUM migrations
+
+PostgreSQL does **not** support `CREATE TYPE … IF NOT EXISTS`. Use
+plain `CREATE TYPE` and rely on Prisma's migration lock for
+idempotency. If you genuinely need a guard (e.g. a manual SQL script),
+use a `DO` block instead:
+
+```sql
+-- Wrong — syntax error at or near "NOT":
+CREATE TYPE "todo_status" AS ENUM ('open', 'in_progress', 'done') IF NOT EXISTS;
+
+-- Correct — plain CREATE TYPE (idempotent via Prisma migration history):
+CREATE TYPE "todo_status" AS ENUM ('open', 'in_progress', 'done');
+
+-- Guard with a DO block when truly needed (manual scripts only):
+DO $$ BEGIN
+  CREATE TYPE "todo_status" AS ENUM ('open', 'in_progress', 'done');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+```
+
+All existing migrations in this project use plain `CREATE TYPE`.
+
 ### RLS migration
 
 For tenant-scoped tables, the SQL migration must enable RLS and
@@ -288,6 +311,31 @@ scan stays green.
 
 Zod schemas as the single source of truth — runtime validation, type
 inference, and OpenAPI schema all derive from one definition:
+
+**DTO fields with defaults:** When a field uses `.default()`, use
+`z.input<typeof Schema>` as the service method's parameter type (the
+field is optional for callers) and call `Schema.parse(input)` inside
+the service to apply the default. `z.infer<>` gives the *output* type
+where defaults are already resolved, making the field required — wrong
+for a public API parameter.
+
+```typescript
+// In <resource>.dto.ts
+export const Create<Resource>Schema = z.object({
+  title: z.string(),
+  status: z.enum(["open", "in_progress", "done"]).default("open"),
+});
+// z.input<> → status is optional (caller may omit it)
+export type Create<Resource>Input = z.input<typeof Create<Resource>Schema>;
+// z.infer<> → status is required (default already applied; use for the resolved shape)
+export type Create<Resource>Dto = z.infer<typeof Create<Resource>Schema>;
+
+// In <resource>.service.ts
+async create(tenantId: string, userId: string, input: Create<Resource>Input) {
+  const dto = Create<Resource>Schema.parse(input);  // applies default → dto.status is always a string
+  // use dto here
+}
+```
 
 ```typescript
 // src/modules/<resource>/<resource>.dto.ts
