@@ -743,6 +743,19 @@ model RateLimitAllowlist {
   @@map("rate_limit_allowlist")
 }
 
+/// Managed directly by ThrottlerPostgresStore via raw SQL — excluded from
+/// Prisma Client generation. The migration that creates this table lives in
+/// 20260504160000_throttler_records; @@ignore prevents Prisma from dropping
+/// it when detecting schema drift.
+model ThrottlerRecord {
+  key       String   @id
+  count     Int
+  expiresAt DateTime @map("expires_at")
+
+  @@ignore
+  @@map("throttler_records")
+}
+
 /// Asset-variant cache index (CF.STORAGE.01 closure — iter-183).
 ///
 /// Discoverable index over the asset variant cache. The matching

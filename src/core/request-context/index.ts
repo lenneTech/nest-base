@@ -1,8 +1,10 @@
 export {
   type RequestContext,
   generateRequestId,
+  getCurrentUserId,
   getRequestContext,
   runWithRequestContext,
+  setCurrentUserId,
 } from "./request-context.js";
 export {
   type ParsedTraceparent,

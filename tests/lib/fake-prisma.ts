@@ -197,6 +197,11 @@ export interface FakePrismaService {
   example: TableMock<Row>;
   userProfile: TableMock<Row>;
   runWithRlsTenant<T>(fn: (tx: FakePrismaService) => Promise<T>, tenantId?: string): Promise<T>;
+  // No-op stubs for raw SQL methods — services that call $executeRaw
+  // (e.g., audit emit) silently succeed in unit tests where raw SQL
+  // behavior is not the subject under test.
+  $executeRaw(...args: unknown[]): Promise<number>;
+  $queryRaw(...args: unknown[]): Promise<unknown[]>;
   /** Test-only: clear every table. */
   __resetAll(): void;
   /** Index access for project-owned tables (Proxy-backed). */
@@ -211,6 +216,9 @@ export interface FakePrismaService {
  */
 const RESERVED_KEYS = new Set<string | symbol>([
   "runWithRlsTenant",
+  // Raw-SQL stubs — must not be proxied to a TableMock.
+  "$executeRaw",
+  "$queryRaw",
   "__resetAll",
   // Internal slot used by the Proxy to enumerate dynamic tables
   // when wiping state via `__resetAll`.
@@ -247,7 +255,10 @@ export function createFakePrisma(): FakePrismaService {
   ensureTable("example");
   ensureTable("userProfile");
 
-  const base: Pick<FakePrismaService, "runWithRlsTenant" | "__resetAll"> & {
+  const base: Pick<
+    FakePrismaService,
+    "runWithRlsTenant" | "$executeRaw" | "$queryRaw" | "__resetAll"
+  > & {
     __tables__: Map<string, TableMock<Row>>;
   } = {
     async runWithRlsTenant(fn) {
@@ -256,6 +267,15 @@ export function createFakePrisma(): FakePrismaService {
       // the callback with itself as the tx — same surface as the real
       // Prisma transaction client.
       return fn(proxy);
+    },
+    // No-op stubs for raw SQL methods — services that call $executeRaw
+    // (e.g., audit emit) silently succeed in unit tests where raw SQL
+    // behavior is not the subject under test.
+    async $executeRaw() {
+      return 0;
+    },
+    async $queryRaw() {
+      return [];
     },
     __resetAll() {
       for (const table of tables.values()) table.__reset();

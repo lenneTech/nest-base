@@ -10,6 +10,7 @@ import {
 import { fromNodeHeaders } from "better-auth/node";
 import type { NextFunction, Request, Response } from "express";
 
+import { setCurrentUserId } from "../request-context/request-context.js";
 import { isPathProtected } from "./jwt-middleware.js";
 import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from "./better-auth.token.js";
 
@@ -120,6 +121,10 @@ export class BetterAuthSessionMiddleware implements NestMiddleware {
         // send `x-tenant-id` on every request (issue #103).
         activeOrganizationId: extractActiveOrganizationId(session),
       };
+      // Stamp the authenticated user id on the running request context so
+      // domain services can call `getCurrentUserId()` without threading
+      // the id through every parameter list — mirrors `getCurrentTenantId()`.
+      setCurrentUserId(session.user.id);
       next();
       return;
     }

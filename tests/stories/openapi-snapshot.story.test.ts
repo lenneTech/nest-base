@@ -55,6 +55,12 @@ describe("Story · Offline OpenAPI snapshot (docs/openapi.snapshot.json)", () =>
   let liveDocument: Record<string, unknown>;
 
   beforeAll(async () => {
+    // `listen: false` keeps this test from binding to port 3000 so it
+    // never conflicts with a running dev server. If you see an intermittent
+    // native abort here it is almost always a Prisma native binary clash
+    // from another parallel worker that also called bootstrap() — not a
+    // port conflict. The `afterAll` below calls `app.close()` which tears
+    // down Prisma cleanly, so the next run is always clean.
     app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
     const res = await request(app.getHttpServer()).get("/api/openapi.json");
     expect(res.status).toBe(200);

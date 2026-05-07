@@ -131,6 +131,21 @@ export class CreateProjectDto extends createZodDto(CreateProjectSchema) {}
 - OpenAPI is generated from the same schemas via `nestjs-zod`. If the
   schema is right, the docs are right.
 
+### DTO types use `z.input<>`
+
+When a Zod schema field has `.default()`, `z.infer<>` produces the
+POST-parse output type (field is required because the default guarantees
+its presence after parsing). Service method DTOs should use
+`z.input<typeof Schema>` instead, which reflects the pre-parse input
+shape (field optional for callers):
+
+```typescript
+// ❌ Makes status required in caller code even though it has a default
+export type CreateTodoDto = z.infer<typeof CreateTodoSchema>;
+// ✅ Status is optional for callers — default applies during parse
+export type CreateTodoDto = z.input<typeof CreateTodoSchema>;
+```
+
 ## Permissions on a handler
 
 The default path is **decorator-driven**:
