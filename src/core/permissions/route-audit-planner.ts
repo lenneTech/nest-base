@@ -51,7 +51,7 @@ const HTTP_METHOD_DECORATORS = new Set(["Get", "Post", "Put", "Patch", "Delete",
 //   (b) have their raw path prefix listed here.
 //
 // Concretely: `@Controller("hub")` → raw path `/hub/*`, deployed at
-// `/api/hub/*` due to global prefix. The planner sees `/hub/*`.
+// `/hub/*` (excluded from the global "api" prefix). The planner sees `/hub/*`.
 export const DEFAULT_PUBLIC_PREFIXES: readonly string[] = [
   "/health/",
   // Better-Auth: raw path is /auth/* (controller uses @Public() anyway).
@@ -62,15 +62,14 @@ export const DEFAULT_PUBLIC_PREFIXES: readonly string[] = [
   "/hub/",
   "/admin/",
   "/errors/",
-  "/api/openapi",
-  // Hub SPA routes (raw controller paths, not the global-prefix-applied paths).
-  "/hub/",
+  // OpenAPI SPA page is now mounted at /openapi (no /api prefix).
+  "/openapi",
 ];
 
 export const DEFAULT_PUBLIC_EXACT: readonly string[] = [
   "/",
   "/errors",
-  "/api/openapi",
+  "/openapi",
   "/hub/login",
   "/hub/logout",
 ];

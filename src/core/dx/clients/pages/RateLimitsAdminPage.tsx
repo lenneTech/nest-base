@@ -121,14 +121,14 @@ function InspectorTab(): ReactNode {
     queryKey: ["admin", "rate-limits", "inspector", scopeFilter],
     queryFn: () =>
       fetchJson<{ rows: InspectorRow[]; total: number }>(
-        `/api/admin/rate-limits/inspector.json${scopeFilter ? `?scope=${encodeURIComponent(scopeFilter)}` : ""}`,
+        `/admin/rate-limits/inspector.json${scopeFilter ? `?scope=${encodeURIComponent(scopeFilter)}` : ""}`,
       ),
     refetchInterval: 5_000,
   });
 
   const resetKey = useMutation({
     mutationFn: async (key: string) => {
-      const res = await fetch(`/api/admin/rate-limits/keys/${encodeURIComponent(key)}/reset`, {
+      const res = await fetch(`/admin/rate-limits/keys/${encodeURIComponent(key)}/reset`, {
         method: "POST",
       });
       if (!res.ok) throw new Error(`reset failed (${res.status})`);
@@ -260,7 +260,7 @@ function ConfigTab(): ReactNode {
 
   const query = useQuery({
     queryKey: ["admin", "rate-limits", "config"],
-    queryFn: () => fetchJson<{ scopes: ConfigScope[] }>("/api/admin/rate-limits/config.json"),
+    queryFn: () => fetchJson<{ scopes: ConfigScope[] }>("/admin/rate-limits/config.json"),
   });
 
   const globalScopes = (query.data?.scopes ?? []).filter((s) => s.scope.startsWith("global:"));
@@ -340,7 +340,7 @@ function ConfigRow({ scope, onChanged }: ConfigRowProps): ReactNode {
 
   const save = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/admin/rate-limits/config/${encodeURIComponent(scope.scope)}`, {
+      const res = await fetch(`/admin/rate-limits/config/${encodeURIComponent(scope.scope)}`, {
         method: "PUT",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -363,7 +363,7 @@ function ConfigRow({ scope, onChanged }: ConfigRowProps): ReactNode {
 
   const reset = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/admin/rate-limits/config/${encodeURIComponent(scope.scope)}`, {
+      const res = await fetch(`/admin/rate-limits/config/${encodeURIComponent(scope.scope)}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error(`Zurücksetzen fehlgeschlagen (${res.status})`);
@@ -446,7 +446,7 @@ function DecisionsTab(): ReactNode {
         items: DecisionRecord[];
         nextCursor: string | null;
         total: number;
-      }>(`/api/admin/rate-limits/decisions.json?${params.toString()}`),
+      }>(`/admin/rate-limits/decisions.json?${params.toString()}`),
   });
 
   return (
@@ -562,12 +562,12 @@ function AllowlistTab(): ReactNode {
 
   const query = useQuery({
     queryKey: ["admin", "rate-limits", "allowlist"],
-    queryFn: () => fetchJson<{ items: AllowlistEntry[] }>("/api/admin/rate-limits/allowlist.json"),
+    queryFn: () => fetchJson<{ items: AllowlistEntry[] }>("/admin/rate-limits/allowlist.json"),
   });
 
   const add = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/admin/rate-limits/allowlist", {
+      const res = await fetch("/admin/rate-limits/allowlist", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ userId: userId.trim(), reason: reason.trim() }),
@@ -590,7 +590,7 @@ function AllowlistTab(): ReactNode {
 
   const remove = useMutation({
     mutationFn: async (uid: string) => {
-      const res = await fetch(`/api/admin/rate-limits/allowlist/${encodeURIComponent(uid)}`, {
+      const res = await fetch(`/admin/rate-limits/allowlist/${encodeURIComponent(uid)}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error(`Entfernen fehlgeschlagen (${res.status})`);

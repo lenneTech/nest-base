@@ -3,7 +3,7 @@
  * activity charts + geo table + 5-tile stats grid + services strip +
  * log preview + features overview + quick-links.
  *
- * Single fetch: `/api/hub/dashboard.json` aggregates everything the
+ * Single fetch: `/hub/dashboard.json` aggregates everything the
  * cockpit needs. The status section also re-polls
  * `/dev/status.json` every 4 s for fast probe updates.
  */
@@ -190,7 +190,7 @@ function computeOverallHealth(input: DashboardJson, probesDown: number): Overall
 export function DevHubLandingPage(): ReactNode {
   const dashboard = useQuery({
     queryKey: ["dev", "dashboard"],
-    queryFn: () => fetchJson<DashboardJson>("/api/hub/dashboard.json"),
+    queryFn: () => fetchJson<DashboardJson>("/hub/dashboard.json"),
     refetchInterval: 5_000,
   });
 
@@ -772,7 +772,7 @@ function ServicesGrid({ probes }: { probes: ServiceProbe[] }): ReactNode {
     let cancelled = false;
     async function tick(): Promise<void> {
       try {
-        const next = await fetchJson<ServiceProbe[]>("/api/hub/status.json");
+        const next = await fetchJson<ServiceProbe[]>("/hub/status.json");
         if (cancelled) return;
         queryClient.setQueryData<DashboardJson | undefined>(["dev", "dashboard"], (prev) =>
           prev ? { ...prev, probes: next } : prev,
@@ -959,7 +959,7 @@ function QuickLinks(): ReactNode {
   const links = [
     { href: "/api/docs", label: "Scalar API Reference", hint: "Interaktive OpenAPI 3.1 Referenz" },
     {
-      href: "/api/openapi",
+      href: "/openapi",
       label: "OpenAPI-Spec",
       hint: "Hübscher JSON-Viewer + Rohdaten-Download",
     },

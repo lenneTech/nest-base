@@ -64,12 +64,12 @@ export function PoliciesAdminPage(): ReactNode {
 
   const list = useQuery({
     queryKey: ["admin", "policies"],
-    queryFn: () => fetchJson<PolicyRecord[]>("/api/admin/policies"),
+    queryFn: () => fetchJson<PolicyRecord[]>("/admin/policies"),
   });
 
   const create = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/admin/policies", {
+      const res = await fetch("/admin/policies", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ name, description: description || null }),
@@ -88,7 +88,7 @@ export function PoliciesAdminPage(): ReactNode {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/admin/policies/${id}`, { method: "DELETE" });
+      const res = await fetch(`/admin/policies/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error(`policy delete failed (${res.status})`);
       return res.json();
     },
@@ -229,7 +229,7 @@ export function PoliciesAdminPage(): ReactNode {
 function PolicyRolesPanel({ policyId }: { policyId: string }): ReactNode {
   const roles = useQuery({
     queryKey: ["admin", "policies", policyId, "roles"],
-    queryFn: () => fetchJson<RolePolicyLink[]>(`/api/admin/policies/${policyId}/roles`),
+    queryFn: () => fetchJson<RolePolicyLink[]>(`/admin/policies/${policyId}/roles`),
   });
 
   if (roles.isPending) return <PageLoading>Lade Rollen…</PageLoading>;

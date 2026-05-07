@@ -149,6 +149,10 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
 
   // Issue #83: all API endpoints live under `/api/*`. Paths excluded
   // from the prefix are those that intentionally sit at root level:
+  //   - `hub`, `hub/(.*)` — Dev-Hub SPA pages (no /api prefix)
+  //   - `admin`, `admin/(.*)` — Admin SPA pages (no /api prefix)
+  //   - `errors`, `errors/(.*)` — Error catalog page (no /api prefix)
+  //   - `openapi`             — OpenAPI SPA viewer page (no /api prefix)
   //   - `hub/login`    — Hub password login (no API prefix needed)
   //   - `hub/logout`   — Hub logout (no API prefix needed)
   //   - `health/(.*)`  — k8s liveness/readiness probes
@@ -162,6 +166,13 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   // Wildcard routes use the Express-style `(.*)` suffix.
   app.setGlobalPrefix("api", {
     exclude: [
+      "hub",
+      "hub/(.*)",
+      "admin",
+      "admin/(.*)",
+      "errors",
+      "errors/(.*)",
+      "openapi",
       "hub/login",
       "hub/logout",
       "health",
@@ -273,11 +284,9 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
         }
       }
 
-      // Redirect to /api/hub so BrowserRouter (basename="/api") can
-      // match the /hub route. Serving the SPA shell at "/" directly
-      // causes a blank page because React Router strips the basename
-      // and sees "/" which matches no declared route.
-      res.redirect(302, "/api/hub");
+      // Redirect to /hub — the SPA entry point. BrowserRouter no longer
+      // uses a basename, so /hub is the canonical root route.
+      res.redirect(302, "/hub");
     });
   }
 
@@ -410,12 +419,12 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   });
   if (cfg.env !== "production") {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    app.use("/api/openapi", (req: any, res: any, next: any) => {
+    app.use("/openapi", (req: any, res: any, next: any) => {
       // Only catch GET, fall through for other methods to keep the API
       // surface clean in case anything ever wants to POST here.
       if (req.method !== "GET") return next();
       // The HTML branch is the Dev-Portal SPA shell. The React
-      // `/api/openapi` page fetches `/api/openapi.json` and renders
+      // `/openapi` page fetches `/api/openapi.json` and renders
       // the spec through the same `JsonViewer` component the legacy
       // server viewer wrapped — keeps the SPA the single owner of
       // the dev-hub chrome.

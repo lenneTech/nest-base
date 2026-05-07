@@ -16,8 +16,8 @@ describe("Story · Startup-Banner", () => {
     expect(flat).toContain("http://localhost:3000/health/ready");
     expect(flat).toContain("http://localhost:3000/api/openapi.json");
     expect(flat).toContain("http://localhost:3000/api/docs");
-    expect(flat).toContain("http://localhost:3000/api/admin/permissions/test");
-    expect(flat).toContain("http://localhost:3000/api/admin/webhooks");
+    expect(flat).toContain("http://localhost:3000/admin/permissions/test");
+    expect(flat).toContain("http://localhost:3000/admin/webhooks");
   });
 
   it("blendet Scalar-URL aus, wenn das Feature deaktiviert ist", () => {

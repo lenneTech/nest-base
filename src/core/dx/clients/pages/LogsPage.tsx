@@ -36,7 +36,7 @@ export function LogsPage(): ReactNode {
   const initial = useQuery({
     queryKey: ["dev", "logs", "initial"],
     queryFn: async () => {
-      const records = await fetchJson<LogRecord[]>("/api/hub/logs.json");
+      const records = await fetchJson<LogRecord[]>("/hub/logs.json");
       return records;
     },
   });
@@ -79,7 +79,7 @@ function LogsBody({ initialRecords }: { initialRecords: LogRecord[] }): ReactNod
     let cursor = records.length > 0 ? Number(records[records.length - 1]?.seq ?? 0) : 0;
     async function tick(): Promise<void> {
       try {
-        const next = await fetchJson<LogRecord[]>(`/api/hub/logs.json?since=${cursor}`);
+        const next = await fetchJson<LogRecord[]>(`/hub/logs.json?since=${cursor}`);
         if (cancelled) return;
         if (next.length === 0) return;
         for (const rec of next) {

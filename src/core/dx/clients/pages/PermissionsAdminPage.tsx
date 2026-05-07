@@ -69,13 +69,13 @@ export function PermissionsAdminPage(): ReactNode {
 
   const list = useQuery({
     queryKey: ["admin", "permissions"],
-    queryFn: () => fetchJson<PermissionRecord[]>("/api/admin/permissions"),
+    queryFn: () => fetchJson<PermissionRecord[]>("/admin/permissions"),
   });
 
   const matrix = useQuery({
     queryKey: ["admin", "permissions", "matrix", tenantId],
     queryFn: async () => {
-      const res = await fetch("/api/admin/permissions/matrix.json", {
+      const res = await fetch("/admin/permissions/matrix.json", {
         headers: { accept: "application/json", "x-tenant-id": tenantId },
         cache: "no-store",
       });
@@ -88,12 +88,12 @@ export function PermissionsAdminPage(): ReactNode {
 
   const roles = useQuery({
     queryKey: ["admin", "roles"],
-    queryFn: () => fetchJson<RoleRecord[]>("/api/admin/roles"),
+    queryFn: () => fetchJson<RoleRecord[]>("/admin/roles"),
   });
 
   const create = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/admin/permissions", {
+      const res = await fetch("/admin/permissions", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -120,7 +120,7 @@ export function PermissionsAdminPage(): ReactNode {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/admin/permissions/${id}`, { method: "DELETE" });
+      const res = await fetch(`/admin/permissions/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error(`permission delete failed (${res.status})`);
       return res.json();
     },

@@ -96,7 +96,7 @@ const POLL_INTERVAL_MS = 4000;
 export function JobsPage(): ReactNode {
   const aggregates = useQuery({
     queryKey: ["dev", "jobs", "queues"],
-    queryFn: () => fetchJson<JobAggregates>("/api/hub/jobs/queues.json"),
+    queryFn: () => fetchJson<JobAggregates>("/hub/jobs/queues.json"),
     refetchInterval: POLL_INTERVAL_MS,
   });
 
@@ -259,7 +259,7 @@ function JobsTab({
 
   const list = useQuery({
     queryKey: ["dev", "jobs", "list", queueFilter, stateFilter],
-    queryFn: () => fetchJson<JobListResponse>(`/api/hub/jobs/jobs.json?${params.toString()}`),
+    queryFn: () => fetchJson<JobListResponse>(`/hub/jobs/jobs.json?${params.toString()}`),
     refetchInterval: POLL_INTERVAL_MS,
   });
 
@@ -390,12 +390,12 @@ function JobDrawer({ id, onClose }: { id: string; onClose: () => void }): ReactN
   const queryClient = useQueryClient();
   const detail = useQuery({
     queryKey: ["dev", "jobs", "detail", id],
-    queryFn: () => fetchJson<JobRecord>(`/api/hub/jobs/jobs/${encodeURIComponent(id)}.json`),
+    queryFn: () => fetchJson<JobRecord>(`/hub/jobs/jobs/${encodeURIComponent(id)}.json`),
   });
 
   const retry = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/hub/jobs/jobs/${encodeURIComponent(id)}/retry`, {
+      const res = await fetch(`/hub/jobs/jobs/${encodeURIComponent(id)}/retry`, {
         method: "POST",
         headers: { "content-type": "application/json" },
       });

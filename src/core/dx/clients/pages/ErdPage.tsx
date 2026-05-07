@@ -47,7 +47,7 @@ function loadMermaid(): Promise<typeof import("mermaid").default> {
 export function ErdPage(): ReactNode {
   const data = useQuery({
     queryKey: ["dev", "erd"],
-    queryFn: () => fetchJson<ErdResponse>("/api/hub/erd.json"),
+    queryFn: () => fetchJson<ErdResponse>("/hub/erd.json"),
   });
 
   const subtitle =

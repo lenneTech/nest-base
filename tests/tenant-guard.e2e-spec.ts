@@ -55,13 +55,17 @@ describe("Tenant Guard", () => {
   });
 
   it("strips query strings before matching exempt prefixes", () => {
+    // /errors is the canonical path (no /api prefix); /api/errors kept for backward compat.
+    expect(isTenantExempt("/errors?format=json")).toBe(true);
     expect(isTenantExempt("/api/errors?format=json")).toBe(true);
     expect(isTenantExempt("/health/live?ts=1")).toBe(true);
     expect(isTenantExempt("/api/auth/sign-in?next=/x")).toBe(true);
-    expect(isTenantExempt("/api/hub?source=banner")).toBe(true);
+    // Hub SPA now lives at /hub/* (no /api prefix).
+    expect(isTenantExempt("/hub?source=banner")).toBe(true);
   });
 
   it("strips fragments before matching", () => {
+    expect(isTenantExempt("/errors#section")).toBe(true);
     expect(isTenantExempt("/api/errors#section")).toBe(true);
   });
 });

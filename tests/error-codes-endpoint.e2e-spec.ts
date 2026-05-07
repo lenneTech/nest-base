@@ -25,7 +25,7 @@ describe("Error-Code registry endpoint", () => {
 
   it("GET /errors with Accept: application/json returns the registered codes as JSON", async () => {
     const res = await request(app.getHttpServer())
-      .get("/api/errors")
+      .get("/errors")
       .set("Accept", "application/json");
     expect(res.status).toBe(200);
     expect(res.headers["content-type"]).toMatch(/application\/json/);
@@ -47,7 +47,7 @@ describe("Error-Code registry endpoint", () => {
   });
 
   it("GET /errors with Accept: text/html (browser default) returns the SPA shell", async () => {
-    const res = await request(app.getHttpServer()).get("/api/errors").set("Accept", "text/html");
+    const res = await request(app.getHttpServer()).get("/errors").set("Accept", "text/html");
     expect(res.status).toBe(200);
     expect(res.headers["content-type"]).toMatch(/text\/html/);
     // The HTML branch is now the dev-portal SPA shell — the React
@@ -55,12 +55,12 @@ describe("Error-Code registry endpoint", () => {
     // through the shared `JsonViewer` component.
     expect(res.text).toContain("Error Catalog — nest-server");
     expect(res.text).toContain('<div id="root"></div>');
-    expect(res.text).toMatch(/<script\s+type="module"\s+src="\/api\/hub\/static\/main\.js"/);
+    expect(res.text).toMatch(/<script\s+type="module"\s+src="\/hub\/static\/main\.js"/);
   });
 
   it("GET /errors?format=json overrides Accept and returns JSON", async () => {
     const res = await request(app.getHttpServer())
-      .get("/api/errors?format=json")
+      .get("/errors?format=json")
       .set("Accept", "text/html");
     expect(res.status).toBe(200);
     expect(res.headers["content-type"]).toMatch(/application\/json/);
@@ -69,7 +69,7 @@ describe("Error-Code registry endpoint", () => {
 
   it("seeded with the CORE_* defaults", async () => {
     const res = await request(app.getHttpServer())
-      .get("/api/errors")
+      .get("/errors")
       .set("Accept", "application/json");
     const codes = (res.body as Array<{ code: string }>).map((d) => d.code);
     expect(codes).toContain("CORE_INTERNAL");
@@ -79,7 +79,7 @@ describe("Error-Code registry endpoint", () => {
   });
 
   it("GET /errors/CORE_NOT_FOUND returns the resolved message (default locale)", async () => {
-    const res = await request(app.getHttpServer()).get("/api/errors/CORE_NOT_FOUND");
+    const res = await request(app.getHttpServer()).get("/errors/CORE_NOT_FOUND");
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       code: "CORE_NOT_FOUND",
@@ -89,13 +89,13 @@ describe("Error-Code registry endpoint", () => {
   });
 
   it("GET /errors/CORE_UNKNOWN returns 404", async () => {
-    const res = await request(app.getHttpServer()).get("/api/errors/CORE_UNKNOWN");
+    const res = await request(app.getHttpServer()).get("/errors/CORE_UNKNOWN");
     expect(res.status).toBe(404);
   });
 
   it("GET /errors/CORE_NOT_FOUND?locale=de returns the German message", async () => {
     const res = await request(app.getHttpServer())
-      .get("/api/errors/CORE_NOT_FOUND")
+      .get("/errors/CORE_NOT_FOUND")
       .query({ locale: "de" });
     expect(res.status).toBe(200);
     // German message for "not found" should differ from English title/detail.

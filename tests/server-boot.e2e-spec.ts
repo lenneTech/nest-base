@@ -28,9 +28,9 @@ describe("Server boot smoke", () => {
     await app?.close();
   });
 
-  it("GET / redirects to /api/hub (SPA entry point under basename=/api)", async () => {
+  it("GET / redirects to /hub (SPA entry point)", async () => {
     const response = await request(app.getHttpServer()).get("/").expect(302);
-    expect(response.headers["location"]).toBe("/api/hub");
+    expect(response.headers["location"]).toBe("/hub");
   });
 
   it("GET /api/ returns 200 with the server metadata JSON", async () => {

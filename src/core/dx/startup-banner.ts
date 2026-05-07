@@ -109,11 +109,11 @@ export function planStartupBanner(input: BannerInput): BannerPlan {
     {
       title: "Admin",
       entries: [
-        { label: "Permission Tester", url: `${base}/api/admin/permissions/test` },
-        { label: "Webhook Inspector", url: `${base}/api/admin/webhooks` },
-        { label: "Realtime Inspector", url: `${base}/api/admin/realtime` },
-        { label: "Audit Browser", url: `${base}/api/admin/audit` },
-        { label: "Search Tester", url: `${base}/api/admin/search` },
+        { label: "Permission Tester", url: `${base}/admin/permissions/test` },
+        { label: "Webhook Inspector", url: `${base}/admin/webhooks` },
+        { label: "Realtime Inspector", url: `${base}/admin/realtime` },
+        { label: "Audit Browser", url: `${base}/admin/audit` },
+        { label: "Search Tester", url: `${base}/admin/search` },
       ],
     },
   ];

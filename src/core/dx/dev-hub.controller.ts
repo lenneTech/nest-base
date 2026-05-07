@@ -1713,7 +1713,7 @@ function buildHubPageCatalog(): readonly PalettePageEntry[] {
     {
       id: "openapi",
       title: "OpenAPI Spec",
-      href: "/api/openapi",
+      href: "/openapi",
       aliases: ["openapi-json", "spec"],
       category: "API & Docs",
     },

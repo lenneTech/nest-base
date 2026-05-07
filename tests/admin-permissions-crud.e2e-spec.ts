@@ -113,7 +113,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
 
   it("persists a Role through POST /admin/roles → GET /admin/roles", async () => {
     const created = await request(app.getHttpServer())
-      .post("/api/admin/roles")
+      .post("/admin/roles")
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
@@ -121,7 +121,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     expect(created.status).toBe(201);
     expect(typeof created.body.id).toBe("string");
     const list = await request(app.getHttpServer())
-      .get("/api/admin/roles")
+      .get("/admin/roles")
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
@@ -131,21 +131,21 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
 
   it("creates a Policy + Permission and links them via /admin/permissions/attach", async () => {
     const policy = await request(app.getHttpServer())
-      .post("/api/admin/policies")
+      .post("/admin/policies")
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({ name: policyName(`policy-${Date.now()}`), description: "test policy" });
     expect(policy.status).toBe(201);
     const role = await request(app.getHttpServer())
-      .post("/api/admin/roles")
+      .post("/admin/roles")
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({ name: `attach-role-${Date.now()}`, tenantId });
     expect(role.status).toBe(201);
     const perm = await request(app.getHttpServer())
-      .post("/api/admin/permissions")
+      .post("/admin/permissions")
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
@@ -159,7 +159,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     expect(perm.body.resource).toBe("Article");
 
     const link = await request(app.getHttpServer())
-      .post("/api/admin/permissions/attach")
+      .post("/admin/permissions/attach")
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
@@ -167,7 +167,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     expect(link.status).toBe(201);
 
     const detach = await request(app.getHttpServer())
-      .delete(`/api/admin/permissions/attach/${role.body.id}/${policy.body.id}`)
+      .delete(`/admin/permissions/attach/${role.body.id}/${policy.body.id}`)
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
@@ -177,14 +177,14 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
 
   it("rejects an unknown action with 400", async () => {
     const policy = await request(app.getHttpServer())
-      .post("/api/admin/policies")
+      .post("/admin/policies")
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({ name: policyName(`policy-bad-${Date.now()}`) });
     expect(policy.status).toBe(201);
     const res = await request(app.getHttpServer())
-      .post("/api/admin/permissions")
+      .post("/admin/permissions")
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
@@ -198,21 +198,21 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
 
   it("DELETE /admin/roles/:id removes the row", async () => {
     const created = await request(app.getHttpServer())
-      .post("/api/admin/roles")
+      .post("/admin/roles")
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({ name: `to-delete-${Date.now()}`, tenantId });
     const id = created.body.id as string;
     const removed = await request(app.getHttpServer())
-      .delete(`/api/admin/roles/${id}`)
+      .delete(`/admin/roles/${id}`)
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
     expect(removed.status).toBe(200);
     expect(removed.body.removed).toBe(true);
     const after = await request(app.getHttpServer())
-      .get(`/api/admin/roles/${id}`)
+      .get(`/admin/roles/${id}`)
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
@@ -224,7 +224,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     // requires the header at every read/write, mirroring the iter-201
     // `auditBrowserJson` defense-in-depth pattern.
     const res = await request(app.getHttpServer())
-      .get("/api/admin/roles")
+      .get("/admin/roles")
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
     expect(res.status).toBe(400);
@@ -249,7 +249,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     });
     try {
       const res = await request(app.getHttpServer())
-        .get("/api/admin/roles")
+        .get("/admin/roles")
         .set("x-tenant-id", tenantId)
         .set("cookie", sessionCookie)
         .set("x-test-ability", "full");
@@ -280,7 +280,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     });
     try {
       const res = await request(app.getHttpServer())
-        .get(`/api/admin/roles/${otherRole.id}`)
+        .get(`/admin/roles/${otherRole.id}`)
         .set("x-tenant-id", tenantId)
         .set("cookie", sessionCookie)
         .set("x-test-ability", "full");
@@ -306,7 +306,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     });
     try {
       const res = await request(app.getHttpServer())
-        .post("/api/admin/roles")
+        .post("/admin/roles")
         .set("x-tenant-id", tenantId)
         .set("cookie", sessionCookie)
         .set("x-test-ability", "full")
@@ -336,7 +336,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     });
     try {
       const res = await request(app.getHttpServer())
-        .delete(`/api/admin/roles/${otherRole.id}`)
+        .delete(`/admin/roles/${otherRole.id}`)
         .set("x-tenant-id", tenantId)
         .set("cookie", sessionCookie)
         .set("x-test-ability", "full");
@@ -352,7 +352,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
 
   it("400s on /admin/roles when x-tenant-id is not a valid UUID (iter-202 reviewer feedback)", async () => {
     const res = await request(app.getHttpServer())
-      .get("/api/admin/roles")
+      .get("/admin/roles")
       .set("x-tenant-id", "not-a-uuid")
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
@@ -377,7 +377,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
       data: { name: `attach-foreign-${crypto.randomUUID()}`, tenantId: otherTenant.id },
     });
     const policy = await request(app.getHttpServer())
-      .post("/api/admin/policies")
+      .post("/admin/policies")
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
@@ -385,7 +385,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     expect(policy.status).toBe(201);
     try {
       const attach = await request(app.getHttpServer())
-        .post("/api/admin/permissions/attach")
+        .post("/admin/permissions/attach")
         .set("x-tenant-id", tenantId)
         .set("cookie", sessionCookie)
         .set("x-test-ability", "full")
@@ -446,7 +446,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
 
   it("POST /admin/permissions/test 400s when x-tenant-id is missing", async () => {
     const res = await request(app.getHttpServer())
-      .post("/api/admin/permissions/test")
+      .post("/admin/permissions/test")
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({
@@ -470,7 +470,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     });
     try {
       const res = await request(app.getHttpServer())
-        .post("/api/admin/permissions/test")
+        .post("/admin/permissions/test")
         .set("x-tenant-id", tenantId)
         .set("cookie", sessionCookie)
         .set("x-test-ability", "full")
@@ -489,7 +489,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
 
   it("POST /admin/permissions/test echoes (userId, tenantId, action, subject) + ability decision", async () => {
     const res = await request(app.getHttpServer())
-      .post("/api/admin/permissions/test")
+      .post("/admin/permissions/test")
       .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")

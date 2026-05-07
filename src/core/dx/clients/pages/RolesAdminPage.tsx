@@ -81,12 +81,12 @@ export function RolesAdminPage(): ReactNode {
 
   const list = useQuery({
     queryKey: ["admin", "roles"],
-    queryFn: () => fetchJson<RoleRecord[]>("/api/admin/roles"),
+    queryFn: () => fetchJson<RoleRecord[]>("/admin/roles"),
   });
 
   const create = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/admin/roles", {
+      const res = await fetch("/admin/roles", {
         method: "POST",
         headers: { "content-type": "application/json", "x-tenant-id": tenantId },
         body: JSON.stringify({ name, tenantId, description: description || null }),
@@ -105,7 +105,7 @@ export function RolesAdminPage(): ReactNode {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/admin/roles/${id}`, {
+      const res = await fetch(`/admin/roles/${id}`, {
         method: "DELETE",
         headers: { "x-tenant-id": tenantId },
       });
@@ -313,7 +313,7 @@ function RoleDetail({ role, allRoles, tenantId, onClose }: RoleDetailProps): Rea
   const policies = useQuery({
     queryKey: ["admin", "roles", role.id, "policies", tenantId],
     queryFn: async () => {
-      const res = await fetch(`/api/admin/roles/${role.id}/policies`, {
+      const res = await fetch(`/admin/roles/${role.id}/policies`, {
         headers: { accept: "application/json", "x-tenant-id": tenantId },
         cache: "no-store",
       });
@@ -325,12 +325,12 @@ function RoleDetail({ role, allRoles, tenantId, onClose }: RoleDetailProps): Rea
 
   const allPolicies = useQuery({
     queryKey: ["admin", "policies"],
-    queryFn: () => fetchJson<PolicyRecord[]>("/api/admin/policies"),
+    queryFn: () => fetchJson<PolicyRecord[]>("/admin/policies"),
   });
 
   const attach = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/admin/permissions/attach", {
+      const res = await fetch("/admin/permissions/attach", {
         method: "POST",
         headers: { "content-type": "application/json", "x-tenant-id": tenantId },
         body: JSON.stringify({ roleId: role.id, policyId: attachPolicyId }),
@@ -349,7 +349,7 @@ function RoleDetail({ role, allRoles, tenantId, onClose }: RoleDetailProps): Rea
   const detach = useMutation({
     mutationFn: async (policyId: string) => {
       const res = await fetch(
-        `/api/admin/permissions/attach/${encodeURIComponent(role.id)}/${encodeURIComponent(policyId)}`,
+        `/admin/permissions/attach/${encodeURIComponent(role.id)}/${encodeURIComponent(policyId)}`,
         { method: "DELETE", headers: { "x-tenant-id": tenantId } },
       );
       if (!res.ok) throw new Error(`detach failed (${res.status})`);
@@ -364,7 +364,7 @@ function RoleDetail({ role, allRoles, tenantId, onClose }: RoleDetailProps): Rea
 
   const patchParent = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/admin/roles/${role.id}`, {
+      const res = await fetch(`/admin/roles/${role.id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json", "x-tenant-id": tenantId },
         body: JSON.stringify({ parentId: parentRoleId || null }),

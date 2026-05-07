@@ -65,7 +65,7 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
     });
 
     it("GET /dev/files returns the SPA shell HTML", async () => {
-      const res = await request(app.getHttpServer()).get("/api/hub/files");
+      const res = await request(app.getHttpServer()).get("/hub/files");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/text\/html/);
       expect(res.text).toContain('<div id="root"></div>');
@@ -73,7 +73,7 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
 
     it("GET /dev/files/tree.json returns an empty tree for an empty tenant", async () => {
       const res = await request(app.getHttpServer())
-        .get("/api/hub/files/tree.json")
+        .get("/hub/files/tree.json")
         .set("x-tenant-id", tenantId);
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
@@ -90,7 +90,7 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
       });
       try {
         const res = await request(app.getHttpServer())
-          .get("/api/hub/files/tree.json")
+          .get("/hub/files/tree.json")
           .set("x-tenant-id", tenantId);
         expect(res.status).toBe(200);
         expect(res.body.tree).toHaveLength(1);
@@ -122,7 +122,7 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
       });
       try {
         const res = await request(app.getHttpServer())
-          .get(`/api/hub/files/list.json?folderId=${folder.id}`)
+          .get(`/hub/files/list.json?folderId=${folder.id}`)
           .set("x-tenant-id", tenantId);
         expect(res.status).toBe(200);
         expect(Array.isArray(res.body.files)).toBe(true);
@@ -170,7 +170,7 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
       });
       try {
         const res = await request(app.getHttpServer())
-          .get(`/api/hub/files/list.json?folderId=${folder.id}&search=invoice`)
+          .get(`/hub/files/list.json?folderId=${folder.id}&search=invoice`)
           .set("x-tenant-id", tenantId);
         expect(res.status).toBe(200);
         const ids = (res.body.files as Array<{ id: string }>).map((f) => f.id);
@@ -199,7 +199,7 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
       });
       try {
         const res = await request(app.getHttpServer())
-          .get("/api/hub/files/list.json")
+          .get("/hub/files/list.json")
           .set("x-tenant-id", tenantId);
         expect(res.status).toBe(200);
         const matched = (
@@ -218,7 +218,7 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
 
     it("GET /dev/files/breadcrumb.json returns Root for activeId=null", async () => {
       const res = await request(app.getHttpServer())
-        .get("/api/hub/files/breadcrumb.json")
+        .get("/hub/files/breadcrumb.json")
         .set("x-tenant-id", tenantId);
       expect(res.status).toBe(200);
       expect(res.body.segments).toEqual([{ id: null, name: "Root" }]);
@@ -233,7 +233,7 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
       });
       try {
         const res = await request(app.getHttpServer())
-          .get(`/api/hub/files/breadcrumb.json?folderId=${child.id}`)
+          .get(`/hub/files/breadcrumb.json?folderId=${child.id}`)
           .set("x-tenant-id", tenantId);
         expect(res.status).toBe(200);
         expect(res.body.segments).toEqual([
@@ -266,21 +266,21 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
 
     it("GET /dev/files/tree.json 404s in production", async () => {
       const res = await request(app.getHttpServer())
-        .get("/api/hub/files/tree.json")
+        .get("/hub/files/tree.json")
         .set("x-tenant-id", "00000000-0000-0000-0000-000000000001");
       expect(res.status).toBe(404);
     });
 
     it("GET /dev/files/list.json 404s in production", async () => {
       const res = await request(app.getHttpServer())
-        .get("/api/hub/files/list.json")
+        .get("/hub/files/list.json")
         .set("x-tenant-id", "00000000-0000-0000-0000-000000000001");
       expect(res.status).toBe(404);
     });
 
     it("GET /dev/files/breadcrumb.json 404s in production", async () => {
       const res = await request(app.getHttpServer())
-        .get("/api/hub/files/breadcrumb.json")
+        .get("/hub/files/breadcrumb.json")
         .set("x-tenant-id", "00000000-0000-0000-0000-000000000001");
       expect(res.status).toBe(404);
     });

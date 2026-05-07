@@ -71,7 +71,7 @@
         ]
       }
     },
-    "/api/hub/files": {
+    "/hub/files": {
       "get": {
         "operationId": "DevFilesController_page",
         "parameters": [],
@@ -85,7 +85,7 @@
         ]
       }
     },
-    "/api/hub/files/tree.json": {
+    "/hub/files/tree.json": {
       "get": {
         "operationId": "DevFilesController_tree",
         "parameters": [],
@@ -99,7 +99,7 @@
         ]
       }
     },
-    "/api/hub/files/list.json": {
+    "/hub/files/list.json": {
       "get": {
         "operationId": "DevFilesController_list",
         "parameters": [],
@@ -113,7 +113,7 @@
         ]
       }
     },
-    "/api/hub/files/breadcrumb.json": {
+    "/hub/files/breadcrumb.json": {
       "get": {
         "operationId": "DevFilesController_breadcrumb",
         "parameters": [],
@@ -127,7 +127,7 @@
         ]
       }
     },
-    "/api/admin/permissions/test": {
+    "/admin/permissions/test": {
       "get": {
         "operationId": "AdminSpaController_permissionsTestPage",
         "parameters": [],
@@ -153,7 +153,7 @@
         ]
       }
     },
-    "/api/admin/permissions/test.json": {
+    "/admin/permissions/test.json": {
       "get": {
         "operationId": "AdminSpaController_permissionsTestJson",
         "parameters": [],
@@ -167,7 +167,7 @@
         ]
       }
     },
-    "/api/admin/webhooks": {
+    "/admin/webhooks": {
       "get": {
         "operationId": "AdminSpaController_webhookInspectorPage",
         "parameters": [],
@@ -181,7 +181,7 @@
         ]
       }
     },
-    "/api/admin/webhooks.json": {
+    "/admin/webhooks.json": {
       "get": {
         "operationId": "AdminSpaController_webhookInspectorJson",
         "parameters": [],
@@ -195,7 +195,7 @@
         ]
       }
     },
-    "/api/admin/webhooks/aggregates.json": {
+    "/admin/webhooks/aggregates.json": {
       "get": {
         "operationId": "AdminSpaController_webhookAggregatesJson",
         "parameters": [],
@@ -209,7 +209,7 @@
         ]
       }
     },
-    "/api/admin/webhooks/{id}.json": {
+    "/admin/webhooks/{id}.json": {
       "get": {
         "operationId": "AdminSpaController_webhookDeliveryDetailJson",
         "parameters": [
@@ -232,7 +232,7 @@
         ]
       }
     },
-    "/api/admin/webhooks/event-types.json": {
+    "/admin/webhooks/event-types.json": {
       "get": {
         "operationId": "AdminSpaController_webhookEventTypesJson",
         "parameters": [],
@@ -246,7 +246,7 @@
         ]
       }
     },
-    "/api/admin/webhooks/{id}/test": {
+    "/admin/webhooks/{id}/test": {
       "post": {
         "operationId": "AdminSpaController_sendTestEvent",
         "parameters": [
@@ -269,7 +269,7 @@
         ]
       }
     },
-    "/api/admin/webhooks/{id}/redeliver": {
+    "/admin/webhooks/{id}/redeliver": {
       "post": {
         "operationId": "AdminSpaController_redeliverWebhook",
         "parameters": [
@@ -292,7 +292,7 @@
         ]
       }
     },
-    "/api/admin/realtime": {
+    "/admin/realtime": {
       "get": {
         "operationId": "AdminSpaController_realtimeInspectorPage",
         "parameters": [],
@@ -306,7 +306,7 @@
         ]
       }
     },
-    "/api/admin/realtime.json": {
+    "/admin/realtime.json": {
       "get": {
         "operationId": "AdminSpaController_realtimeInspectorJson",
         "parameters": [],
@@ -320,7 +320,7 @@
         ]
       }
     },
-    "/api/admin/realtime/channels.json": {
+    "/admin/realtime/channels.json": {
       "get": {
         "operationId": "AdminSpaController_realtimeChannelsJson",
         "parameters": [],
@@ -334,7 +334,7 @@
         ]
       }
     },
-    "/api/admin/realtime/sockets/{id}/disconnect": {
+    "/admin/realtime/sockets/{id}/disconnect": {
       "post": {
         "operationId": "AdminSpaController_realtimeDisconnectSocket",
         "parameters": [
@@ -357,7 +357,7 @@
         ]
       }
     },
-    "/api/admin/realtime/sockets/{id}/send": {
+    "/admin/realtime/sockets/{id}/send": {
       "post": {
         "operationId": "AdminSpaController_realtimeSendToSocket",
         "parameters": [
@@ -380,7 +380,7 @@
         ]
       }
     },
-    "/api/admin/realtime/events/replay": {
+    "/admin/realtime/events/replay": {
       "post": {
         "operationId": "AdminSpaController_realtimeReplayEvent",
         "parameters": [],
@@ -394,7 +394,7 @@
         ]
       }
     },
-    "/api/admin/audit": {
+    "/admin/audit": {
       "get": {
         "operationId": "AdminSpaController_auditBrowserPage",
         "parameters": [],
@@ -408,7 +408,7 @@
         ]
       }
     },
-    "/api/admin/audit.json": {
+    "/admin/audit.json": {
       "get": {
         "operationId": "AdminSpaController_auditBrowserJson",
         "parameters": [],
@@ -422,7 +422,7 @@
         ]
       }
     },
-    "/api/admin/jobs": {
+    "/admin/jobs": {
       "get": {
         "operationId": "AdminSpaController_adminJobsPage",
         "parameters": [],
@@ -436,7 +436,7 @@
         ]
       }
     },
-    "/api/admin/search": {
+    "/admin/search": {
       "get": {
         "operationId": "AdminSpaController_searchTesterPage",
         "parameters": [],
@@ -450,7 +450,7 @@
         ]
       }
     },
-    "/api/admin/search.json": {
+    "/admin/search.json": {
       "get": {
         "operationId": "AdminSpaController_searchTesterJson",
         "parameters": [],
@@ -464,7 +464,7 @@
         ]
       }
     },
-    "/api/hub": {
+    "/hub": {
       "get": {
         "operationId": "DevHubController_index",
         "parameters": [],
@@ -478,7 +478,7 @@
         ]
       }
     },
-    "/api/hub/components": {
+    "/hub/components": {
       "get": {
         "operationId": "DevHubController_componentsPage",
         "parameters": [],
@@ -492,7 +492,7 @@
         ]
       }
     },
-    "/api/hub/static/{filename}": {
+    "/hub/static/{filename}": {
       "get": {
         "operationId": "DevHubController_serveStatic",
         "parameters": [
@@ -515,7 +515,7 @@
         ]
       }
     },
-    "/api/hub/dashboard.json": {
+    "/hub/dashboard.json": {
       "get": {
         "operationId": "DevHubController_dashboardJson",
         "parameters": [],
@@ -529,7 +529,7 @@
         ]
       }
     },
-    "/api/hub/tunnel.json": {
+    "/hub/tunnel.json": {
       "get": {
         "operationId": "DevHubController_tunnelJson",
         "parameters": [],
@@ -543,7 +543,7 @@
         ]
       }
     },
-    "/api/hub/brand.json": {
+    "/hub/brand.json": {
       "get": {
         "operationId": "DevHubController_brandJson",
         "parameters": [],
@@ -557,7 +557,7 @@
         ]
       }
     },
-    "/api/hub/brand": {
+    "/hub/brand": {
       "get": {
         "operationId": "DevHubController_brandPage",
         "parameters": [],
@@ -583,7 +583,7 @@
         ]
       }
     },
-    "/api/hub/brand/reset": {
+    "/hub/brand/reset": {
       "post": {
         "operationId": "DevHubController_resetBrand",
         "parameters": [],
@@ -597,7 +597,7 @@
         ]
       }
     },
-    "/api/hub/status.json": {
+    "/hub/status.json": {
       "get": {
         "operationId": "DevHubController_statusJson",
         "parameters": [],
@@ -611,7 +611,7 @@
         ]
       }
     },
-    "/api/hub/features": {
+    "/hub/features": {
       "get": {
         "operationId": "DevHubController_features",
         "parameters": [],
@@ -625,7 +625,7 @@
         ]
       }
     },
-    "/api/hub/features.json": {
+    "/hub/features.json": {
       "get": {
         "operationId": "DevHubController_featuresJson",
         "parameters": [],
@@ -639,7 +639,7 @@
         ]
       }
     },
-    "/api/hub/feature-catalog.json": {
+    "/hub/feature-catalog.json": {
       "get": {
         "operationId": "DevHubController_featureCatalogJson",
         "parameters": [],
@@ -653,7 +653,7 @@
         ]
       }
     },
-    "/api/hub/scheduled-jobs.json": {
+    "/hub/scheduled-jobs.json": {
       "get": {
         "operationId": "DevHubController_scheduledJobsJson",
         "parameters": [],
@@ -667,7 +667,7 @@
         ]
       }
     },
-    "/api/hub/webhook-events.json": {
+    "/hub/webhook-events.json": {
       "get": {
         "operationId": "DevHubController_webhookEventsJson",
         "parameters": [],
@@ -681,7 +681,7 @@
         ]
       }
     },
-    "/api/hub/features/{key}/toggle": {
+    "/hub/features/{key}/toggle": {
       "post": {
         "operationId": "DevHubController_toggleFeature",
         "parameters": [
@@ -704,7 +704,7 @@
         ]
       }
     },
-    "/api/hub/postgrest-parse": {
+    "/hub/postgrest-parse": {
       "get": {
         "operationId": "DevHubController_postgrestParse",
         "parameters": [],
@@ -718,7 +718,7 @@
         ]
       }
     },
-    "/api/hub/coverage": {
+    "/hub/coverage": {
       "get": {
         "operationId": "DevHubController_coverage",
         "parameters": [],
@@ -732,7 +732,7 @@
         ]
       }
     },
-    "/api/hub/coverage.json": {
+    "/hub/coverage.json": {
       "get": {
         "operationId": "DevHubController_coverageJson",
         "parameters": [],
@@ -746,7 +746,7 @@
         ]
       }
     },
-    "/api/hub/logs": {
+    "/hub/logs": {
       "get": {
         "operationId": "DevHubController_logsPage",
         "parameters": [],
@@ -760,7 +760,7 @@
         ]
       }
     },
-    "/api/hub/logs.json": {
+    "/hub/logs.json": {
       "get": {
         "operationId": "DevHubController_logsJson",
         "parameters": [],
@@ -774,7 +774,7 @@
         ]
       }
     },
-    "/api/hub/tests": {
+    "/hub/tests": {
       "get": {
         "operationId": "DevHubController_tests",
         "parameters": [],
@@ -788,7 +788,7 @@
         ]
       }
     },
-    "/api/hub/tests.json": {
+    "/hub/tests.json": {
       "get": {
         "operationId": "DevHubController_testsJson",
         "parameters": [],
@@ -802,7 +802,7 @@
         ]
       }
     },
-    "/api/hub/diagnostics": {
+    "/hub/diagnostics": {
       "get": {
         "operationId": "DevHubController_diagnostics",
         "parameters": [],
@@ -816,7 +816,7 @@
         ]
       }
     },
-    "/api/hub/diagnostics.json": {
+    "/hub/diagnostics.json": {
       "get": {
         "operationId": "DevHubController_diagnosticsJson",
         "parameters": [],
@@ -830,7 +830,7 @@
         ]
       }
     },
-    "/api/hub/routes": {
+    "/hub/routes": {
       "get": {
         "operationId": "DevHubController_routesPage",
         "parameters": [],
@@ -844,7 +844,7 @@
         ]
       }
     },
-    "/api/hub/routes.json": {
+    "/hub/routes.json": {
       "get": {
         "operationId": "DevHubController_routesJson",
         "parameters": [],
@@ -858,7 +858,7 @@
         ]
       }
     },
-    "/api/hub/erd": {
+    "/hub/erd": {
       "get": {
         "operationId": "DevHubController_erdPage",
         "parameters": [],
@@ -872,7 +872,7 @@
         ]
       }
     },
-    "/api/hub/json": {
+    "/hub/json": {
       "get": {
         "operationId": "DevHubController_jsonViewerPage",
         "parameters": [],
@@ -886,7 +886,7 @@
         ]
       }
     },
-    "/api/hub/erd.json": {
+    "/hub/erd.json": {
       "get": {
         "operationId": "DevHubController_erdJson",
         "parameters": [],
@@ -900,7 +900,7 @@
         ]
       }
     },
-    "/api/hub/traces": {
+    "/hub/traces": {
       "get": {
         "operationId": "DevHubController_tracesPage",
         "parameters": [],
@@ -914,7 +914,7 @@
         ]
       }
     },
-    "/api/hub/traces.json": {
+    "/hub/traces.json": {
       "get": {
         "operationId": "DevHubController_tracesJson",
         "parameters": [
@@ -945,7 +945,7 @@
         ]
       }
     },
-    "/api/hub/queries": {
+    "/hub/queries": {
       "get": {
         "operationId": "DevHubController_queriesPage",
         "parameters": [],
@@ -959,7 +959,7 @@
         ]
       }
     },
-    "/api/hub/queries.json": {
+    "/hub/queries.json": {
       "get": {
         "operationId": "DevHubController_queriesJson",
         "parameters": [
@@ -990,7 +990,7 @@
         ]
       }
     },
-    "/api/hub/email-preview": {
+    "/hub/email-preview": {
       "get": {
         "operationId": "DevHubController_emailPreviewPage",
         "parameters": [],
@@ -1004,7 +1004,7 @@
         ]
       }
     },
-    "/api/hub/email-preview.json": {
+    "/hub/email-preview.json": {
       "get": {
         "operationId": "DevHubController_emailPreviewJson",
         "parameters": [],
@@ -1018,7 +1018,7 @@
         ]
       }
     },
-    "/api/hub/email-builder": {
+    "/hub/email-builder": {
       "get": {
         "operationId": "DevHubController_emailBuilderPage",
         "parameters": [],
@@ -1032,7 +1032,7 @@
         ]
       }
     },
-    "/api/hub/email-builder/templates.json": {
+    "/hub/email-builder/templates.json": {
       "get": {
         "operationId": "DevHubController_emailBuilderTemplatesJson",
         "parameters": [],
@@ -1046,7 +1046,7 @@
         ]
       }
     },
-    "/api/hub/email-builder/templates/{name}/composition.json": {
+    "/hub/email-builder/templates/{name}/composition.json": {
       "get": {
         "operationId": "DevHubController_emailBuilderTemplateComposition",
         "parameters": [
@@ -1069,7 +1069,7 @@
         ]
       }
     },
-    "/api/hub/email-builder/templates/{name}/override": {
+    "/hub/email-builder/templates/{name}/override": {
       "delete": {
         "operationId": "DevHubController_emailBuilderDeleteOverride",
         "parameters": [
@@ -1092,7 +1092,7 @@
         ]
       }
     },
-    "/api/hub/email-builder/blocks.json": {
+    "/hub/email-builder/blocks.json": {
       "get": {
         "operationId": "DevHubController_emailBuilderBlocksJson",
         "parameters": [],
@@ -1106,7 +1106,7 @@
         ]
       }
     },
-    "/api/hub/email-builder/preview.json": {
+    "/hub/email-builder/preview.json": {
       "post": {
         "operationId": "DevHubController_emailBuilderPreview",
         "parameters": [],
@@ -1120,7 +1120,7 @@
         ]
       }
     },
-    "/api/hub/email-builder/save": {
+    "/hub/email-builder/save": {
       "post": {
         "operationId": "DevHubController_emailBuilderSave",
         "parameters": [],
@@ -1134,7 +1134,7 @@
         ]
       }
     },
-    "/api/hub/migrations": {
+    "/hub/migrations": {
       "get": {
         "operationId": "DevHubController_migrationsPage",
         "parameters": [],
@@ -1148,7 +1148,7 @@
         ]
       }
     },
-    "/api/hub/migrations.json": {
+    "/hub/migrations.json": {
       "get": {
         "operationId": "DevHubController_migrationsJson",
         "parameters": [],
@@ -1162,7 +1162,7 @@
         ]
       }
     },
-    "/api/hub/migrations/preview/{name}": {
+    "/hub/migrations/preview/{name}": {
       "get": {
         "operationId": "DevHubController_migrationsPreview",
         "parameters": [
@@ -1185,7 +1185,7 @@
         ]
       }
     },
-    "/api/hub/migrations/diff": {
+    "/hub/migrations/diff": {
       "get": {
         "operationId": "DevHubController_migrationsDiff",
         "parameters": [],
@@ -1199,7 +1199,7 @@
         ]
       }
     },
-    "/api/hub/migrations/deploy": {
+    "/hub/migrations/deploy": {
       "post": {
         "operationId": "DevHubController_migrationsDeploy",
         "parameters": [],
@@ -1213,7 +1213,7 @@
         ]
       }
     },
-    "/api/hub/migrations/apply-one": {
+    "/hub/migrations/apply-one": {
       "post": {
         "operationId": "DevHubController_migrationsApplyOne",
         "parameters": [],
@@ -1227,7 +1227,7 @@
         ]
       }
     },
-    "/api/hub/migrations/dry-run": {
+    "/hub/migrations/dry-run": {
       "post": {
         "operationId": "DevHubController_migrationsDryRun",
         "parameters": [],
@@ -1241,7 +1241,7 @@
         ]
       }
     },
-    "/api/hub/migrations/retry": {
+    "/hub/migrations/retry": {
       "post": {
         "operationId": "DevHubController_migrationsRetry",
         "parameters": [],
@@ -1255,7 +1255,7 @@
         ]
       }
     },
-    "/api/hub/migrations/create": {
+    "/hub/migrations/create": {
       "post": {
         "operationId": "DevHubController_migrationsCreate",
         "parameters": [],
@@ -1269,7 +1269,7 @@
         ]
       }
     },
-    "/api/hub/migrations/apply-draft": {
+    "/hub/migrations/apply-draft": {
       "post": {
         "operationId": "DevHubController_migrationsApplyDraft",
         "parameters": [],
@@ -1283,7 +1283,7 @@
         ]
       }
     },
-    "/api/hub/migrations/draft/{name}": {
+    "/hub/migrations/draft/{name}": {
       "delete": {
         "operationId": "DevHubController_migrationsDiscardDraft",
         "parameters": [
@@ -1306,7 +1306,7 @@
         ]
       }
     },
-    "/api/hub/jobs": {
+    "/hub/jobs": {
       "get": {
         "operationId": "DevHubController_jobsPage",
         "parameters": [],
@@ -1320,7 +1320,7 @@
         ]
       }
     },
-    "/api/hub/jobs/queues.json": {
+    "/hub/jobs/queues.json": {
       "get": {
         "operationId": "DevHubController_jobsQueuesJson",
         "parameters": [],
@@ -1334,7 +1334,7 @@
         ]
       }
     },
-    "/api/hub/jobs/jobs.json": {
+    "/hub/jobs/jobs.json": {
       "get": {
         "operationId": "DevHubController_jobsListJson",
         "parameters": [],
@@ -1348,7 +1348,7 @@
         ]
       }
     },
-    "/api/hub/jobs/jobs/{id}.json": {
+    "/hub/jobs/jobs/{id}.json": {
       "get": {
         "operationId": "DevHubController_jobDetailJson",
         "parameters": [
@@ -1371,7 +1371,7 @@
         ]
       }
     },
-    "/api/hub/jobs/jobs/{id}/retry": {
+    "/hub/jobs/jobs/{id}/retry": {
       "post": {
         "operationId": "DevHubController_retryJob",
         "parameters": [
@@ -1394,7 +1394,7 @@
         ]
       }
     },
-    "/api/hub/email-outbox": {
+    "/hub/email-outbox": {
       "get": {
         "operationId": "DevHubController_emailOutboxPage",
         "parameters": [],
@@ -1408,7 +1408,7 @@
         ]
       }
     },
-    "/api/hub/cron": {
+    "/hub/cron": {
       "get": {
         "operationId": "DevHubController_cronPage",
         "parameters": [],
@@ -1422,7 +1422,7 @@
         ]
       }
     },
-    "/api/hub/outbox.json": {
+    "/hub/outbox.json": {
       "get": {
         "operationId": "DevHubController_outboxJson",
         "parameters": [],
@@ -1436,7 +1436,7 @@
         ]
       }
     },
-    "/api/hub/palette/search.json": {
+    "/hub/palette/search.json": {
       "get": {
         "operationId": "DevHubController_paletteSearchJson",
         "parameters": [],
@@ -1450,7 +1450,7 @@
         ]
       }
     },
-    "/api/hub/{splat}": {
+    "/hub/{splat}": {
       "get": {
         "operationId": "DevHubController_spaCatchAll",
         "parameters": [],
@@ -1562,7 +1562,7 @@
         ]
       }
     },
-    "/api/errors": {
+    "/errors": {
       "get": {
         "operationId": "ErrorCodeController_list",
         "parameters": [],
@@ -1576,7 +1576,7 @@
         ]
       }
     },
-    "/api/errors/{code}": {
+    "/errors/{code}": {
       "get": {
         "operationId": "ErrorCodeController_resolve",
         "parameters": [
@@ -1658,7 +1658,7 @@
         ]
       }
     },
-    "/api/admin/email-outbox/list.json": {
+    "/admin/email-outbox/list.json": {
       "get": {
         "operationId": "EmailOutboxAdminController_list",
         "parameters": [],
@@ -1672,7 +1672,7 @@
         ]
       }
     },
-    "/api/admin/email-outbox/{id}.json": {
+    "/admin/email-outbox/{id}.json": {
       "get": {
         "operationId": "EmailOutboxAdminController_detail",
         "parameters": [
@@ -1695,7 +1695,7 @@
         ]
       }
     },
-    "/api/admin/email-outbox/{id}/retry": {
+    "/admin/email-outbox/{id}/retry": {
       "post": {
         "operationId": "EmailOutboxAdminController_retry",
         "parameters": [
@@ -1718,7 +1718,7 @@
         ]
       }
     },
-    "/api/admin/email-outbox/{id}/cancel": {
+    "/admin/email-outbox/{id}/cancel": {
       "post": {
         "operationId": "EmailOutboxAdminController_cancel",
         "parameters": [
@@ -1741,7 +1741,7 @@
         ]
       }
     },
-    "/api/admin/email-outbox/test-send": {
+    "/admin/email-outbox/test-send": {
       "post": {
         "operationId": "EmailOutboxAdminController_testSend",
         "parameters": [],
@@ -1915,7 +1915,7 @@
         ]
       }
     },
-    "/api/admin/tenants": {
+    "/admin/tenants": {
       "get": {
         "operationId": "TenantAdminController_tenantsAdminPage",
         "parameters": [],
@@ -1941,7 +1941,7 @@
         ]
       }
     },
-    "/api/admin/tenants/list.json": {
+    "/admin/tenants/list.json": {
       "get": {
         "operationId": "TenantAdminController_tenantsListJson",
         "parameters": [],
@@ -1955,7 +1955,7 @@
         ]
       }
     },
-    "/api/admin/tenants/{id}.json": {
+    "/admin/tenants/{id}.json": {
       "get": {
         "operationId": "TenantAdminController_tenantDetailJson",
         "parameters": [
@@ -1978,7 +1978,7 @@
         ]
       }
     },
-    "/api/admin/tenants/{id}": {
+    "/admin/tenants/{id}": {
       "patch": {
         "operationId": "TenantAdminController_updateTenant",
         "parameters": [
@@ -2001,7 +2001,7 @@
         ]
       }
     },
-    "/api/admin/tenants/{id}/soft-delete": {
+    "/admin/tenants/{id}/soft-delete": {
       "delete": {
         "operationId": "TenantAdminController_softDeleteTenant",
         "parameters": [
@@ -2024,7 +2024,7 @@
         ]
       }
     },
-    "/api/admin/tenants/{id}/restore": {
+    "/admin/tenants/{id}/restore": {
       "post": {
         "operationId": "TenantAdminController_restoreTenant",
         "parameters": [
@@ -2047,7 +2047,7 @@
         ]
       }
     },
-    "/api/admin/tenants/{id}/members/invite": {
+    "/admin/tenants/{id}/members/invite": {
       "post": {
         "operationId": "TenantAdminController_inviteMember",
         "parameters": [
@@ -2070,7 +2070,7 @@
         ]
       }
     },
-    "/api/admin/tenants/{id}/members/{memberId}": {
+    "/admin/tenants/{id}/members/{memberId}": {
       "delete": {
         "operationId": "TenantAdminController_removeMember",
         "parameters": [
@@ -2101,7 +2101,7 @@
         ]
       }
     },
-    "/api/admin/tenants/{id}/members/{memberId}/role": {
+    "/admin/tenants/{id}/members/{memberId}/role": {
       "patch": {
         "operationId": "TenantAdminController_updateMemberRole",
         "parameters": [
@@ -2215,7 +2215,7 @@
         ]
       }
     },
-    "/api/admin/sessions": {
+    "/admin/sessions": {
       "get": {
         "operationId": "SessionsAdminController_sessionsAdminPage",
         "parameters": [],
@@ -2229,7 +2229,7 @@
         ]
       }
     },
-    "/api/admin/sessions/list.json": {
+    "/admin/sessions/list.json": {
       "get": {
         "operationId": "SessionsAdminController_sessionsListJson",
         "parameters": [],
@@ -2243,7 +2243,7 @@
         ]
       }
     },
-    "/api/admin/sessions/{sessionId}": {
+    "/admin/sessions/{sessionId}": {
       "delete": {
         "operationId": "SessionsAdminController_revokeSingle",
         "parameters": [
@@ -2266,7 +2266,7 @@
         ]
       }
     },
-    "/api/admin/sessions/revoke-bulk-by-user": {
+    "/admin/sessions/revoke-bulk-by-user": {
       "post": {
         "operationId": "SessionsAdminController_revokeBulkByUser",
         "parameters": [],
@@ -2280,7 +2280,7 @@
         ]
       }
     },
-    "/api/admin/sessions/revoke-others": {
+    "/admin/sessions/revoke-others": {
       "post": {
         "operationId": "SessionsAdminController_revokeOthers",
         "parameters": [],
@@ -2294,7 +2294,7 @@
         ]
       }
     },
-    "/api/admin/impersonation/stop": {
+    "/admin/impersonation/stop": {
       "post": {
         "operationId": "ImpersonationController_stop",
         "parameters": [],
@@ -2308,7 +2308,7 @@
         ]
       }
     },
-    "/api/admin/users": {
+    "/admin/users": {
       "get": {
         "operationId": "UserAdminController_usersAdminPage",
         "parameters": [],
@@ -2322,7 +2322,7 @@
         ]
       }
     },
-    "/api/admin/users/list.json": {
+    "/admin/users/list.json": {
       "get": {
         "operationId": "UserAdminController_usersListJson",
         "parameters": [],
@@ -2336,7 +2336,7 @@
         ]
       }
     },
-    "/api/admin/users/{id}.json": {
+    "/admin/users/{id}.json": {
       "get": {
         "operationId": "UserAdminController_userDetailJson",
         "parameters": [
@@ -2359,7 +2359,7 @@
         ]
       }
     },
-    "/api/admin/users/{id}/ban": {
+    "/admin/users/{id}/ban": {
       "post": {
         "operationId": "UserAdminController_banUser",
         "parameters": [
@@ -2382,7 +2382,7 @@
         ]
       }
     },
-    "/api/admin/users/{id}/unban": {
+    "/admin/users/{id}/unban": {
       "post": {
         "operationId": "UserAdminController_unbanUser",
         "parameters": [
@@ -2405,7 +2405,7 @@
         ]
       }
     },
-    "/api/admin/users/{id}/revoke-sessions": {
+    "/admin/users/{id}/revoke-sessions": {
       "post": {
         "operationId": "UserAdminController_revokeUserSessions",
         "parameters": [
@@ -2428,7 +2428,7 @@
         ]
       }
     },
-    "/api/admin/roles": {
+    "/admin/roles": {
       "get": {
         "operationId": "RoleAdminController_list",
         "parameters": [],
@@ -2454,7 +2454,7 @@
         ]
       }
     },
-    "/api/admin/roles/{id}": {
+    "/admin/roles/{id}": {
       "get": {
         "operationId": "RoleAdminController_get",
         "parameters": [
@@ -2519,7 +2519,7 @@
         ]
       }
     },
-    "/api/admin/roles/{id}/policies": {
+    "/admin/roles/{id}/policies": {
       "get": {
         "operationId": "RoleAdminController_listPolicies",
         "parameters": [
@@ -2542,7 +2542,7 @@
         ]
       }
     },
-    "/api/admin/policies": {
+    "/admin/policies": {
       "get": {
         "operationId": "PolicyAdminController_list",
         "parameters": [],
@@ -2568,7 +2568,7 @@
         ]
       }
     },
-    "/api/admin/policies/{id}": {
+    "/admin/policies/{id}": {
       "get": {
         "operationId": "PolicyAdminController_get",
         "parameters": [
@@ -2612,7 +2612,7 @@
         ]
       }
     },
-    "/api/admin/policies/{id}/roles": {
+    "/admin/policies/{id}/roles": {
       "get": {
         "operationId": "PolicyAdminController_listRoles",
         "parameters": [
@@ -2635,7 +2635,7 @@
         ]
       }
     },
-    "/api/admin/permissions": {
+    "/admin/permissions": {
       "get": {
         "operationId": "PermissionAdminController_list",
         "parameters": [],
@@ -2661,7 +2661,7 @@
         ]
       }
     },
-    "/api/admin/permissions/{id}": {
+    "/admin/permissions/{id}": {
       "get": {
         "operationId": "PermissionAdminController_get",
         "parameters": [
@@ -2705,7 +2705,7 @@
         ]
       }
     },
-    "/api/admin/permissions/matrix.json": {
+    "/admin/permissions/matrix.json": {
       "get": {
         "operationId": "PermissionAdminController_matrix",
         "parameters": [],
@@ -2719,7 +2719,7 @@
         ]
       }
     },
-    "/api/admin/permissions/attach": {
+    "/admin/permissions/attach": {
       "post": {
         "operationId": "PermissionAdminController_attach",
         "parameters": [],
@@ -2733,7 +2733,7 @@
         ]
       }
     },
-    "/api/admin/permissions/attach/{roleId}/{policyId}": {
+    "/admin/permissions/attach/{roleId}/{policyId}": {
       "delete": {
         "operationId": "PermissionAdminController_detach",
         "parameters": [
@@ -3058,7 +3058,7 @@
         ]
       }
     },
-    "/api/admin/rate-limits": {
+    "/admin/rate-limits": {
       "get": {
         "operationId": "RateLimitAdminController_rateLimitsPage",
         "parameters": [],
@@ -3072,7 +3072,7 @@
         ]
       }
     },
-    "/api/admin/rate-limits/inspector.json": {
+    "/admin/rate-limits/inspector.json": {
       "get": {
         "operationId": "RateLimitAdminController_inspectorJson",
         "parameters": [
@@ -3103,7 +3103,7 @@
         ]
       }
     },
-    "/api/admin/rate-limits/config.json": {
+    "/admin/rate-limits/config.json": {
       "get": {
         "operationId": "RateLimitAdminController_configJson",
         "parameters": [],
@@ -3117,7 +3117,7 @@
         ]
       }
     },
-    "/api/admin/rate-limits/config/{scope}": {
+    "/admin/rate-limits/config/{scope}": {
       "put": {
         "operationId": "RateLimitAdminController_putConfig",
         "parameters": [
@@ -3161,7 +3161,7 @@
         ]
       }
     },
-    "/api/admin/rate-limits/decisions.json": {
+    "/admin/rate-limits/decisions.json": {
       "get": {
         "operationId": "RateLimitAdminController_decisionsJson",
         "parameters": [
@@ -3208,7 +3208,7 @@
         ]
       }
     },
-    "/api/admin/rate-limits/keys/{key}/reset": {
+    "/admin/rate-limits/keys/{key}/reset": {
       "post": {
         "operationId": "RateLimitAdminController_resetKey",
         "parameters": [
@@ -3231,7 +3231,7 @@
         ]
       }
     },
-    "/api/admin/rate-limits/endpoints/{name}/reset-all": {
+    "/admin/rate-limits/endpoints/{name}/reset-all": {
       "post": {
         "operationId": "RateLimitAdminController_resetEndpointAll",
         "parameters": [
@@ -3254,7 +3254,7 @@
         ]
       }
     },
-    "/api/admin/rate-limits/allowlist.json": {
+    "/admin/rate-limits/allowlist.json": {
       "get": {
         "operationId": "RateLimitAdminController_allowlistJson",
         "parameters": [],
@@ -3268,7 +3268,7 @@
         ]
       }
     },
-    "/api/admin/rate-limits/allowlist": {
+    "/admin/rate-limits/allowlist": {
       "post": {
         "operationId": "RateLimitAdminController_addToAllowlist",
         "parameters": [],
@@ -3282,7 +3282,7 @@
         ]
       }
     },
-    "/api/admin/rate-limits/allowlist/{userId}": {
+    "/admin/rate-limits/allowlist/{userId}": {
       "delete": {
         "operationId": "RateLimitAdminController_removeFromAllowlist",
         "parameters": [

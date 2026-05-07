@@ -48,7 +48,7 @@ interface QueriesResponse {
 export function QueriesPage(): ReactNode {
   const data = useQuery({
     queryKey: ["dev", "queries"],
-    queryFn: () => fetchJson<QueriesResponse>("/api/hub/queries.json"),
+    queryFn: () => fetchJson<QueriesResponse>("/hub/queries.json"),
     refetchInterval: 3_000,
   });
 

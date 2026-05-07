@@ -47,7 +47,7 @@ interface TestSummary {
 export function TestsPage(): ReactNode {
   const data = useQuery({
     queryKey: ["dev", "tests"],
-    queryFn: () => fetchJson<TestSummary>("/api/hub/tests.json"),
+    queryFn: () => fetchJson<TestSummary>("/hub/tests.json"),
   });
 
   const subtitle = data.data

@@ -47,7 +47,7 @@ interface RouteInventory {
 export function RoutesPage(): ReactNode {
   const data = useQuery({
     queryKey: ["dev", "routes"],
-    queryFn: () => fetchJson<RouteInventory>("/api/hub/routes.json"),
+    queryFn: () => fetchJson<RouteInventory>("/hub/routes.json"),
   });
 
   const subtitle = data.data

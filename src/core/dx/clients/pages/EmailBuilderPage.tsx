@@ -140,12 +140,12 @@ export function EmailBuilderPage(): ReactNode {
   const templates = useQuery({
     queryKey: ["dev", "email-builder", "templates"],
     queryFn: () =>
-      fetchJson<{ templates: DiscoveredTemplate[] }>("/api/hub/email-builder/templates.json"),
+      fetchJson<{ templates: DiscoveredTemplate[] }>("/hub/email-builder/templates.json"),
   });
 
   const blocks = useQuery({
     queryKey: ["dev", "email-builder", "blocks"],
-    queryFn: () => fetchJson<BlocksResponse>("/api/hub/email-builder/blocks.json"),
+    queryFn: () => fetchJson<BlocksResponse>("/hub/email-builder/blocks.json"),
   });
 
   const queryClient = useQueryClient();
@@ -190,7 +190,7 @@ export function EmailBuilderPage(): ReactNode {
       const params = new URLSearchParams();
       if (tpl.locale) params.set("locale", tpl.locale);
       const qs = params.toString();
-      const url = `/api/hub/email-builder/templates/${encodeURIComponent(tpl.name)}/override${qs ? `?${qs}` : ""}`;
+      const url = `/hub/email-builder/templates/${encodeURIComponent(tpl.name)}/override${qs ? `?${qs}` : ""}`;
       const res = await fetch(url, {
         method: "DELETE",
         headers: { accept: "application/json" },
@@ -275,7 +275,7 @@ function buildCompositionUrl(tpl: DiscoveredTemplate): string {
   const params = new URLSearchParams();
   if (tpl.locale) params.set("locale", tpl.locale);
   const qs = params.toString();
-  return `/api/hub/email-builder/templates/${encodeURIComponent(tpl.name)}/composition.json${qs ? `?${qs}` : ""}`;
+  return `/hub/email-builder/templates/${encodeURIComponent(tpl.name)}/composition.json${qs ? `?${qs}` : ""}`;
 }
 
 interface GalleryProps {
@@ -558,7 +558,7 @@ function ComposerView({
   const preview = useQuery({
     queryKey: ["dev", "email-builder", "preview", draft, vars],
     queryFn: async () => {
-      const res = await fetch("/api/hub/email-builder/preview.json", {
+      const res = await fetch("/hub/email-builder/preview.json", {
         method: "POST",
         headers: { "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify({ composition: draft, vars }),
@@ -574,7 +574,7 @@ function ComposerView({
   const save = useMutation({
     mutationFn: async () => {
       setSaveError(null);
-      const res = await fetch("/api/hub/email-builder/save", {
+      const res = await fetch("/hub/email-builder/save", {
         method: "POST",
         headers: { "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify({ slug, composition: draft }),

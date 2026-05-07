@@ -33,7 +33,7 @@ import { Public } from "../src/core/permissions/public.decorator.js";
 
 const Body = z.object({ name: z.string().min(2) });
 
-// `/api/hub/*` is on the path-allowlist (jwt-middleware `PUBLIC_PREFIXES`
+// `/hub/*` is on the path-allowlist (jwt-middleware `PUBLIC_PREFIXES`
 // + tenant-guard `EXEMPT_*`) so neither the session middleware nor
 // the tenant guard can short-circuit our request to 401/403 before
 // the handler runs. That keeps this test's assertion narrowly focused
@@ -68,7 +68,7 @@ describe("E2E · APP_FILTER inheritance via Test.createTestingModule({ imports: 
     }).compile();
     app = moduleRef.createNestApplication({ logger: false });
     // Mirror bootstrap.ts: set the global /api/ prefix so the probe
-    // controller at @Controller("hub/...") registers under /api/hub/...
+    // controller at @Controller("hub/...") registers under /hub/...
     app.setGlobalPrefix("api", {
       exclude: ["/", "hub/login", "hub/logout", "health", "health/(.*)"],
     });
@@ -84,7 +84,7 @@ describe("E2E · APP_FILTER inheritance via Test.createTestingModule({ imports: 
   });
 
   it("returns 400 + CORE_VALIDATION + problem+json content-type for an in-handler ZodError", async () => {
-    const res = await request(app.getHttpServer()).get("/api/hub/filter-inheritance-probe/zod");
+    const res = await request(app.getHttpServer()).get("/hub/filter-inheritance-probe/zod");
     // Was 500 + plain JSON before the AppModule APP_FILTER edit.
     expect(res.status).toBe(400);
     expect(res.headers["content-type"]).toMatch(/application\/problem\+json/);

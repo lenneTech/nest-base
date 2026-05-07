@@ -52,7 +52,7 @@ function isActive(features: FeatureCatalogResponse["features"], key: string): bo
 export function FeaturesPage(): ReactNode {
   const data = useQuery({
     queryKey: ["dev", "feature-catalog"],
-    queryFn: () => fetchJson<FeatureCatalogResponse>("/api/hub/feature-catalog.json"),
+    queryFn: () => fetchJson<FeatureCatalogResponse>("/hub/feature-catalog.json"),
   });
 
   const subtitle = data.data

@@ -37,7 +37,7 @@ describe("Dev-Hub · /dev/migrations", () => {
     });
 
     it("GET /dev/migrations serves the SPA shell with the correct title", async () => {
-      const res = await request(app.getHttpServer()).get("/api/hub/migrations");
+      const res = await request(app.getHttpServer()).get("/hub/migrations");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/text\/html/);
       expect(res.text).toContain('<div id="root"></div>');
@@ -45,7 +45,7 @@ describe("Dev-Hub · /dev/migrations", () => {
     });
 
     it("GET /dev/migrations.json returns applied + pending + drift snapshot", async () => {
-      const res = await request(app.getHttpServer()).get("/api/hub/migrations.json");
+      const res = await request(app.getHttpServer()).get("/hub/migrations.json");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
       expect(Array.isArray(res.body.applied)).toBe(true);
@@ -68,7 +68,7 @@ describe("Dev-Hub · /dev/migrations", () => {
     it("GET /dev/migrations/preview/:name returns the SQL for an applied migration", async () => {
       // Pick a known migration that ships with the repo
       const name = "20260428000050_init_schema";
-      const res = await request(app.getHttpServer()).get(`/api/hub/migrations/preview/${name}`);
+      const res = await request(app.getHttpServer()).get(`/hub/migrations/preview/${name}`);
       expect(res.status).toBe(200);
       expect(res.body.name).toBe(name);
       expect(typeof res.body.sql).toBe("string");
@@ -77,46 +77,46 @@ describe("Dev-Hub · /dev/migrations", () => {
 
     it("GET /dev/migrations/preview/:name rejects path-traversal names with 400", async () => {
       const res = await request(app.getHttpServer()).get(
-        "/api/hub/migrations/preview/..%2F..%2Fetc%2Fpasswd",
+        "/hub/migrations/preview/..%2F..%2Fetc%2Fpasswd",
       );
       expect(res.status).toBe(400);
     });
 
     it("POST /dev/migrations/apply-one rejects an invalid name with 400", async () => {
       const res = await request(app.getHttpServer())
-        .post("/api/hub/migrations/apply-one")
+        .post("/hub/migrations/apply-one")
         .send({ name: "../../../etc/passwd" });
       expect(res.status).toBe(400);
     });
 
     it("POST /dev/migrations/apply-one requires body.name", async () => {
-      const res = await request(app.getHttpServer()).post("/api/hub/migrations/apply-one").send({});
+      const res = await request(app.getHttpServer()).post("/hub/migrations/apply-one").send({});
       expect(res.status).toBe(400);
     });
 
     it("POST /dev/migrations/dry-run rejects a malformed name", async () => {
       const res = await request(app.getHttpServer())
-        .post("/api/hub/migrations/dry-run")
+        .post("/hub/migrations/dry-run")
         .send({ name: "no-timestamp-prefix" });
       expect(res.status).toBe(400);
     });
 
     it("POST /dev/migrations/create rejects names with capitals or special chars", async () => {
       const res = await request(app.getHttpServer())
-        .post("/api/hub/migrations/create")
+        .post("/hub/migrations/create")
         .send({ name: "AddTable!" });
       expect(res.status).toBe(400);
     });
 
     it("DELETE /dev/migrations/draft/:name rejects path-traversal", async () => {
       const res = await request(app.getHttpServer()).delete(
-        "/api/hub/migrations/draft/..%2F..%2Fetc%2Fpasswd",
+        "/hub/migrations/draft/..%2F..%2Fetc%2Fpasswd",
       );
       expect(res.status).toBe(400);
     });
 
     it("GET /dev/migrations/diff returns a structured response", async () => {
-      const res = await request(app.getHttpServer()).get("/api/hub/migrations/diff");
+      const res = await request(app.getHttpServer()).get("/hub/migrations/diff");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
       expect(typeof res.body.success).toBe("boolean");
@@ -142,37 +142,37 @@ describe("Dev-Hub · /dev/migrations", () => {
     });
 
     it("GET /dev/migrations returns 404 in production", async () => {
-      const res = await request(app.getHttpServer()).get("/api/hub/migrations");
+      const res = await request(app.getHttpServer()).get("/hub/migrations");
       expect(res.status).toBe(404);
     });
 
     it("GET /dev/migrations.json returns 404 in production", async () => {
-      const res = await request(app.getHttpServer()).get("/api/hub/migrations.json");
+      const res = await request(app.getHttpServer()).get("/hub/migrations.json");
       expect(res.status).toBe(404);
     });
 
     it("POST /dev/migrations/deploy returns 404 in production", async () => {
-      const res = await request(app.getHttpServer()).post("/api/hub/migrations/deploy");
+      const res = await request(app.getHttpServer()).post("/hub/migrations/deploy");
       expect(res.status).toBe(404);
     });
 
     it("POST /dev/migrations/apply-one returns 404 in production", async () => {
       const res = await request(app.getHttpServer())
-        .post("/api/hub/migrations/apply-one")
+        .post("/hub/migrations/apply-one")
         .send({ name: "20260428000050_init_schema" });
       expect(res.status).toBe(404);
     });
 
     it("POST /dev/migrations/create returns 404 in production", async () => {
       const res = await request(app.getHttpServer())
-        .post("/api/hub/migrations/create")
+        .post("/hub/migrations/create")
         .send({ name: "test-feature" });
       expect(res.status).toBe(404);
     });
 
     it("DELETE /dev/migrations/draft/:name returns 404 in production", async () => {
       const res = await request(app.getHttpServer()).delete(
-        "/api/hub/migrations/draft/20260428000050_init_schema",
+        "/hub/migrations/draft/20260428000050_init_schema",
       );
       expect(res.status).toBe(404);
     });

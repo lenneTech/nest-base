@@ -80,9 +80,11 @@ export interface DevPortalShellInputOverrides {
 }
 
 const DEFAULT_TITLE = "Dev Portal";
-const DEFAULT_SCRIPT_URL = "/api/hub/static/main.js";
-const DEFAULT_TOKEN_CSS_URL = "/api/hub/static/tokens.css";
-const DEFAULT_EXTRA_STYLESHEETS: readonly string[] = ["/api/hub/static/main.css"];
+// Hub static assets are served at /hub/static/* (no /api prefix — the
+// hub controller is excluded from the global "api" prefix).
+const DEFAULT_SCRIPT_URL = "/hub/static/main.js";
+const DEFAULT_TOKEN_CSS_URL = "/hub/static/tokens.css";
+const DEFAULT_EXTRA_STYLESHEETS: readonly string[] = ["/hub/static/main.css"];
 const DEFAULT_BRAND_NAME = "nest-server";
 const DEFAULT_BOOT_BACKGROUND = "#020203";
 

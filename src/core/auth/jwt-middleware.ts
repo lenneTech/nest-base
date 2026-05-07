@@ -5,10 +5,10 @@
  * or scoped API key. The `PUBLIC_PREFIXES` set is the only escape hatch
  * — it covers diagnostics, the Better-Auth handler, and the docs UI.
  *
- * Issue #83: all API routes are now under `/api/*`. Paths that remain
- * at root level are: Hub (`/`, `/hub/*`), health (`/health/*`), and
- * the legacy `/api-docs-json` alias. All `/dev/*` and `/admin/*` paths
- * are now under `/api/hub/*` and `/api/admin/*`.
+ * Issue #83: all API routes are now under `/api/*`. Hub, admin, and
+ * errors pages live at root level (`/hub/*`, `/admin/*`, `/errors`).
+ * Health probes remain at `/health/*`. The legacy `/api-docs-json`
+ * alias is exempt for SDK backward compatibility.
  *
  * Issue #101: the Better-Auth prefix entry is derived from
  * `BETTER_AUTH_BASE_PATH` at server-boot time so operators can mount
@@ -35,39 +35,48 @@ function resolveAuthPrefix(): string {
 /**
  * Public paths — no JWT required.
  *
- * `/api/errors` is the public error-code catalogue — frontends + SDK
- * generators consume it without authenticating. `/api/openapi` and
- * `/api/openapi.json` serve the OpenAPI spec the SDK generators read.
- * Both are dev-friendly (they expose error codes / route shapes only,
+ * `/errors` (and legacy `/api/errors`) is the public error-code
+ * catalogue — frontends + SDK generators consume it without
+ * authenticating. `/openapi` (SPA page) and `/api/openapi.json`
+ * serve the OpenAPI spec the SDK generators read. Both are
+ * dev-friendly (they expose error codes / route shapes only,
  * never user data) and intentionally outside the auth wall.
  *
  * `/api-docs-json` is the deprecated legacy alias for the OpenAPI
  * doc, kept exempt for the same reason as `/api/openapi.json` until
  * the upstream `nuxt-base-starter` fix
  * (lenneTech/nuxt-base-starter#13) has propagated.
+ *
+ * Hub and admin SPA pages now live at /hub/* and /admin/* (no /api
+ * prefix) following the routing fix.
  */
 const STATIC_PUBLIC_PREFIXES = [
   "/health/",
   "/docs/",
-  "/api/hub/",
-  "/api/admin/",
-  "/api/errors/",
+  // Hub and admin SPA pages at root level (no /api prefix).
+  "/hub/",
+  "/admin/",
+  "/errors/",
+  "/openapi",
+  // /api/openapi.json — raw JSON data endpoint consumed by SDK generators.
+  // Still at /api/openapi.json (unlike the SPA viewer page which moved to /openapi).
   "/api/openapi",
   // HMAC-signed share links — the token is the auth.
   "/api/files/share/",
-  // Hub SPA routes (login/logout) are public.
-  "/hub/",
 ];
 const PUBLIC_EXACT = new Set([
   "/",
   // API identity endpoint (AppController @Get() under the global /api/ prefix).
   "/api/",
   "/api",
+  "/errors",
+  // Legacy /api/errors — kept public so cached SDK calls still work.
   "/api/errors",
-  "/api/openapi",
+  "/openapi",
   "/api-docs-json",
   "/hub/login",
   "/hub/logout",
+  "/hub",
 ]);
 
 export function isPathProtected(path: string): boolean {

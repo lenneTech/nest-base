@@ -169,7 +169,7 @@ const PAGES: PageSpec[] = [
   },
   // Public catalogues
   { slug: "errors", path: "/errors", waitFor: ["Error Catalog", "CORE_"] },
-  { slug: "openapi", path: "/api/openapi", waitFor: ["OpenAPI", "openapi"] },
+  { slug: "openapi", path: "/openapi", waitFor: ["OpenAPI", "openapi"] },
 ];
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";

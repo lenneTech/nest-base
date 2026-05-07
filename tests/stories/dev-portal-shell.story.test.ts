@@ -97,8 +97,8 @@ describe("Story · Dev-Portal Shell", () => {
     const built = buildDevPortalShellInput({});
     expect(built.title).toBe("Dev Portal");
     // Issue #83: all API routes (including dev static assets) live under /api/*
-    expect(built.scriptUrl).toBe("/api/hub/static/main.js");
-    expect(built.tokenCssUrl).toBe("/api/hub/static/tokens.css");
+    expect(built.scriptUrl).toBe("/hub/static/main.js");
+    expect(built.tokenCssUrl).toBe("/hub/static/tokens.css");
   });
 
   it("buildDevPortalShellInput respects custom title overrides", () => {

@@ -13,7 +13,7 @@ import { fetchJson } from "../lib/api.js";
 export function ErrorsPage(): ReactNode {
   const data = useQuery({
     queryKey: ["errors", "list"],
-    queryFn: () => fetchJson<unknown>("/api/errors?format=json"),
+    queryFn: () => fetchJson<unknown>("/errors?format=json"),
   });
 
   const subtitle = (() => {
@@ -27,7 +27,7 @@ export function ErrorsPage(): ReactNode {
   return (
     <AdminShell title="Error Catalog" subtitle={subtitle} currentNav="errors">
       {data.data ? (
-        <JsonViewer value={data.data} rawJsonHref="/api/errors?format=json" />
+        <JsonViewer value={data.data} rawJsonHref="/errors?format=json" />
       ) : data.isError ? (
         <PageError>Failed to load error catalog.</PageError>
       ) : (

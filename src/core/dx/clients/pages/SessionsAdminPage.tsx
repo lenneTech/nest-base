@@ -37,7 +37,7 @@ async function deleteSession(id: string): Promise<void> {
 }
 
 async function bulkRevokeByUser(userId: string): Promise<{ revoked: number }> {
-  const res = await fetch("/api/admin/sessions/revoke-bulk-by-user", {
+  const res = await fetch("/admin/sessions/revoke-bulk-by-user", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ userId }),
@@ -52,7 +52,7 @@ export function SessionsAdminPage(): ReactNode {
 
   const query = useQuery({
     queryKey: ["admin", "sessions"],
-    queryFn: () => fetchJson<{ sessions: SessionRecord[] }>("/api/admin/sessions/list.json"),
+    queryFn: () => fetchJson<{ sessions: SessionRecord[] }>("/admin/sessions/list.json"),
   });
 
   const revoke = useMutation({

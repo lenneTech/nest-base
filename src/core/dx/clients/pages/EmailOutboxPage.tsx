@@ -3,11 +3,11 @@
  *
  * Operator surface for inspecting and acting on email-outbox rows.
  * Connects to the admin endpoints:
- *   GET  /api/admin/email-outbox/list.json
- *   GET  /api/admin/email-outbox/:id.json
- *   POST /api/admin/email-outbox/:id/retry
- *   POST /api/admin/email-outbox/:id/cancel
- *   POST /api/admin/email-outbox/test-send
+ *   GET  /admin/email-outbox/list.json
+ *   GET  /admin/email-outbox/:id.json
+ *   POST /admin/email-outbox/:id/retry
+ *   POST /admin/email-outbox/:id/cancel
+ *   POST /admin/email-outbox/test-send
  *
  * Features:
  *  - List view with status badges, recipient, template, attempts, next-attempt.
@@ -112,13 +112,13 @@ function DetailPanel({ id, onClose }: { id: string; onClose: () => void }): Reac
   const detail = useQuery({
     queryKey: ["admin", "email-outbox", "detail", id],
     queryFn: () =>
-      fetchJson<DetailResponse>(`/api/admin/email-outbox/${encodeURIComponent(id)}.json`),
+      fetchJson<DetailResponse>(`/admin/email-outbox/${encodeURIComponent(id)}.json`),
     staleTime: 0,
   });
 
   const retry = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/admin/email-outbox/${encodeURIComponent(id)}/retry`, {
+      const res = await fetch(`/admin/email-outbox/${encodeURIComponent(id)}/retry`, {
         method: "POST",
         headers: { "content-type": "application/json" },
       });
@@ -137,7 +137,7 @@ function DetailPanel({ id, onClose }: { id: string; onClose: () => void }): Reac
 
   const cancel = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/admin/email-outbox/${encodeURIComponent(id)}/cancel`, {
+      const res = await fetch(`/admin/email-outbox/${encodeURIComponent(id)}/cancel`, {
         method: "POST",
         headers: { "content-type": "application/json" },
       });
@@ -260,7 +260,7 @@ function DetailPanel({ id, onClose }: { id: string; onClose: () => void }): Reac
                   // sandbox="" prevents the rendered email from executing
                   // scripts or navigating — the preview is read-only.
                   sandbox=""
-                  src={`/api/hub/email-preview/${encodeURIComponent(record.template)}.html`}
+                  src={`/hub/email-preview/${encodeURIComponent(record.template)}.html`}
                   className="w-full h-[60dvh] border border-border rounded"
                   title={`Preview: ${record.template}`}
                 />
@@ -335,7 +335,7 @@ function TestSendModal(): ReactNode {
       } catch {
         throw new Error("vars must be valid JSON");
       }
-      const res = await fetch("/api/admin/email-outbox/test-send", {
+      const res = await fetch("/admin/email-outbox/test-send", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ template, locale, recipient, vars: parsedVars }),
@@ -448,7 +448,7 @@ export function EmailOutboxPage(): ReactNode {
   const list = useQuery({
     queryKey: ["admin", "email-outbox", "list", statusFilter, recipientFilter, sortBy],
     queryFn: () =>
-      fetchJson<ListResponse>(`/api/admin/email-outbox/list.json?${params.toString()}`),
+      fetchJson<ListResponse>(`/admin/email-outbox/list.json?${params.toString()}`),
     // 30s auto-refresh so operators see new rows without manual reload
     refetchInterval: 30_000,
   });
