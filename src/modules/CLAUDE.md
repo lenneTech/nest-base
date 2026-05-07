@@ -137,10 +137,14 @@ strict (`!== null`):
 ```typescript
 // Bad — strict check treats undefined as "not null" → falsely marks
 // a fresh record as deleted when the field was never set:
-if (record.deletedAt !== null) { /* ← breaks in story tests */ }
+if (record.deletedAt !== null) {
+  /* ← breaks in story tests */
+}
 
 // Good — loose check treats both undefined and null as "absent":
-if (record.deletedAt != null) { /* ← works in both fake and real Prisma */ }
+if (record.deletedAt != null) {
+  /* ← works in both fake and real Prisma */
+}
 ```
 
 `undefined != null` evaluates to `false` (both sides are nullish);
