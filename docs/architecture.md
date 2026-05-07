@@ -348,11 +348,11 @@ single attempt and let the outbox decide what to do next.
 ## Hub (Dev-Portal Frontend)
 
 Every developer-facing HTML surface — `/`, `/hub/*`, `/admin/*`, `/errors`,
-`/api/openapi` — is served by a single React 19 single-page app.
+`/openapi` — is served by a single React 19 single-page app.
 The legacy server-rendered `*-ui.ts` renderers were deleted; the SPA
 is the canonical UI for every developer route. `/hub/*` and
 `/admin/*` are developer-only (every route 404s outside
-`NODE_ENV=development`); `/errors` and `/api/openapi` stay reachable
+`NODE_ENV=development`); `/errors` and `/openapi` stay reachable
 in any environment because frontends + SDK generators read them.
 
 | Aspect | Path | Purpose |
@@ -362,7 +362,7 @@ in any environment because frontends + SDK generators read them.
 | Layout shell | `src/core/dx/clients/layout/AdminShell.tsx` + `nav.ts` + `icons.tsx` | Sidebar + header + SVG icons + active-state highlight |
 | Pages | `src/core/dx/clients/pages/` | One component per route: `DevHubLandingPage` (`/`), `FeaturesPage`, `CoveragePage`, `TestsPage`, `DiagnosticsPage`, `LogsPage`, `TracesPage`, `QueriesPage`, `RoutesPage`, `ErdPage`, `EmailPreviewPage`, `PostgrestParsePage`, `ComponentShowcasePage`, `PermissionTesterPage`, `WebhookInspectorPage`, `RealtimeInspectorPage`, `AuditBrowserPage`, `SearchTesterPage`, `ErrorsPage`, `OpenApiPage`, `UsersAdminPage`, `TenantsAdminPage`, `PermissionsAdminPage`, `EmailOutboxPage` — each lazy-loaded via `React.lazy` |
 | UI primitives | `src/core/dx/clients/components/ui/` | **shadcn/ui** components vendored under this tree (badge, button, card, checkbox, dialog, dropdown-menu, input, label, progress, radio-group, select, separator, sheet, sonner, switch, table, tabs, textarea, tooltip), built on **Radix UI**. To add a primitive: copy the canonical source from <https://ui.shadcn.com/docs/components>, retarget imports to `../../lib/utils.js`, append the `.js` suffix to every relative import. |
-| Custom components | `src/core/dx/clients/components/` | `JsonViewer` (reused by `/errors`, `/api/openapi`, `/hub/postgrest-parse`), `PageState` (Loading / Error / Empty / StatTile helpers), `Sparkline` (Webhook-Inspector trends) |
+| Custom components | `src/core/dx/clients/components/` | `JsonViewer` (reused by `/errors`, `/openapi`, `/hub/postgrest-parse`), `PageState` (Loading / Error / Empty / StatTile helpers), `Sparkline` (Webhook-Inspector trends) |
 | Icons | `src/core/dx/clients/layout/icons.tsx` | Sidebar + page icons via **lucide-react** — single import, tree-shaken to ~3 KB gzipped, consistent stroke-width 1.75 |
 | Toasts | `sonner` | Notification primitive mounted in `main.tsx` + the `<Toaster>` component, used for save / delete confirmations across `/hub/*` and `/admin/*` |
 | Styling stack | `src/core/dx/clients/styles/globals.css` | **Tailwind CSS 4** with the CSS-first `@theme` config — `@import "tailwindcss"` + `@theme inline { --color-background: var(--bg); … }`. Built via `bun-plugin-tailwind`, hot-reloaded by the dev-portal watcher. |

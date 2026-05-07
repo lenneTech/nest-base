@@ -105,10 +105,10 @@ files.
 ## The Hub layer
 
 Every developer-facing HTML surface — `/hub/*`, `/admin/*`, `/errors`,
-`/api/openapi` — is served by a single React 19 SPA bundled by
+`/openapi` — is served by a single React 19 SPA bundled by
 `bun build` and emitted to `dist/dev-portal/`. The Nest controllers
 (`dev-hub.controller.ts`, `admin-spa.controller.ts`,
-`error-code.controller.ts`, the `/api/openapi` mount in
+`error-code.controller.ts`, the `/openapi` mount in
 `bootstrap.ts`) all return the same thin HTML shell
 (`renderDevPortalShell`); React + react-router decides what to render.
 Each page reads from a sibling `*.json` sidecar — never inlines data

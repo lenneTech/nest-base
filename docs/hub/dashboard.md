@@ -139,7 +139,7 @@ background. A progress bar shows active / total ratio. A link leads to
 A grid of 11 direct links to the most-used Hub and admin tools:
 
 - Scalar API Reference → `/api/docs`
-- OpenAPI-Spec → `/api/openapi`
+- OpenAPI-Spec → `/openapi`
 - Permission Tester → `/admin/permissions/test`
 - Webhook Inspector → `/admin/webhooks`
 - Realtime Inspector → `/admin/realtime`

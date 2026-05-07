@@ -38,7 +38,7 @@ sonner toasts + TanStack Query — vendored under
 | Page                                                                       | Desktop (1440 × 900)                                                                  | Mobile (390 × 844)                                                                 |
 | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | [`/errors`](../../src/core/dx/clients/pages/ErrorsPage.tsx) — error catalog | [![errors desktop](screenshots/errors-desktop.png)](screenshots/errors-desktop.png)   | [![errors mobile](screenshots/errors-mobile.png)](screenshots/errors-mobile.png)   |
-| [`/api/openapi`](../../src/core/dx/clients/pages/OpenApiPage.tsx) — OpenAPI | [![openapi desktop](screenshots/openapi-desktop.png)](screenshots/openapi-desktop.png) | [![openapi mobile](screenshots/openapi-mobile.png)](screenshots/openapi-mobile.png) |
+| [`/openapi`](../../src/core/dx/clients/pages/OpenApiPage.tsx) — OpenAPI | [![openapi desktop](screenshots/openapi-desktop.png)](screenshots/openapi-desktop.png) | [![openapi mobile](screenshots/openapi-mobile.png)](screenshots/openapi-mobile.png) |
 
 ## Reproducing
 
@@ -98,7 +98,7 @@ because portless terminates TLS on the loopback host.
 | `admin-realtime`           | `/admin/realtime` (Sockets/Channels/Events tabs)                     |
 | `admin-audit`              | `/admin/audit`                                                       |
 | `errors`                   | `/errors` JSON viewer                                                |
-| `openapi`                  | `/api/openapi` JSON viewer                                           |
+| `openapi`                  | `/openapi` JSON viewer                                               |
 
 Each slug emits two files: `<slug>-desktop.png` (1440 × 900) and
 `<slug>-mobile.png` (390 × 844). Keep these names — the README + the

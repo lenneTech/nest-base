@@ -1,6 +1,6 @@
 # `src/core/dx/clients/` — Dev-Portal SPA source
 
-Every `/dev/*`, `/admin/*`, `/errors`, and `/api/openapi` HTML page is
+Every `/dev/*`, `/admin/*`, `/errors`, and `/openapi` HTML page is
 served by this React 19 SPA. The legacy server-side `*-ui.ts`
 renderers are gone — `dist/dev-portal/` is the single source of UI
 for every developer surface.
@@ -96,7 +96,7 @@ clients/
 │   ├── AuditBrowserPage.tsx       ← /admin/audit
 │   ├── SearchTesterPage.tsx       ← /admin/search
 │   ├── ErrorsPage.tsx             ← /errors
-│   └── OpenApiPage.tsx            ← /api/openapi
+│   └── OpenApiPage.tsx            ← /openapi
 ├── components/
 │   ├── JsonViewer.tsx             ← shared JSON-tree component
 │   ├── PageState.tsx              ← Loading / Error / Empty / StatTile helpers

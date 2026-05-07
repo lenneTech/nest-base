@@ -14,7 +14,7 @@ Pure-black dark theme. Electric-lime accent. Live status, coverage, tests, logs,
 
 [![Hub](docs/showcase/screenshots/dev-landing-desktop.png)](docs/showcase/README.md)
 
-> The full screenshot index — every Hub page — `/hub`, `/hub/features`, `/hub/email-builder`, `/admin/*`, `/errors`, `/api/openapi` — at desktop + mobile is in [`docs/showcase/`](docs/showcase/README.md).
+> The full screenshot index — every Hub page — `/hub`, `/hub/features`, `/hub/email-builder`, `/admin/*`, `/errors`, `/openapi` — at desktop + mobile is in [`docs/showcase/`](docs/showcase/README.md).
 
 </div>
 
@@ -91,7 +91,7 @@ The Hub opens automatically at the URL the dev runner prints — `https://api.<p
 
 ## 🎯 The Hub
 
-A black + lime operator console powered by a React 19 SPA (`src/core/dx/clients/`) built on **shadcn/ui (Radix) + Tailwind CSS 4 + lucide-react + sonner + TanStack Query**. Hub pages (`/hub`, `/hub/features`, `/hub/diagnostics`, `/hub/logs`, `/hub/jobs`, …), `/admin/*` CRUD surfaces, `/errors`, and `/api/openapi` are all rendered by the same SPA shell; the Nest controllers return JSON sidecars + the SPA shell, the SPA decides which page to mount. Every page is reachable from the sidebar.
+A black + lime operator console powered by a React 19 SPA (`src/core/dx/clients/`) built on **shadcn/ui (Radix) + Tailwind CSS 4 + lucide-react + sonner + TanStack Query**. Hub pages (`/hub`, `/hub/features`, `/hub/diagnostics`, `/hub/logs`, `/hub/jobs`, …), `/admin/*` CRUD surfaces, `/errors`, and `/openapi` are all rendered by the same SPA shell; the Nest controllers return JSON sidecars + the SPA shell, the SPA decides which page to mount. Every page is reachable from the sidebar.
 
 > Full screenshot gallery: [`docs/showcase/`](docs/showcase/README.md).
 
@@ -193,7 +193,7 @@ Visual editor for transactional templates. Gallery lists every discovered `.tsx`
 
 Five-tab handler for Prisma schema evolution: **Status** (rows from `_prisma_migrations` with retry on failed), **Pending** (preview SQL · apply one · apply all · dry-run in a transaction), **Diff** (`prisma migrate diff` between live DB and `schema.prisma`), **History** (timeline of applied migrations), **Create New** (kebab-case validated → `prisma migrate dev --create-only` → SQL preview → apply or discard). Drift banner above all tabs. Every mutating endpoint is gated by a Postgres advisory lock (409 on contention) and 404s outside `NODE_ENV=development`.
 
-### JSON Endpoints — `/errors`, `/api/openapi`, `/api/hub/postgrest-parse`
+### JSON Endpoints — `/errors`, `/openapi`, `/hub/postgrest-parse`
 
 Every JSON endpoint has a sister HTML page that mounts the React SPA's shared **JSON viewer** — syntax-highlighted, collapsible tree, copy button, key-filter search. Browser default → viewer; `Accept: application/json` or `?format=json` → raw JSON for SDKs.
 
@@ -259,7 +259,7 @@ src/
 │   ├── app/             ← Bootstrap + AppModule + dev-tab auto-open
 │   ├── auth/            ← Better-Auth wiring + API keys + PowerSync JWT + 24h verifications-cleanup cron
 │   ├── concurrency/     ← ETag + If-Match optimistic concurrency
-│   ├── dx/              ← /dev + /admin + /errors + /api/openapi (React SPA shell + JSON sidecars)
+│   ├── dx/              ← /dev + /admin + /errors + /openapi (React SPA shell + JSON sidecars)
 │   ├── email/           ← EmailService + React Email .tsx templates
 │   ├── encryption/      ← AES-256-GCM field encryption
 │   ├── errors/          ← CORE_* error codes + RFC 7807 filter
@@ -464,7 +464,7 @@ A fresh agent reads [`.claude/QUICKSTART.md`](./.claude/QUICKSTART.md) (60 sec) 
 - [`docs/template-update-workflow.md`](./docs/template-update-workflow.md) — pulling upstream changes
 - [`docs/customization-guide.md`](./docs/customization-guide.md) — adding domain modules in `src/modules/`
 - [`docs/core-contribution-guide.md`](./docs/core-contribution-guide.md) — contributing back to `src/core/`
-- [`docs/showcase/README.md`](./docs/showcase/README.md) — every `/hub/*`, `/admin/*`, `/errors`, `/api/openapi` page at desktop + mobile, plus the `bun run docs:screenshots` reproduction command
+- [`docs/showcase/README.md`](./docs/showcase/README.md) — every `/hub/*`, `/admin/*`, `/errors`, `/openapi` page at desktop + mobile, plus the `bun run docs:screenshots` reproduction command
 
 **Community**
 - [`SECURITY.md`](./SECURITY.md) — vulnerability disclosure
