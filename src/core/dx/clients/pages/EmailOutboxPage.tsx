@@ -111,8 +111,7 @@ function DetailPanel({ id, onClose }: { id: string; onClose: () => void }): Reac
 
   const detail = useQuery({
     queryKey: ["admin", "email-outbox", "detail", id],
-    queryFn: () =>
-      fetchJson<DetailResponse>(`/admin/email-outbox/${encodeURIComponent(id)}.json`),
+    queryFn: () => fetchJson<DetailResponse>(`/admin/email-outbox/${encodeURIComponent(id)}.json`),
     staleTime: 0,
   });
 
@@ -447,8 +446,7 @@ export function EmailOutboxPage(): ReactNode {
 
   const list = useQuery({
     queryKey: ["admin", "email-outbox", "list", statusFilter, recipientFilter, sortBy],
-    queryFn: () =>
-      fetchJson<ListResponse>(`/admin/email-outbox/list.json?${params.toString()}`),
+    queryFn: () => fetchJson<ListResponse>(`/admin/email-outbox/list.json?${params.toString()}`),
     // 30s auto-refresh so operators see new rows without manual reload
     refetchInterval: 30_000,
   });

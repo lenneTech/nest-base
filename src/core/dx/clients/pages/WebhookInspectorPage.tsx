@@ -472,9 +472,7 @@ function DetailDrawer({
   const detailQuery = useQuery({
     queryKey: ["admin", "webhooks", "detail", deliveryId],
     queryFn: () =>
-      fetchJson<DeliveryDetailResponse>(
-        `/admin/webhooks/${encodeURIComponent(deliveryId!)}.json`,
-      ),
+      fetchJson<DeliveryDetailResponse>(`/admin/webhooks/${encodeURIComponent(deliveryId!)}.json`),
     enabled: deliveryId !== null,
   });
 

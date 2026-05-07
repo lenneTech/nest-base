@@ -49,9 +49,7 @@ describe("Story · path-aware CSP (no unsafe-inline on JSON APIs)", () => {
   });
 
   it("HTML dev page (/admin/audit) carries the lenient DEV CSP (unsafe-inline allowed)", async () => {
-    const res = await request(app.getHttpServer())
-      .get("/admin/audit")
-      .set("Accept", "text/html");
+    const res = await request(app.getHttpServer()).get("/admin/audit").set("Accept", "text/html");
     // The page may 200 or redirect (auth) but the CSP header is always
     // emitted by helmet — that's the contract under test.
     const csp = res.headers["content-security-policy"];
