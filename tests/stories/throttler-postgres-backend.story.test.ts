@@ -110,12 +110,7 @@ describe("Story · PostgresThrottlerBackend", () => {
       const { readFileSync } = await import("node:fs");
       const { resolve } = await import("node:path");
       const sql = readFileSync(
-        resolve(
-          __dirname,
-          "..",
-          "..",
-          "prisma/migrations/20260508000000_init/migration.sql",
-        ),
+        resolve(__dirname, "..", "..", "prisma/migrations/20260508000000_init/migration.sql"),
         "utf8",
       );
       // The squashed init uses schema-qualified names: CREATE TABLE "public"."throttler_records"

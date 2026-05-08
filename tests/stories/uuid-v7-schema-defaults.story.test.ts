@@ -43,10 +43,7 @@ describe("Story · UUID v7 schema defaults (CF.UUID.01 — iter-210)", () => {
 
   it("the init migration sets uuid_generate_v7() as the default on every id column", async () => {
     const { readFileSync } = await import("node:fs");
-    const migration = readFileSync(
-      "prisma/migrations/20260508000000_init/migration.sql",
-      "utf8",
-    );
+    const migration = readFileSync("prisma/migrations/20260508000000_init/migration.sql", "utf8");
     // In the squashed init migration, uuid_generate_v7() defaults are set inline in
     // CREATE TABLE rather than via ALTER TABLE ... ALTER COLUMN ... SET DEFAULT.
     // Spot-check a representative subset spanning core, auth, permissions, files,
@@ -76,10 +73,7 @@ describe("Story · UUID v7 schema defaults (CF.UUID.01 — iter-210)", () => {
 
   it("idempotency_records and asset_variant_index are intentionally excluded (string PKs)", async () => {
     const { readFileSync } = await import("node:fs");
-    const migration = readFileSync(
-      "prisma/migrations/20260508000000_init/migration.sql",
-      "utf8",
-    );
+    const migration = readFileSync("prisma/migrations/20260508000000_init/migration.sql", "utf8");
     expect(migration).not.toMatch(/ALTER TABLE\s+"idempotency_records"\s+ALTER COLUMN\s+"id"/);
     expect(migration).not.toMatch(/ALTER TABLE\s+"asset_variant_index"\s+ALTER COLUMN\s+"id"/);
   });

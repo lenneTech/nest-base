@@ -59,9 +59,7 @@ describe("Dev-Hub · /dev/migrations", () => {
       expect(res.body.pending).toEqual([]);
       // Applied list contains at least the init migration.
       expect(
-        res.body.applied.some((m: { migration_name: string }) =>
-          m.migration_name.includes("init"),
-        ),
+        res.body.applied.some((m: { migration_name: string }) => m.migration_name.includes("init")),
       ).toBe(true);
     });
 

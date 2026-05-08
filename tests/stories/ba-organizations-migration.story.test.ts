@@ -54,10 +54,7 @@ describe("Story · BA Organizations Migration", () => {
     it("the BA organization models migration file exists", () => {
       const dirs = readdirSync(MIGRATIONS);
       const match = dirs.find((d) => d.includes("init"));
-      expect(
-        match,
-        `no init migration in prisma/migrations`,
-      ).toBeDefined();
+      expect(match, `no init migration in prisma/migrations`).toBeDefined();
     });
 
     it("the BA organization models migration defines the organization tables", () => {
@@ -87,10 +84,7 @@ describe("Story · BA Organizations Migration", () => {
     it("the tenant-to-organizations data migration file exists", () => {
       const dirs = readdirSync(MIGRATIONS);
       const match = dirs.find((d) => d.includes("init"));
-      expect(
-        match,
-        `no init migration in prisma/migrations`,
-      ).toBeDefined();
+      expect(match, `no init migration in prisma/migrations`).toBeDefined();
     });
 
     it("the init migration contains the organization and member table definitions", () => {
