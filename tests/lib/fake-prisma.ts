@@ -34,6 +34,17 @@
  * `fake.todo.create(...)` work without registration. The `example`
  * and `userProfile` mocks remain pre-seeded for backwards
  * compatibility with existing story tests.
+ *
+ * undefined vs null — Row value access:
+ *
+ * Real Prisma returns `null` for optional columns that were not set.
+ * This fake stores `undefined` for those same columns (plain JS object
+ * spread). Service code that reads row values MUST use loose-equality
+ * checks: `record.deletedAt != null` (treats both undefined and null as
+ * "not set"). Using strict `!== null` returns true for undefined fields
+ * and causes incorrect "not found" errors in soft-delete guards.
+ * WHERE-clause comparisons are already normalised inside matchesWhere —
+ * only direct row field access is affected.
  */
 
 import { uuidV7 } from "../../src/core/uuid/uuid-v7.js";

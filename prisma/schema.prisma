@@ -727,6 +727,19 @@ model RateLimitDecision {
   @@map("rate_limit_decisions")
 }
 
+// The throttler_records table is managed directly by the ThrottlerStorageService
+// (Postgres-backed counter store). It has no Prisma model but exists in the DB
+// so we declare it with @@ignore to prevent prisma migrate dev from including a
+// DROP TABLE statement in consumer migrations.
+model ThrottlerRecord {
+  key       String   @id
+  count     Int
+  expiresAt DateTime @map("expires_at")
+
+  @@ignore
+  @@map("throttler_records")
+}
+
 // Users and IPs exempt from rate limiting. The throttler reads this on each
 // request (cached) before touching the throttler_records counter.
 model RateLimitAllowlist {

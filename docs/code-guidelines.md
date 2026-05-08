@@ -131,6 +131,41 @@ export class CreateProjectDto extends createZodDto(CreateProjectSchema) {}
 - OpenAPI is generated from the same schemas via `nestjs-zod`. If the
   schema is right, the docs are right.
 
+### Zod v4 — quick reference
+
+This project uses **Zod 4**. Several common patterns changed from v3:
+
+| v3 (deprecated) | v4 |
+|---|---|
+| `z.string().uuid()` | `z.uuid()` (standalone type) |
+| `z.string().email()` | `z.email()` |
+| `z.string().url()` | `z.url()` |
+| `z.string().datetime({ offset: true })` | `z.iso.datetime()` |
+| `z.string().ip()` | `z.ipv4()` / `z.ipv6()` |
+
+Use `z.uuid()` directly — it is a `ZodUUID` type, not `ZodString`. The
+TypeScript type it produces is `string`, so it's a drop-in in practice.
+
+### DTO types: use `z.input<>` not `z.infer<>`
+
+`z.infer<typeof Schema>` is the **output** type (post-parse). When a
+field has `.default(...)`, it is always present in the output — making
+it required in the TypeScript type even though callers can omit it.
+
+Service methods and story tests that call `service.create({ title: "x" })`
+without `status` (which has a default) will get a TypeScript error if the
+DTO is typed as `z.infer<>`.
+
+```typescript
+// ❌ output type — status is required (default is resolved post-parse)
+export type CreateTodoDto = z.infer<typeof CreateTodoSchema>;
+
+// ✅ input type — status is optional (matches what callers actually pass)
+export type CreateTodoDto = z.input<typeof CreateTodoSchema>;
+```
+
+Always export `z.input<>` for service method parameter types.
+
 ## Permissions on a handler
 
 The default path is **decorator-driven**:
