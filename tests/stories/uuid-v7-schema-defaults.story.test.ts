@@ -41,16 +41,17 @@ describe("Story · UUID v7 schema defaults (CF.UUID.01 — iter-210)", () => {
     expect(v7Count).toBeGreaterThanOrEqual(23);
   });
 
-  it("the migration file `20260506210000_uuid_v7_defaults_core` exists and ALTERs every id column", async () => {
+  it("the init migration sets uuid_generate_v7() as the default on every id column", async () => {
     const { readFileSync } = await import("node:fs");
     const migration = readFileSync(
-      "prisma/migrations/20260506210000_uuid_v7_defaults_core/migration.sql",
+      "prisma/migrations/20260508000000_init/migration.sql",
       "utf8",
     );
-    // Spot-check a representative subset spanning core, auth,
-    // permissions, files, webhooks, email, outbox, gdpr, audit.
+    // In the squashed init migration, uuid_generate_v7() defaults are set inline in
+    // CREATE TABLE rather than via ALTER TABLE ... ALTER COLUMN ... SET DEFAULT.
+    // Spot-check a representative subset spanning core, auth, permissions, files,
+    // webhooks, email, outbox, gdpr, audit. (tenants table was removed in issue #118.)
     const required = [
-      "tenants",
       "users",
       "sessions",
       "accounts",
@@ -67,7 +68,7 @@ describe("Story · UUID v7 schema defaults (CF.UUID.01 — iter-210)", () => {
     for (const table of required) {
       expect(migration).toMatch(
         new RegExp(
-          `ALTER TABLE\\s+"${table}"\\s+ALTER COLUMN\\s+"id"\\s+SET DEFAULT uuid_generate_v7\\(\\)`,
+          `CREATE TABLE[^;]*?"${table}"[\\s\\S]*?"id"\\s+UUID\\s+NOT NULL\\s+DEFAULT uuid_generate_v7\\(\\)`,
         ),
       );
     }
@@ -76,7 +77,7 @@ describe("Story · UUID v7 schema defaults (CF.UUID.01 — iter-210)", () => {
   it("idempotency_records and asset_variant_index are intentionally excluded (string PKs)", async () => {
     const { readFileSync } = await import("node:fs");
     const migration = readFileSync(
-      "prisma/migrations/20260506210000_uuid_v7_defaults_core/migration.sql",
+      "prisma/migrations/20260508000000_init/migration.sql",
       "utf8",
     );
     expect(migration).not.toMatch(/ALTER TABLE\s+"idempotency_records"\s+ALTER COLUMN\s+"id"/);

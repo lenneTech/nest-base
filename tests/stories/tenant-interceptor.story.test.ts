@@ -184,21 +184,20 @@ describe("Story · Tenant-Interceptor + RLS", () => {
     const MIGRATIONS = resolve(ROOT, "prisma/migrations");
 
     it("a migration directory exists for the RLS setup", () => {
-      const dirs = existsSync(MIGRATIONS) ? readdirSync(MIGRATIONS) : [];
-      const setup = dirs.find((d) => /rls/i.test(d));
-      expect(setup, `no migration matching /rls/ in prisma/migrations`).toBeDefined();
+      // All migrations are squashed into the single init migration.
+      const initPath = resolve(MIGRATIONS, "20260508000000_init");
+      expect(existsSync(initPath), `init migration must exist at ${initPath}`).toBe(true);
     });
 
     it("the migration enables RLS on the tenant-scoped tables", () => {
-      const dirs = readdirSync(MIGRATIONS).filter((d) => /rls/i.test(d));
-      const sql = readFileSync(resolve(MIGRATIONS, dirs[0]!, "migration.sql"), "utf8");
-      expect(sql).toMatch(/ALTER\s+TABLE\s+users\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
-      expect(sql).toMatch(/ALTER\s+TABLE\s+roles\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
+      const sql = readFileSync(resolve(MIGRATIONS, "20260508000000_init", "migration.sql"), "utf8");
+      // The squashed init uses quoted identifiers: ALTER TABLE "users" ENABLE ROW LEVEL SECURITY
+      expect(sql).toMatch(/ALTER\s+TABLE\s+"?users"?\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
+      expect(sql).toMatch(/ALTER\s+TABLE\s+"?roles"?\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
     });
 
     it("the migration installs a tenant-isolation policy that reads app.tenant_id", () => {
-      const dirs = readdirSync(MIGRATIONS).filter((d) => /rls/i.test(d));
-      const sql = readFileSync(resolve(MIGRATIONS, dirs[0]!, "migration.sql"), "utf8");
+      const sql = readFileSync(resolve(MIGRATIONS, "20260508000000_init", "migration.sql"), "utf8");
       expect(sql).toMatch(/CREATE\s+POLICY/i);
       expect(sql).toMatch(/current_setting\(\s*'app\.tenant_id'/i);
     });

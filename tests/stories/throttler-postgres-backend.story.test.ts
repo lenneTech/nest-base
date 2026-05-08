@@ -114,11 +114,12 @@ describe("Story · PostgresThrottlerBackend", () => {
           __dirname,
           "..",
           "..",
-          "prisma/migrations/20260504160000_throttler_records/migration.sql",
+          "prisma/migrations/20260508000000_init/migration.sql",
         ),
         "utf8",
       );
-      expect(sql).toMatch(/CREATE TABLE\s+"throttler_records"/);
+      // The squashed init uses schema-qualified names: CREATE TABLE "public"."throttler_records"
+      expect(sql).toMatch(/CREATE TABLE\s+(?:"public"\.)?"throttler_records"/);
       expect(sql).toMatch(/"key"\s+TEXT\s+NOT NULL/);
       expect(sql).toMatch(/"count"\s+INTEGER\s+NOT NULL/);
       expect(sql).toMatch(/"expires_at"\s+TIMESTAMP\(3\)\s+NOT NULL/);

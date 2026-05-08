@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -21,12 +21,8 @@ const ROOT = resolve(import.meta.dirname, "..", "..");
  */
 describe("Story · PowerSync replication role + publication", () => {
   function readPowerSyncMigration(): string {
-    const migrationsDir = resolve(ROOT, "prisma/migrations");
-    const candidates = readdirSync(migrationsDir).filter((entry) =>
-      /powersync|replication/i.test(entry),
-    );
-    expect(candidates.length, "a PowerSync replication migration must exist").toBeGreaterThan(0);
-    const sqlPath = resolve(migrationsDir, candidates[0]!, "migration.sql");
+    // All migrations are squashed into the single init migration.
+    const sqlPath = resolve(ROOT, "prisma/migrations/20260508000000_init/migration.sql");
     expect(existsSync(sqlPath), `${sqlPath} must exist`).toBe(true);
     return readFileSync(sqlPath, "utf8");
   }

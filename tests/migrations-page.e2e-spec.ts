@@ -57,17 +57,17 @@ describe("Dev-Hub · /dev/migrations", () => {
       // Test container ran `migrate deploy` in global-setup, so every
       // migration on disk should be applied. Pending stays empty.
       expect(res.body.pending).toEqual([]);
-      // Applied list contains at least the init schema migration.
+      // Applied list contains at least the init migration.
       expect(
         res.body.applied.some((m: { migration_name: string }) =>
-          m.migration_name.includes("init_schema"),
+          m.migration_name.includes("init"),
         ),
       ).toBe(true);
     });
 
     it("GET /dev/migrations/preview/:name returns the SQL for an applied migration", async () => {
       // Pick a known migration that ships with the repo
-      const name = "20260428000050_init_schema";
+      const name = "20260508000000_init";
       const res = await request(app.getHttpServer()).get(`/hub/migrations/preview/${name}`);
       expect(res.status).toBe(200);
       expect(res.body.name).toBe(name);
@@ -159,7 +159,7 @@ describe("Dev-Hub · /dev/migrations", () => {
     it("POST /dev/migrations/apply-one returns 404 in production", async () => {
       const res = await request(app.getHttpServer())
         .post("/hub/migrations/apply-one")
-        .send({ name: "20260428000050_init_schema" });
+        .send({ name: "20260508000000_init" });
       expect(res.status).toBe(404);
     });
 
@@ -172,7 +172,7 @@ describe("Dev-Hub · /dev/migrations", () => {
 
     it("DELETE /dev/migrations/draft/:name returns 404 in production", async () => {
       const res = await request(app.getHttpServer()).delete(
-        "/hub/migrations/draft/20260428000050_init_schema",
+        "/hub/migrations/draft/20260508000000_init",
       );
       expect(res.status).toBe(404);
     });

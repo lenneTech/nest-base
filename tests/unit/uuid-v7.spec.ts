@@ -72,15 +72,16 @@ describe("UUID v7", () => {
   describe("Prisma migration installs pg_uuidv7", () => {
     const MIGRATIONS = resolve(ROOT, "prisma/migrations");
 
-    it("a migration directory exists for pg_uuidv7 setup", () => {
+    it("the init migration exists", () => {
       expect(existsSync(MIGRATIONS)).toBe(true);
       const dirs = readdirSync(MIGRATIONS);
-      const setup = dirs.find((d) => /pg_uuidv7|uuid_v7/i.test(d));
-      expect(setup, `no migration matching /pg_uuidv7|uuid_v7/ in prisma/migrations`).toBeDefined();
+      // All migrations were squashed into a single init migration.
+      const init = dirs.find((d) => /init/i.test(d));
+      expect(init, `no init migration in prisma/migrations`).toBeDefined();
     });
 
-    it("the migration creates the extension idempotently", () => {
-      const dirs = readdirSync(MIGRATIONS).filter((d) => /pg_uuidv7|uuid_v7/i.test(d));
+    it("the init migration creates the pg_uuidv7 extension idempotently", () => {
+      const dirs = readdirSync(MIGRATIONS).filter((d) => /init/i.test(d));
       const sqlPath = resolve(MIGRATIONS, dirs[0]!, "migration.sql");
       const sql = readFileSync(sqlPath, "utf8");
       expect(sql).toMatch(/CREATE\s+EXTENSION\s+IF\s+NOT\s+EXISTS\s+pg_uuidv7/i);
