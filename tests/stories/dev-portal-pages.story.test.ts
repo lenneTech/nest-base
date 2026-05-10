@@ -33,6 +33,14 @@ const GLOBALS_CSS = read("src/core/dx/clients/styles/globals.css");
 const TOKENS_CSS = read("src/core/dx/clients/styles/tokens.css");
 const ADMIN_SHELL = read("src/core/dx/clients/layout/AdminShell.tsx");
 const ICONS_TSX = read("src/core/dx/clients/layout/icons.tsx");
+const PERMISSIONS_ADMIN_PAGE = read(
+  'src/core/dx/clients/pages/PermissionsAdminPage.tsx',
+);
+const PERMISSION_TESTER_PAGE = read(
+  'src/core/dx/clients/pages/PermissionTesterPage.tsx',
+);
+
+
 
 describe("Story · Dev-Portal SPA route + nav contract", () => {
   describe("React route table covers every SPA-owned page", () => {
@@ -313,4 +321,32 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       expect(ICONS_TSX).toMatch(/strokeLinejoin:\s*"round"/);
     });
   });
+
+  describe("Sidebar active-state: permissions pages use distinct currentNav ids (regression pin · #125)", () => {
+    // Issue #125: visiting /admin/permissions highlighted both "Permissions"
+    // and "Permission Tester" simultaneously because PermissionsAdminPage
+    // passed currentNav="permissions" — the same id as the Tester nav entry.
+    // The CRUD page's nav entry is id="permissions-crud"; each page must use
+    // the id that belongs to its own entry so only one item is active.
+    it('PermissionsAdminPage passes currentNav="permissions-crud" to AdminShell', () => {
+      expect(PERMISSIONS_ADMIN_PAGE).toContain('currentNav="permissions-crud"');
+    });
+
+    it('PermissionTesterPage passes currentNav="permissions" to AdminShell', () => {
+      expect(PERMISSION_TESTER_PAGE).toContain('currentNav="permissions"');
+    });
+
+    it('nav.ts assigns id "permissions-crud" to the /admin/permissions CRUD entry', () => {
+      // Ensures the id used by PermissionsAdminPage actually exists in the nav model.
+      expect(NAV_TS).toContain('id: "permissions-crud"');
+    });
+
+    it('nav.ts "permissions-crud" entry has href "/admin/permissions" (exact path)', () => {
+      // Guards against the href changing to a prefix that would collide with /test.
+      expect(NAV_TS).toMatch(
+        /id: "permissions-crud"[^}]+href: "\/admin\/permissions"/s,
+      );
+    });
+  });
+
 });
