@@ -138,7 +138,7 @@ export function PermissionsAdminPage(): ReactNode {
     <AdminShell
       title="Permissions"
       subtitle="Action × Resource grants attached to a Policy"
-      currentNav="permissions"
+      currentNav="permissions-crud"
     >
       <div className="space-y-4">
         {/* Berechtigungsmatrix */}
