@@ -1,4 +1,10 @@
-import { Injectable, Logger, Optional, type OnModuleDestroy, type OnModuleInit } from "@nestjs/common";
+import {
+  Injectable,
+  Logger,
+  Optional,
+  type OnModuleDestroy,
+  type OnModuleInit,
+} from "@nestjs/common";
 
 import { buildCleanupJobPlan } from "../jobs/cleanup-job-planner.js";
 import type { PgBossLike } from "../jobs/scheduled-job-pgboss-scheduler.js";

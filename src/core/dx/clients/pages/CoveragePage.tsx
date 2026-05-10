@@ -65,8 +65,8 @@ export function CoveragePage(): ReactNode {
           <PageEmpty>
             Coverage report not generated yet. Run{" "}
             <code className="mx-0.5 font-mono text-accent">bun run test:coverage</code>
-            <CopyButton text="bun run test:coverage" className="mx-0.5" />
-            {" "}to populate the dashboard.
+            <CopyButton text="bun run test:coverage" className="mx-0.5" /> to populate the
+            dashboard.
           </PageEmpty>
         )
       ) : data.isError ? (

@@ -66,8 +66,7 @@ export function TestsPage(): ReactNode {
           <PageEmpty>
             Test summary not generated yet. Run{" "}
             <code className="mx-0.5 font-mono text-accent">bun run test:summary</code>
-            <CopyButton text="bun run test:summary" className="mx-0.5" />
-            {" "}to populate the dashboard.
+            <CopyButton text="bun run test:summary" className="mx-0.5" /> to populate the dashboard.
           </PageEmpty>
         )
       ) : data.isError ? (
