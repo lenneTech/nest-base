@@ -36,6 +36,8 @@ const ICONS_TSX = read("src/core/dx/clients/layout/icons.tsx");
 const TESTS_PAGE = read("src/core/dx/clients/pages/TestsPage.tsx");
 const COVERAGE_PAGE = read("src/core/dx/clients/pages/CoveragePage.tsx");
 const COPY_BUTTON = read("src/core/dx/clients/components/CopyButton.tsx");
+const PERMISSIONS_ADMIN_PAGE = read("src/core/dx/clients/pages/PermissionsAdminPage.tsx");
+const PERMISSION_TESTER_PAGE = read("src/core/dx/clients/pages/PermissionTesterPage.tsx");
 
 describe("Story · Dev-Portal SPA route + nav contract", () => {
   describe("React route table covers every SPA-owned page", () => {
@@ -318,11 +320,6 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
   });
 
   describe("CopyButton component — copy-to-clipboard for code blocks (fix · #126)", () => {
-    // Issue #126: hub pages lacked a copy-to-clipboard affordance on code
-    // snippets and inline commands. CopyButton is a pure React component
-    // (no external deps) that uses the Clipboard API and shows transient
-    // visual feedback on success.
-
     it("CopyButton.tsx exists as a standalone component file", () => {
       expect(COPY_BUTTON).toBeTruthy();
     });
@@ -349,16 +346,30 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
   });
 
   describe("Inline code spacing fix (fix · #126)", () => {
-    // Issue #126: inline <code> elements adjacent to text had no visual
-    // breathing room. mx-0.5 adds a half-unit margin on each side so the
-    // text and code element don't visually collide.
-
     it("TestsPage.tsx inline command code uses mx-0.5 for spacing", () => {
       expect(TESTS_PAGE).toContain("mx-0.5");
     });
 
     it("CoveragePage.tsx inline command code uses mx-0.5 for spacing", () => {
       expect(COVERAGE_PAGE).toContain("mx-0.5");
+    });
+  });
+
+  describe("Sidebar active-state: permissions pages use distinct currentNav ids (regression pin · #125)", () => {
+    it('PermissionsAdminPage passes currentNav="permissions-crud" to AdminShell', () => {
+      expect(PERMISSIONS_ADMIN_PAGE).toContain('currentNav="permissions-crud"');
+    });
+
+    it('PermissionTesterPage passes currentNav="permissions" to AdminShell', () => {
+      expect(PERMISSION_TESTER_PAGE).toContain('currentNav="permissions"');
+    });
+
+    it('nav.ts assigns id "permissions-crud" to the /admin/permissions CRUD entry', () => {
+      expect(NAV_TS).toContain('id: "permissions-crud"');
+    });
+
+    it('nav.ts "permissions-crud" entry has href "/admin/permissions" (exact path)', () => {
+      expect(NAV_TS).toMatch(/id: "permissions-crud"[^}]+href: "\/admin\/permissions"/s);
     });
   });
 });
