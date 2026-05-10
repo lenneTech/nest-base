@@ -1,14 +1,12 @@
-import { existsSync, statSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { resolve as resolvePath } from "node:path";
 
-import { Injectable, Logger, Module, type OnModuleInit } from "@nestjs/common";
+import { Logger, Module } from "@nestjs/common";
 
-import { GeoIpLicenseKeyMissingError, planGeoIpDownload } from "./download-planner.js";
-import { runGeoIpDownload } from "./download-runner.js";
 import { loadFeatures } from "../features/features.js";
+import type { PgBossLike } from "../jobs/scheduled-job-pgboss-scheduler.js";
+import { GeoIpRefreshCron } from "./geoip-refresh-cron.js";
 import { GeoIpService, type MmdbCityReader } from "./geoip.service.js";
-import { planGeoIpRefreshSchedule } from "./refresh-schedule.js";
 
 /**
  * GeoIpModule — provides `GeoIpService` with a lazy `.mmdb` reader.
@@ -24,97 +22,13 @@ import { planGeoIpRefreshSchedule } from "./refresh-schedule.js";
  * downstream code can inject `GeoIpService` and rely on the
  * cold-boot null contract instead of branching on a feature flag
  * at every call-site.
- */
-/**
- * GeoIpRefreshCron — re-downloads the `.mmdb` on the cadence dictated
- * by `planGeoIpRefreshSchedule()`. Wakes up once every 24h, asks the
- * planner whether a refresh is due, and either skips or runs the
- * download. `lastRunMs` tracks the last successful refresh in
- * memory; in production the worker can persist it via pg-boss state
- * once the queue is wired (see `src/core/jobs/`).
  *
- * Failures are swallowed with a warning — geo lookup is best-effort,
- * a stale `.mmdb` is preferable to a crashed boot.
+ * Multi-replica safety: `GeoIpRefreshCron` accepts an optional
+ * pg-boss adapter (resolved via `FEATURE_JOBS_PG_BOSS` + `DATABASE_URL`
+ * at module init) so that only one replica triggers the `.mmdb`
+ * re-download per scheduled tick. See `geoip-refresh-cron.ts`
+ * for details (issue #127 Finding 1).
  */
-@Injectable()
-class GeoIpRefreshCron implements OnModuleInit {
-  private readonly logger = new Logger("GeoIpRefreshCron");
-  private timer?: ReturnType<typeof setInterval>;
-  private lastRunMs: number | null = null;
-
-  onModuleInit(): void {
-    const features = loadFeatures(process.env as Record<string, string | undefined>);
-    const cfg = features.geoIp;
-    const schedule = planGeoIpRefreshSchedule({
-      provider: cfg.provider,
-      enabled: cfg.enabled,
-    });
-    if (!schedule.shouldRun) return;
-
-    // Seed the "last run" with the file's mtime if it exists, so a
-    // restart doesn't re-download a fresh database.
-    try {
-      const absolute = resolvePath(cfg.dbPath);
-      if (existsSync(absolute)) {
-        this.lastRunMs = statSync(absolute).mtimeMs;
-      }
-    } catch {
-      this.lastRunMs = null;
-    }
-
-    this.logger.log(
-      `GeoIP refresh scheduled: cadence=${schedule.cadence}, tick=${schedule.tickMs}ms`,
-    );
-    this.timer = setInterval(() => {
-      void this.maybeRun(cfg.provider, cfg.licenseKey, cfg.dbPath, schedule).catch((err) =>
-        this.logger.warn(`GeoIP refresh tick failed: ${err}`),
-      );
-    }, schedule.tickMs);
-    // Don't keep the event loop alive in tests / CLI tools.
-    this.timer.unref?.();
-  }
-
-  private async maybeRun(
-    provider: "dbip-lite" | "maxmind",
-    licenseKey: string | undefined,
-    dbPath: string,
-    schedule: ReturnType<typeof planGeoIpRefreshSchedule>,
-  ): Promise<void> {
-    const now = Date.now();
-    if (!schedule.isRefreshDue(now, this.lastRunMs)) return;
-
-    try {
-      const plan = planGeoIpDownload({ provider, now: new Date(now), licenseKey, dbPath });
-      // The runner accepts a project-narrow `fetch` shape; the
-      // global `fetch`'s typed Response signature is wider. Bridge
-      // through a typed `unknown` intermediate so the disqualifier
-      // scan stays clean.
-      const fetchAdapter = (url: string): ReturnType<typeof fetch> => {
-        const erased: unknown = fetch(url);
-        return erased as ReturnType<typeof fetch>;
-      };
-      const result = await runGeoIpDownload(plan, {
-        fetch: fetchAdapter,
-        fs: { mkdir, writeFile },
-      });
-      this.lastRunMs = now;
-      this.logger.log(
-        `GeoIP refresh complete: ${result.bytesWritten.toLocaleString()} bytes → ${result.savePath}`,
-      );
-    } catch (err) {
-      if (err instanceof GeoIpLicenseKeyMissingError) {
-        this.logger.warn(err.message);
-        return;
-      }
-      this.logger.warn(
-        `GeoIP refresh failed (will retry on next tick): ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
-    }
-  }
-}
-
 @Module({
   providers: [
     {
@@ -128,11 +42,51 @@ class GeoIpRefreshCron implements OnModuleInit {
         });
       },
     },
-    GeoIpRefreshCron,
+    {
+      provide: GeoIpRefreshCron,
+      useFactory: async (): Promise<GeoIpRefreshCron> => {
+        const features = loadFeatures(process.env as Record<string, string | undefined>);
+        const cfg = features.geoIp;
+        // Resolve pg-boss when FEATURE_JOBS_PG_BOSS=true + DATABASE_URL
+        // is set, mirroring the pattern in outbox.module.ts so all
+        // cron subsystems share the same gating contract.
+        const boss = await resolveGeoIpPgBoss();
+        return new GeoIpRefreshCron({
+          enabled: cfg.enabled,
+          provider: cfg.provider,
+          dbPath: cfg.dbPath,
+          licenseKey: cfg.licenseKey,
+          boss,
+        });
+      },
+    },
   ],
   exports: [GeoIpService],
 })
 export class GeoIpModule {}
+
+async function resolveGeoIpPgBoss(): Promise<PgBossLike | null> {
+  const enabled = process.env.FEATURE_JOBS_PG_BOSS === "true";
+  const url = process.env.DATABASE_URL;
+  if (!enabled || !url) return null;
+  const mod = await import("pg-boss");
+  return constructPgBoss(mod.PgBoss, url);
+}
+
+function constructPgBoss(Ctor: new (connectionString: string) => unknown, url: string): PgBossLike {
+  const instance = new Ctor(url);
+  if (
+    typeof instance === "object" &&
+    instance !== null &&
+    typeof (instance as { start?: unknown }).start === "function" &&
+    typeof (instance as { work?: unknown }).work === "function" &&
+    typeof (instance as { schedule?: unknown }).schedule === "function" &&
+    typeof (instance as { stop?: unknown }).stop === "function"
+  ) {
+    return instance as PgBossLike;
+  }
+  throw new TypeError("pg-boss instance does not match expected shape");
+}
 
 /**
  * Structural type for the `maxmind` npm package's public surface
