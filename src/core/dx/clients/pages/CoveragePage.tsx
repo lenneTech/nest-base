@@ -17,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "../components/ui/table.js";
+import { CopyButton } from "../components/CopyButton.js";
 import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson } from "../lib/api.js";
@@ -63,8 +64,9 @@ export function CoveragePage(): ReactNode {
         ) : (
           <PageEmpty>
             Coverage report not generated yet. Run{" "}
-            <code className="font-mono text-accent">bun run test:coverage</code> to populate the
-            dashboard.
+            <code className="mx-0.5 font-mono text-accent">bun run test:coverage</code>
+            <CopyButton text="bun run test:coverage" className="mx-0.5" />
+            {" "}to populate the dashboard.
           </PageEmpty>
         )
       ) : data.isError ? (

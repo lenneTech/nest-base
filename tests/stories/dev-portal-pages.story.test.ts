@@ -33,6 +33,9 @@ const GLOBALS_CSS = read("src/core/dx/clients/styles/globals.css");
 const TOKENS_CSS = read("src/core/dx/clients/styles/tokens.css");
 const ADMIN_SHELL = read("src/core/dx/clients/layout/AdminShell.tsx");
 const ICONS_TSX = read("src/core/dx/clients/layout/icons.tsx");
+const TESTS_PAGE = read("src/core/dx/clients/pages/TestsPage.tsx");
+const COVERAGE_PAGE = read("src/core/dx/clients/pages/CoveragePage.tsx");
+const COPY_BUTTON = read("src/core/dx/clients/components/CopyButton.tsx");
 
 describe("Story · Dev-Portal SPA route + nav contract", () => {
   describe("React route table covers every SPA-owned page", () => {
@@ -311,6 +314,51 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
 
     it('icons.tsx COMMON declares strokeLinejoin: "round"', () => {
       expect(ICONS_TSX).toMatch(/strokeLinejoin:\s*"round"/);
+    });
+  });
+
+  describe("CopyButton component — copy-to-clipboard for code blocks (fix · #126)", () => {
+    // Issue #126: hub pages lacked a copy-to-clipboard affordance on code
+    // snippets and inline commands. CopyButton is a pure React component
+    // (no external deps) that uses the Clipboard API and shows transient
+    // visual feedback on success.
+
+    it("CopyButton.tsx exists as a standalone component file", () => {
+      expect(COPY_BUTTON).toBeTruthy();
+    });
+
+    it("CopyButton.tsx uses the Clipboard API (navigator.clipboard.writeText)", () => {
+      expect(COPY_BUTTON).toContain("navigator.clipboard.writeText");
+    });
+
+    it("CopyButton.tsx renders a button element", () => {
+      expect(COPY_BUTTON).toMatch(/<button/);
+    });
+
+    it("CopyButton.tsx exports CopyButton function", () => {
+      expect(COPY_BUTTON).toMatch(/export function CopyButton/);
+    });
+
+    it("TestsPage.tsx imports CopyButton", () => {
+      expect(TESTS_PAGE).toContain("CopyButton");
+    });
+
+    it("CoveragePage.tsx imports CopyButton", () => {
+      expect(COVERAGE_PAGE).toContain("CopyButton");
+    });
+  });
+
+  describe("Inline code spacing fix (fix · #126)", () => {
+    // Issue #126: inline <code> elements adjacent to text had no visual
+    // breathing room. mx-0.5 adds a half-unit margin on each side so the
+    // text and code element don't visually collide.
+
+    it("TestsPage.tsx inline command code uses mx-0.5 for spacing", () => {
+      expect(TESTS_PAGE).toContain("mx-0.5");
+    });
+
+    it("CoveragePage.tsx inline command code uses mx-0.5 for spacing", () => {
+      expect(COVERAGE_PAGE).toContain("mx-0.5");
     });
   });
 });

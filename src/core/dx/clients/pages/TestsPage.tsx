@@ -4,6 +4,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
+import { CopyButton } from "../components/CopyButton.js";
 import { Badge } from "../components/ui/badge.js";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
 import {
@@ -64,8 +65,9 @@ export function TestsPage(): ReactNode {
         ) : (
           <PageEmpty>
             Test summary not generated yet. Run{" "}
-            <code className="font-mono text-accent">bun run test:summary</code> to populate the
-            dashboard.
+            <code className="mx-0.5 font-mono text-accent">bun run test:summary</code>
+            <CopyButton text="bun run test:summary" className="mx-0.5" />
+            {" "}to populate the dashboard.
           </PageEmpty>
         )
       ) : data.isError ? (
