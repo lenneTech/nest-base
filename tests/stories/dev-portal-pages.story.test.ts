@@ -33,14 +33,11 @@ const GLOBALS_CSS = read("src/core/dx/clients/styles/globals.css");
 const TOKENS_CSS = read("src/core/dx/clients/styles/tokens.css");
 const ADMIN_SHELL = read("src/core/dx/clients/layout/AdminShell.tsx");
 const ICONS_TSX = read("src/core/dx/clients/layout/icons.tsx");
-const PERMISSIONS_ADMIN_PAGE = read(
-  'src/core/dx/clients/pages/PermissionsAdminPage.tsx',
-);
-const PERMISSION_TESTER_PAGE = read(
-  'src/core/dx/clients/pages/PermissionTesterPage.tsx',
-);
-
-
+const TESTS_PAGE = read("src/core/dx/clients/pages/TestsPage.tsx");
+const COVERAGE_PAGE = read("src/core/dx/clients/pages/CoveragePage.tsx");
+const COPY_BUTTON = read("src/core/dx/clients/components/CopyButton.tsx");
+const PERMISSIONS_ADMIN_PAGE = read("src/core/dx/clients/pages/PermissionsAdminPage.tsx");
+const PERMISSION_TESTER_PAGE = read("src/core/dx/clients/pages/PermissionTesterPage.tsx");
 
 describe("Story · Dev-Portal SPA route + nav contract", () => {
   describe("React route table covers every SPA-owned page", () => {
@@ -322,12 +319,43 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
     });
   });
 
+  describe("CopyButton component — copy-to-clipboard for code blocks (fix · #126)", () => {
+    it("CopyButton.tsx exists as a standalone component file", () => {
+      expect(COPY_BUTTON).toBeTruthy();
+    });
+
+    it("CopyButton.tsx uses the Clipboard API (navigator.clipboard.writeText)", () => {
+      expect(COPY_BUTTON).toContain("navigator.clipboard.writeText");
+    });
+
+    it("CopyButton.tsx renders a button element", () => {
+      expect(COPY_BUTTON).toMatch(/<button/);
+    });
+
+    it("CopyButton.tsx exports CopyButton function", () => {
+      expect(COPY_BUTTON).toMatch(/export function CopyButton/);
+    });
+
+    it("TestsPage.tsx imports CopyButton", () => {
+      expect(TESTS_PAGE).toContain("CopyButton");
+    });
+
+    it("CoveragePage.tsx imports CopyButton", () => {
+      expect(COVERAGE_PAGE).toContain("CopyButton");
+    });
+  });
+
+  describe("Inline code spacing fix (fix · #126)", () => {
+    it("TestsPage.tsx inline command code uses mx-0.5 for spacing", () => {
+      expect(TESTS_PAGE).toContain("mx-0.5");
+    });
+
+    it("CoveragePage.tsx inline command code uses mx-0.5 for spacing", () => {
+      expect(COVERAGE_PAGE).toContain("mx-0.5");
+    });
+  });
+
   describe("Sidebar active-state: permissions pages use distinct currentNav ids (regression pin · #125)", () => {
-    // Issue #125: visiting /admin/permissions highlighted both "Permissions"
-    // and "Permission Tester" simultaneously because PermissionsAdminPage
-    // passed currentNav="permissions" — the same id as the Tester nav entry.
-    // The CRUD page's nav entry is id="permissions-crud"; each page must use
-    // the id that belongs to its own entry so only one item is active.
     it('PermissionsAdminPage passes currentNav="permissions-crud" to AdminShell', () => {
       expect(PERMISSIONS_ADMIN_PAGE).toContain('currentNav="permissions-crud"');
     });
@@ -337,16 +365,11 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
     });
 
     it('nav.ts assigns id "permissions-crud" to the /admin/permissions CRUD entry', () => {
-      // Ensures the id used by PermissionsAdminPage actually exists in the nav model.
       expect(NAV_TS).toContain('id: "permissions-crud"');
     });
 
     it('nav.ts "permissions-crud" entry has href "/admin/permissions" (exact path)', () => {
-      // Guards against the href changing to a prefix that would collide with /test.
-      expect(NAV_TS).toMatch(
-        /id: "permissions-crud"[^}]+href: "\/admin\/permissions"/s,
-      );
+      expect(NAV_TS).toMatch(/id: "permissions-crud"[^}]+href: "\/admin\/permissions"/s);
     });
   });
-
 });
