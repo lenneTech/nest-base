@@ -168,14 +168,14 @@ class InProcessQueue implements BullMQQueue {
   async add(
     _name: string,
     data: unknown,
-    opts?: { jobId?: string },
+    opts?: { jobId?: string; attemptsMade?: number },
   ): Promise<{ id?: string | null }> {
     const id = opts?.jobId ?? crypto.randomUUID();
     const record = {
       id,
       data,
       timestamp: Date.now(),
-      attemptsMade: 0,
+      attemptsMade: opts?.attemptsMade ?? 0,
       state: "created" as JobState,
     };
     this.records.set(id, record);
@@ -375,9 +375,16 @@ export class BullMQJobQueue {
     if (!record) throw new JobNotFoundError(id);
     if (record.state !== "failed") throw new JobNotRetryableError(id, record.state);
 
-    // Enqueue a fresh job with the same name and payload. This creates a
-    // new id, keeps the original record intact in the store, and follows
-    // the same pattern InMemoryJobQueue used (issue #141).
+    if (!this.redis) {
+      // For the in-process queue inherit the attempt count from the original
+      // so the Hub shows attempt=2 on the first retry — matching BullMQ's
+      // native incrementing behaviour (BullMQ counts from 0; attempt=record.attempt
+      // is already 1-indexed, so the retried job starts at the next attempt).
+      const q = this.getOrCreateInProcessQueue(record.name);
+      if (this.started) q.start();
+      const job = await q.add("run", record.payload, { attemptsMade: record.attempt });
+      return job.id!;
+    }
     return this.enqueue(record.name, record.payload);
   }
 
