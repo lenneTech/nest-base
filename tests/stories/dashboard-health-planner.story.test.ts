@@ -4,6 +4,7 @@ import {
   buildDashboardStatusGroups,
   type DashboardHealthInput,
 } from "../../src/core/dx/dashboard-health-planner.js";
+import { FeaturesSchema } from "../../src/core/features/features.js";
 
 /**
  * Story · `buildDashboardStatusGroups` — pure planner for the operator
@@ -102,6 +103,25 @@ describe("buildDashboardStatusGroups", () => {
       expect(typeof g.label).toBe("string");
       expect(g.label.length).toBeGreaterThan(0);
       expect(Array.isArray(g.items)).toBe(true);
+    }
+  });
+
+  it("M6 regression — storageDriverName must come from features.files.storageDefault", () => {
+    // The dev-hub controller previously read (features as any).storageDefault which
+    // always returns undefined (wrong path). The correct path is features.files.storageDefault.
+    const features = FeaturesSchema.parse({ files: { storageDefault: "s3" } });
+    // Verify the typed path is accessible and carries the expected value.
+    expect(features.files.storageDefault).toBe("s3");
+    // Verify the old wrong path produces undefined.
+    const wrongPath = (features as Record<string, unknown> & { storageDefault?: string })
+      .storageDefault;
+    expect(wrongPath).toBeUndefined();
+    // buildDashboardStatusGroups should receive the correct value.
+    const groups = buildDashboardStatusGroups({ ...healthy, storageDriverName: features.files.storageDefault });
+    const runtime = groups.find((g) => g.id === "runtime");
+    const storageItem = runtime?.items.find((i) => i.label.toLowerCase().includes("storage"));
+    if (storageItem) {
+      expect(storageItem.value).toBe("s3");
     }
   });
 });

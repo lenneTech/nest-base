@@ -250,9 +250,7 @@ export class DevHubController {
       deadLetterCount: 0,
       webhookSuccessRate: 1,
       emailEnabled: Boolean(features.email?.enabled),
-      storageDriverName:
-        (features as Record<string, unknown> & { storageDefault?: string }).storageDefault ??
-        "local",
+      storageDriverName: features.files.storageDefault ?? "local",
       geoIpAgeDays: 0,
       allMigrationsApplied,
       // RLS is active when row-level security is enforced in the DB.
