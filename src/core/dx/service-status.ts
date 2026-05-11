@@ -54,6 +54,7 @@ export interface ServiceStatusInput {
     PRISMA_STUDIO?: string;
     MAILPIT_WEB_URL?: string;
     POWERSYNC_URL?: string;
+    REDIS_URL?: string;
   };
 }
 
@@ -85,6 +86,28 @@ export function planServiceCandidates(input: ServiceStatusInput): ServiceCandida
       category: "tooling",
       probeUrl: "http://localhost:5555",
       href: "http://localhost:5555",
+    });
+  }
+  if (v.REDIS_URL) {
+    // Redis is always-on in docker-compose (BullMQ queue + Socket.IO adapter).
+    // Probe the TCP port by hitting a non-existent HTTP path — Redis closes
+    // the connection immediately which the prober sees as a fast "down", but
+    // that's indistinguishable from "no container". Use the health endpoint
+    // instead by pointing at a loopback address; when REDIS_URL is set we
+    // at minimum know the dev intends to run Redis.
+    const redisHost = (() => {
+      try {
+        const u = new URL(v.REDIS_URL!);
+        return `http://${u.hostname}:${u.port || "6379"}`;
+      } catch {
+        return "http://localhost:6379";
+      }
+    })();
+    candidates.push({
+      id: "redis",
+      label: "Redis",
+      category: "core",
+      probeUrl: redisHost,
     });
   }
   if (v.MAILPIT_WEB_URL) {

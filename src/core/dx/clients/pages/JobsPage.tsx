@@ -1,6 +1,6 @@
 /**
  * `/dev/jobs` — jobs dashboard with two tabs (Queues / Jobs) over the
- * in-memory queue (and any future pg-boss-backed adapter that exposes
+ * in-memory queue or BullMQ when REDIS_URL is set (both expose
  * the same `/dev/jobs/*` JSON contract).
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";

@@ -154,7 +154,8 @@ export const FEATURE_CATALOG: readonly FeatureMeta[] = [
   {
     key: "jobs",
     label: "Background Jobs",
-    description: "In-memory job queue + scheduled-job decorator (BullMQ-ready).",
+    description:
+      "BullMQ job queue (Redis-backed) + scheduled-job decorator; in-memory fallback when REDIS_URL unset.",
     envKey: "FEATURE_JOBS_ENABLED",
     category: "infrastructure",
     exposes: ["JobQueueService", "@ScheduledJob()", "OutboxWorker tick"],
