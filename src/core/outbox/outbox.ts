@@ -35,6 +35,14 @@ export interface RecordInput {
 }
 
 export class OutboxRecorder {
+  // TODO(seq): initialize from DB max(seq) at startup to prevent cross-restart
+  // duplicates. In production (Prisma-backed OutboxStorage) restarts reset
+  // nextSeq to 1, which can produce duplicate seq values if pre-restart rows
+  // are still unprocessed. Fix: OutboxModule.onModuleInit() should query
+  // MAX(seq) from outbox_entries and call recorder.initSeq(maxSeq + 1).
+  // The claimBatch ordering (ORDER BY seq ASC) remains correct because
+  // processed_at IS NULL filters already-dispatched rows, but seq collisions
+  // across restarts can reorder otherwise-equal-timestamp entries unexpectedly.
   private nextSeq = 1;
 
   constructor(private readonly storage: OutboxStorage) {}
