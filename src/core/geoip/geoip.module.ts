@@ -4,7 +4,6 @@ import { resolve as resolvePath } from "node:path";
 import { Logger, Module } from "@nestjs/common";
 
 import { loadFeatures } from "../features/features.js";
-import type { PgBossLike } from "../jobs/scheduled-job-pgboss-scheduler.js";
 import { GeoIpRefreshCron } from "./geoip-refresh-cron.js";
 import { GeoIpService, type MmdbCityReader } from "./geoip.service.js";
 
@@ -22,12 +21,6 @@ import { GeoIpService, type MmdbCityReader } from "./geoip.service.js";
  * downstream code can inject `GeoIpService` and rely on the
  * cold-boot null contract instead of branching on a feature flag
  * at every call-site.
- *
- * Multi-replica safety: `GeoIpRefreshCron` accepts an optional
- * pg-boss adapter (resolved via `FEATURE_JOBS_PG_BOSS` + `DATABASE_URL`
- * at module init) so that only one replica triggers the `.mmdb`
- * re-download per scheduled tick. See `geoip-refresh-cron.ts`
- * for details (issue #127 Finding 1).
  */
 @Module({
   providers: [
@@ -44,19 +37,14 @@ import { GeoIpService, type MmdbCityReader } from "./geoip.service.js";
     },
     {
       provide: GeoIpRefreshCron,
-      useFactory: async (): Promise<GeoIpRefreshCron> => {
+      useFactory: (): GeoIpRefreshCron => {
         const features = loadFeatures(process.env as Record<string, string | undefined>);
         const cfg = features.geoIp;
-        // Resolve pg-boss when FEATURE_JOBS_PG_BOSS=true + DATABASE_URL
-        // is set, mirroring the pattern in outbox.module.ts so all
-        // cron subsystems share the same gating contract.
-        const boss = await resolveGeoIpPgBoss();
         return new GeoIpRefreshCron({
           enabled: cfg.enabled,
           provider: cfg.provider,
           dbPath: cfg.dbPath,
           licenseKey: cfg.licenseKey,
-          boss,
         });
       },
     },
@@ -64,29 +52,6 @@ import { GeoIpService, type MmdbCityReader } from "./geoip.service.js";
   exports: [GeoIpService],
 })
 export class GeoIpModule {}
-
-async function resolveGeoIpPgBoss(): Promise<PgBossLike | null> {
-  const enabled = process.env.FEATURE_JOBS_PG_BOSS === "true";
-  const url = process.env.DATABASE_URL;
-  if (!enabled || !url) return null;
-  const mod = await import("pg-boss");
-  return constructPgBoss(mod.PgBoss, url);
-}
-
-function constructPgBoss(Ctor: new (connectionString: string) => unknown, url: string): PgBossLike {
-  const instance = new Ctor(url);
-  if (
-    typeof instance === "object" &&
-    instance !== null &&
-    typeof (instance as { start?: unknown }).start === "function" &&
-    typeof (instance as { work?: unknown }).work === "function" &&
-    typeof (instance as { schedule?: unknown }).schedule === "function" &&
-    typeof (instance as { stop?: unknown }).stop === "function"
-  ) {
-    return instance as PgBossLike;
-  }
-  throw new TypeError("pg-boss instance does not match expected shape");
-}
 
 /**
  * Structural type for the `maxmind` npm package's public surface

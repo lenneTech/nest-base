@@ -80,10 +80,10 @@ file answers it. It is the single source of truth referenced by
 | Realtime Inspector (3 tabs + actions) | CF.RT.05–11 | C+A | `src/core/dx/realtime-inspector-types.ts` + `src/core/realtime/inspector-state.ts` | per-socket disconnect, payload replay, 1.5s poll, PII masking |
 | **Webhooks** | | | | |
 | HMAC + retry policy + event registry + decorator + secret | CF.WH.01–05 | C+A | `src/core/webhooks/` | |
-| pg-boss-driven dispatcher + delivery worker | CF.WH.06–07 | A → fusion | `src/core/webhooks/webhook-dispatcher.ts` | |
+| BullMQ-driven dispatcher + delivery worker | CF.WH.06–07 | A → fusion | `src/core/webhooks/webhook-dispatcher.ts` | replaced by BullMQ outbox dispatcher (pg-boss removed PR #140) |
 | Webhook Inspector (endpoints + deliveries + re-deliver) | CF.WH.08–10 | C | `src/core/webhooks/inspector-{store,aggregates,curl,csrf}.ts` | |
 | **Jobs & Scheduling** | | | | |
-| pg-boss adapter (replaces in-memory) | CF.JOBS.01 | A → fusion | `src/core/jobs/job-queue.ts` + `src/core/outbox/{outbox,outbox-worker}.ts` | |
+| BullMQ job queue (in-memory fallback when `REDIS_URL` unset) | CF.JOBS.01 | A → fusion | `src/core/jobs/job-queue.ts` + `src/core/outbox/{outbox,outbox-worker}.ts` | done — BullMQ merged in PR #136, pg-boss removed in PR #140 |
 | @ScheduledJob cron decorator | CF.JOBS.02 | A → fusion | (pending Phase-2 port) | |
 | Jobs Dashboard (queues / list / retry / drawer / cron) | CF.JOBS.03–07 | C+A | `src/core/jobs/dev-jobs-aggregations.ts` + `src/core/dx/admin-spa.controller.ts` | |
 | **Observability** | | | | |

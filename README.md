@@ -146,12 +146,12 @@ If a slice you just shipped lands in the slowest section, that's your next thing
 
 ### Jobs Dashboard — `/hub/jobs`
 
-Two-tab view of the in-memory `JobQueueService` (the future pg-boss adapter exposes the same JSON contract):
+Two-tab view of the `JobQueueService` (BullMQ when `REDIS_URL` is set, in-memory fallback otherwise):
 
 - **Queues** — per-queue counts, p95 latency, failure rate. Click a queue to filter the Jobs tab.
 - **Jobs** — paginated, queue + state filterable list. Inspect opens a drawer with the full payload (rendered in the JSON viewer), the captured error stack on failed jobs, and a Retry button that POSTs to `/api/hub/jobs/:id/retry` and re-enqueues a failed job with a bumped attempt counter.
 
-Pure planner (`buildJobAggregates()`) computes counts / p95 / failure-rate over a flat `JobRecord` list, so the same dashboard renders unchanged once a Postgres-backed adapter ships. Auto-refresh every 4 s. Schedules / Workers / Archive tabs are deferred to the pg-boss adapter slice.
+Pure planner (`buildJobAggregates()`) computes counts / p95 / failure-rate over a flat `JobRecord` list. Auto-refresh every 4 s.
 
 ### File Manager — `/hub/files`
 
@@ -233,7 +233,7 @@ The realtime inspector at `/admin/realtime` ships with three tabs (Sockets / Cha
 | **Infrastructure** | Multi-Tenancy (`x-tenant-id` + RLS, `GET /me/tenants`, `POST /tenants`) | ✓ | `FEATURE_MULTI_TENANCY_ENABLED` |
 | | Rate Limiting (multi-window, Postgres) | ✓ | `FEATURE_RATE_LIMIT_ENABLED` |
 | | Idempotency (Stripe-style `Idempotency-Key`) | ✓ | `FEATURE_IDEMPOTENCY_ENABLED` |
-| | Background Jobs (in-memory, pg-boss-ready) | ✓ | `FEATURE_JOBS_ENABLED` |
+| | Background Jobs (BullMQ / in-memory fallback) | ✓ | `FEATURE_JOBS_ENABLED` |
 | **Data** | Files & TUS Uploads (S3 / local / postgres) | ✓ | `FEATURE_FILES_ENABLED` |
 | | Asset transforms via IPX (Nuxt-Image-compatible `/_ipx/*`) | ✓ | follows `FEATURE_FILES_ENABLED` |
 | | Full-Text Search (Postgres FTS) | ✗ | `FEATURE_SEARCH_ENABLED` |

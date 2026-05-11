@@ -13,7 +13,8 @@
  * without a live Redis connection.
  */
 
-import type { CleanupKind } from "./cleanup-job-planner.js";
+/** Recognised cleanup job kinds — one per cron task. */
+export type CleanupKind = "throttler" | "idempotency" | "verification" | "geoip";
 
 export interface BullMQCleanupJobPlanInput {
   readonly kind: CleanupKind;

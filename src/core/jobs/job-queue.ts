@@ -9,9 +9,9 @@ import { uuidV7 } from "../uuid/uuid-v7.js";
 /**
  * Job-Queue contract.
  *
- * pg-boss in production; the in-memory implementation here is the
- * reference + the test substrate so worker code is unit-testable
- * without a database. Surface mirrors what pg-boss exposes:
+ * In-memory implementation is the reference + test substrate so worker
+ * code is unit-testable without a database. The same surface is used by
+ * the BullMQ adapter when Redis is available:
  *   - register(name, handler)
  *   - enqueue(name, payload)
  *   - start() / stop()
@@ -21,9 +21,7 @@ import { uuidV7 } from "../uuid/uuid-v7.js";
  * Beyond the runtime surface the queue keeps a per-job `JobRecord`
  * with createdAt / startedAt / completedAt timestamps + the original
  * payload + the error captured on failure. The `/dev/jobs/*`
- * dashboard reads that history through `listJobs()` and `getAggregates()`
- * — pg-boss exposes the same shape via its own table layout, so the
- * future driver-adapter swap is a one-line change in the controller.
+ * dashboard reads that history through `listJobs()` and `getAggregates()`.
  */
 
 export type JobHandler<TPayload = unknown> = (payload: TPayload) => Promise<void> | void;

@@ -32,13 +32,13 @@ for the consumer perspective.
 | API | REST + OpenAPI 3.1 + Scalar UI | No GraphQL by design |
 | Storage | S3 / Local / Postgres | Three adapters, one interface |
 | Email | Nodemailer + Brevo | SMTP for dev, Brevo for prod |
-| Webhooks | pg-boss + HMAC-SHA256 | Standard-Webhooks spec, see [`webhook-spec.md`](./webhook-spec.md) |
+| Webhooks | BullMQ + HMAC-SHA256 | Standard-Webhooks spec, see [`webhook-spec.md`](./webhook-spec.md) |
 | Search | Postgres FTS (`tsvector` + GIN) | No external infra |
-| Realtime | Postgres `LISTEN/NOTIFY` + Socket.IO | Multi-instance without Redis |
+| Realtime | Postgres `LISTEN/NOTIFY` + Socket.IO + Redis adapter | Socket.IO cross-pod fanout via Redis when `REDIS_URL` set |
 | Mobile sync | PowerSync + SQLite client | Offline-first |
 | Encryption | AES-256-GCM via `@47ng/cloak` | Field-level, key-versioned |
 | Geo | PostGIS + Mapbox/Nominatim/Google adapter | Standard Postgres-Geo, GeoJSON I/O |
-| Jobs | pg-boss (Postgres-native) | Cron, background, outbox — no Redis |
+| Jobs | BullMQ + Redis | Repeatable crons + ad-hoc queue; in-memory fallback when `REDIS_URL` unset |
 | Rate limit | `@nestjs/throttler` + Postgres store | Multi-instance |
 | Observability | OpenTelemetry (OTLP) + Pino | Traces + metrics + correlated logs |
 | Errors | RFC 7807 Problem Details | `application/problem+json` |
@@ -77,7 +77,7 @@ src/
 │   ├── email/  webhooks/            ← Outbound channels
 │   ├── search/  realtime/           ← FTS, Socket.IO + LISTEN/NOTIFY
 │   ├── encryption/  geo/  mcp/      ← PII encryption, PostGIS, Model-Context-Protocol
-│   ├── jobs/  outbox/               ← pg-boss, outbox pattern for reliable events
+│   ├── jobs/  outbox/               ← BullMQ queue + outbox pattern for reliable events
 │   ├── errors/  audit/              ← RFC 7807, audit log
 │   ├── request-context/             ← AsyncLocalStorage per request
 │   ├── observability/               ← OpenTelemetry setup
@@ -284,7 +284,7 @@ These live in `src/core/` and are activated via `features.ts`:
 | MCP | `src/core/mcp/` | Model Context Protocol server, OAuth 2.1 (PKCE) |
 | Outbox | `src/core/outbox/` | Reliable event publishing (DB-write + dispatch in one tx) |
 | Audit | `src/core/audit/` | Append-only audit log, write-only by app, read-only via admin. The Prisma audit + audit-stamp extensions (`src/core/repository/prisma-extensions.ts`) auto-emit `(action, target, diff.before/after, metadata)` rows on every CUD against opted-in models (`Tenant`, `TenantMember`, `Role`, `RoleAssignment`, `Policy`, `Permission`, `ApiKey`); impersonation lifecycle events surface as `INVOKE` audit rows via `DefaultImpersonationAuditSink` |
-| Jobs | `src/core/jobs/` | pg-boss wrapper for cron + background work |
+| Jobs | `src/core/jobs/` | BullMQ job queue + in-memory fallback |
 | Auth | `src/core/auth/` | Better-Auth core with 9 plugins (jwt/twoFactor/passkey/admin/organization/magicLink/oneTap/openAPI/apiKeys); 24h `VerificationCleanupCron` prunes stale `verifications` rows older than 7 days (Better-Auth doesn't auto-prune) |
 | Idempotency | `src/core/idempotency/` | Stripe-style `Idempotency-Key` header; Postgres-backed (`idempotency_records`) with a 24h cleanup cron pruning expired rows |
 | Concurrency | `src/core/concurrency/` | ETag / `If-Match` optimistic-lock |

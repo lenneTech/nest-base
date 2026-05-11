@@ -247,7 +247,7 @@ const PORTED_SUBSYSTEMS: readonly PortAssertion[] = [
   // Jobs
   {
     id: "CF.JOBS.01",
-    description: "pg-boss adapter (job-queue + outbox + worker)",
+    description: "job-queue + outbox + worker (BullMQ-backed)",
     path: "src/core/jobs/job-queue.ts",
   },
   {

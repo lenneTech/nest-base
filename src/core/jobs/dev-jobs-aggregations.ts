@@ -2,20 +2,20 @@
  * Dev-Jobs Aggregations — pure planner for the Jobs-Dashboard.
  *
  * Takes a flat list of `JobRecord` rows (whatever the runner produced
- * — in-memory queue today, pg-boss tomorrow) and rolls them up into
+ * — in-memory queue or BullMQ adapter) and rolls them up into
  * the counters / latency stats / per-queue snapshots the dashboard
  * renders. No I/O, no clock, no database — given the same input the
  * output is deterministic.
  *
- * The runner-side counterparts (`InMemoryJobQueue.listJobs()` and a
- * future pg-boss adapter) live alongside the queue implementation so
- * this file can be unit-tested without booting a database.
+ * The runner-side counterparts (`InMemoryJobQueue.listJobs()` and the
+ * BullMQ adapter) live alongside the queue implementation so this
+ * file can be unit-tested without booting a database.
  */
 
 /**
  * State machine for jobs as the dashboard sees it. The in-memory
- * queue uses {created, active, completed, failed, cancelled, retry}
- * — pg-boss adds `expired`, which we map to `failed` to keep the
+ * queue uses {created, active, completed, failed, cancelled, retry}.
+ * BullMQ's `expired` state is mapped to `failed` to keep the
  * UI buckets manageable.
  */
 export type JobState = "created" | "active" | "completed" | "failed" | "cancelled" | "retry";
@@ -73,9 +73,9 @@ function emptyCounts(): StateCounts {
 }
 
 /**
- * Count jobs by state. Defensive against unknown future states (pg-boss
- * `expired` etc.) — anything outside the known buckets is silently
- * ignored so the totals still add up to the known list.
+ * Count jobs by state. Defensive against unknown future states — anything
+ * outside the known buckets is silently ignored so the totals still add up
+ * to the known list.
  */
 export function countByState(records: readonly JobRecord[]): StateCounts {
   const counts = emptyCounts();
