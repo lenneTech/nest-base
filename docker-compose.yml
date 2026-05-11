@@ -105,6 +105,20 @@ services:
       MP_SMTP_AUTH_ACCEPT_ANY: 1
       MP_SMTP_AUTH_ALLOW_INSECURE: 1
 
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    ports:
+      - '${REDIS_HOST_PORT:-6379}:6379'
+    volumes:
+      - redis_data:/data
+    command: redis-server --save 60 1 --loglevel warning
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     restart: unless-stopped
@@ -161,6 +175,7 @@ services:
 volumes:
   postgres_data:
   rustfs_data:
+  redis_data:
 
 networks:
   default:
