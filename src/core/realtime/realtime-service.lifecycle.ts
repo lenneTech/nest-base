@@ -1,7 +1,6 @@
 import {
   Inject,
   Injectable,
-  Logger,
   type OnModuleDestroy,
   type OnModuleInit,
 } from "@nestjs/common";
@@ -50,7 +49,6 @@ export const REALTIME_TRANSPORT = Symbol.for("lt:RealtimeTransport");
 
 @Injectable()
 export class RealtimeServiceLifecycle implements OnModuleInit, OnModuleDestroy {
-  private readonly log = new Logger("RealtimeServiceLifecycle");
   private unsubscribeBroadcast: (() => void) | null = null;
 
   constructor(
@@ -61,49 +59,18 @@ export class RealtimeServiceLifecycle implements OnModuleInit, OnModuleDestroy {
   async onModuleInit(): Promise<void> {
     await this.service.start();
 
-    // Hook a broadcast subscriber. The service's `subscribe(channel,
-    // callback)` is per-channel; we route every NOTIFY into the
-    // gateway by subscribing on a sentinel subscription installed at
-    // start time and proxying through the publish path. The
-    // implementation below installs an "all-channels" handler via
-    // the service's internal transport contract — kept here so the
-    // lifecycle owns the dispatch policy and `RealtimeService`
-    // stays a pure subscribe/publish broker.
-    //
-    // Concretely: we expose `subscribeAll(handler)` on the service via
-    // the lifecycle's private bridge. RealtimeService's existing
-    // dispatchLocal already calls every per-channel subscriber, but
-    // we additionally route NOTIFYs into the gateway via the
-    // transport's onMessage callback semantics. The `transport` and
-    // `dispatchLocal` are private RealtimeService internals — read
-    // via Reflect so the disqualifier scan stays clean.
-    const transport = Reflect.get(this.service, "transport") as
-      | { onMessage?: (handler: (channel: string, payload: unknown) => void) => void }
-      | undefined;
-    if (transport && typeof transport.onMessage === "function") {
-      // Capture the existing service handler + chain ours after it,
-      // so the per-channel subscribers still fire.
-      const dispatchLocalRaw = Reflect.get(this.service, "dispatchLocal") as
-        | ((channel: string, payload: unknown) => void)
-        | undefined;
-      if (typeof dispatchLocalRaw !== "function") {
-        throw new TypeError("RealtimeService.dispatchLocal missing — internal contract break");
-      }
-      const previousDispatchLocal = dispatchLocalRaw.bind(this.service);
-      transport.onMessage((channel, payload) => {
-        previousDispatchLocal(channel, payload);
-        this.gateway.broadcast(channel, "message", payload);
-      });
-      this.unsubscribeBroadcast = () => {
-        // The transport's onMessage replaces — there's no off().
-        // The service.stop() teardown closes the transport so no
-        // further messages arrive.
-      };
-    } else {
-      this.log.warn(
-        "RealtimeService transport has no onMessage hook — cross-instance NOTIFY → gateway.broadcast wiring unavailable",
-      );
-    }
+    // Wire an all-channel handler via the public subscribeAll() API so that
+    // every cross-instance NOTIFY is forwarded to the Socket.IO gateway.
+    // Using subscribeAll() instead of Reflect.get(service, "transport") means
+    // a rename of private fields cannot silently break this wiring at runtime.
+    this.service.subscribeAll((channel, payload) => {
+      this.gateway.broadcast(channel, "message", payload);
+    });
+
+    this.unsubscribeBroadcast = () => {
+      // subscribeAll has no off() — the service.stop() teardown closes
+      // the transport so no further messages arrive after destroy.
+    };
   }
 
   async onModuleDestroy(): Promise<void> {

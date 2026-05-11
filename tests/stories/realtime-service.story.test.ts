@@ -136,4 +136,39 @@ describe("Story · Realtime Service", () => {
       await svc.stop();
     });
   });
+
+  describe("subscribeAll()", () => {
+    it("receives every NOTIFY regardless of channel without Reflect.get", async () => {
+      // Regression guard for M2: the lifecycle must not rely on Reflect.get
+      // over private fields — subscribeAll() is the public contract.
+      const svc = new RealtimeService(new InMemoryRealtimeTransport());
+      await svc.start();
+      const received: { channel: string; payload: unknown }[] = [];
+      svc.subscribeAll((channel, payload) => {
+        received.push({ channel, payload });
+      });
+      await svc.publish("chan.a", { x: 1 });
+      await svc.publish("chan.b", { x: 2 });
+      await svc.flush();
+      expect(received).toEqual([
+        { channel: "chan.a", payload: { x: 1 } },
+        { channel: "chan.b", payload: { x: 2 } },
+      ]);
+      await svc.stop();
+    });
+
+    it("all-channel handler fires alongside per-channel subscribers", async () => {
+      const svc = new RealtimeService(new InMemoryRealtimeTransport());
+      await svc.start();
+      const perChannel: unknown[] = [];
+      const allChannel: string[] = [];
+      svc.subscribe("c", (p) => perChannel.push(p));
+      svc.subscribeAll((ch) => allChannel.push(ch));
+      await svc.publish("c", { ok: true });
+      await svc.flush();
+      expect(perChannel).toHaveLength(1);
+      expect(allChannel).toEqual(["c"]);
+      await svc.stop();
+    });
+  });
 });

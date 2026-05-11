@@ -27,6 +27,8 @@ export class RealtimeService {
   private readonly subscribers = new Map<string, Set<Subscriber>>();
   private running = false;
   private pending: Array<Promise<void>> = [];
+  // Set via subscribeAll() — called after per-channel subscribers on every NOTIFY.
+  private _allChannelHandler: RealtimeMessageHandler | null = null;
 
   constructor(private readonly transport: RealtimeTransport) {
     this.transport.onMessage((channel, payload) => {
@@ -54,6 +56,27 @@ export class RealtimeService {
     await this.transport.notify(channel, payload);
   }
 
+  /**
+   * Install a handler that receives every cross-instance NOTIFY regardless
+   * of channel. The handler fires after per-channel subscribers are called.
+   *
+   * This is a package-internal escape hatch for `RealtimeServiceLifecycle`
+   * to forward every NOTIFY to the Socket.IO gateway without relying on
+   * Reflect.get over private fields — if `transport` or `dispatchLocal`
+   * are ever renamed the previous approach fails silently at runtime.
+   */
+  subscribeAll(handler: RealtimeMessageHandler): void {
+    const existing = this._allChannelHandler;
+    // Chain: call previous handler first (supports multiple installers,
+    // though in practice only the lifecycle installs one).
+    this._allChannelHandler = existing
+      ? (ch, pl) => {
+          existing(ch, pl);
+          handler(ch, pl);
+        }
+      : handler;
+  }
+
   subscribe(channel: string, callback: Subscriber): Unsubscribe {
     let set = this.subscribers.get(channel);
     if (!set) {
@@ -79,15 +102,25 @@ export class RealtimeService {
 
   private dispatchLocal(channel: string, payload: unknown): void {
     const set = this.subscribers.get(channel);
-    if (!set) return;
-    for (const callback of set) {
-      try {
-        const result: unknown = callback(payload);
-        if (result instanceof Promise) {
-          this.pending.push(result.catch(() => {}));
+    if (set) {
+      for (const callback of set) {
+        try {
+          const result: unknown = callback(payload);
+          if (result instanceof Promise) {
+            this.pending.push(result.catch(() => {}));
+          }
+        } catch {
+          // Swallowed by design — one bad subscriber must not stop siblings.
         }
+      }
+    }
+    // Invoke the all-channel handler registered via subscribeAll() so the
+    // lifecycle can forward every NOTIFY to the gateway without Reflect.get.
+    if (this._allChannelHandler) {
+      try {
+        this._allChannelHandler(channel, payload);
       } catch {
-        // Swallowed by design — one bad subscriber must not stop siblings.
+        // Swallowed for the same resilience reason as per-channel subscribers.
       }
     }
   }
