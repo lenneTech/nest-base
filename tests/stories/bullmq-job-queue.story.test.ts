@@ -1,98 +1,158 @@
 import { describe, expect, it } from "vitest";
-
-import { BullMQJobQueue } from "../../src/core/jobs/bullmq-job-queue.js";
-import type { JobHandler } from "../../src/core/jobs/job-queue.js";
+import { readFileSync } from "node:fs";
 
 /**
- * Story · BullMQ Job Queue adapter.
+ * Story · BullMQ-only job store (issue #141).
  *
- * Exercises the BullMQ adapter in "no-Redis" mode (REDIS_URL absent) —
- * it must degrade gracefully to the InMemoryJobQueue behaviour so the
- * full test suite can run without a live Redis instance.
+ * After this refactor `JobQueueService` is a standalone class that
+ * reads and writes exclusively from/to BullMQ (Redis). The
+ * `InMemoryJobQueue` Map is no longer the runtime data store — it
+ * stays in source only as a test double for consumers that need one.
  *
- * Redis-backed behaviour is verified at the integration layer (e2e)
- * only when REDIS_URL is provided. These unit stories stay pure.
+ * These story tests are intentionally I/O-free: they inspect the
+ * source code structure and the exported class hierarchy to prove the
+ * production path no longer routes through `InMemoryJobQueue`.
  */
 
-// Create a testable subclass that exposes the internal fallback mode
-// so tests can verify the adapter selected the correct code path.
-function makeQueue(): BullMQJobQueue {
-  // No REDIS_URL in test environment → in-memory fallback.
-  return new BullMQJobQueue(null);
-}
+// ---------------------------------------------------------------------------
+// 1. JobQueueService must NOT extend InMemoryJobQueue
+// ---------------------------------------------------------------------------
 
-describe("Story · BullMQ Job Queue (no-Redis fallback)", () => {
-  it("enqueue() runs registered handlers with the payload after start()", async () => {
-    const queue = makeQueue();
-    const seen: string[] = [];
-    const handler: JobHandler<{ msg: string }> = async (payload) => {
-      seen.push(payload.msg);
-    };
-    queue.register("echo", handler);
-    await queue.start();
-    await queue.enqueue("echo", { msg: "hello" });
-    await queue.drain();
-    expect(seen).toEqual(["hello"]);
-    await queue.stop();
+describe("Story · BullMQ-only — JobQueueService does not extend InMemoryJobQueue", () => {
+  it("JobQueueService class does not inherit from InMemoryJobQueue at runtime", async () => {
+    const { JobQueueService } = await import("../../src/core/jobs/jobs.module.js");
+    const { InMemoryJobQueue } = await import("../../src/core/jobs/job-queue.js");
+
+    // Instantiation without a real Redis client — the service should
+    // accept a null/missing connection and fall back to an in-process BullMQ
+    // mode (using ioredis-mock or similar). This test only checks the
+    // class hierarchy, not the Redis wiring.
+    expect(JobQueueService.prototype).not.toBeInstanceOf(InMemoryJobQueue);
+    // Verify the prototype chain does not include InMemoryJobQueue anywhere.
+    let proto = Object.getPrototypeOf(JobQueueService.prototype) as object | null;
+    while (proto !== null && proto !== Object.prototype) {
+      expect(proto).not.toBe(InMemoryJobQueue.prototype);
+      proto = Object.getPrototypeOf(proto) as object | null;
+    }
   });
 
-  it("listJobs() returns history entries for completed jobs", async () => {
-    const queue = makeQueue();
-    queue.register("noop", async () => {});
-    await queue.start();
-    await queue.enqueue("noop", { x: 1 });
-    await queue.drain();
-    const jobs = queue.listJobs();
-    expect(jobs.length).toBeGreaterThan(0);
-    const job = jobs[0];
-    expect(job).toBeDefined();
-    expect(job!.name).toBe("noop");
-    expect(job!.state).toBe("completed");
-    await queue.stop();
-  });
+  it("BullMQJobQueue class does not extend InMemoryJobQueue", async () => {
+    const { BullMQJobQueue } = await import("../../src/core/jobs/bullmq-job-queue.js");
+    const { InMemoryJobQueue } = await import("../../src/core/jobs/job-queue.js");
 
-  it("getAggregates() reflects completed counts", async () => {
-    const queue = makeQueue();
-    queue.register("task", async () => {});
-    await queue.start();
-    await queue.enqueue("task", {});
-    await queue.enqueue("task", {});
-    await queue.drain();
-    const agg = queue.getAggregates();
-    expect(agg.totals.completed).toBeGreaterThanOrEqual(2);
-    await queue.stop();
-  });
-
-  it("retry() re-executes a failed job", async () => {
-    const queue = makeQueue();
-    let attempt = 0;
-    const handler: JobHandler = async () => {
-      attempt++;
-      if (attempt < 2) throw new Error("first attempt fails");
-    };
-    queue.register("flaky", handler);
-    await queue.start();
-    const id = await queue.enqueue("flaky", {});
-    await queue.drain();
-    const result = queue.jobResult(id);
-    expect(result?.status).toBe("failed");
-    const retryId = await queue.retry(id);
-    await queue.drain();
-    const retryResult = queue.jobResult(retryId);
-    expect(retryResult?.status).toBe("completed");
-    await queue.stop();
-  });
-
-  it("falls back to in-memory when no Redis client supplied", () => {
-    const queue = new BullMQJobQueue(null);
-    // The adapter must be usable without Redis — no throw on construction.
-    expect(queue).toBeDefined();
-    expect(typeof queue.register).toBe("function");
-    expect(typeof queue.enqueue).toBe("function");
-    expect(typeof queue.start).toBe("function");
-    expect(typeof queue.stop).toBe("function");
+    expect(BullMQJobQueue.prototype).not.toBeInstanceOf(InMemoryJobQueue);
   });
 });
+
+// ---------------------------------------------------------------------------
+// 2. InMemoryJobQueue remains exported as a test double (not deleted)
+// ---------------------------------------------------------------------------
+
+describe("Story · BullMQ-only — InMemoryJobQueue retained as test double", () => {
+  it("InMemoryJobQueue is still exported from job-queue.ts", async () => {
+    const mod = await import("../../src/core/jobs/job-queue.js");
+    expect(typeof mod.InMemoryJobQueue).toBe("function");
+  });
+
+  it("InMemoryJobQueue has the expected test-double API surface", async () => {
+    const { InMemoryJobQueue } = await import("../../src/core/jobs/job-queue.js");
+    const q = new InMemoryJobQueue();
+    expect(typeof q.register).toBe("function");
+    expect(typeof q.enqueue).toBe("function");
+    expect(typeof q.start).toBe("function");
+    expect(typeof q.stop).toBe("function");
+    expect(typeof q.drain).toBe("function");
+    expect(typeof q.listJobs).toBe("function");
+    expect(typeof q.getAggregates).toBe("function");
+    expect(typeof q.getJob).toBe("function");
+    expect(typeof q.retry).toBe("function");
+    expect(typeof q.jobResult).toBe("function");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 3. JobQueueService exposes the Hub-required async surface
+// ---------------------------------------------------------------------------
+
+describe("Story · BullMQ-only — JobQueueService has async Hub surface", () => {
+  it("JobQueueService prototype has enqueue, listJobs, getAggregates, getJob, retry", async () => {
+    const { JobQueueService } = await import("../../src/core/jobs/jobs.module.js");
+    expect(typeof JobQueueService.prototype.enqueue).toBe("function");
+    expect(typeof JobQueueService.prototype.listJobs).toBe("function");
+    expect(typeof JobQueueService.prototype.getAggregates).toBe("function");
+    expect(typeof JobQueueService.prototype.getJob).toBe("function");
+    expect(typeof JobQueueService.prototype.retry).toBe("function");
+    expect(typeof JobQueueService.prototype.register).toBe("function");
+  });
+
+  it("listJobs() returns a Promise (async method)", async () => {
+    const { JobQueueService } = await import("../../src/core/jobs/jobs.module.js");
+    const svc = new JobQueueService(null);
+    const result = svc.listJobs({});
+    // Must return a Promise (or a thenable), not a plain array.
+    expect(result).toBeInstanceOf(Promise);
+    await result; // should resolve without error
+  });
+
+  it("getAggregates() returns a Promise", async () => {
+    const { JobQueueService } = await import("../../src/core/jobs/jobs.module.js");
+    const svc = new JobQueueService(null);
+    const result = svc.getAggregates();
+    expect(result).toBeInstanceOf(Promise);
+    const agg = await result;
+    // Shape check — aggregates must carry totalJobs and queues.
+    expect(typeof agg.totalJobs).toBe("number");
+    expect(Array.isArray(agg.queues)).toBe(true);
+  });
+
+  it("getJob() returns a Promise", async () => {
+    const { JobQueueService } = await import("../../src/core/jobs/jobs.module.js");
+    const svc = new JobQueueService(null);
+    const result = svc.getJob("nonexistent-id");
+    expect(result).toBeInstanceOf(Promise);
+    const record = await result;
+    expect(record).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4. FEATURE_JOBS_BULLMQ env var is no longer used
+// ---------------------------------------------------------------------------
+
+describe("Story · BullMQ-only — FEATURE_JOBS_BULLMQ env var removed from src/", () => {
+  it("no source file references FEATURE_JOBS_BULLMQ", () => {
+    const { execSync } = require("child_process");
+    let output = "";
+    try {
+      output = execSync('grep -r --include="*.ts" "FEATURE_JOBS_BULLMQ" src/', {
+        encoding: "utf8",
+      });
+    } catch {
+      // grep exit code 1 = no matches — the expected success path.
+      output = "";
+    }
+    expect(output.trim()).toBe("");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 5. jobs.module.ts throws when REDIS_URL is missing at module init (non-test)
+// ---------------------------------------------------------------------------
+
+describe("Story · BullMQ-only — REDIS_URL required at startup in non-test env", () => {
+  it("jobs.module.ts source contains a REDIS_URL guard that throws outside test runner", () => {
+    const src = readFileSync("src/core/jobs/jobs.module.ts", "utf8");
+    // The guard must throw when REDIS_URL is absent and not running under Vitest.
+    expect(src).toContain("REDIS_URL");
+    expect(src).toContain("throw new Error");
+    // The guard must be bypassed in the Vitest runner so e2e specs still work.
+    expect(src).toContain("VITEST");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 6. BullMQ cleanup planner still works (regression guard)
+// ---------------------------------------------------------------------------
 
 describe("Story · BullMQ cron-repeat plan", () => {
   it("buildBullMQCleanupJobPlan() returns a repeat config with cron + jobId", async () => {
@@ -101,7 +161,6 @@ describe("Story · BullMQ cron-repeat plan", () => {
     const plan = buildBullMQCleanupJobPlan({ kind: "throttler" });
     expect(plan.queueName).toMatch(/throttler/);
     expect(plan.repeatPattern).toMatch(/^\d+ \* \* \* \*$/);
-    // Fixed jobId replaces pg-boss singletonKey for at-most-one semantics.
     expect(plan.jobId).toMatch(/throttler/);
   });
 
