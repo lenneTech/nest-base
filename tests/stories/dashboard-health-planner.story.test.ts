@@ -117,7 +117,10 @@ describe("buildDashboardStatusGroups", () => {
       .storageDefault;
     expect(wrongPath).toBeUndefined();
     // buildDashboardStatusGroups should receive the correct value.
-    const groups = buildDashboardStatusGroups({ ...healthy, storageDriverName: features.files.storageDefault });
+    const groups = buildDashboardStatusGroups({
+      ...healthy,
+      storageDriverName: features.files.storageDefault,
+    });
     const runtime = groups.find((g) => g.id === "runtime");
     const storageItem = runtime?.items.find((i) => i.label.toLowerCase().includes("storage"));
     if (storageItem) {

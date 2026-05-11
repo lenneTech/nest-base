@@ -147,9 +147,7 @@ export class ProblemDetailsExceptionFilter implements ExceptionFilter {
         `unhandled error on ${req.method} ${req.url}: ${exception.stack ?? exception.message}`,
       );
     } else {
-      this.logger.error(
-        `unhandled non-Error on ${req.method} ${req.url}: ${String(exception)}`,
-      );
+      this.logger.error(`unhandled non-Error on ${req.method} ${req.url}: ${String(exception)}`);
     }
     return { ...detail, ...correlation };
   }
