@@ -20,6 +20,9 @@ on:
     # defaults to types: [opened, synchronize, reopened], which covers
     # initial open + each push + reopen-after-close.
     branches: ["**"]
+  # Allows the dependabot-lockfile workflow to re-trigger CI after regenerating
+  # bun.lock (GITHUB_TOKEN pushes do not re-fire pull_request events).
+  workflow_dispatch:
 
 # Cancel in-flight runs on the same ref when a newer commit arrives — saves
 # Action minutes on rapid pushes (squash-merge cadence).

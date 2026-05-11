@@ -11,6 +11,10 @@ name: Update bun.lock for Dependabot PRs
 # pull_request_target is used (instead of pull_request) so the workflow has
 # write access to the repository contents. Dependabot PRs always originate
 # from within the same repo (not a fork), so this is safe.
+#
+# After pushing the lockfile commit, the workflow explicitly dispatches CI on
+# the updated branch, because GITHUB_TOKEN pushes do not re-trigger
+# pull_request events (GitHub security feature to prevent recursive loops).
 
 on:
   pull_request_target:
@@ -18,6 +22,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   update-lockfile:
@@ -35,9 +40,22 @@ jobs:
         run: bun install
 
       - name: Commit updated lockfile
+        id: commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add bun.lock
-          git diff --staged --quiet || git commit -m "chore: regenerate bun.lock for dependabot bump"
-          git push
+          if git diff --staged --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "chore: regenerate bun.lock for dependabot bump"
+            git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Trigger CI on updated branch
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run ci.yml --ref "${{ github.event.pull_request.head.ref }}"
