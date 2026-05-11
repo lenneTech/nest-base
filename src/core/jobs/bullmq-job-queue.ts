@@ -285,6 +285,9 @@ export class BullMQJobQueue {
   private readonly workers = new Map<string, BullMQWorker>();
   // In-process queues used when redis === null.
   private readonly inProcessQueues = new Map<string, InProcessQueue>();
+  // Tracks whether start() has been called so late-registered queues
+  // (registered after onModuleInit) are started immediately.
+  private started = false;
 
   constructor(protected readonly redis: RedisDuplex | null) {}
 
@@ -297,6 +300,9 @@ export class BullMQJobQueue {
       // In-process fallback — no BullMQ needed.
       const q = this.getOrCreateInProcessQueue(name);
       q.setHandler(async (data) => handler(data as TPayload));
+      // If start() was already called (e.g. onModuleInit already ran),
+      // start this queue immediately so enqueue() + drain() work.
+      if (this.started) q.start();
       return;
     }
     void this.registerBullMQWorker(name, handler);
@@ -379,6 +385,7 @@ export class BullMQJobQueue {
    * Start in-process queues (no-op for BullMQ — Workers start on construction).
    */
   async start(): Promise<void> {
+    this.started = true;
     for (const q of this.inProcessQueues.values()) {
       q.start();
     }
