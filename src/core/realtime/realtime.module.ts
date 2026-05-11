@@ -1,6 +1,6 @@
 import { EventEmitter } from "node:events";
 
-import { Inject, Injectable, Logger, Module, type OnModuleInit } from "@nestjs/common";
+import { Inject, Injectable, Logger, Module, type OnModuleInit, type OnModuleDestroy } from "@nestjs/common";
 
 import { OUTBOX_DISPATCHERS, OutboxModule } from "../outbox/outbox.module.js";
 import type { OutboxDispatcher } from "../outbox/outbox-worker.js";
@@ -286,12 +286,79 @@ export class RealtimeOutboxDispatcherLifecycle implements OnModuleInit {
   }
 }
 
+const SOCKET_IO_REDIS_ADAPTER = Symbol.for("lt:SocketIoRedisAdapter");
+
+/**
+ * Lifecycle hook that installs the Socket.IO Redis adapter when
+ * `REDIS_URL` is set. Runs after the gateway server is available
+ * (`OnModuleInit`). When `adapterPair` is null, the default
+ * in-memory adapter stays active — no change for test bootstraps.
+ */
+@Injectable()
+export class SocketIoRedisAdapterLifecycle implements OnModuleInit, OnModuleDestroy {
+  private readonly log = new Logger("SocketIoRedisAdapter");
+
+  constructor(
+    private readonly gateway: RealtimeGateway,
+    @Inject(SOCKET_IO_REDIS_ADAPTER)
+    private readonly adapterPair: { pub: unknown; sub: unknown } | null,
+  ) {}
+
+  async onModuleInit(): Promise<void> {
+    if (!this.adapterPair) return;
+    try {
+      const { createAdapter } = await import("@socket.io/redis-adapter");
+      if (this.gateway.server) {
+        this.gateway.server.adapter(createAdapter(this.adapterPair.pub as never, this.adapterPair.sub as never));
+        this.log.log("Socket.IO Redis adapter installed (cross-pod broadcasts enabled)");
+      }
+    } catch (err) {
+      this.log.warn(
+        `Socket.IO Redis adapter init failed — falling back to in-memory: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    if (!this.adapterPair) return;
+    try {
+      await (this.adapterPair.pub as { quit(): Promise<unknown> }).quit();
+      await (this.adapterPair.sub as { quit(): Promise<unknown> }).quit();
+    } catch {
+      // Swallow disconnect errors on shutdown.
+    }
+  }
+}
+
+/**
+ * Resolves an ioredis pub/sub pair for the Socket.IO Redis adapter.
+ * Returns null when `REDIS_URL` is not set so test bootstraps stay
+ * connection-free.
+ */
+async function resolveSocketIoRedisPair(): Promise<{ pub: unknown; sub: unknown } | null> {
+  const url = process.env.REDIS_URL;
+  if (!url) return null;
+  try {
+    const { default: Redis } = await import("ioredis");
+    const pub = new Redis(url);
+    const sub = pub.duplicate();
+    return { pub, sub };
+  } catch {
+    return null;
+  }
+}
+
 @Module({
   imports: [OutboxModule],
   providers: [
     RealtimeGateway,
     InspectorEvents,
     RealtimeOutboxDispatcherLifecycle,
+    SocketIoRedisAdapterLifecycle,
+    {
+      provide: SOCKET_IO_REDIS_ADAPTER,
+      useFactory: () => resolveSocketIoRedisPair(),
+    },
     // Cross-instance LISTEN/NOTIFY transport (CF.RT.* iter-102).
     // Default binding: in-memory transport so test bootstraps don't
     // need a live Postgres LISTEN connection. Production projects

@@ -54,6 +54,7 @@ import { RequestContextMiddleware } from "../request-context/request-context.mid
 import { SystemSetupModule } from "../setup/system-setup.module.js";
 import { ExampleModule } from "../../modules/example/example.module.js";
 import { UserProfileModule } from "../../modules/user-profile/user-profile.module.js";
+import { RedisModule } from "../redis/redis.module.js";
 import { AppController } from "./app.controller.js";
 
 const features = loadFeatures(process.env as Record<string, string | undefined>);
@@ -125,6 +126,10 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
       },
     }),
     PrismaModule,
+    // RedisModule provides the shared ioredis connection (or null when
+    // REDIS_URL is not set) under the REDIS_CLIENT token. @Global() so
+    // every module can inject it without importing RedisModule individually.
+    RedisModule,
     HealthModule,
     // HubModule mounts the Hub SPA at `/` with stage-aware auth (issue #83).
     // Loaded before DevHubModule so the `/` route registration wins.

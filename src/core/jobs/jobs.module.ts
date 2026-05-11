@@ -9,7 +9,7 @@ import {
 } from "@nestjs/common";
 import { DiscoveryModule } from "@nestjs/core";
 
-import { PgBossJobQueue } from "./pg-boss-job-queue.js";
+import { BullMQJobQueue, type RedisDuplex } from "./bullmq-job-queue.js";
 import { type PgBossLike, PgBossScheduledJobScheduler } from "./scheduled-job-pgboss-scheduler.js";
 import {
   DiscoveryScheduledJobRegistry,
@@ -18,6 +18,7 @@ import {
 } from "./scheduled-job.registry.js";
 
 const PG_BOSS = Symbol.for("lt:PgBoss");
+const BULLMQ_REDIS = Symbol.for("lt:BullMQRedis");
 
 /**
  * Combined pg-boss surface used by `JobQueueService` (durable enqueue
@@ -45,7 +46,8 @@ interface PgBossFull {
  * scheduler tolerates by design.
  */
 async function resolvePgBoss(): Promise<PgBossFull | null> {
-  const enabled = process.env.FEATURE_JOBS_PG_BOSS === "true";
+  const enabled =
+    process.env.FEATURE_JOBS_PG_BOSS === "true" || process.env.FEATURE_JOBS_PGBOSS === "true";
   const url = process.env.DATABASE_URL;
   if (!enabled || !url) return null;
   const mod = await import("pg-boss");
@@ -66,43 +68,130 @@ async function resolvePgBoss(): Promise<PgBossFull | null> {
 }
 
 /**
- * JobQueueService — extends `PgBossJobQueue` so the runtime contract
- * is "in-process queue with pg-boss durability layered on top when
- * available". Iter-215 CF.JOBS.01 closure: when
- * `FEATURE_JOBS_PG_BOSS=true` AND `DATABASE_URL` is set, the
- * `enqueue(name, payload)` API writes to pg-boss for restart-
- * survival. When pg-boss is unavailable (tests, dev without flag),
- * the queue falls through to the in-memory implementation —
- * byte-for-byte identical to the iter-pre-215 behaviour.
+ * Resolves an ioredis client for BullMQ — returns a real client when
+ * `FEATURE_JOBS_BULLMQ=true` AND `REDIS_URL` is set; otherwise `null`.
+ * When null, `BullMQJobQueue` falls back to `InMemoryJobQueue` behaviour.
+ */
+async function resolveBullMQRedis(): Promise<RedisDuplex | null> {
+  const enabled = process.env.FEATURE_JOBS_BULLMQ === "true";
+  const url = process.env.REDIS_URL;
+  if (!enabled || !url) return null;
+  try {
+    const { default: Redis } = await import("ioredis");
+    return new Redis(url) as unknown as RedisDuplex;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * JobQueueService — selects the appropriate queue backend at startup:
+ *
+ *   1. `FEATURE_JOBS_BULLMQ=true` AND `REDIS_URL` set → `BullMQJobQueue`
+ *   2. `FEATURE_JOBS_PG_BOSS=true` AND `DATABASE_URL` set → `PgBossJobQueue`
+ *   3. Otherwise → `InMemoryJobQueue` (via `BullMQJobQueue(null)`)
+ *
+ * The service itself always exposes the same `InMemoryJobQueue` surface
+ * so callers are agnostic of the backing store.
  */
 @Injectable()
-export class JobQueueService extends PgBossJobQueue implements OnModuleInit, OnModuleDestroy {
+export class JobQueueService extends BullMQJobQueue implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger("JobQueueService");
+  private readonly pgBoss: PgBossFull | null;
 
-  constructor(@Optional() @Inject(PG_BOSS) boss: PgBossFull | null = null) {
-    super(boss);
+  constructor(
+    @Optional() @Inject(BULLMQ_REDIS) redis: RedisDuplex | null = null,
+    @Optional() @Inject(PG_BOSS) boss: PgBossFull | null = null,
+  ) {
+    // When BullMQ Redis is available, use it. When pg-boss is available
+    // but BullMQ is not, we still use BullMQJobQueue(null) as the base
+    // (InMemory) and layer pg-boss on top in enqueue/register.
+    super(redis);
+    this.pgBoss = boss;
+  }
+
+  override register<TPayload>(name: string, handler: (payload: TPayload) => Promise<void> | void): void {
+    super.register(name, handler);
+    // Optionally layer pg-boss on top when BullMQ is not active.
+    if (this.pgBoss && !this.isBullMQActive()) {
+      void this.registerPgBossWorker(name, handler);
+    }
+  }
+
+  override async enqueue<TPayload>(name: string, payload: TPayload): Promise<string> {
+    const jobId = await super.enqueue(name, payload);
+    // Mirror to pg-boss when BullMQ is not active.
+    if (this.pgBoss && !this.isBullMQActive()) {
+      await this.sendToPgBoss(name, payload, jobId);
+    }
+    return jobId;
   }
 
   async onModuleInit(): Promise<void> {
     this.start();
-    this.logger.log("job queue started (pg-boss-backed adapter)");
+    if (this.isBullMQActive()) {
+      this.logger.log("job queue started (BullMQ-backed adapter)");
+    } else if (this.pgBoss) {
+      this.logger.log("job queue started (pg-boss-backed adapter)");
+    } else {
+      this.logger.log("job queue started (in-memory adapter)");
+    }
   }
 
   async onModuleDestroy(): Promise<void> {
     this.stop();
     this.logger.log("job queue stopped");
   }
+
+  private isBullMQActive(): boolean {
+    // BullMQ is active when the BULLMQ_REDIS provider resolved a client.
+    return process.env.FEATURE_JOBS_BULLMQ === "true" && !!process.env.REDIS_URL;
+  }
+
+  private async registerPgBossWorker<TPayload>(
+    name: string,
+    handler: (payload: TPayload) => Promise<void> | void,
+  ): Promise<void> {
+    if (!this.pgBoss) return;
+    try {
+      await this.pgBoss.work(name, async (...args: unknown[]) => {
+        const jobs = (args[0] ?? []) as Array<{ data?: { payload?: unknown } }>;
+        for (const job of jobs) {
+          const payload = (job.data?.payload ?? null) as TPayload;
+          await handler(payload);
+        }
+      });
+    } catch (err) {
+      this.bullmqLogger.error(
+        `pg-boss work() registration for ${name} failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  private async sendToPgBoss<TPayload>(
+    name: string,
+    payload: TPayload,
+    jobId: string,
+  ): Promise<void> {
+    if (!this.pgBoss) return;
+    try {
+      await this.pgBoss.send(name, { jobId, payload });
+    } catch (err) {
+      this.bullmqLogger.warn(
+        `pg-boss send() failed for ${name} (job will run in-process only): ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
 }
 
 /**
- * JobsModule — provides `JobQueueService` (an `InMemoryJobQueue`
- * subclass) with `OnModuleInit`/`OnModuleDestroy` lifecycle hooks.
- * Domain modules `register(name, handler)` from their own
- * `OnModuleInit` and `enqueue(name, payload)` whenever they need to
- * schedule async work.
- *
- * pg-boss-backed adapter swaps in via the `JOB_QUEUE` token once the
- * `pg-boss` schema migration lands.
+ * JobsModule — provides `JobQueueService` with `OnModuleInit`/`OnModuleDestroy`
+ * lifecycle hooks. The backing store is selected at startup:
+ *   - BullMQ when `FEATURE_JOBS_BULLMQ=true` AND `REDIS_URL` set
+ *   - pg-boss when `FEATURE_JOBS_PG_BOSS=true` AND `DATABASE_URL` set
+ *   - In-memory fallback otherwise
  */
 @Module({
   imports: [DiscoveryModule],
@@ -116,6 +205,10 @@ export class JobQueueService extends PgBossJobQueue implements OnModuleInit, OnM
     {
       provide: PG_BOSS,
       useFactory: () => resolvePgBoss(),
+    },
+    {
+      provide: BULLMQ_REDIS,
+      useFactory: () => resolveBullMQRedis(),
     },
     {
       provide: PgBossScheduledJobScheduler,
