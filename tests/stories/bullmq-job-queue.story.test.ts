@@ -96,9 +96,8 @@ describe("Story · BullMQ Job Queue (no-Redis fallback)", () => {
 
 describe("Story · BullMQ cron-repeat plan", () => {
   it("buildBullMQCleanupJobPlan() returns a repeat config with cron + jobId", async () => {
-    const { buildBullMQCleanupJobPlan } = await import(
-      "../../src/core/jobs/bullmq-cleanup-job-planner.js"
-    );
+    const { buildBullMQCleanupJobPlan } =
+      await import("../../src/core/jobs/bullmq-cleanup-job-planner.js");
     const plan = buildBullMQCleanupJobPlan({ kind: "throttler" });
     expect(plan.queueName).toMatch(/throttler/);
     expect(plan.repeatPattern).toMatch(/^\d+ \* \* \* \*$/);
@@ -107,9 +106,8 @@ describe("Story · BullMQ cron-repeat plan", () => {
   });
 
   it("buildBullMQCleanupJobPlan() handles all four kinds", async () => {
-    const { buildBullMQCleanupJobPlan } = await import(
-      "../../src/core/jobs/bullmq-cleanup-job-planner.js"
-    );
+    const { buildBullMQCleanupJobPlan } =
+      await import("../../src/core/jobs/bullmq-cleanup-job-planner.js");
     const kinds = ["throttler", "idempotency", "verification", "geoip"] as const;
     for (const kind of kinds) {
       const plan = buildBullMQCleanupJobPlan({ kind });

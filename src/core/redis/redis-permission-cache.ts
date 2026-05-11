@@ -67,7 +67,9 @@ export function createRedisPermissionCache(
         }
         // Rebuild Ability from stored rules to avoid class-instance serialisation.
         const { buildAbility } = await import("../permissions/casl-ability.js");
-        const ability = buildAbility(parsed.rules as Parameters<typeof buildAbility>[0] & unknown[]);
+        const ability = buildAbility(
+          parsed.rules as Parameters<typeof buildAbility>[0] & unknown[],
+        );
         return { ability, expiresAt: parsed.expiresAt };
       } catch {
         return null;

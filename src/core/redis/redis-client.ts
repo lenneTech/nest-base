@@ -39,7 +39,9 @@ export interface RedisClientLike {
  * The returned client is not yet connected — ioredis connects lazily
  * on the first command.
  */
-export async function resolveRedisClient(redisUrl: string | undefined): Promise<RedisClientLike | null> {
+export async function resolveRedisClient(
+  redisUrl: string | undefined,
+): Promise<RedisClientLike | null> {
   if (!redisUrl) return null;
   try {
     const { default: Redis } = await import("ioredis");

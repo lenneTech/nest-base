@@ -25,9 +25,8 @@ describe("Story · RedisClient provider (no-Redis fallback)", () => {
 
 describe("Story · RedisNewDeviceThrottle (no-Redis fallback)", () => {
   it("createRedisNewDeviceThrottle() works with null redis — falls back to in-memory", async () => {
-    const { createRedisNewDeviceThrottle } = await import(
-      "../../src/core/redis/redis-new-device-throttle.js"
-    );
+    const { createRedisNewDeviceThrottle } =
+      await import("../../src/core/redis/redis-new-device-throttle.js");
     const now = { value: 1000 };
     const throttle = createRedisNewDeviceThrottle({
       redis: null,
@@ -44,9 +43,8 @@ describe("Story · RedisNewDeviceThrottle (no-Redis fallback)", () => {
   });
 
   it("createRedisNewDeviceThrottle() resets after window elapses", async () => {
-    const { createRedisNewDeviceThrottle } = await import(
-      "../../src/core/redis/redis-new-device-throttle.js"
-    );
+    const { createRedisNewDeviceThrottle } =
+      await import("../../src/core/redis/redis-new-device-throttle.js");
     const now = { value: 1000 };
     const throttle = createRedisNewDeviceThrottle({
       redis: null,
@@ -62,18 +60,16 @@ describe("Story · RedisNewDeviceThrottle (no-Redis fallback)", () => {
 
 describe("Story · RedisPermissionCache (no-Redis fallback)", () => {
   it("createRedisPermissionCache() returns null on cache miss when no redis", async () => {
-    const { createRedisPermissionCache } = await import(
-      "../../src/core/redis/redis-permission-cache.js"
-    );
+    const { createRedisPermissionCache } =
+      await import("../../src/core/redis/redis-permission-cache.js");
     const cache = createRedisPermissionCache({ redis: null, ttlMs: 5000 });
     const result = await cache.get("user-1", "tenant-1");
     expect(result).toBeNull();
   });
 
   it("createRedisPermissionCache() stores and retrieves via in-memory fallback", async () => {
-    const { createRedisPermissionCache } = await import(
-      "../../src/core/redis/redis-permission-cache.js"
-    );
+    const { createRedisPermissionCache } =
+      await import("../../src/core/redis/redis-permission-cache.js");
     const cache = createRedisPermissionCache({ redis: null, ttlMs: 5000 });
     const fakeEntry = { ability: { can: () => false } as unknown, expiresAt: Date.now() + 5000 };
     await cache.set("user-1", "tenant-1", fakeEntry as never);
@@ -85,9 +81,8 @@ describe("Story · RedisPermissionCache (no-Redis fallback)", () => {
 
 describe("Story · RedisRecipientRateLimiter (no-Redis fallback)", () => {
   it("createRedisRecipientRateLimiter().consume() allows first send", async () => {
-    const { createRedisRecipientRateLimiter } = await import(
-      "../../src/core/redis/redis-recipient-rate-limiter.js"
-    );
+    const { createRedisRecipientRateLimiter } =
+      await import("../../src/core/redis/redis-recipient-rate-limiter.js");
     const limiter = createRedisRecipientRateLimiter({
       redis: null,
       limit: 3,
@@ -98,9 +93,8 @@ describe("Story · RedisRecipientRateLimiter (no-Redis fallback)", () => {
   });
 
   it("createRedisRecipientRateLimiter().consume() denies when limit exceeded", async () => {
-    const { createRedisRecipientRateLimiter } = await import(
-      "../../src/core/redis/redis-recipient-rate-limiter.js"
-    );
+    const { createRedisRecipientRateLimiter } =
+      await import("../../src/core/redis/redis-recipient-rate-limiter.js");
     const limiter = createRedisRecipientRateLimiter({
       redis: null,
       limit: 2,

@@ -110,7 +110,10 @@ export class JobQueueService extends BullMQJobQueue implements OnModuleInit, OnM
     this.pgBoss = boss;
   }
 
-  override register<TPayload>(name: string, handler: (payload: TPayload) => Promise<void> | void): void {
+  override register<TPayload>(
+    name: string,
+    handler: (payload: TPayload) => Promise<void> | void,
+  ): void {
     super.register(name, handler);
     // Optionally layer pg-boss on top when BullMQ is not active.
     if (this.pgBoss && !this.isBullMQActive()) {

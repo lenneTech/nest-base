@@ -1,6 +1,13 @@
 import { EventEmitter } from "node:events";
 
-import { Inject, Injectable, Logger, Module, type OnModuleInit, type OnModuleDestroy } from "@nestjs/common";
+import {
+  Inject,
+  Injectable,
+  Logger,
+  Module,
+  type OnModuleInit,
+  type OnModuleDestroy,
+} from "@nestjs/common";
 
 import { OUTBOX_DISPATCHERS, OutboxModule } from "../outbox/outbox.module.js";
 import type { OutboxDispatcher } from "../outbox/outbox-worker.js";
@@ -309,7 +316,9 @@ export class SocketIoRedisAdapterLifecycle implements OnModuleInit, OnModuleDest
     try {
       const { createAdapter } = await import("@socket.io/redis-adapter");
       if (this.gateway.server) {
-        this.gateway.server.adapter(createAdapter(this.adapterPair.pub as never, this.adapterPair.sub as never));
+        this.gateway.server.adapter(
+          createAdapter(this.adapterPair.pub as never, this.adapterPair.sub as never),
+        );
         this.log.log("Socket.IO Redis adapter installed (cross-pod broadcasts enabled)");
       }
     } catch (err) {
