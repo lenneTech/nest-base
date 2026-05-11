@@ -255,13 +255,10 @@ const SECTION_TO_KEY: Record<string, FeatureKey> = {
 };
 
 // Sub-field aliases for JOBS section.
-// FEATURE_JOBS_PG_BOSS → jobs.pgBoss
 // FEATURE_JOBS_BULLMQ  → jobs.bullmq
 
 const FIELD_TO_PROP: Record<string, string> = {
   ENABLED: "enabled",
-  PG_BOSS: "pgBoss",
-  PGBOSS: "pgBoss",
   BULLMQ: "bullmq",
   STORAGE_DEFAULT: "storageDefault",
   TUS: "tus",
