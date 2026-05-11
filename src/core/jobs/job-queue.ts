@@ -206,6 +206,8 @@ export class InMemoryJobQueue {
   }
 
   private scheduleProcess(): void {
+    // Swallowed by design — a single job failure must not stop the
+    // processing loop; processOne() already marks the job as failed.
     this.inFlight = this.inFlight.then(() => this.processOne()).catch(() => {});
   }
 
