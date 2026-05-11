@@ -134,6 +134,9 @@ function renderEnvExample(answers: WizardAnswers): string {
   // first free port via `findFreePostgresPort()`; flip manually here
   // (and the port in DATABASE_URL above) if you need a specific value.
   lines.push(`POSTGRES_HOST_PORT=${port}`);
+  // Redis host-port for BullMQ job queue + Socket.IO cross-pod adapter.
+  lines.push(`REDIS_HOST_PORT=${answers.redisHostPort ?? 6379}`);
+  lines.push(`REDIS_URL=redis://localhost:${answers.redisHostPort ?? 6379}`);
   lines.push("");
   lines.push("# ── Auth (Better-Auth) ─────────────────────────────────────────");
   lines.push("BETTER_AUTH_SECRET=change-me-32-chars-minimum-XXXXXX");
