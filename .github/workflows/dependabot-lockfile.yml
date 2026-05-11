@@ -1,0 +1,43 @@
+name: Update bun.lock for Dependabot PRs
+
+# Dependabot uses the npm ecosystem updater which only modifies package.json.
+# It does not know how to regenerate bun.lock. CI then fails with
+# --frozen-lockfile because the lockfile is out of sync with package.json.
+#
+# This workflow detects every Dependabot push, runs `bun install` to
+# regenerate the lockfile, and commits the result back to the PR branch so
+# subsequent CI runs see a consistent lockfile.
+#
+# pull_request_target is used (instead of pull_request) so the workflow has
+# write access to the repository contents. Dependabot PRs always originate
+# from within the same repo (not a fork), so this is safe.
+
+on:
+  pull_request_target:
+    types: [opened, synchronize]
+
+permissions:
+  contents: write
+
+jobs:
+  update-lockfile:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Regenerate bun.lock
+        run: bun install
+
+      - name: Commit updated lockfile
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bun.lock
+          git diff --staged --quiet || git commit -m "chore: regenerate bun.lock for dependabot bump"
+          git push
