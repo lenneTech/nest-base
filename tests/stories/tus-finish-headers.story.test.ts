@@ -180,6 +180,29 @@ describe("Story · TUS onUploadFinish headers (issue #102)", () => {
     expect(await storage.exists("_tus/u3.meta")).toBe(false);
   });
 
+  it("insertRecord() writes to storage without Reflect.get — M3 regression guard", async () => {
+    // Verify that FileService.insertRecord() is the public API used by the
+    // tus hook instead of Reflect.get(fileService, "storage").insert().
+    // A rename of the private `storage` field would previously break silently.
+    const fileStorage = makeFileStorage();
+    const svc = new FileService(fileStorage);
+    const record = {
+      id: "test-id",
+      tenantId: "t1",
+      folderId: null,
+      filename: "f.txt",
+      mimeType: "text/plain",
+      sizeBytes: 1,
+      sha256: "abc",
+      storageDriver: "memory",
+      storageKey: "t1/f.txt",
+      uploaderId: "u1",
+      visibility: "PRIVATE" as const,
+    };
+    await svc.insertRecord(record);
+    expect(fileStorage.records.get("test-id")).toMatchObject({ id: "test-id", filename: "f.txt" });
+  });
+
   it("sets folderId to null when metadata.folderId is absent or null string", async () => {
     const storage = new InMemoryStorageAdapter();
     const dataStore = new StorageAdapterDataStore(storage);

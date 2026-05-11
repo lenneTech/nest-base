@@ -98,10 +98,12 @@ export function buildTusFinishHook(
       uploaderId,
       visibility: "PRIVATE" as const,
     };
-    // Insert directly via the storage layer to avoid the scanVerdict /
+    // Insert directly via insertRecord() to avoid the scanVerdict /
     // uploadAndCreate logic which would re-put the bytes. The bytes are
-    // already at the final key (written above).
-    await Reflect.get(fileService, "storage").insert(record);
+    // already at the final key (written above). insertRecord() is the
+    // public API that replaces the previous Reflect.get(fileService, "storage")
+    // call so that a rename of the private field cannot break this silently.
+    await fileService.insertRecord(record);
 
     // Clean up the TUS staging area now that bytes are at the final key.
     await dataStore.remove(upload.id);

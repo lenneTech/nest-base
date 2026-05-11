@@ -109,4 +109,19 @@ export class FileService {
     const removed = await this.storage.delete(id);
     if (!removed) throw new FileNotFoundError(id);
   }
+
+  /**
+   * Insert a pre-built FileRecord directly into the metadata store.
+   *
+   * Intentionally bypasses antivirus scanning and the uploadAndCreate
+   * byte-writing path — the TUS finish hook uses this after the bytes
+   * are already written to the final storage key so re-scanning or
+   * re-writing would duplicate work and corrupt the upload pipeline.
+   *
+   * This method replaces the previous `Reflect.get(fileService, "storage")`
+   * pattern so renames of the private field cannot break the TUS hook silently.
+   */
+  async insertRecord(record: FileRecord): Promise<void> {
+    await this.storage.insert(record);
+  }
 }
