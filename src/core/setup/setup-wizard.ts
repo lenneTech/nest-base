@@ -44,6 +44,11 @@ export interface WizardAnswers {
    * Defaults to 5432 when unset (e.g. the regression-test fixture).
    */
   postgresHostPort?: number;
+  /**
+   * Host port that Compose will bind Redis on. Defaults to 6379.
+   * Used for BullMQ job queue + Socket.IO cross-pod adapter (issue #135).
+   */
+  redisHostPort?: number;
 }
 
 export interface WizardOutcome {
@@ -135,6 +140,7 @@ function renderEnvExample(answers: WizardAnswers): string {
   // (and the port in DATABASE_URL above) if you need a specific value.
   lines.push(`POSTGRES_HOST_PORT=${port}`);
   // Redis host-port for BullMQ job queue + Socket.IO cross-pod adapter.
+  // Unset when Redis features are not required (single-replica deploys).
   lines.push(`REDIS_HOST_PORT=${answers.redisHostPort ?? 6379}`);
   lines.push(`REDIS_URL=redis://localhost:${answers.redisHostPort ?? 6379}`);
   lines.push("");

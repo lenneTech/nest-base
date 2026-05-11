@@ -95,7 +95,16 @@ const OpenAPI = togglableDefault(false);
 const RateLimit = togglableDefault(true);
 const Idempotency = togglableDefault(true);
 const Observability = togglableDefault(true);
-const Jobs = togglableDefault(true);
+// Jobs extends the simple togglable shape with adapter sub-flags.
+// `pgBoss` and `bullmq` are mutually-exclusive backend choices;
+// when both are false the in-memory queue is used.
+const JobsSchema = z.object({
+  enabled: z.boolean().default(true),
+  /** Use pg-boss as the durable job backend (requires DATABASE_URL). */
+  pgBoss: z.boolean().default(false),
+  /** Use BullMQ as the durable job backend (requires REDIS_URL). */
+  bullmq: z.boolean().default(false),
+});
 // `audit` gates the audit-log subsystem (the AuditLog Prisma model +
 // the audit Prisma extension). Default-on because permission /
 // authentication / data-mutation surfaces always need audit traces;
@@ -124,7 +133,7 @@ export const FeaturesSchema = z.object({
   rateLimit: RateLimit.default(() => RateLimit.parse({})),
   idempotency: Idempotency.default(() => Idempotency.parse({})),
   observability: Observability.default(() => Observability.parse({})),
-  jobs: Jobs.default(() => Jobs.parse({})),
+  jobs: JobsSchema.default(() => JobsSchema.parse({})),
   audit: Audit.default(() => Audit.parse({})),
 });
 
@@ -245,8 +254,15 @@ const SECTION_TO_KEY: Record<string, FeatureKey> = {
   AUDIT: "audit",
 };
 
+// Sub-field aliases for JOBS section.
+// FEATURE_JOBS_PG_BOSS → jobs.pgBoss
+// FEATURE_JOBS_BULLMQ  → jobs.bullmq
+
 const FIELD_TO_PROP: Record<string, string> = {
   ENABLED: "enabled",
+  PG_BOSS: "pgBoss",
+  PGBOSS: "pgBoss",
+  BULLMQ: "bullmq",
   STORAGE_DEFAULT: "storageDefault",
   TUS: "tus",
   TRANSFORMATIONS: "transformations",
@@ -344,7 +360,7 @@ export interface ValidationContext {
  */
 export function validateFeatureDependencies(features: Features, ctx: ValidationContext = {}): void {
   if (features.webhooks.enabled && !features.jobs.enabled) {
-    throw new Error("feature `webhooks` requires `jobs` (pg-boss queue) to be enabled");
+    throw new Error("feature `webhooks` requires `jobs` to be enabled");
   }
   if (features.powerSync.enabled && !features.multiTenancy.enabled) {
     throw new Error(
