@@ -360,7 +360,7 @@ export interface ValidationContext {
  */
 export function validateFeatureDependencies(features: Features, ctx: ValidationContext = {}): void {
   if (features.webhooks.enabled && !features.jobs.enabled) {
-    throw new Error("feature `webhooks` requires `jobs` to be enabled");
+    throw new Error("feature `webhooks` requires `jobs` (job queue) to be enabled");
   }
   if (features.powerSync.enabled && !features.multiTenancy.enabled) {
     throw new Error(

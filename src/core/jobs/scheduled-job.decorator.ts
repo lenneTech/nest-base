@@ -2,29 +2,28 @@
  * `@ScheduledJob` — metadata-only decorator that marks a class
  * method as a cron-driven job.
  *
- * The pg-boss adapter (`src/core/jobs/`) walks every provider's
- * prototype at module init, reads the captured metadata via
- * `getScheduledJobs(prototype)`, and registers each entry with
- * `pgboss.schedule(name, cron, ...)`. The decorator itself does NOT
- * install a cron watcher — it only records the schedule contract so
- * the adapter can wire it up against the active queue backend.
+ * The job scheduler (`src/core/jobs/`) walks every provider's
+ * prototype at module init via `getScheduledJobs(prototype)` and
+ * registers each entry with the active queue backend. The decorator
+ * itself does NOT install a cron watcher — it only records the
+ * schedule contract.
  *
  * Why metadata-only:
  *   - No side-effects at class-definition time (safe for tests).
- *   - The adapter owns scheduling lifecycle (start / stop / reschedule).
- *   - Cron expressions are validated by pg-boss at schedule time, not
- *     at decorator time, so we don't pull in a cron-parser dependency.
+ *   - The scheduler owns the lifecycle (start / stop / reschedule).
+ *   - Cron expressions are validated at schedule time, not at
+ *     decorator time, so we don't pull in a cron-parser dependency.
  *
  * Closes:
  *   - CF.JOBS.02 (`@ScheduledJob` cron decorator)
  */
 
 export interface ScheduledJobOptions {
-  /** Unique job name within the project. Becomes the pg-boss queue name. */
+  /** Unique job name within the project (used as queue name). */
   readonly name: string;
   /**
    * Standard 5- or 6-field cron expression. Validated lazily by the
-   * pg-boss adapter at module init — the decorator does not parse cron.
+   * scheduler at module init — the decorator does not parse cron.
    */
   readonly cron: string;
 }
@@ -44,7 +43,7 @@ interface ScheduledJobCarrier {
 /**
  * Mark a method as a scheduled job. The decorator records the
  * configured name + cron expression on the prototype as metadata
- * for the pg-boss adapter to discover.
+ * for the job scheduler to discover at module init.
  */
 export function ScheduledJob(options: ScheduledJobOptions): MethodDecorator {
   if (!options.name || options.name.trim() === "") {
@@ -68,7 +67,7 @@ export function ScheduledJob(options: ScheduledJobOptions): MethodDecorator {
 
 /**
  * Read the `@ScheduledJob` metadata recorded on a prototype. Used
- * by the pg-boss adapter at module init.
+ * by the job scheduler at module init.
  *
  * Returns an empty array if the class has no decorated methods.
  */

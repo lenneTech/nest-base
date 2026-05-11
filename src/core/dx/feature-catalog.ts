@@ -154,7 +154,7 @@ export const FEATURE_CATALOG: readonly FeatureMeta[] = [
   {
     key: "jobs",
     label: "Background Jobs",
-    description: "In-memory job queue + scheduled-job decorator (pg-boss-ready).",
+    description: "In-memory job queue + scheduled-job decorator (BullMQ-ready).",
     envKey: "FEATURE_JOBS_ENABLED",
     category: "infrastructure",
     exposes: ["JobQueueService", "@ScheduledJob()", "OutboxWorker tick"],

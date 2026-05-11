@@ -2,13 +2,10 @@ import {
   Inject,
   Injectable,
   Logger,
-  Optional,
   type OnModuleDestroy,
   type OnModuleInit,
 } from "@nestjs/common";
 
-import { buildCleanupJobPlan } from "../jobs/cleanup-job-planner.js";
-import type { PgBossLike } from "../jobs/scheduled-job-pgboss-scheduler.js";
 import type { IdempotencyRecord, IdempotencyStore } from "./idempotency.service.js";
 
 /**
@@ -33,9 +30,10 @@ import type { IdempotencyRecord, IdempotencyStore } from "./idempotency.service.
  * itself (DB outage etc.) are caught and surfaced as the same
  * `{ deleted: null }` shape so observability has a single signal.
  *
- * Multi-replica safety (issue #127 Finding 1): when a `PgBossLike`
- * adapter is injected, the cron registers itself as a pg-boss
- * scheduled job so only one replica runs the cleanup per tick.
+ * Multi-replica safety: use a distributed job scheduler (e.g. BullMQ
+ * repeatable jobs) when deploying across multiple replicas. The bare
+ * setInterval here is the single-process path which is correct for
+ * the default single-container deployment.
  */
 
 export const IDEMPOTENCY_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24h
@@ -96,35 +94,12 @@ export class InMemoryIdempotencyStoreWithCleanup implements IdempotencyStore, Cl
 export class IdempotencyCleanupCron implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger("IdempotencyCleanup");
   private timer?: ReturnType<typeof setInterval>;
-  private bossActive = false;
 
   constructor(
     @Inject(Symbol.for("lt:IdempotencyStore")) private readonly store: IdempotencyStore,
-    @Optional() private readonly boss: PgBossLike | null = null,
   ) {}
 
   async onModuleInit(): Promise<void> {
-    // Multi-replica path: delegate to pg-boss so only one replica
-    // runs the cleanup per scheduled slot (issue #127 Finding 1).
-    if (this.boss) {
-      const plan = buildCleanupJobPlan({ kind: "idempotency" });
-      try {
-        await this.boss.work(plan.queueName, () => this.runOnce());
-        await this.boss.schedule(plan.queueName, plan.cron);
-        this.bossActive = true;
-        this.logger.log(
-          `idempotency cleanup scheduled via pg-boss (queue="${plan.queueName}", cron="${plan.cron}")`,
-        );
-        return;
-      } catch (err) {
-        this.logger.error(
-          `pg-boss idempotency cleanup scheduling failed; falling back to setInterval: ${err}`,
-        );
-      }
-    }
-    // Single-replica fallback: bare setInterval keeps the process
-    // alive — fine for a long-running server, irrelevant for tests
-    // (Vitest tears down before the first tick fires).
     void this.runOnce();
     this.timer = setInterval(() => void this.runOnce(), IDEMPOTENCY_CLEANUP_INTERVAL_MS);
   }
@@ -155,11 +130,5 @@ export class IdempotencyCleanupCron implements OnModuleInit, OnModuleDestroy {
   onModuleDestroy(): void {
     if (this.timer) clearInterval(this.timer);
     this.timer = undefined;
-    this.bossActive = false;
-  }
-
-  /** Test hook — surfaces which mode the lifecycle picked. */
-  isPgBossActive(): boolean {
-    return this.bossActive;
   }
 }

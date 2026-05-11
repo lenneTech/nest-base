@@ -38,7 +38,7 @@ describe("Story · pg-boss removal — no pg-boss imports remain in src/", () =>
     let output = "";
     try {
       output = execSync(
-        'grep -r --include="*.ts" "from \\"pg-boss\\"\\|import(\"pg-boss\")" src/',
+        "grep -r --include='*.ts' \"from 'pg-boss'\\|from \\\"pg-boss\\\"\" src/",
         { encoding: "utf8" },
       );
     } catch {
@@ -52,7 +52,7 @@ describe("Story · pg-boss removal — no pg-boss imports remain in src/", () =>
     const { execSync } = require("child_process");
     let output = "";
     try {
-      output = execSync("grep -r --include=\"*.ts\" \"import('pg-boss')\" src/", {
+      output = execSync('grep -r --include="*.ts" "import(\'pg-boss\')" src/', {
         encoding: "utf8",
       });
     } catch {
@@ -71,10 +71,9 @@ describe("Story · pg-boss removal — FEATURE_JOBS_PG_BOSS env var gone from sr
     const { execSync } = require("child_process");
     let output = "";
     try {
-      output = execSync(
-        'grep -r --include="*.ts" "FEATURE_JOBS_PG_BOSS" src/',
-        { encoding: "utf8" },
-      );
+      output = execSync('grep -r --include="*.ts" "FEATURE_JOBS_PG_BOSS" src/', {
+        encoding: "utf8",
+      });
     } catch {
       output = "";
     }
