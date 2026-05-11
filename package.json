@@ -29,7 +29,7 @@
     "test:perf": "k6 run tests/k6/memory-test.js",
     "prisma:generate": "prisma generate && bun run scripts/postinstall-prisma-symlink.ts",
     "prisma:migrate": "prisma migrate deploy",
-    "postinstall": "bun run scripts/postinstall-prisma-symlink.ts",
+    "postinstall": "bun run scripts/postinstall-prisma-symlink.ts && git config core.hooksPath .githooks 2>/dev/null || true",
     "prepare:schema": "bun run scripts/prepare-schema.ts",
     "prepare:schema:check": "bun run scripts/prepare-schema.ts --check",
     "check:rls": "bun run scripts/check-rls.ts",

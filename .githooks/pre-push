@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Pre-push quality gate: runs lint + format check before any push to main.
+# Blocks the push if either fails so main never goes red from a local mistake.
+#
+# Install once per clone: git config core.hooksPath .githooks
+# (done automatically by `bun run prepare` if configured)
+
+set -euo pipefail
+
+REMOTE="$1"
+REMOTE_URL="$2"
+
+# Read pushed refs from stdin: <local-ref> <local-sha> <remote-ref> <remote-sha>
+while IFS=' ' read -r LOCAL_REF LOCAL_SHA REMOTE_REF REMOTE_SHA; do
+  if [[ "$REMOTE_REF" == "refs/heads/main" ]]; then
+    echo "→ pre-push: pushing to main — running quality gates"
+    echo ""
+
+    echo "  bun run lint..."
+    if ! bun run lint --quiet 2>&1; then
+      echo ""
+      echo "✗ Lint failed. Fix errors before pushing to main."
+      exit 1
+    fi
+
+    echo "  bun run format..."
+    if ! bun run format 2>&1; then
+      echo ""
+      echo "✗ Format check failed. Run 'bunx oxfmt src/' to fix."
+      exit 1
+    fi
+
+    echo ""
+    echo "✓ Quality gates passed — pushing to main."
+  fi
+done
