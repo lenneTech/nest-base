@@ -36,6 +36,11 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      opentelemetry:
+        # All OTel packages must move together — mixed versions cause
+        # duplicate ReadableSpan types that break TypeScript compilation.
+        patterns:
+          - "@opentelemetry/*"
       vitest:
         patterns:
           - "vitest"
