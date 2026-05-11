@@ -2,13 +2,10 @@ import {
   Inject,
   Injectable,
   Logger,
-  Optional,
   type OnModuleDestroy,
   type OnModuleInit,
 } from "@nestjs/common";
 
-import { buildCleanupJobPlan } from "../jobs/cleanup-job-planner.js";
-import type { PgBossLike } from "../jobs/scheduled-job-pgboss-scheduler.js";
 import { PrismaService } from "../prisma/prisma.service.js";
 
 /**
@@ -30,9 +27,10 @@ import { PrismaService } from "../prisma/prisma.service.js";
  * so a transient DB outage does not crash-loop the process via
  * `setInterval`'s `void this.runOnce()` callback.
  *
- * Multi-replica safety (issue #127 Finding 1): when a `PgBossLike`
- * adapter is injected, the cron registers itself as a pg-boss
- * scheduled job so only one replica runs the cleanup per tick.
+ * Multi-replica safety: use a distributed job scheduler (e.g. BullMQ
+ * repeatable jobs) when deploying across multiple replicas. The bare
+ * setInterval here is the single-process path which is correct for
+ * the default single-container deployment.
  */
 
 export const VERIFICATION_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24h
@@ -144,34 +142,10 @@ export class PrismaVerificationStore implements VerificationStore {
 export class VerificationCleanupCron implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger("VerificationCleanup");
   private timer?: ReturnType<typeof setInterval>;
-  private bossActive = false;
 
-  constructor(
-    @Inject(VERIFICATION_STORE) private readonly store: VerificationStore,
-    @Optional() private readonly boss: PgBossLike | null = null,
-  ) {}
+  constructor(@Inject(VERIFICATION_STORE) private readonly store: VerificationStore) {}
 
   async onModuleInit(): Promise<void> {
-    // Multi-replica path: delegate to pg-boss so only one replica
-    // runs the cleanup per scheduled slot (issue #127 Finding 1).
-    if (this.boss) {
-      const plan = buildCleanupJobPlan({ kind: "verification" });
-      try {
-        await this.boss.work(plan.queueName, () => this.runOnce());
-        await this.boss.schedule(plan.queueName, plan.cron);
-        this.bossActive = true;
-        this.logger.log(
-          `verification cleanup scheduled via pg-boss (queue="${plan.queueName}", cron="${plan.cron}")`,
-        );
-        return;
-      } catch (err) {
-        this.logger.error(
-          `pg-boss verification cleanup scheduling failed; falling back to setInterval: ${err}`,
-        );
-      }
-    }
-    // Single-replica fallback: bare setInterval — behaviour identical
-    // to pre-issue-#127 code (no regression for single-replica deploys).
     void this.runOnce();
     this.timer = setInterval(() => void this.runOnce(), VERIFICATION_CLEANUP_INTERVAL_MS);
   }
@@ -199,11 +173,5 @@ export class VerificationCleanupCron implements OnModuleInit, OnModuleDestroy {
   onModuleDestroy(): void {
     if (this.timer) clearInterval(this.timer);
     this.timer = undefined;
-    this.bossActive = false;
-  }
-
-  /** Test hook — surfaces which mode the lifecycle picked. */
-  isPgBossActive(): boolean {
-    return this.bossActive;
   }
 }

@@ -4,7 +4,6 @@ import {
   Injectable,
   Logger,
   Module,
-  Optional,
   type OnModuleDestroy,
   type OnModuleInit,
 } from "@nestjs/common";
@@ -167,10 +166,6 @@ export class EmailOutboxRecorderProvider extends EmailOutboxRecorder {
   }
 }
 
-export const EMAIL_OUTBOX_PG_BOSS = Symbol.for("lt:EmailOutboxPgBoss");
-export const EMAIL_OUTBOX_PGBOSS_QUEUE = "lt.email-outbox.dispatch";
-export const EMAIL_OUTBOX_PGBOSS_CRON = "* * * * *";
-
 @Injectable()
 export class EmailOutboxWorkerLifecycle implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger("EmailOutboxWorker");
@@ -178,16 +173,10 @@ export class EmailOutboxWorkerLifecycle implements OnModuleInit, OnModuleDestroy
   private timer?: ReturnType<typeof setInterval>;
   private readonly tickMs: number;
   private readonly isTest: boolean;
-  private bossActive = false;
 
   constructor(
     @Inject(EMAIL_OUTBOX_STORAGE) storage: EmailOutboxStorage,
     @Inject(EMAIL_OUTBOX_DRIVER) driver: EmailOutboxDriver,
-    @Optional()
-    @Inject(EMAIL_OUTBOX_PG_BOSS)
-    private readonly boss:
-      | import("../jobs/scheduled-job-pgboss-scheduler.js").PgBossLike
-      | null = null,
   ) {
     const env = process.env as Record<string, string | undefined>;
     const raw = env.EMAIL_OUTBOX_TICK_MS ? Number.parseInt(env.EMAIL_OUTBOX_TICK_MS, 10) : NaN;
@@ -197,32 +186,14 @@ export class EmailOutboxWorkerLifecycle implements OnModuleInit, OnModuleDestroy
   }
 
   async onModuleInit(): Promise<void> {
-    // Multi-instance deployments enable pg-boss so the worker tick
-    // is leader-claimed rather than running concurrently from every
-    // replica. Single-instance deployments keep
-    // `FEATURE_JOBS_PG_BOSS=false` and fall back to setInterval; the
-    // SQL `claim()` prevents double-dispatch within a process either
-    // way.
-    if (this.boss) {
-      try {
-        await this.boss.work(EMAIL_OUTBOX_PGBOSS_QUEUE, () => this.worker.runOnce());
-        await this.boss.schedule(EMAIL_OUTBOX_PGBOSS_QUEUE, EMAIL_OUTBOX_PGBOSS_CRON);
-        this.bossActive = true;
-        this.logger.log(
-          `email-outbox dispatch scheduled via pg-boss (queue="${EMAIL_OUTBOX_PGBOSS_QUEUE}", cron="${EMAIL_OUTBOX_PGBOSS_CRON}")`,
-        );
-        return;
-      } catch (err) {
-        this.logger.error(
-          `pg-boss email-outbox scheduling failed; falling back to setInterval: ${err}`,
-        );
-      }
-    }
     // In test environments the automatic tick races with specs that share
     // the email_outbox table — concurrent AppModule instances would claim
     // each other's rows before the owning test's worker can dispatch them.
     // Tests that need dispatch call tickOnce() explicitly.
     if (this.isTest) return;
+    // Single-process path: setInterval. For multi-replica deployments,
+    // upgrade to a distributed lock / BullMQ repeatable job so only one
+    // replica dispatches per tick.
     this.timer = setInterval(() => {
       this.worker.runOnce().catch((err) => {
         // Logger.error(rawError) collapses non-Error throws to "{}"
@@ -237,17 +208,11 @@ export class EmailOutboxWorkerLifecycle implements OnModuleInit, OnModuleDestroy
   async onModuleDestroy(): Promise<void> {
     if (this.timer) clearInterval(this.timer);
     this.timer = undefined;
-    this.bossActive = false;
   }
 
   /** Test hook — runs one tick on demand. */
   async tickOnce(): Promise<void> {
     await this.worker.runOnce();
-  }
-
-  /** Test hook — surfaces which mode the lifecycle picked. */
-  isPgBossActive(): boolean {
-    return this.bossActive;
   }
 }
 
@@ -287,10 +252,6 @@ export class EmailOutboxWorkerLifecycle implements OnModuleInit, OnModuleDestroy
       provide: EMAIL_OUTBOX_RECORDER,
       useExisting: EmailOutboxRecorderProvider,
     },
-    {
-      provide: EMAIL_OUTBOX_PG_BOSS,
-      useFactory: () => resolveEmailOutboxPgBoss(),
-    },
     EmailOutboxWorkerLifecycle,
   ],
   exports: [
@@ -301,26 +262,3 @@ export class EmailOutboxWorkerLifecycle implements OnModuleInit, OnModuleDestroy
   ],
 })
 export class EmailOutboxModule {}
-
-async function resolveEmailOutboxPgBoss(): Promise<
-  import("../jobs/scheduled-job-pgboss-scheduler.js").PgBossLike | null
-> {
-  const enabled = process.env.FEATURE_JOBS_PG_BOSS === "true";
-  const url = process.env.DATABASE_URL;
-  if (!enabled || !url) return null;
-  const mod = await import("pg-boss");
-  type PgBossLike = import("../jobs/scheduled-job-pgboss-scheduler.js").PgBossLike;
-  const Ctor: new (cs: string) => unknown = mod.PgBoss;
-  const instance = new Ctor(url);
-  if (
-    typeof instance === "object" &&
-    instance !== null &&
-    typeof (instance as { start?: unknown }).start === "function" &&
-    typeof (instance as { work?: unknown }).work === "function" &&
-    typeof (instance as { schedule?: unknown }).schedule === "function" &&
-    typeof (instance as { stop?: unknown }).stop === "function"
-  ) {
-    return instance as PgBossLike;
-  }
-  return null;
-}

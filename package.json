@@ -135,7 +135,6 @@
     "nestjs-pino": "^4.6.1",
     "nodemailer": "^7",
     "pg": "^8.20.0",
-    "pg-boss": "^12.18.1",
     "pino": "^10.3.1",
     "prom-client": "^15",
     "react": "^19",

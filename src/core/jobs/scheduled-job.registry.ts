@@ -23,14 +23,13 @@ import { getScheduledJobs } from "./scheduled-job.decorator.js";
  *    e2e harness uses this to assert apiKeyExpiry / gdprErasure
  *    side-effects without waiting on real cron).
  *
- * Future PgBossAdapter (Finding 12) will iterate the same registry
- * and call `pgboss.schedule(entry.name, entry.cron, entry.run)` per
- * entry, replacing the current "metadata-only" gate. The registry's
- * shape is the contract that adapter consumes.
+ * A BullMQ-backed adapter can iterate the same registry and call
+ * `queue.add(entry.name, {}, { repeat: { cron: entry.cron } })` per
+ * entry. The registry's shape is the contract that adapter consumes.
  */
 
 export interface ScheduledJobEntry {
-  /** Unique job name. Becomes the pg-boss queue name in the future adapter. */
+  /** Unique job name (used as the BullMQ queue / job name). */
   readonly name: string;
   /** Standard 5-field cron expression (validated lazily by the cron driver). */
   readonly cron: string;
