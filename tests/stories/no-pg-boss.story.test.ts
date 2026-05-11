@@ -37,10 +37,9 @@ describe("Story · pg-boss removal — no pg-boss imports remain in src/", () =>
     // grep exits non-zero when nothing matches — wrap in try/catch
     let output = "";
     try {
-      output = execSync(
-        "grep -r --include='*.ts' \"from 'pg-boss'\\|from \\\"pg-boss\\\"\" src/",
-        { encoding: "utf8" },
-      );
+      output = execSync("grep -r --include='*.ts' \"from 'pg-boss'\\|from \\\"pg-boss\\\"\" src/", {
+        encoding: "utf8",
+      });
     } catch {
       // grep returned exit code 1 (no matches) — that is the expected success path
       output = "";
