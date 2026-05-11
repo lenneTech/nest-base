@@ -95,15 +95,9 @@ const OpenAPI = togglableDefault(false);
 const RateLimit = togglableDefault(true);
 const Idempotency = togglableDefault(true);
 const Observability = togglableDefault(true);
-// Jobs extends the simple togglable shape with adapter sub-flags.
-// `pgBoss` and `bullmq` are mutually-exclusive backend choices;
-// when both are false the in-memory queue is used.
+// Jobs — BullMQ is the sole durable backend (issue #141, requires REDIS_URL).
 const JobsSchema = z.object({
   enabled: z.boolean().default(true),
-  /** Use pg-boss as the durable job backend (requires DATABASE_URL). */
-  pgBoss: z.boolean().default(false),
-  /** Use BullMQ as the durable job backend (requires REDIS_URL). */
-  bullmq: z.boolean().default(false),
 });
 // `audit` gates the audit-log subsystem (the AuditLog Prisma model +
 // the audit Prisma extension). Default-on because permission /
@@ -254,12 +248,8 @@ const SECTION_TO_KEY: Record<string, FeatureKey> = {
   AUDIT: "audit",
 };
 
-// Sub-field aliases for JOBS section.
-// FEATURE_JOBS_BULLMQ  → jobs.bullmq
-
 const FIELD_TO_PROP: Record<string, string> = {
   ENABLED: "enabled",
-  BULLMQ: "bullmq",
   STORAGE_DEFAULT: "storageDefault",
   TUS: "tus",
   TRANSFORMATIONS: "transformations",

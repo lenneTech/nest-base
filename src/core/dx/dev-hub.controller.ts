@@ -1275,7 +1275,7 @@ export class DevHubController {
    * thin runner that hands the queue's history to it.
    */
   @Get("jobs/queues.json")
-  jobsQueuesJson() {
+  async jobsQueuesJson(): Promise<unknown> {
     this.assertDev();
     return this.jobs.getAggregates();
   }
@@ -1287,11 +1287,11 @@ export class DevHubController {
    * 100 per page.
    */
   @Get("jobs/jobs.json")
-  jobsListJson(
+  async jobsListJson(
     @Query("state") state: string | undefined,
     @Query("name") name: string | undefined,
     @Query("limit") limit: string | undefined,
-  ) {
+  ): Promise<{ jobs: unknown[] }> {
     this.assertDev();
     const options: ListJobsOptions = {};
     if (state) {
@@ -1315,7 +1315,7 @@ export class DevHubController {
     } else {
       options.limit = 100;
     }
-    return { jobs: this.jobs.listJobs(options) };
+    return { jobs: await this.jobs.listJobs(options) };
   }
 
   /**
@@ -1325,12 +1325,12 @@ export class DevHubController {
    * Map-lookup path.
    */
   @Get("jobs/jobs/:id.json")
-  jobDetailJson(@Param("id") id: string) {
+  async jobDetailJson(@Param("id") id: string): Promise<unknown> {
     this.assertDev();
     if (!isSafeJobId(id)) {
       throw new BadRequestException(`invalid job id`);
     }
-    const record = this.jobs.getJob(id);
+    const record = await this.jobs.getJob(id);
     if (!record) throw new NotFoundException();
     return record;
   }
