@@ -134,6 +134,13 @@ export const FeaturesSchema = z.object({
 export type Features = z.infer<typeof FeaturesSchema>;
 export type FeatureKey = keyof Features;
 
+/**
+ * Subset of `FeatureKey` whose schemas carry an `enabled: boolean` field.
+ * Used by `conditionalImport()` to gate module registration.
+ *
+ * `authMethods` is intentionally excluded — the auth module is always loaded;
+ * only its sub-options (emailPassword, twoFactor, passkey, etc.) vary.
+ */
 export type ToggleableFeatureKey =
   | "multiTenancy"
   | "files"

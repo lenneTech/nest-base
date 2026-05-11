@@ -23,7 +23,7 @@ Pure-black dark theme. Electric-lime accent. Live status, coverage, tests, logs,
 Most NestJS starters give you a `Hello World` and call it a day. This one ships you a server you can actually run on day one **plus** a full-blown operator cockpit at `/hub` that knows what's running, what's failing, and what's available to switch on.
 
 - **Real cockpit, not a JSON dump** — the `/hub` dashboard pulls live health, coverage, test summary, log tail, feature matrix, and service status into one view.
-- **Toggle features from the UI** — no `.env` editing dance: flip a feature on, the server restarts, the page reloads. 14 toggleable features ship with sensible defaults.
+- **Toggle features from the UI** — no `.env` editing dance: flip a feature on, the server restarts, the page reloads. 22 toggleable features ship with sensible defaults.
 - **Template-owned core** — `src/core/` is the synced template surface, `src/modules/` is yours. Pull upstream improvements without losing your domain code.
 - **Battle-tested defaults** — Postgres RLS multi-tenancy, ETag concurrency, idempotency keys, RFC 7807 errors, AES-256-GCM field encryption, OpenAPI 3.1, OWASP-aligned headers.
 - **No proprietary tooling** — pino-pretty for terminal logs, JSON-Viewer for any JSON endpoint, Scalar for the API reference, Prisma Studio for the DB. Everything self-hosted.
@@ -395,7 +395,7 @@ NO_OPEN=1                     # Skip browser auto-open
 PRISMA_STUDIO=0               # Skip Prisma Studio sibling spawn
 DISABLE_PORTLESS=1            # Force http://localhost:<port>
 
-# Feature toggles (all 14 listed via /hub/features)
+# Feature toggles (all 22 toggleable + authMethods config via /hub/features)
 FEATURE_WEBHOOKS_ENABLED=true
 FEATURE_REALTIME_ENABLED=true
 # ...
