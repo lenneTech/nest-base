@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { BullMQJobQueue } from "../../src/core/jobs/bullmq-job-queue.js";
 import type { JobHandler } from "../../src/core/jobs/job-queue.js";
