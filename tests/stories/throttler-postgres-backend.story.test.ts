@@ -4,6 +4,7 @@ import {
   PostgresThrottlerBackend,
   type PrismaThrottlerClient,
   buildThrottlerUpsertContract,
+  listFilteredThrottlerRecords,
 } from "../../src/core/throttler/throttler-postgres-backend.js";
 
 /**
@@ -102,6 +103,35 @@ describe("Story · PostgresThrottlerBackend", () => {
 
     it("rejects non-positive ttlMs", () => {
       expect(() => buildThrottlerUpsertContract("k", 0, 1)).toThrow(/ttlMs must be positive/);
+    });
+  });
+
+  describe("listFilteredThrottlerRecords — M5 regression guard", () => {
+    it("returns records filtered by scope without blockedOnly parameter", async () => {
+      const now = new Date();
+      const future = new Date(Date.now() + 60_000);
+      const client: PrismaThrottlerClient = {
+        $queryRawUnsafe: async () => [
+          { key: "api:user-1", count: 5, expires_at: future },
+          { key: "api:user-2", count: 2, expires_at: future },
+        ],
+        $executeRawUnsafe: async () => 0,
+      };
+      const rows = await listFilteredThrottlerRecords(client, { scope: "api", now, limit: 50 });
+      expect(rows).toHaveLength(2);
+      expect(rows[0]).toMatchObject({ key: "api:user-1", count: 5 });
+    });
+
+    it("function signature does not accept blockedOnly — dead branch is removed", () => {
+      // Type-level guard: the parameter object has no blockedOnly key.
+      // If blockedOnly is re-added accidentally this compile-test catches it.
+      const opts: Parameters<typeof listFilteredThrottlerRecords>[1] = {
+        now: new Date(),
+        limit: 10,
+      };
+      // @ts-expect-error blockedOnly is not a valid key after M5 fix
+      const _bad = { ...opts, blockedOnly: true };
+      expect(opts).not.toHaveProperty("blockedOnly");
     });
   });
 

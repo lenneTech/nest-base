@@ -135,10 +135,15 @@ export async function listActiveThrottlerRecords(
 
 /**
  * List active throttler records with optional filters.
+ *
+ * The `blockedOnly` parameter has been removed: it previously returned the
+ * same unfiltered result in both branches (dead code). Callers that need
+ * "blocked only" must apply the filter after resolving the per-scope limit
+ * from config and comparing `count >= limit` themselves.
  */
 export async function listFilteredThrottlerRecords(
   prisma: PrismaThrottlerClient,
-  opts: { scope?: string; blockedOnly?: boolean; now: Date; limit: number },
+  opts: { scope?: string; now: Date; limit: number },
 ): Promise<ThrottlerRecord[]> {
   const isoNow = opts.now.toISOString();
   // Build WHERE clauses dynamically — parameterised to prevent injection.
@@ -157,18 +162,11 @@ export async function listFilteredThrottlerRecords(
     opts.limit,
   )) as ThrottlerRecordRow[];
 
-  const mapped = rows.map((r) => ({
+  return rows.map((r) => ({
     key: r.key,
     count: Number(r.count),
     expiresAt: r.expires_at,
   }));
-
-  if (opts.blockedOnly) {
-    // We can't filter by "blocked" at SQL level without knowing the per-scope limit;
-    // the inspector will apply this filter after resolving the limit from config.
-    return mapped;
-  }
-  return mapped;
 }
 
 /**
