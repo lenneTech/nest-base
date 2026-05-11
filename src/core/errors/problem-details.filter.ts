@@ -4,6 +4,7 @@ import {
   type ExceptionFilter,
   HttpException,
   HttpStatus,
+  Logger,
 } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { ZodError } from "zod";
@@ -32,6 +33,10 @@ import { CORE_ERROR_CODES, type ProblemDetails, problemDetails } from "./error-c
  */
 @Catch()
 export class ProblemDetailsExceptionFilter implements ExceptionFilter {
+  // Class-field Logger so the filter can be used with new ProblemDetailsExceptionFilter()
+  // (no DI required) while still routing through the Pino/OTel pipeline.
+  private readonly logger = new Logger("ProblemDetailsFilter");
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const http = host.switchToHttp();
     const req = http.getRequest<Request>();
@@ -138,16 +143,12 @@ export class ProblemDetailsExceptionFilter implements ExceptionFilter {
       instance: req.originalUrl ?? req.url,
     });
     if (exception instanceof Error) {
-      // eslint-disable-next-line no-console
-      console.error(
-        `[ProblemDetailsFilter] unhandled error on ${req.method} ${req.url}:`,
-        exception.stack ?? exception.message,
+      this.logger.error(
+        `unhandled error on ${req.method} ${req.url}: ${exception.stack ?? exception.message}`,
       );
     } else {
-      // eslint-disable-next-line no-console
-      console.error(
-        `[ProblemDetailsFilter] unhandled non-Error on ${req.method} ${req.url}:`,
-        exception,
+      this.logger.error(
+        `unhandled non-Error on ${req.method} ${req.url}: ${String(exception)}`,
       );
     }
     return { ...detail, ...correlation };
