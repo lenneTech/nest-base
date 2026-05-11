@@ -93,7 +93,7 @@
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/auto-instrumentations-node": "^0.55",
     "@opentelemetry/exporter-trace-otlp-http": "^0.57",
-    "@opentelemetry/sdk-node": "^0.57",
+    "@opentelemetry/sdk-node": "^0.217",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7",
     "@radix-ui/react-checkbox": "^1.3.3",
