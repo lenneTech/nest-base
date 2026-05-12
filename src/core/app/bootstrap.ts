@@ -318,12 +318,13 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
         }
 
         if (result.refreshedToken) {
-          // Use shared helper — stays in sync with hub.controller.ts login
-          // path and prevents the `!== "test"` branch from being omitted
-          // in one caller (Finding 8 fix).
+          // Mirror hub.controller.ts: HUB_COOKIE_SECURE=false takes precedence
+          // over the env-based check so local HTTP testing works without
+          // changing NODE_ENV (Finding 2 fix — keeps login and refresh in sync).
+          const isSecure = process.env.HUB_COOKIE_SECURE !== "false" && isSecureCookieEnv();
           res.cookie(HUB_COOKIE_NAME, result.refreshedToken, {
             httpOnly: true,
-            secure: isSecureCookieEnv(),
+            secure: isSecure,
             sameSite: "lax",
             maxAge: authCfg.cookie.maxAgeMs,
             path: "/",

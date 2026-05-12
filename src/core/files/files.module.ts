@@ -458,6 +458,11 @@ function buildCacheAdapter(
   return origin;
 }
 
+// Evaluate once at module-load time so all three DI factories that read
+// feature flags share the same parsed object — avoids three redundant
+// Zod parses of process.env at DI init time (Finding 4 fix).
+const bootFeatures = loadFeatures(process.env as Record<string, string | undefined>);
+
 /**
  * FilesModule — `/files` + `/folders` CRUD, `/assets/:key` transform
  * pipeline, and TUS resumable uploads (mounted in `bootstrap.ts`)
@@ -487,9 +492,8 @@ function buildCacheAdapter(
     {
       provide: STORAGE_ORIGIN,
       useFactory: async (prisma: PrismaService): Promise<StorageAdapter> => {
-        const features = loadFeatures(process.env as Record<string, string | undefined>);
         return buildOriginAdapter(
-          features.files.storageDefault,
+          bootFeatures.files.storageDefault,
           process.env as StorageFactoryEnv,
           prisma,
         );
@@ -500,9 +504,8 @@ function buildCacheAdapter(
     {
       provide: STORAGE_CACHE,
       useFactory: (origin: StorageAdapter): StorageAdapter => {
-        const features = loadFeatures(process.env as Record<string, string | undefined>);
         return buildCacheAdapter(
-          features.files.storageDefault,
+          bootFeatures.files.storageDefault,
           process.env as StorageFactoryEnv,
           origin,
         );
@@ -579,9 +582,9 @@ function buildCacheAdapter(
         if (policy === "reject" || policy === "keep") {
           svc.scanIndeterminatePolicy = policy;
         }
-        // Pre-compute features once at DI init time so uploadAndCreate()
-        // does not re-parse process.env on every request (Finding 4 fix).
-        svc.cachedFeatures = loadFeatures(process.env as Record<string, string | undefined>);
+        // Use the module-level bootFeatures constant — already computed once
+        // at module-load time so DI init doesn't trigger another Zod parse.
+        svc.cachedFeatures = bootFeatures;
         return svc;
       },
       inject: [FILE_STORAGE, STORAGE_ORIGIN, FILE_SCANNER],
@@ -615,8 +618,7 @@ function buildCacheAdapter(
         config: { mountPath: string; chunkExpirationSeconds: number },
         fileService: FileService,
       ): Promise<TusServerLike | null> => {
-        const features = loadFeatures(process.env as Record<string, string | undefined>);
-        if (!features.files.tus) return null;
+        if (!bootFeatures.files.tus) return null;
         const dataStore = new StorageAdapterDataStore(origin);
         // The DataStore advertises its expiration via getExpiration() —
         // we set the value here so the cleanup sweep knows how stale

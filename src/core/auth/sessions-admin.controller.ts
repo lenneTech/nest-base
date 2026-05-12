@@ -206,7 +206,9 @@ export class SessionsAdminController {
       throw new NotFoundException("no matching sessions to revoke");
     }
     const now = Date.now();
-    const tenantId = req.user?.tenantId ?? "";
+    // Use "UNKNOWN" instead of "" so audit logs contain a diagnosable
+    // placeholder when tenantId is missing — easier to triage than empty string.
+    const tenantId = req.user?.tenantId ?? "UNKNOWN";
     for (const sessionId of plan.sessionIds) {
       await this.storage.revokeSession(sessionId);
       await this.audit.emit({

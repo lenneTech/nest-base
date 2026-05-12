@@ -159,7 +159,8 @@ describe("Story · PrismaOutboxStorage", () => {
 
     const prismaStorage = new PrismaOutboxStorage(prisma);
     const resetCount = await prismaStorage.resetStaleSentinels();
-    // At least the stale row must have been reset (others in the suite don't qualify).
+    // >= 1 because other parallel tests may also have stale sentinel rows;
+    // correctness is verified by per-row assertions below.
     expect(resetCount).toBeGreaterThanOrEqual(1);
 
     // Verify: stale row's processed_at is now NULL (re-enters dispatch queue).

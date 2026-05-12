@@ -29,7 +29,13 @@ class InMemoryOutboxStorage implements OutboxStorage {
     const batch = this.entries
       .filter((e) => !this.processed.has(e.id) && !this.inFlight.has(e.id))
       .slice(0, limit);
-    for (const e of batch) this.inFlight.add(e.id);
+    // Set claimedAt to mirror PrismaOutboxStorage — keeps both adapters
+    // symmetric so resetStaleSentinels logic works correctly in either impl.
+    const now = new Date();
+    for (const e of batch) {
+      e.claimedAt = now;
+      this.inFlight.add(e.id);
+    }
     return batch;
   }
   async markProcessed(id: string, _processedAt: Date): Promise<boolean> {

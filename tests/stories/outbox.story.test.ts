@@ -29,6 +29,12 @@ describe("Story · Outbox", () => {
       },
       async claimBatch(limit) {
         const batch = rows.filter((r) => r.processedAt === null).slice(0, limit);
+        // Set claimedAt to mirror the OutboxEntry interface and keep the
+        // test stub symmetric with InMemoryOutboxStorage / PrismaOutboxStorage.
+        const now = new Date();
+        for (const e of batch) {
+          e.claimedAt = now;
+        }
         return batch;
       },
       async markProcessed(id, processedAt) {

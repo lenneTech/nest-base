@@ -37,11 +37,10 @@ export class OutboxWorker {
     const batch = await this.storage.claimBatch(this.options.batchSize);
     if (batch.length === 0) return 0;
 
-    // Record the claim time ONCE before the dispatch loop so every entry in
-    // this batch shares the same `processed_at` timestamp. Using dispatch-
-    // completion time (new Date() inside the loop) would give a variable,
-    // network-I/O-dependent value that is semantically meaningless (L1 fix).
-    const claimedAt = new Date();
+    // Snapshot the completion timestamp once so all entries in this batch
+    // share the same processed_at value — avoids per-entry drift from
+    // dispatch I/O latency.
+    const processedAt = new Date();
     let processedCount = 0;
     for (const entry of batch) {
       const results = await Promise.all(
@@ -61,7 +60,7 @@ export class OutboxWorker {
 
       const allOk = results.every((r) => r.ok);
       if (allOk) {
-        await this.storage.markProcessed(entry.id, claimedAt);
+        await this.storage.markProcessed(entry.id, processedAt);
         processedCount++;
       }
     }
