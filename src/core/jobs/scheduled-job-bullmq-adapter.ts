@@ -1,4 +1,10 @@
-import { Inject, Injectable, Logger, type OnApplicationBootstrap, type OnModuleDestroy } from "@nestjs/common";
+import {
+  Inject,
+  Injectable,
+  Logger,
+  type OnApplicationBootstrap,
+  type OnModuleDestroy,
+} from "@nestjs/common";
 
 import { JobQueueService } from "./jobs.module.js";
 import { SCHEDULED_JOB_REGISTRY, type ScheduledJobRegistry } from "./scheduled-job.registry.js";

@@ -126,7 +126,9 @@ export class SessionsAdminController {
    */
   @Can("delete", "Session")
   @Get("list.json")
-  async sessionsListJson(@Req() req: AuthedRequest): Promise<{ sessions: readonly SessionRecord[] }> {
+  async sessionsListJson(
+    @Req() req: AuthedRequest,
+  ): Promise<{ sessions: readonly SessionRecord[] }> {
     // Scope to the requesting admin's tenant so cross-tenant session
     // enumeration is impossible (H3 fix).
     const sessions = await this.storage.listAllSessions(req.user?.tenantId);

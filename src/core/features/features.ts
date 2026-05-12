@@ -386,9 +386,7 @@ export function validateFeatureDependencies(features: Features, ctx: ValidationC
   // SMTP provider requires a host — fail fast rather than discovering
   // the misconfiguration at the first email send attempt (L5 fix).
   if (features.email.enabled && features.email.provider === "smtp" && !process.env.EMAIL_HOST) {
-    throw new Error(
-      "feature `email` with provider=smtp requires EMAIL_HOST to be set",
-    );
+    throw new Error("feature `email` with provider=smtp requires EMAIL_HOST to be set");
   }
 }
 
