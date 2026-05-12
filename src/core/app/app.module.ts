@@ -187,27 +187,30 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     ...conditionalImport(features, "observability", MetricsModule),
     // Throttler with multi-window defaults: short burst (10s/100req) +
     // sustained (1m/300req) + per-day cap. The Postgres-backed
-    // `PostgresThrottlerBackend` (iter-77) is wrapped in
-    // `PostgresThrottlerStore` and injected via `forRootAsync` so
-    // rate-limit windows persist across NestJS instances. The
-    // default in-memory storage was vulnerable to sticky-session
-    // sharding in horizontally-scaled deployments — the Postgres
-    // backend's atomic upsert closes that gap.
-    ThrottlerModule.forRootAsync({
-      inject: [PrismaService],
-      useFactory: (prisma: PrismaService) => ({
-        throttlers: [
-          { name: "short", ttl: 10_000, limit: 100 },
-          { name: "sustained", ttl: 60_000, limit: 300 },
-          { name: "daily", ttl: 24 * 60 * 60 * 1000, limit: 100_000 },
-        ],
-        storage: new PostgresThrottlerStore(new PostgresThrottlerBackend(prisma)),
-      }),
-    }),
+    // Rate limiting is gated behind the `rateLimit` feature flag so
+    // local development / test environments can opt out of the Postgres
+    // throttle store without schema migrations. ThrottlerModule,
+    // RateLimitAdminModule, ThrottlerCleanupCron, and the ThrottlerGuard
+    // APP_GUARD are all conditional on the same flag.
+    ...(features.rateLimit.enabled
+      ? [
+          ThrottlerModule.forRootAsync({
+            inject: [PrismaService],
+            useFactory: (prisma: PrismaService) => ({
+              throttlers: [
+                { name: "short", ttl: 10_000, limit: 100 },
+                { name: "sustained", ttl: 60_000, limit: 300 },
+                { name: "daily", ttl: 24 * 60 * 60 * 1000, limit: 100_000 },
+              ],
+              storage: new PostgresThrottlerStore(new PostgresThrottlerBackend(prisma)),
+            }),
+          }),
+        ]
+      : []),
     FilesModule,
     // Rate-limit admin: /admin/rate-limits inspector, config editor,
     // decision history, key reset, and allowlist management (issue #94).
-    RateLimitAdminModule,
+    ...(features.rateLimit.enabled ? [RateLimitAdminModule] : []),
     ...conditionalImport(features, "fieldEncryption", EncryptionModule.forRoot()),
     // Example project-owned module — copy this folder + the test file
     // to scaffold a new resource. Drop the import once you have your
@@ -223,11 +226,9 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     RequestContextMiddleware,
     BetterAuthSessionMiddleware,
     // Iter-198: hourly cleanup of stale `throttler_records` rows —
-    // closes the iter-77 migration's documented promise (the
-    // migration shipped the matching `throttler_records_expires_at_idx`
-    // index but no cron was wired). 1-day retention buffer keeps
-    // recent rate-limit windows for short-term operator debugging.
-    ThrottlerCleanupCron,
+    // only wired when rate limiting is enabled so the cleanup job
+    // doesn't attempt DB operations against a non-existent table.
+    ...(features.rateLimit.enabled ? [ThrottlerCleanupCron] : []),
     // RFC 7807 Problem-Details exception filter — registered via
     // APP_FILTER so it activates for BOTH the production
     // `bootstrap()` chain AND tests booted through
@@ -238,7 +239,7 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     // so a `ZodError` raised inside a handler returned 500 instead
     // of 400 + CORE_VALIDATION (friction-log 2026-05-03).
     { provide: APP_FILTER, useClass: ProblemDetailsExceptionFilter },
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    ...(features.rateLimit.enabled ? [{ provide: APP_GUARD, useClass: ThrottlerGuard }] : []),
     { provide: APP_INTERCEPTOR, useClass: OutputPipelineInterceptor },
     ...(features.multiTenancy.enabled
       ? [{ provide: APP_INTERCEPTOR, useClass: TenantInterceptor }]

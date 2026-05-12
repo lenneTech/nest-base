@@ -119,13 +119,17 @@ export class PrismaEmailOutboxStorage implements EmailOutboxStorage {
     if (filter.status) {
       where.status = STATUS_DOMAIN_TO_DB[filter.status as EmailOutboxStatus] ?? filter.status;
     }
-    if (filter.recipient) {
+    if (filter.recipient && filter.template) {
+      // Both filters are active — compose them with AND so neither is dropped.
+      // Prisma supports only one JSON path filter per `where` key, so we wrap
+      // each condition in an AND array to let Prisma apply both.
+      where.AND = [
+        { payload: { path: ["to"], string_contains: filter.recipient } },
+        { payload: { path: ["template"], equals: filter.template } },
+      ];
+    } else if (filter.recipient) {
       where.payload = { path: ["to"], string_contains: filter.recipient };
-    }
-    if (filter.template) {
-      // Prisma JSON path filter for the `template` field inside the payload object.
-      // We replace the recipient filter here because Prisma can only apply one JSON
-      // path filter per `where` key — template takes priority when both are set.
+    } else if (filter.template) {
       where.payload = { path: ["template"], equals: filter.template };
     }
     if (filter.dateFrom || filter.dateTo) {

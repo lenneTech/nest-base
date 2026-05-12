@@ -308,7 +308,11 @@ export class BullMQJobQueue {
       if (this.started) q.start();
       return;
     }
-    void this.registerBullMQWorker(name, handler);
+    // Attach a rejection handler so startup errors propagate instead of
+    // being swallowed silently by a fire-and-forget void call.
+    this.registerBullMQWorker(name, handler).catch((err) => {
+      throw err;
+    });
   }
 
   /**

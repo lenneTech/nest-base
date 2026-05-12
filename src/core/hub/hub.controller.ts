@@ -99,9 +99,14 @@ export class HubController {
 }
 
 function setHubSessionCookie(res: Response, token: string, maxAgeMs: number): void {
+  // Mirror bootstrap.ts: secure in any environment except development/test
+  // so staging deployments (behind HTTPS) also receive the secure flag.
+  // Operators can override by setting HUB_COOKIE_SECURE=false.
+  const isSecure =
+    process.env.HUB_COOKIE_SECURE !== "false" && process.env.NODE_ENV !== "development";
   res.cookie(HUB_COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: isSecure,
     sameSite: "lax",
     maxAge: maxAgeMs,
     path: "/",

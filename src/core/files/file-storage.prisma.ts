@@ -16,10 +16,13 @@
  */
 
 import type { File, Folder } from "@prisma/client";
+import { Logger } from "@nestjs/common";
 
 import type { PrismaService } from "../prisma/prisma.service.js";
 import type { FileRecord, FileServiceStorage } from "./file.service.js";
 import type { FolderRecord, FolderStorage } from "./folder.service.js";
+
+const logger = new Logger("FileStoragePrisma");
 
 // ── File ──
 
@@ -86,7 +89,8 @@ export class PrismaFileStorage implements FileServiceStorage {
       );
       if (!row || row.deletedAt) return null;
       return this.fromRow(row);
-    } catch {
+    } catch (err) {
+      logger.error(`findById(${id}) for tenant ${tenantId} failed: ${err}`);
       return null;
     }
   }
@@ -146,7 +150,8 @@ export class PrismaFileStorage implements FileServiceStorage {
       return await this.deps.runWithRlsTenant((tx) =>
         tx.file.findFirst({ where: { id } as Partial<File> }),
       );
-    } catch {
+    } catch (err) {
+      logger.error(`scanById(${id}) failed: ${err}`);
       return null;
     }
   }

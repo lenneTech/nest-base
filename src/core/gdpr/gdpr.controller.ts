@@ -3,6 +3,7 @@ import {
   Delete,
   ForbiddenException,
   Get,
+  InternalServerErrorException,
   NotFoundException,
   Param,
   Req,
@@ -183,7 +184,9 @@ export class GdprController {
     )) as Array<{ requested_at: Date }>;
     const row = inserted[0];
     if (!row) {
-      throw new Error("gdpr: failed to record pending erasure");
+      // DB INSERT returned no row — surface as 500 so the caller gets an
+      // HTTP error rather than an unhandled promise rejection.
+      throw new InternalServerErrorException("gdpr: failed to record pending erasure");
     }
     return row.requested_at;
   }

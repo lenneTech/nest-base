@@ -77,7 +77,15 @@ export class ScheduledJobBullMQAdapter implements OnApplicationBootstrap, OnModu
         }
       });
 
-      const intervalMs = parseCronToIntervalMs(entry.cron);
+      const parsedIntervalMs = parseCronToIntervalMs(entry.cron);
+      if (parsedIntervalMs === null) {
+        // Unrecognised cron — fall back to daily so the job still runs but
+        // the warning from parseCronToIntervalMs already surfaced the issue.
+        this.log.warn(
+          `unrecognised cron "${entry.cron}" for job "${entry.name}"; defaulting to 24h interval`,
+        );
+      }
+      const intervalMs = parsedIntervalMs ?? 24 * 60 * 60 * 1000;
       this.log.log(
         `wiring "${entry.name}" (${entry.source}) cron="${entry.cron}" → interval=${intervalMs}ms`,
       );
@@ -132,8 +140,9 @@ export class ScheduledJobBullMQAdapter implements OnApplicationBootstrap, OnModu
  *   "M H * * *" where M and H are integers (daily at HH:MM UTC).
  *   "0 * * * *" (hourly) → 1 hour interval.
  *
- * Returns `24 * 60 * 60 * 1000` (daily) for unrecognised patterns so
- * unrecognised crons fail safe rather than running at zero interval.
+ * Returns `null` for unrecognised patterns so the caller can decide how
+ * to handle an unsupported expression (log, skip, or apply a safe default).
+ * A warning is emitted for visibility before returning null.
  *
  * **Wall-clock alignment caveat (M1 fix):** This function derives only
  * the period (e.g. `0 * * * *` → 3600 s). The resulting `setInterval`
@@ -142,9 +151,14 @@ export class ScheduledJobBullMQAdapter implements OnApplicationBootstrap, OnModu
  * (e.g. "always at 04:00 UTC"), replace with BullMQ native repeat
  * patterns (requires direct `Queue` access and a Redis-backed scheduler).
  */
-export function parseCronToIntervalMs(cron: string): number {
+export function parseCronToIntervalMs(cron: string): number | null {
   const parts = cron.trim().split(/\s+/);
-  if (parts.length < 5) return 24 * 60 * 60 * 1000;
+  if (parts.length < 5) {
+    console.warn(
+      `[parseCronToIntervalMs] unrecognised cron expression (too few fields): "${cron}"`,
+    );
+    return null;
+  }
 
   const [minutePart, hourPart, dayPart, monthPart, weekPart] = parts;
 
@@ -172,6 +186,7 @@ export function parseCronToIntervalMs(cron: string): number {
     return 24 * 60 * 60 * 1000;
   }
 
-  // Default: daily
-  return 24 * 60 * 60 * 1000;
+  // Unrecognised — warn and let the caller decide.
+  console.warn(`[parseCronToIntervalMs] unrecognised cron expression: "${cron}"`);
+  return null;
 }

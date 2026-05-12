@@ -21,7 +21,7 @@ import { buildDevPortalShellInput, renderDevPortalShell } from "../dx/dev-portal
 import { planPrismaStudio } from "../dx/prisma-studio.js";
 import { buildScalarConfig } from "../dx/scalar-config.js";
 import { planStartupBanner } from "../dx/startup-banner.js";
-import { loadFeatures } from "../features/features.js";
+import { loadFeatures, validateFeatureDependencies } from "../features/features.js";
 import {
   buildSecurityHeadersConfig,
   isJsonShapedResponse,
@@ -527,6 +527,17 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   await app.init();
 
   if (listen) {
+    // Fail fast on incompatible feature combinations (e.g. webhooks without
+    // jobs, rate-limit disabled in production). Called after DI is fully
+    // initialised so all env vars are resolved.
+    try {
+      const bootFeatures = loadFeatures(process.env as Record<string, string | undefined>);
+      validateFeatureDependencies(bootFeatures, { env: cfg.env });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      process.stderr.write(`[bootstrap] feature validation failed: ${msg}\n`);
+      process.exit(1);
+    }
     await app.listen(cfg.port, cfg.host);
     if (cfg.env !== "production") {
       // Spawn Prisma Studio as a sibling process. The first dev start

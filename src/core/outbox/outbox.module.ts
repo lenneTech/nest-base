@@ -47,11 +47,26 @@ export class OutboxWorkerLifecycle implements OnModuleInit, OnModuleDestroy {
   constructor(
     @Inject(OUTBOX_STORAGE) storage: OutboxStorage,
     @Inject(OUTBOX_DISPATCHERS) dispatchers: OutboxDispatcher[],
+    private readonly recorder: OutboxRecorderProvider,
+    private readonly prismaStorage: PrismaOutboxStorage,
   ) {
     this.worker = new OutboxWorker(storage, dispatchers, { batchSize: 50 });
   }
 
   async onModuleInit(): Promise<void> {
+    // Seed nextSeq from the DB max(seq) so cross-restart seq collisions
+    // are prevented. Only meaningful when the Prisma adapter is active
+    // (DATABASE_URL set); the in-memory adapter starts fresh each boot.
+    if (process.env.DATABASE_URL) {
+      try {
+        const max = await this.prismaStorage.maxSeq();
+        this.recorder.initSeq(max + 1);
+      } catch (err) {
+        // Non-fatal: seq may collide on rare restart during heavy load,
+        // but dispatch ordering degrades gracefully (at-least-once still holds).
+        this.logger.warn(`outbox: failed to seed nextSeq from DB: ${err}`);
+      }
+    }
     // 1s setInterval for single-process deployments. For multi-replica
     // deployments, upgrade to a distributed lock / BullMQ repeatable
     // job so only one replica dispatches per tick.

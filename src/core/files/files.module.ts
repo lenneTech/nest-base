@@ -155,7 +155,7 @@ class FileController {
   @Public("HMAC-signed share link — token is the auth, file metadata is the response")
   @Get("share/:token")
   async fetchByShareToken(@Param("token") token: string): Promise<FileRecord> {
-    const secret = process.env.FILE_SHARE_LINK_SECRET ?? "dev-share-link-secret";
+    const secret = resolveShareLinkSecret();
     let verified;
     try {
       verified = verifyShareLink({ token, secret, nowMs: Date.now() });
@@ -310,7 +310,7 @@ class FileController {
     const ttlInput = body && typeof body.ttlSeconds === "number" ? body.ttlSeconds : 86_400;
     const ttlSeconds = Math.min(Math.max(60, Math.floor(ttlInput)), 7 * 86_400);
     const expiresAtMs = Date.now() + ttlSeconds * 1000;
-    const secret = process.env.FILE_SHARE_LINK_SECRET ?? "dev-share-link-secret";
+    const secret = resolveShareLinkSecret();
     // The output-pipeline scrubs fields named `token` — call ours
     // `shareToken` so the value rides through untouched.
     const shareToken = signShareLink({
@@ -384,6 +384,27 @@ class FolderController {
  * agnostic. Per-request tenant scoping rides on the metadata
  * tier (PrismaFileStorage runs through `runWithRlsTenant`).
  */
+/**
+ * Resolve the HMAC secret for share-link signing / verification.
+ *
+ * In production, a missing or short secret (< 32 chars) is a misconfiguration
+ * that would silently weaken the HMAC — fail loudly instead. In dev/test the
+ * "dev-share-link-secret" fallback keeps the workflow friction-free.
+ */
+function resolveShareLinkSecret(): string {
+  const secret = process.env.FILE_SHARE_LINK_SECRET ?? "dev-share-link-secret";
+  if (
+    process.env.NODE_ENV === "production" &&
+    (process.env.FILE_SHARE_LINK_SECRET === undefined ||
+      process.env.FILE_SHARE_LINK_SECRET.length < 32)
+  ) {
+    throw new Error(
+      "FILE_SHARE_LINK_SECRET must be set to a random string of at least 32 characters in production",
+    );
+  }
+  return secret;
+}
+
 async function buildOriginAdapter(
   driver: StorageDriver,
   env: StorageFactoryEnv,

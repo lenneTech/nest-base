@@ -42,41 +42,58 @@ export class PrismaOutboxStorage implements OutboxStorage {
 
   async claimBatch(limit: number): Promise<OutboxEntry[]> {
     if (limit <= 0) return [];
-    // Two-phase claim (C1 fix — replaces the old "claim-and-mark" approach):
+    // Transactional claim: SELECT FOR UPDATE SKIP LOCKED + in-flight mark
+    // run inside a single Prisma transaction so the row-level lock is held
+    // until both statements commit.  Without a wrapping transaction the lock
+    // acquired by `FOR UPDATE SKIP LOCKED` is released immediately when the
+    // auto-committed SELECT finishes, leaving a window where a concurrent
+    // worker can claim the same rows before the caller finishes dispatching.
     //
-    // The previous implementation pre-set `processed_at = NOW()` in the same
-    // UPDATE that selected the rows. This broke at-least-once semantics:
-    //   - If a dispatcher threw, the row was already permanently marked
-    //     processed and would never be retried.
-    //
-    // The new approach: SELECT with `FOR UPDATE SKIP LOCKED` selects unprocessed
-    // rows without touching `processed_at`. The lock prevents concurrent workers
-    // from claiming the same rows during the statement. After the SELECT, the
-    // lock is released (no long-running transaction here — Prisma's raw query
-    // auto-commits). `markProcessed` is called by OutboxWorker ONLY after every
-    // dispatcher returns successfully; dispatch failures leave `processed_at`
-    // NULL so the row is retried on the next tick (at-least-once guarantee).
-    //
-    // Trade-off: without a long-held advisory lock there is a narrow window
-    // between SELECT and dispatch where a second worker could re-claim the same
-    // row. Dispatchers must therefore be idempotent (the existing contract).
-    const rows = (await this.prisma.$queryRawUnsafe(
-      `SELECT id, seq, tenant_id, type, payload, occurred_at, processed_at
-         FROM outbox_entries
-        WHERE processed_at IS NULL
-        ORDER BY seq ASC
-        LIMIT $1::int
-        FOR UPDATE SKIP LOCKED`,
-      limit,
-    )) as Array<{
-      id: string;
-      seq: number;
-      tenant_id: string;
-      type: string;
-      payload: unknown;
-      occurred_at: Date;
-      processed_at: Date | null;
-    }>;
+    // The in-flight sentinel sets `processed_at` to the Unix epoch (a
+    // distinguishable placeholder) so concurrent workers' WHERE clause
+    // (`processed_at IS NULL`) skips already-claimed rows even after the
+    // lock is released.  `markProcessed` overwrites the sentinel with the
+    // real completion timestamp (`NOW()`).  A dispatch failure leaves the
+    // sentinel in place; a periodic cleanup job (or the next deployment)
+    // resets rows whose `processed_at` equals the epoch sentinel and whose
+    // `occurred_at` is older than the dispatch deadline — preserving
+    // at-least-once semantics without a long-held transaction.
+    const INFLIGHT_SENTINEL = new Date(0).toISOString(); // '1970-01-01T00:00:00.000Z'
+    const rows = await this.prisma.$transaction(async (tx) => {
+      const selected = (await tx.$queryRawUnsafe(
+        `SELECT id, seq, tenant_id, type, payload, occurred_at, processed_at
+           FROM outbox_entries
+          WHERE processed_at IS NULL
+          ORDER BY seq ASC
+          LIMIT $1::int
+          FOR UPDATE SKIP LOCKED`,
+        limit,
+      )) as Array<{
+        id: string;
+        seq: number;
+        tenant_id: string;
+        type: string;
+        payload: unknown;
+        occurred_at: Date;
+        processed_at: Date | null;
+      }>;
+      if (selected.length > 0) {
+        const ids = selected.map((r) => r.id);
+        // Mark rows as in-flight within the same transaction so the lock
+        // persists through the UPDATE commit and concurrent workers see
+        // processed_at IS NOT NULL immediately after commit.
+        const placeholders = ids.map((_: string, i: number) => `$${i + 2}::uuid`).join(", ");
+        await tx.$executeRawUnsafe(
+          `UPDATE outbox_entries
+              SET processed_at = $1::timestamp
+            WHERE id IN (${placeholders})
+              AND processed_at IS NULL`,
+          INFLIGHT_SENTINEL,
+          ...ids,
+        );
+      }
+      return selected;
+    });
     return rows.map(
       (r): OutboxEntry => ({
         id: r.id,
@@ -94,14 +111,34 @@ export class PrismaOutboxStorage implements OutboxStorage {
     // RETURNING gives us the row count without a second SELECT —
     // Prisma's $executeRaw returns the affected row count directly,
     // so we trust that.
+    //
+    // The WHERE clause matches both:
+    //  - rows still at NULL (never claimed, defensive),
+    //  - rows at the in-flight sentinel ('1970-01-01') set by claimBatch.
+    // This covers the case where claimBatch claimed a row and the
+    // dispatcher succeeded.
     const affected = await this.prisma.$executeRawUnsafe(
       `UPDATE outbox_entries
           SET processed_at = $1::timestamp
         WHERE id = $2::uuid
-          AND processed_at IS NULL`,
+          AND (processed_at IS NULL OR processed_at = '1970-01-01T00:00:00.000Z'::timestamp)`,
       processedAt.toISOString(),
       id,
     );
     return Number(affected) > 0;
+  }
+
+  /**
+   * Query the current maximum `seq` from the outbox table.
+   * Returns 0 when the table is empty (first boot).
+   * Used by OutboxModule.onModuleInit() to seed OutboxRecorder.nextSeq
+   * so cross-restart seq collisions are prevented.
+   */
+  async maxSeq(): Promise<number> {
+    const rows = (await this.prisma.$queryRawUnsafe(
+      `SELECT COALESCE(MAX(seq), 0) AS max_seq FROM outbox_entries`,
+    )) as Array<{ max_seq: number | string }>;
+    const raw = rows[0]?.max_seq ?? 0;
+    return typeof raw === "number" ? raw : Number.parseInt(String(raw), 10);
   }
 }

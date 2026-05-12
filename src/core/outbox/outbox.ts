@@ -35,17 +35,23 @@ export interface RecordInput {
 }
 
 export class OutboxRecorder {
-  // TODO(seq): initialize from DB max(seq) at startup to prevent cross-restart
-  // duplicates. In production (Prisma-backed OutboxStorage) restarts reset
-  // nextSeq to 1, which can produce duplicate seq values if pre-restart rows
-  // are still unprocessed. Fix: OutboxModule.onModuleInit() should query
-  // MAX(seq) from outbox_entries and call recorder.initSeq(maxSeq + 1).
-  // The claimBatch ordering (ORDER BY seq ASC) remains correct because
-  // processed_at IS NULL filters already-dispatched rows, but seq collisions
-  // across restarts can reorder otherwise-equal-timestamp entries unexpectedly.
+  // Monotonic counter — initialized to 1 and bootstrapped from DB max(seq)
+  // on startup by OutboxModule.onModuleInit() so seq values don't collide
+  // across process restarts (seq ordering governs dispatch order).
   private nextSeq = 1;
 
   constructor(private readonly storage: OutboxStorage) {}
+
+  /**
+   * Seed the next sequence number from the DB max(seq) on startup.
+   * Called by OutboxModule.onModuleInit() after querying MAX(seq) from
+   * outbox_entries so cross-restart seq collisions are prevented.
+   */
+  initSeq(next: number): void {
+    if (next > this.nextSeq) {
+      this.nextSeq = next;
+    }
+  }
 
   async record(input: RecordInput): Promise<OutboxEntry> {
     if (!input.type) throw new Error("outbox: type is required");
