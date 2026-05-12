@@ -157,7 +157,7 @@ describe("Story · PrismaApiKeyStorage delegates to prisma.apiKey (iter-171)", (
     const { prisma } = fakePrisma();
     const storage = new PrismaApiKeyStorage(prisma);
     // No insert — update should not throw.
-    await expect(storage.updateLastUsed("missing", new Date())).resolves.toBeUndefined();
+    await expect(storage.updateLastUsed("missing", new Date())).resolves.toBe(false);
   });
 
   it("rotate replaces lookupId + hash, returns updated record", async () => {

@@ -184,23 +184,27 @@ describe("Story · Feature-Flag-System", () => {
       expect(() => validateFeatureDependencies(features, { env: "development" })).not.toThrow();
     });
 
-    it("L5 fix: throws when email.provider=smtp and EMAIL_HOST is not set", () => {
+    it("L5 fix: throws when email.provider=smtp and EMAIL_HOST is not set in production", () => {
       const savedEmailHost = process.env.EMAIL_HOST;
       delete process.env.EMAIL_HOST;
       try {
         const features = FeaturesSchema.parse({ email: { enabled: true, provider: "smtp" } });
-        expect(() => validateFeatureDependencies(features)).toThrow(/EMAIL_HOST/i);
+        // The EMAIL_HOST check is production-only — matching the rateLimit pattern —
+        // so that the default smtp config does not break test / dev boots.
+        expect(() => validateFeatureDependencies(features, { env: "production" })).toThrow(
+          /EMAIL_HOST/i,
+        );
       } finally {
         if (savedEmailHost !== undefined) process.env.EMAIL_HOST = savedEmailHost;
       }
     });
 
-    it("L5 fix: passes when email.provider=smtp and EMAIL_HOST is set", () => {
+    it("L5 fix: passes when email.provider=smtp and EMAIL_HOST is set in production", () => {
       const savedEmailHost = process.env.EMAIL_HOST;
       process.env.EMAIL_HOST = "smtp.example.com";
       try {
         const features = FeaturesSchema.parse({ email: { enabled: true, provider: "smtp" } });
-        expect(() => validateFeatureDependencies(features)).not.toThrow();
+        expect(() => validateFeatureDependencies(features, { env: "production" })).not.toThrow();
       } finally {
         if (savedEmailHost !== undefined) {
           process.env.EMAIL_HOST = savedEmailHost;
@@ -210,12 +214,12 @@ describe("Story · Feature-Flag-System", () => {
       }
     });
 
-    it("L5 fix: does not throw when email is disabled even without EMAIL_HOST", () => {
+    it("L5 fix: does not throw when email is disabled even without EMAIL_HOST in production", () => {
       const savedEmailHost = process.env.EMAIL_HOST;
       delete process.env.EMAIL_HOST;
       try {
         const features = FeaturesSchema.parse({ email: { enabled: false } });
-        expect(() => validateFeatureDependencies(features)).not.toThrow();
+        expect(() => validateFeatureDependencies(features, { env: "production" })).not.toThrow();
       } finally {
         if (savedEmailHost !== undefined) process.env.EMAIL_HOST = savedEmailHost;
       }

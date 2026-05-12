@@ -6,12 +6,12 @@ import {
   type OnModuleDestroy,
 } from "@nestjs/common";
 
-import { JobQueueService } from "./jobs.module.js";
+import { BullMQJobQueue } from "./bullmq-job-queue.js";
 import { SCHEDULED_JOB_REGISTRY, type ScheduledJobRegistry } from "./scheduled-job.registry.js";
 
 /**
  * `ScheduledJobBullMQAdapter` — wires every `@ScheduledJob`-decorated
- * method in the app to the `JobQueueService` (BullMQ) at bootstrap.
+ * method in the app to the `BullMQJobQueue` (via `JobQueueService`) at bootstrap.
  *
  * Why this exists (C1 fix):
  *   - `DiscoveryScheduledJobRegistry` discovers `@ScheduledJob` methods
@@ -22,7 +22,7 @@ import { SCHEDULED_JOB_REGISTRY, type ScheduledJobRegistry } from "./scheduled-j
  *
  * Scheduling strategy — `setInterval` approximation:
  *   BullMQ `repeat` jobs require direct `Queue` object access and a
- *   Redis-backed scheduler process. Our `JobQueueService` wrapper
+ *   Redis-backed scheduler process. The `BullMQJobQueue` base class
  *   exposes `register(name, handler)` + `enqueue(name, payload)` but
  *   not the repeat options. Rather than exposing BullMQ internals,
  *   we schedule via `setInterval` and enqueue a one-shot job on each
@@ -38,7 +38,7 @@ import { SCHEDULED_JOB_REGISTRY, type ScheduledJobRegistry } from "./scheduled-j
  *   (e.g. `cron-parser`) can replace this if non-daily schedules are
  *   needed in the future.
  *
- * Registers `JobQueueService` handler + schedules recurring enqueues
+ * Registers `BullMQJobQueue` handler + schedules recurring enqueues
  * via `setInterval`. The FIRST enqueue fires after one full interval
  * (not at boot). Use a dedicated seeding mechanism or a one-shot enqueue
  * call in project bootstrap if you need "run immediately on restart"
@@ -51,7 +51,7 @@ export class ScheduledJobBullMQAdapter implements OnApplicationBootstrap, OnModu
   private readonly timers: ReturnType<typeof setInterval>[] = [];
 
   constructor(
-    private readonly queue: JobQueueService,
+    private readonly queue: BullMQJobQueue,
     @Inject(SCHEDULED_JOB_REGISTRY) private readonly registry: ScheduledJobRegistry,
   ) {}
 

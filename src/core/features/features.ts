@@ -383,9 +383,17 @@ export function validateFeatureDependencies(features: Features, ctx: ValidationC
   if (ctx.env === "production" && !features.rateLimit.enabled) {
     throw new Error("feature `rateLimit` must stay enabled in production");
   }
-  // SMTP provider requires a host — fail fast rather than discovering
-  // the misconfiguration at the first email send attempt (L5 fix).
-  if (features.email.enabled && features.email.provider === "smtp" && !process.env.EMAIL_HOST) {
+  // SMTP provider requires a host in production — fail fast rather than
+  // discovering the misconfiguration at the first email send attempt (L5 fix).
+  // Only enforced in production so local dev / test environments without
+  // EMAIL_HOST continue to boot (the default email provider is smtp, so
+  // enforcing this unconditionally would break the default config in tests).
+  if (
+    ctx.env === "production" &&
+    features.email.enabled &&
+    features.email.provider === "smtp" &&
+    !process.env.EMAIL_HOST
+  ) {
     throw new Error("feature `email` with provider=smtp requires EMAIL_HOST to be set");
   }
 }
