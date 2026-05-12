@@ -42,23 +42,31 @@ export class PrismaOutboxStorage implements OutboxStorage {
 
   async claimBatch(limit: number): Promise<OutboxEntry[]> {
     if (limit <= 0) return [];
-    // Atomic claim-and-mark in one round-trip: the CTE selects unprocessed
-    // rows with `FOR UPDATE SKIP LOCKED` so concurrent workers claim
-    // disjoint sets (no double-dispatch). The outer UPDATE marks them
-    // processed in the same statement and returns the claimed rows
-    // (C3 fix — replaces a plain SELECT that had no row-level lock).
+    // Two-phase claim (C1 fix — replaces the old "claim-and-mark" approach):
+    //
+    // The previous implementation pre-set `processed_at = NOW()` in the same
+    // UPDATE that selected the rows. This broke at-least-once semantics:
+    //   - If a dispatcher threw, the row was already permanently marked
+    //     processed and would never be retried.
+    //
+    // The new approach: SELECT with `FOR UPDATE SKIP LOCKED` selects unprocessed
+    // rows without touching `processed_at`. The lock prevents concurrent workers
+    // from claiming the same rows during the statement. After the SELECT, the
+    // lock is released (no long-running transaction here — Prisma's raw query
+    // auto-commits). `markProcessed` is called by OutboxWorker ONLY after every
+    // dispatcher returns successfully; dispatch failures leave `processed_at`
+    // NULL so the row is retried on the next tick (at-least-once guarantee).
+    //
+    // Trade-off: without a long-held advisory lock there is a narrow window
+    // between SELECT and dispatch where a second worker could re-claim the same
+    // row. Dispatchers must therefore be idempotent (the existing contract).
     const rows = (await this.prisma.$queryRawUnsafe(
-      `UPDATE outbox_entries
-          SET processed_at = NOW()
-        WHERE id IN (
-          SELECT id
-            FROM outbox_entries
-           WHERE processed_at IS NULL
-           ORDER BY seq ASC
-           LIMIT $1::int
-           FOR UPDATE SKIP LOCKED
-        )
-        RETURNING id, seq, tenant_id, type, payload, occurred_at, processed_at`,
+      `SELECT id, seq, tenant_id, type, payload, occurred_at, processed_at
+         FROM outbox_entries
+        WHERE processed_at IS NULL
+        ORDER BY seq ASC
+        LIMIT $1::int
+        FOR UPDATE SKIP LOCKED`,
       limit,
     )) as Array<{
       id: string;
