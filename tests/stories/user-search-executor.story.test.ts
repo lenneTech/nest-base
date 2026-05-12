@@ -6,6 +6,7 @@ import { SEARCH_EXECUTORS } from "../../src/core/search/search.service.js";
 import {
   PrismaUserSearchExecutor,
   buildUserSearchSql,
+  sanitizeHighlight,
 } from "../../src/core/search/user-search.executor.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
@@ -48,6 +49,38 @@ describe("Story · PrismaUserSearchExecutor", () => {
       expect(sql).toMatch(/to_tsvector/);
       expect(sql).toMatch(/email/);
       expect(sql).toMatch(/name/);
+    });
+  });
+
+  describe("M2 fix: sanitizeHighlight — ts_headline XSS prevention", () => {
+    it("passes plain text through unchanged (no special chars)", () => {
+      expect(sanitizeHighlight("hello world")).toBe("hello world");
+    });
+
+    it("preserves <b>...</b> highlight markers from ts_headline", () => {
+      expect(sanitizeHighlight("<b>alice</b>@example.com")).toBe("<b>alice</b>@example.com");
+    });
+
+    it("escapes < > & \" ' in user-controlled content", () => {
+      const xss = '<script>alert("xss")</script>';
+      const safe = sanitizeHighlight(xss);
+      expect(safe).not.toContain("<script>");
+      expect(safe).toContain("&lt;script&gt;");
+    });
+
+    it("allows ts_headline <b> tags but escapes other HTML", () => {
+      // Simulate ts_headline output: user name contains < > but the match is wrapped in <b>
+      const raw = "<b>ali</b>ce <evil>";
+      const safe = sanitizeHighlight(raw);
+      expect(safe).toContain("<b>ali</b>ce");
+      expect(safe).toContain("&lt;evil&gt;");
+      expect(safe).not.toContain("<evil>");
+    });
+
+    it("escapes ampersands to prevent double-encoding attacks", () => {
+      const raw = "me &amp; you";
+      const safe = sanitizeHighlight(raw);
+      expect(safe).toBe("me &amp;amp; you");
     });
   });
 

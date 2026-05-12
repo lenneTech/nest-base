@@ -50,6 +50,35 @@ export function buildUserSearchSql(input: BuildUserSearchSqlInput): string {
   `;
 }
 
+/**
+ * Escape a raw string so it is safe to embed in HTML.
+ * The standard 5-character table: & < > " '
+ */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
+ * Sanitise a `ts_headline` output string for safe HTML rendering.
+ *
+ * Strategy:
+ *   1. HTML-escape the entire string (neutralises user-controlled content).
+ *   2. Un-escape ONLY the `<b>` / `</b>` pairs that `ts_headline` inserts
+ *      as highlight markers, leaving every other character entity intact.
+ *
+ * This preserves the bold-highlight visual while preventing stored XSS
+ * in any renderer that trusts the highlight string (M2 fix).
+ */
+export function sanitizeHighlight(raw: string): string {
+  const escaped = escapeHtml(raw);
+  return escaped.replace(/&lt;b&gt;/g, "<b>").replace(/&lt;\/b&gt;/g, "</b>");
+}
+
 @Injectable()
 export class PrismaUserSearchExecutor implements ResourceSearchExecutor {
   readonly table = "users";
@@ -69,7 +98,12 @@ export class PrismaUserSearchExecutor implements ResourceSearchExecutor {
         resource: "users",
         id: row.id,
         rank: typeof row.rank === "number" ? row.rank : Number.parseFloat(String(row.rank)),
-        highlight: row.highlight,
+        // Sanitise the ts_headline output before it reaches any renderer.
+        // `ts_headline` wraps match tokens in `<b>…</b>` — those tags are the
+        // ONLY HTML we want to pass through. All other characters (including
+        // user-controlled email / name content) are escaped to prevent stored
+        // XSS in the dev-hub Search Tester (M2 fix).
+        highlight: sanitizeHighlight(row.highlight),
       }),
     );
   }
