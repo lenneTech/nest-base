@@ -288,9 +288,14 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
         }
 
         if (result.refreshedToken) {
+          // Mark secure in any non-development/test environment so staging
+          // deployments also get the secure flag — they share the same HTTPS
+          // setup as production (M5 fix).
+          const isSecureEnv =
+            process.env.NODE_ENV !== "development" && process.env.NODE_ENV !== "test";
           res.cookie(HUB_COOKIE_NAME, result.refreshedToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
+            secure: isSecureEnv,
             sameSite: "lax",
             maxAge: authCfg.cookie.maxAgeMs,
             path: "/",
