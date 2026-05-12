@@ -318,11 +318,16 @@ export class BullMQJobQueue {
     if (!this.redis) {
       const q = this.getOrCreateInProcessQueue(name);
       const job = await q.add("run", payload);
-      return job.id!;
+      // Guard against the (theoretically impossible) case where the
+      // in-process queue returns no id — fail loudly rather than
+      // propagating undefined to callers (M6 fix).
+      if (!job.id) throw new Error(`BullMQ job enqueue returned no id for queue "${name}"`);
+      return job.id;
     }
     const queue = await this.getOrCreateBullMQQueue(name);
     const job = await queue.add("run", payload);
-    return job.id!;
+    if (!job.id) throw new Error(`BullMQ job enqueue returned no id for queue "${name}"`);
+    return job.id;
   }
 
   /**
@@ -386,7 +391,8 @@ export class BullMQJobQueue {
       const q = this.getOrCreateInProcessQueue(record.name);
       if (this.started) q.start();
       const job = await q.add("run", record.payload, { attemptsMade: record.attempt });
-      return job.id!;
+      if (!job.id) throw new Error(`BullMQ job retry returned no id for queue "${record.name}"`);
+      return job.id;
     }
     return this.enqueue(record.name, record.payload);
   }
