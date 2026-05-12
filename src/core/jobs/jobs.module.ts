@@ -10,6 +10,7 @@ import { DiscoveryModule } from "@nestjs/core";
 
 import { BullMQJobQueue, type RedisDuplex } from "./bullmq-job-queue.js";
 import { DiscoveryScheduledJobRegistry, SCHEDULED_JOB_REGISTRY } from "./scheduled-job.registry.js";
+import { ScheduledJobBullMQAdapter } from "./scheduled-job-bullmq-adapter.js";
 
 export const BULLMQ_REDIS = Symbol.for("lt:BullMQRedis");
 
@@ -107,7 +108,10 @@ export class JobQueueService extends BullMQJobQueue implements OnModuleInit, OnM
       provide: BULLMQ_REDIS,
       useFactory: () => resolveBullMQRedis(),
     },
+    // Wires every @ScheduledJob-decorated method to the BullMQ queue
+    // via setInterval-based scheduling at OnApplicationBootstrap (C1 fix).
+    ScheduledJobBullMQAdapter,
   ],
-  exports: [JobQueueService, SCHEDULED_JOB_REGISTRY],
+  exports: [JobQueueService, SCHEDULED_JOB_REGISTRY, ScheduledJobBullMQAdapter],
 })
 export class JobsModule {}

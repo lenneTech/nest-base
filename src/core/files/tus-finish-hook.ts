@@ -118,9 +118,14 @@ export function buildTusFinishHook(
 }
 
 function detectDriverName(adapter: object): string {
-  const name = (adapter as { constructor: { name: string } }).constructor.name;
-  if (name === "S3StorageAdapter") return "s3";
-  if (name === "LocalStorageAdapter") return "local";
-  if (name === "PostgresStorageAdapter") return "postgres";
+  // Prefer the stable `driverName` property over `constructor.name`
+  // (H3/L2 fix): constructor.name is mangled by minifiers in production
+  // builds, and was also missing "rustfs" as a distinct case. Each
+  // StorageAdapter implementation now declares `readonly driverName`.
+  const named = adapter as { driverName?: unknown };
+  if (typeof named.driverName === "string" && named.driverName.length > 0) {
+    return named.driverName;
+  }
+  // Fallback for adapters that haven't yet added driverName.
   return "memory";
 }

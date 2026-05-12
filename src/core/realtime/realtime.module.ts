@@ -25,6 +25,7 @@ import {
 import {
   type OnGatewayConnection,
   type OnGatewayDisconnect,
+  type OnGatewayInit,
   WebSocketGateway,
   WebSocketServer,
 } from "@nestjs/websockets";
@@ -36,6 +37,7 @@ import {
   type SocketConnectInput,
 } from "./inspector-state.js";
 import { maskPayload } from "./inspector-filter.js";
+import { ConfigService } from "../config/config.service.js";
 
 /**
  * Inspector event names emitted by the gateway through the
@@ -86,8 +88,12 @@ export class InspectorEvents extends EventEmitter {}
  * them without re-implementing the bookkeeping.
  */
 @Injectable()
-@WebSocketGateway({ cors: { origin: true } })
-export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect {
+// `cors: { origin: true }` reflects every origin — replaced by an
+// `afterInit` hook that reads allowed origins from ConfigService (H1 fix).
+// We keep a permissive default here only so the gateway can start; the
+// correct value is applied before any client can connect.
+@WebSocketGateway({ cors: { origin: false } })
+export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server;
 
@@ -96,7 +102,34 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   /** Bound socket-id → live socket reference, populated on real connections. */
   private readonly liveSockets = new Map<string, Socket>();
 
-  constructor(private readonly inspectorBus: InspectorEvents) {}
+  constructor(
+    private readonly inspectorBus: InspectorEvents,
+    private readonly configService: ConfigService,
+  ) {}
+
+  /**
+   * Apply the CORS config from `ConfigService` to the Socket.IO engine
+   * immediately after the server is initialised. The `@WebSocketGateway`
+   * decorator options are static (evaluated at decoration time), so we
+   * cannot read runtime config there — `afterInit` runs before any
+   * client can connect and is the correct hook (H1 fix).
+   */
+  afterInit(server: Server): void {
+    const corsConfig = this.configService.cors;
+    const allowedOrigins = corsConfig.allowedOrigins;
+    // Use an explicit list when configured; fall back to false (deny all)
+    // rather than reflecting every origin.
+    const origin =
+      allowedOrigins.length > 0
+        ? (requestOrigin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+            callback(null, allowedOrigins.includes(requestOrigin ?? ""));
+          }
+        : false;
+    server.engine.opts.cors = { origin, credentials: corsConfig.credentials };
+    this.logger.log(
+      `Socket.IO CORS configured: ${allowedOrigins.length > 0 ? allowedOrigins.join(", ") : "deny all"}`,
+    );
+  }
 
   handleConnection(client: Socket): void {
     this.liveSockets.set(client.id, client);

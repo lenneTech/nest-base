@@ -55,8 +55,9 @@ export class GdprErasureRunner {
   constructor(private readonly input: GdprErasureRunnerInput) {}
 
   /**
-   * Daily tick — pg-boss adapter wires this to the `gdprErasure`
-   * queue at module init via the `@ScheduledJob` metadata.
+   * Daily tick — `DiscoveryScheduledJobRegistry` discovers this method
+   * via `@ScheduledJob` metadata; `ScheduledJobBullMQAdapter` wires it
+   * to BullMQ at `OnApplicationBootstrap`.
    */
   @ScheduledJob({ name: "gdprErasure", cron: DAILY_CRON })
   async tick(): Promise<{ erased: number; stillInGrace: number; skipped: number }> {

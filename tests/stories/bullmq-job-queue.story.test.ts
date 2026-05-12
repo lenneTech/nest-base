@@ -176,3 +176,28 @@ describe("Story · BullMQ cron-repeat plan", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// 7. M1 fix: drain() returns promptly on a stopped queue with pending jobs
+// ---------------------------------------------------------------------------
+
+describe("Story · InProcessQueue.drain() returns when queue is stopped (M1 fix)", () => {
+  it("drain() resolves immediately when queue.stop() is called before drain()", async () => {
+    const { BullMQJobQueue } = await import("../../src/core/jobs/bullmq-job-queue.js");
+
+    const queue = new BullMQJobQueue(null); // null redis → in-process fallback
+    // Register a handler that never resolves — simulates a stuck job.
+    // Without the M1 fix, drain() would loop forever waiting for this.
+    queue.register("blocked", () => new Promise<void>(() => {}));
+    await queue.start();
+
+    // Stop the queue so running=false — no further processing
+    await queue.stop();
+
+    // Enqueue a job that won't be processed
+    await queue.enqueue("blocked", {});
+
+    // drain() must return rather than hanging forever
+    await expect(queue.drain()).resolves.toBeUndefined();
+  });
+});

@@ -108,7 +108,9 @@ class IdempotencyKeyInterceptor implements NestInterceptor {
         new IdempotencyService(store, { now: () => Date.now(), ttlMs: DEFAULT_TTL_MS }),
       inject: [IDEMPOTENCY_STORE],
     },
-    IdempotencyKeyInterceptor,
+    // APP_INTERCEPTOR binding creates the global instance — no plain
+    // provider needed; a second registration would create a duplicate
+    // instance and run the interceptor twice per request (H2 fix).
     { provide: APP_INTERCEPTOR, useClass: IdempotencyKeyInterceptor },
     // Iter-181: periodic prune of expired idempotency_records.
     // The `expiresAt` index from migration 20260506100000 makes the

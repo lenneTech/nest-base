@@ -33,6 +33,7 @@ interface MetadataSidecar {
 }
 
 export class LocalStorageAdapter implements StorageAdapter {
+  readonly driverName = "local";
   private readonly root: string;
   private readonly baseUrl: string;
 

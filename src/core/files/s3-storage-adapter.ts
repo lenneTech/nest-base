@@ -48,6 +48,7 @@ export interface S3StorageAdapterOptions {
 const DEFAULT_MAX_TTL_SECONDS = 3600;
 
 export class S3StorageAdapter implements StorageAdapter {
+  readonly driverName: string = "s3";
   private readonly maxTtlSeconds: number;
 
   constructor(

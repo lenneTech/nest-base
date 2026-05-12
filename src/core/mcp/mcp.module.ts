@@ -1,4 +1,4 @@
-import { Injectable, Module, type OnApplicationBootstrap } from "@nestjs/common";
+import { Inject, Injectable, Module, type OnApplicationBootstrap } from "@nestjs/common";
 import { DiscoveryModule, DiscoveryService, MetadataScanner } from "@nestjs/core";
 
 import { PrismaService } from "../prisma/prisma.service.js";
@@ -8,7 +8,7 @@ import {
   getMcpResourceMetadata,
   getMcpToolMetadata,
 } from "./mcp-decorators.js";
-import { McpServerModule as McpServer } from "./mcp-server.js";
+import { McpServerModule } from "./mcp-server.js";
 
 export const MCP_SERVER = Symbol.for("lt:McpServer");
 export const ROLE_COUNT_SOURCE = Symbol.for("lt:RoleCountSource");
@@ -36,6 +36,7 @@ class McpDiscoveryService implements OnApplicationBootstrap {
   constructor(
     private readonly discovery: DiscoveryService,
     private readonly scanner: MetadataScanner,
+    @Inject(MCP_SERVER) private readonly mcpServer: McpServerModule,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -59,7 +60,7 @@ class McpDiscoveryService implements OnApplicationBootstrap {
       if (hasAny) {
         // Hand off to the planner — it walks the prototype itself.
         try {
-          discoverMcpHandlers(server, instance);
+          discoverMcpHandlers(this.mcpServer, instance);
         } catch {
           /* duplicate registration — ignore */
         }
@@ -67,8 +68,6 @@ class McpDiscoveryService implements OnApplicationBootstrap {
     }
   }
 }
-
-const server = new McpServer({ name: "nest-server", version: "1.0.0" });
 
 /**
  * McpModule — wires the Model Context Protocol server with
@@ -81,7 +80,14 @@ const server = new McpServer({ name: "nest-server", version: "1.0.0" });
 @Module({
   imports: [DiscoveryModule],
   providers: [
-    { provide: MCP_SERVER, useValue: server },
+    {
+      // useFactory creates a fresh McpServerModule instance per DI
+      // context so that parallel TestingModule bootstraps in the test
+      // suite each get their own registry rather than accumulating
+      // tool registrations on a shared module-scope singleton (M2 fix).
+      provide: MCP_SERVER,
+      useFactory: (): McpServerModule => new McpServerModule({ name: "nest-server", version: "1.0.0" }),
+    },
     McpDiscoveryService,
     PrismaRoleCountSource,
     {

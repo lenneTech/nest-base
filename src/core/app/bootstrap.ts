@@ -40,6 +40,7 @@ import { runAutoMigrate } from "../setup/auto-migrate-runner.js";
 import { checkEnvPrerequisites, renderEnvBanner } from "../setup/env-prerequisites.js";
 import { buildHubAuthConfig } from "../hub/hub-auth-planner.js";
 import { HubSessionService } from "../hub/hub-session.service.js";
+import { ConfigService } from "../config/config.service.js";
 import { generateRequestId } from "../request-context/request-context.js";
 import {
   formatTraceparent,
@@ -146,6 +147,19 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
     app.useLogger(app.get(Logger));
   }
   app.disable("x-powered-by");
+
+  // CORS — wire the DI-resolved CorsConfig so that browser preflight
+  // requests get a proper `Access-Control-Allow-Origin` response.
+  // Without this call, `app.enableCors()` is never invoked and the
+  // config object from `ConfigService.cors` is silently ignored (C2 fix).
+  {
+    const corsConfig = app.get(ConfigService).cors;
+    app.enableCors({
+      origin: corsConfig.allowedOrigins.length > 0 ? corsConfig.allowedOrigins : false,
+      credentials: corsConfig.credentials,
+      maxAge: corsConfig.maxAgeSeconds,
+    });
+  }
 
   // Issue #83: all API endpoints live under `/api/*`. Paths excluded
   // from the prefix are those that intentionally sit at root level:

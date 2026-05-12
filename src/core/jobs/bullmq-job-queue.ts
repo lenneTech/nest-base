@@ -160,7 +160,10 @@ class InProcessQueue implements BullMQQueue {
   }
 
   async drain(): Promise<void> {
+    // If the queue is stopped, nothing will consume pendingIds — break
+    // immediately rather than busy-looping forever (M1 fix).
     while (this.pendingIds.length > 0) {
+      if (!this.running) break;
       await this.inFlight;
     }
   }
@@ -456,7 +459,18 @@ export class BullMQJobQueue {
     if (this.queues.has(name)) return this.queues.get(name)!;
     const { Queue } = await import("bullmq");
     const connection = this.redis!.duplicate();
-    const queue = new Queue(name, { connection: connection as never }) as unknown as BullMQQueue;
+    // removeOnComplete / removeOnFail keep Redis memory bounded by
+    // automatically pruning job records after completion or failure.
+    // Without these, BullMQ accumulates job records indefinitely in
+    // Redis — the `bullmq-cleanup-job-planner.ts` would otherwise need
+    // to be wired to a scheduled job to prune them (M4 fix).
+    const queue = new Queue(name, {
+      connection: connection as never,
+      defaultJobOptions: {
+        removeOnComplete: { count: 1000 },
+        removeOnFail: { count: 500 },
+      },
+    }) as unknown as BullMQQueue;
     this.queues.set(name, queue);
     return queue;
   }

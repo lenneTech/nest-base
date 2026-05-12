@@ -29,8 +29,15 @@ import {
 
 const noopRevokeStorage: SessionRevokeStorage = {
   listAllSessions: async () => [],
-  revokeSession: async () => {
-    // Projects wire the actual Better-Auth Prisma adapter here.
+  revokeSession: async (_sessionId: string) => {
+    // Fail loudly rather than silently swallowing the revoke request.
+    // A project that calls revokeSession without wiring a real storage
+    // adapter would otherwise appear to succeed while doing nothing —
+    // a silent security-critical no-op (M3 fix).
+    throw new Error(
+      "revokeSession: no SessionRevokeStorage bound — wire SESSION_REVOKE_STORAGE " +
+        "in your AppModule to a Better-Auth Prisma adapter or equivalent implementation.",
+    );
   },
 };
 

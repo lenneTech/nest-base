@@ -93,10 +93,16 @@ export class SessionsAdminController {
   ) {}
 
   /**
-   * `GET /admin/sessions` — Sessions admin SPA HTML shell. Iter-108
-   * adds the dev-portal page that visualises every session the
-   * Better-Auth Prisma adapter knows about, with single-revoke and
-   * bulk-by-user actions wired to the existing DELETE / POST routes.
+   * `GET /admin/sessions` — Sessions admin SPA HTML shell.
+   *
+   * `@Public()` here is intentional: the HTML shell is a static React
+   * SPA container that carries no sensitive data — it is equivalent to
+   * loading a static `.html` file. All data-bearing endpoints that
+   * follow (`sessionsListJson`, `revokeSingle`, `revokeBulkByUser`,
+   * `revokeOthers`) are individually gated by `@Can("delete",
+   * "Session")`. The same pattern is used by `/admin/users`,
+   * `/admin/realtime`, and all dev-hub shells (H4: confirmed
+   * intentional — security review 2026-05).
    */
   @Public("dev-portal SPA shell — every interactive payload below is gated separately")
   @Get()

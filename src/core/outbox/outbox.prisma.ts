@@ -42,12 +42,23 @@ export class PrismaOutboxStorage implements OutboxStorage {
 
   async claimBatch(limit: number): Promise<OutboxEntry[]> {
     if (limit <= 0) return [];
+    // Atomic claim-and-mark in one round-trip: the CTE selects unprocessed
+    // rows with `FOR UPDATE SKIP LOCKED` so concurrent workers claim
+    // disjoint sets (no double-dispatch). The outer UPDATE marks them
+    // processed in the same statement and returns the claimed rows
+    // (C3 fix — replaces a plain SELECT that had no row-level lock).
     const rows = (await this.prisma.$queryRawUnsafe(
-      `SELECT id, seq, tenant_id, type, payload, occurred_at, processed_at
-         FROM outbox_entries
-        WHERE processed_at IS NULL
-        ORDER BY seq ASC
-        LIMIT $1::int`,
+      `UPDATE outbox_entries
+          SET processed_at = NOW()
+        WHERE id IN (
+          SELECT id
+            FROM outbox_entries
+           WHERE processed_at IS NULL
+           ORDER BY seq ASC
+           LIMIT $1::int
+           FOR UPDATE SKIP LOCKED
+        )
+        RETURNING id, seq, tenant_id, type, payload, occurred_at, processed_at`,
       limit,
     )) as Array<{
       id: string;

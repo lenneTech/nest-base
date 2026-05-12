@@ -56,8 +56,9 @@ export class ApiKeyExpiryRunner {
   constructor(private readonly input: ApiKeyExpiryRunnerInput) {}
 
   /**
-   * Daily tick — pg-boss adapter wires this to the `apiKeyExpiry`
-   * queue at module init via the `@ScheduledJob` metadata.
+   * Daily tick — `DiscoveryScheduledJobRegistry` discovers this method
+   * via `@ScheduledJob` metadata; `ScheduledJobBullMQAdapter` wires it
+   * to BullMQ at `OnApplicationBootstrap`.
    */
   @ScheduledJob({ name: "apiKeyExpiry", cron: DAILY_CRON })
   async tick(): Promise<{ notified: number }> {

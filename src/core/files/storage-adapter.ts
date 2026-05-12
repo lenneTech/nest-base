@@ -21,6 +21,12 @@ export interface StoragePutInput {
 }
 
 export interface StorageAdapter {
+  /**
+   * Stable driver name used by `detectDriverName()` (H3/L2 fix).
+   * Storing this on the instance avoids relying on `constructor.name`
+   * which may be mangled by minifiers in production builds.
+   */
+  readonly driverName: string;
   put(input: StoragePutInput): Promise<StorageObjectMetadata>;
   get(key: string): Promise<Uint8Array>;
   delete(key: string): Promise<boolean>;
@@ -42,6 +48,7 @@ interface StoredObject {
 }
 
 export class InMemoryStorageAdapter implements StorageAdapter {
+  readonly driverName = "memory";
   private readonly objects = new Map<string, StoredObject>();
 
   async put(input: StoragePutInput): Promise<StorageObjectMetadata> {

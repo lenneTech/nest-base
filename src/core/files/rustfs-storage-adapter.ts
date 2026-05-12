@@ -39,6 +39,12 @@ export interface RustFsStorageAdapterOptions {
 }
 
 export class RustFsStorageAdapter extends S3StorageAdapter {
+  // Override the S3 parent's driverName so detectDriverName() in
+  // tus-finish-hook.ts returns "rustfs" rather than "s3" for this
+  // adapter (H3/L2 fix — avoids relying on constructor.name which
+  // minifiers may mangle).
+  override readonly driverName: string = "rustfs";
+
   constructor(operations: S3Operations, options: RustFsStorageAdapterOptions = {}) {
     super(operations, {
       maxTtlSeconds: options.maxTtlSeconds ?? RUSTFS_DEFAULT_MAX_TTL_SECONDS,

@@ -151,14 +151,13 @@ class ApiKeyController {
     },
     {
       // ApiKeyExpiryRunner is a NestJS provider so the @ScheduledJob
-      // decorator on `tick()` surfaces in the DiscoveryService walk
-      // the pg-boss adapter performs at OnApplicationBootstrap. The
-      // default factory (`buildDefaultApiKeyExpiryRunnerInput`) reads
-      // expiring keys from Prisma, dispatches via EmailService through
-      // the outbox, and persists the `lastNotifiedAt` watermark — so
-      // `runner.tick()` is fully functional out-of-the-box. Projects
-      // override the provider when they want a different reader /
-      // template / watermark adapter.
+      // decorator on `tick()` surfaces in DiscoveryScheduledJobRegistry,
+      // which ScheduledJobBullMQAdapter uses at OnApplicationBootstrap to
+      // wire the cron tick to BullMQ. The default factory reads expiring
+      // keys from Prisma, dispatches via EmailService through the outbox,
+      // and persists the `lastNotifiedAt` watermark — so `runner.tick()`
+      // is fully functional out-of-the-box. Projects override the
+      // provider when they want a different reader / template / adapter.
       provide: ApiKeyExpiryRunner,
       useFactory: (prisma: PrismaService, email: EmailService) =>
         new ApiKeyExpiryRunner(buildDefaultApiKeyExpiryRunnerInput({ prisma, email })),

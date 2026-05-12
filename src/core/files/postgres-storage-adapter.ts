@@ -36,6 +36,7 @@ export interface PostgresStorageOptions {
 }
 
 export class PostgresStorageAdapter implements StorageAdapter {
+  readonly driverName = "postgres";
   private readonly baseUrl: string;
 
   constructor(
