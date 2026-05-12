@@ -102,18 +102,30 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
 
   const cfg = serverConfigFromEnv(process.env);
 
-  // Pre-flight feature validation — runs before NestFactory.create() so
-  // incompatible feature combinations (e.g. webhooks without jobs, rate-limit
-  // disabled in production) are caught before any DI providers, timers, or
-  // connections are started. Only needs the parsed Features object from env;
-  // no DI access is required. Skipped in test mode (listen: false).
+  // Pre-flight checks — run before NestFactory.create() so misconfigurations
+  // are caught before any DI providers, timers, or connections are started.
+  // All checks only need env vars; no DI access required.
+  // Skipped in test mode (listen: false) so e2e tests that temporarily set
+  // NODE_ENV=production to verify dev-hub gating don't fail here.
   if (listen) {
     try {
       const preflightFeatures = loadFeatures(process.env as Record<string, string | undefined>);
       validateFeatureDependencies(preflightFeatures, { env: cfg.env });
+      // Validate FILE_SHARE_LINK_SECRET early so a missing/weak secret in
+      // production causes a loud startup failure rather than a 500 at the
+      // first share-link request.
+      if (
+        cfg.env === "production" &&
+        (!process.env.FILE_SHARE_LINK_SECRET ||
+          process.env.FILE_SHARE_LINK_SECRET.length < 32)
+      ) {
+        throw new Error(
+          "FILE_SHARE_LINK_SECRET must be set to a random string of at least 32 characters in production",
+        );
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      process.stderr.write(`[bootstrap] feature validation failed: ${msg}\n`);
+      process.stderr.write(`[bootstrap] pre-flight check failed: ${msg}\n`);
       process.exit(1);
     }
   }
