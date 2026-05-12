@@ -116,8 +116,7 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
       // first share-link request.
       if (
         cfg.env === "production" &&
-        (!process.env.FILE_SHARE_LINK_SECRET ||
-          process.env.FILE_SHARE_LINK_SECRET.length < 32)
+        (!process.env.FILE_SHARE_LINK_SECRET || process.env.FILE_SHARE_LINK_SECRET.length < 32)
       ) {
         throw new Error(
           "FILE_SHARE_LINK_SECRET must be set to a random string of at least 32 characters in production",
