@@ -16,9 +16,7 @@ import { describe, expect, it, vi } from "vitest";
 describe("M1 · InProcessQueue.drain() returns promptly when queue is stopped with pending jobs", () => {
   it("drain() resolves immediately when running=false and pendingIds is non-empty", async () => {
     // We test via BullMQJobQueue (which owns InProcessQueue internally)
-    const { BullMQJobQueue } = await import(
-      "../../src/core/jobs/bullmq-job-queue.js"
-    );
+    const { BullMQJobQueue } = await import("../../src/core/jobs/bullmq-job-queue.js");
 
     const queue = new BullMQJobQueue(null); // null redis → in-process
     // Register a handler that hangs (never resolves) — if drain() loops
@@ -79,25 +77,19 @@ describe("M3 · noopRevokeStorage.revokeSession throws rather than no-op", () =>
 
 describe("H3/L2 · storage adapters expose driverName; detectDriverName uses it", () => {
   it("InMemoryStorageAdapter.driverName === 'memory'", async () => {
-    const { InMemoryStorageAdapter } = await import(
-      "../../src/core/files/storage-adapter.js"
-    );
+    const { InMemoryStorageAdapter } = await import("../../src/core/files/storage-adapter.js");
     const adapter = new InMemoryStorageAdapter();
     expect(adapter.driverName).toBe("memory");
   });
 
   it("LocalStorageAdapter.driverName === 'local'", async () => {
-    const { LocalStorageAdapter } = await import(
-      "../../src/core/files/local-storage-adapter.js"
-    );
+    const { LocalStorageAdapter } = await import("../../src/core/files/local-storage-adapter.js");
     const adapter = new LocalStorageAdapter({ root: "/tmp", baseUrl: "http://localhost" });
     expect(adapter.driverName).toBe("local");
   });
 
   it("S3StorageAdapter.driverName === 's3'", async () => {
-    const { S3StorageAdapter } = await import(
-      "../../src/core/files/s3-storage-adapter.js"
-    );
+    const { S3StorageAdapter } = await import("../../src/core/files/s3-storage-adapter.js");
     const ops = {
       putObject: vi.fn(),
       getObject: vi.fn(),
@@ -111,9 +103,7 @@ describe("H3/L2 · storage adapters expose driverName; detectDriverName uses it"
   });
 
   it("RustFsStorageAdapter.driverName === 'rustfs' (not 's3')", async () => {
-    const { RustFsStorageAdapter } = await import(
-      "../../src/core/files/rustfs-storage-adapter.js"
-    );
+    const { RustFsStorageAdapter } = await import("../../src/core/files/rustfs-storage-adapter.js");
     const ops = {
       putObject: vi.fn(),
       getObject: vi.fn(),
@@ -127,9 +117,8 @@ describe("H3/L2 · storage adapters expose driverName; detectDriverName uses it"
   });
 
   it("PostgresStorageAdapter.driverName === 'postgres'", async () => {
-    const { PostgresStorageAdapter } = await import(
-      "../../src/core/files/postgres-storage-adapter.js"
-    );
+    const { PostgresStorageAdapter } =
+      await import("../../src/core/files/postgres-storage-adapter.js");
     const ops = {
       upsert: vi.fn(),
       findByKey: vi.fn(),
@@ -145,9 +134,7 @@ describe("H3/L2 · storage adapters expose driverName; detectDriverName uses it"
   it("driverName is stable across minification (not constructor.name)", async () => {
     // Simulate minification by checking the property is set as own
     // instance data, not derived from constructor metadata.
-    const { RustFsStorageAdapter } = await import(
-      "../../src/core/files/rustfs-storage-adapter.js"
-    );
+    const { RustFsStorageAdapter } = await import("../../src/core/files/rustfs-storage-adapter.js");
     const ops = {
       putObject: vi.fn(),
       getObject: vi.fn(),
@@ -168,37 +155,32 @@ describe("H3/L2 · storage adapters expose driverName; detectDriverName uses it"
 
 describe("C1 · parseCronToIntervalMs converts cron expressions to intervals", () => {
   it("daily at 08:00 → 24h", async () => {
-    const { parseCronToIntervalMs } = await import(
-      "../../src/core/jobs/scheduled-job-bullmq-adapter.js"
-    );
+    const { parseCronToIntervalMs } =
+      await import("../../src/core/jobs/scheduled-job-bullmq-adapter.js");
     expect(parseCronToIntervalMs("0 8 * * *")).toBe(24 * 60 * 60 * 1000);
   });
 
   it("daily at 04:00 → 24h", async () => {
-    const { parseCronToIntervalMs } = await import(
-      "../../src/core/jobs/scheduled-job-bullmq-adapter.js"
-    );
+    const { parseCronToIntervalMs } =
+      await import("../../src/core/jobs/scheduled-job-bullmq-adapter.js");
     expect(parseCronToIntervalMs("0 4 * * *")).toBe(24 * 60 * 60 * 1000);
   });
 
   it("hourly '0 * * * *' → 1h", async () => {
-    const { parseCronToIntervalMs } = await import(
-      "../../src/core/jobs/scheduled-job-bullmq-adapter.js"
-    );
+    const { parseCronToIntervalMs } =
+      await import("../../src/core/jobs/scheduled-job-bullmq-adapter.js");
     expect(parseCronToIntervalMs("0 * * * *")).toBe(60 * 60 * 1000);
   });
 
   it("unrecognised pattern defaults to 24h (fail-safe)", async () => {
-    const { parseCronToIntervalMs } = await import(
-      "../../src/core/jobs/scheduled-job-bullmq-adapter.js"
-    );
+    const { parseCronToIntervalMs } =
+      await import("../../src/core/jobs/scheduled-job-bullmq-adapter.js");
     expect(parseCronToIntervalMs("*/5 * * * *")).toBe(24 * 60 * 60 * 1000);
   });
 
   it("malformed expression defaults to 24h", async () => {
-    const { parseCronToIntervalMs } = await import(
-      "../../src/core/jobs/scheduled-job-bullmq-adapter.js"
-    );
+    const { parseCronToIntervalMs } =
+      await import("../../src/core/jobs/scheduled-job-bullmq-adapter.js");
     expect(parseCronToIntervalMs("not-a-cron")).toBe(24 * 60 * 60 * 1000);
   });
 });
@@ -210,9 +192,7 @@ describe("H2 · IdempotencyModule has exactly one APP_INTERCEPTOR binding", () =
     const { APP_INTERCEPTOR } = await import("@nestjs/core");
     // Dynamically import the module metadata — we inspect the @Module()
     // decorator's providers array via Reflect metadata.
-    const { IdempotencyModule } = await import(
-      "../../src/core/idempotency/idempotency.module.js"
-    );
+    const { IdempotencyModule } = await import("../../src/core/idempotency/idempotency.module.js");
     const providers: unknown[] =
       (Reflect.getMetadata("providers", IdempotencyModule) as unknown[]) ?? [];
 
@@ -233,9 +213,7 @@ describe("H2 · IdempotencyModule has exactly one APP_INTERCEPTOR binding", () =
     //
     // NestJS creates one instance for APP_INTERCEPTOR via useClass;
     // there must be no additional plain-class entry for the same class.
-    const { IdempotencyModule } = await import(
-      "../../src/core/idempotency/idempotency.module.js"
-    );
+    const { IdempotencyModule } = await import("../../src/core/idempotency/idempotency.module.js");
     const providers: unknown[] =
       (Reflect.getMetadata("providers", IdempotencyModule) as unknown[]) ?? [];
 

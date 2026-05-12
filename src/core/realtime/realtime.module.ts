@@ -121,7 +121,10 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     // rather than reflecting every origin.
     const origin =
       allowedOrigins.length > 0
-        ? (requestOrigin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+        ? (
+            requestOrigin: string | undefined,
+            callback: (err: Error | null, allow?: boolean) => void,
+          ) => {
             callback(null, allowedOrigins.includes(requestOrigin ?? ""));
           }
         : false;

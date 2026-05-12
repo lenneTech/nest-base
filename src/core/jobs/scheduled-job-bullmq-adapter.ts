@@ -1,10 +1,7 @@
 import { Inject, Injectable, Logger, type OnApplicationBootstrap } from "@nestjs/common";
 
 import { JobQueueService } from "./jobs.module.js";
-import {
-  SCHEDULED_JOB_REGISTRY,
-  type ScheduledJobRegistry,
-} from "./scheduled-job.registry.js";
+import { SCHEDULED_JOB_REGISTRY, type ScheduledJobRegistry } from "./scheduled-job.registry.js";
 
 /**
  * `ScheduledJobBullMQAdapter` — wires every `@ScheduledJob`-decorated
@@ -96,7 +93,9 @@ export class ScheduledJobBullMQAdapter implements OnApplicationBootstrap {
       this.timers.push(timer);
     }
 
-    this.log.log(`wired ${entries.length} scheduled job(s): ${entries.map((e) => e.name).join(", ")}`);
+    this.log.log(
+      `wired ${entries.length} scheduled job(s): ${entries.map((e) => e.name).join(", ")}`,
+    );
   }
 
   /**

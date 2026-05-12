@@ -86,7 +86,8 @@ class McpDiscoveryService implements OnApplicationBootstrap {
       // suite each get their own registry rather than accumulating
       // tool registrations on a shared module-scope singleton (M2 fix).
       provide: MCP_SERVER,
-      useFactory: (): McpServerModule => new McpServerModule({ name: "nest-server", version: "1.0.0" }),
+      useFactory: (): McpServerModule =>
+        new McpServerModule({ name: "nest-server", version: "1.0.0" }),
     },
     McpDiscoveryService,
     PrismaRoleCountSource,

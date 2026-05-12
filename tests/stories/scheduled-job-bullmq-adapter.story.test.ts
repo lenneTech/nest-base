@@ -23,30 +23,26 @@ import { describe, expect, it, vi } from "vitest";
 
 describe("Story · parseCronToIntervalMs converts cron to setInterval millis", () => {
   it("'0 8 * * *' (daily at 08:00) → 24h interval", async () => {
-    const { parseCronToIntervalMs } = await import(
-      "../../src/core/jobs/scheduled-job-bullmq-adapter.js"
-    );
+    const { parseCronToIntervalMs } =
+      await import("../../src/core/jobs/scheduled-job-bullmq-adapter.js");
     expect(parseCronToIntervalMs("0 8 * * *")).toBe(24 * 60 * 60 * 1000);
   });
 
   it("'0 4 * * *' (daily at 04:00) → 24h interval", async () => {
-    const { parseCronToIntervalMs } = await import(
-      "../../src/core/jobs/scheduled-job-bullmq-adapter.js"
-    );
+    const { parseCronToIntervalMs } =
+      await import("../../src/core/jobs/scheduled-job-bullmq-adapter.js");
     expect(parseCronToIntervalMs("0 4 * * *")).toBe(24 * 60 * 60 * 1000);
   });
 
   it("'0 * * * *' (hourly) → 1h interval", async () => {
-    const { parseCronToIntervalMs } = await import(
-      "../../src/core/jobs/scheduled-job-bullmq-adapter.js"
-    );
+    const { parseCronToIntervalMs } =
+      await import("../../src/core/jobs/scheduled-job-bullmq-adapter.js");
     expect(parseCronToIntervalMs("0 * * * *")).toBe(60 * 60 * 1000);
   });
 
   it("unrecognised pattern → 24h (fail-safe)", async () => {
-    const { parseCronToIntervalMs } = await import(
-      "../../src/core/jobs/scheduled-job-bullmq-adapter.js"
-    );
+    const { parseCronToIntervalMs } =
+      await import("../../src/core/jobs/scheduled-job-bullmq-adapter.js");
     expect(parseCronToIntervalMs("*/15 * * * *")).toBe(24 * 60 * 60 * 1000);
     expect(parseCronToIntervalMs("bad-cron")).toBe(24 * 60 * 60 * 1000);
     expect(parseCronToIntervalMs("")).toBe(24 * 60 * 60 * 1000);
@@ -59,9 +55,8 @@ describe("Story · parseCronToIntervalMs converts cron to setInterval millis", (
 
 describe("Story · ScheduledJobBullMQAdapter.onApplicationBootstrap wires every registry entry", () => {
   it("calls queue.register() for each @ScheduledJob entry", async () => {
-    const { ScheduledJobBullMQAdapter } = await import(
-      "../../src/core/jobs/scheduled-job-bullmq-adapter.js"
-    );
+    const { ScheduledJobBullMQAdapter } =
+      await import("../../src/core/jobs/scheduled-job-bullmq-adapter.js");
 
     // Fake registry with two entries
     const runs: string[] = [];
@@ -119,9 +114,8 @@ describe("Story · ScheduledJobBullMQAdapter.onApplicationBootstrap wires every 
   });
 
   it("registered handler delegates to entry.run() when the queue processes the job", async () => {
-    const { ScheduledJobBullMQAdapter } = await import(
-      "../../src/core/jobs/scheduled-job-bullmq-adapter.js"
-    );
+    const { ScheduledJobBullMQAdapter } =
+      await import("../../src/core/jobs/scheduled-job-bullmq-adapter.js");
 
     let ran = false;
     const fakeRegistry = {
@@ -160,9 +154,8 @@ describe("Story · ScheduledJobBullMQAdapter.onApplicationBootstrap wires every 
   });
 
   it("empty registry logs a message and does nothing", async () => {
-    const { ScheduledJobBullMQAdapter } = await import(
-      "../../src/core/jobs/scheduled-job-bullmq-adapter.js"
-    );
+    const { ScheduledJobBullMQAdapter } =
+      await import("../../src/core/jobs/scheduled-job-bullmq-adapter.js");
 
     const fakeRegistry = {
       list: () => [],
