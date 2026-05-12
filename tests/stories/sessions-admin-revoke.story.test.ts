@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 /**
  * Story · Sessions admin revoke planner (CF.AUTH.21 + CF.AUTH.22).
@@ -134,5 +134,47 @@ describe("Story · Sessions admin revoke planner", () => {
       });
       expect(result.sessionIds.sort()).toEqual(["s1", "s2"]);
     });
+  });
+});
+
+// ─── Finding 11: controller passes req.user.tenantId to listAllSessions ───────
+
+describe("Finding 11 · SessionsAdminController passes tenantId to listAllSessions", () => {
+  it("calls listAllSessions with the requesting user's tenantId", async () => {
+    // Verify the controller forwards req.user.tenantId to listAllSessions
+    // so the storage adapter can apply the tenant gate. Without this
+    // pass-through, a super-admin would enumerate sessions for all tenants
+    // instead of just their own (H3 fix — controller-level coverage).
+
+    const { SessionsAdminController, SESSION_REVOKE_STORAGE, SESSION_REVOKE_AUDIT_SINK } =
+      await import("../../src/core/auth/sessions-admin.controller.js");
+    const { Test } = await import("@nestjs/testing");
+
+    const listAllSessions = vi.fn().mockResolvedValue([]);
+    const revokeSession = vi.fn().mockResolvedValue(undefined);
+    const auditEmit = vi.fn().mockResolvedValue(undefined);
+
+    const moduleRef = await Test.createTestingModule({
+      controllers: [SessionsAdminController],
+      providers: [
+        {
+          provide: SESSION_REVOKE_STORAGE,
+          useValue: { listAllSessions, revokeSession },
+        },
+        {
+          provide: SESSION_REVOKE_AUDIT_SINK,
+          useValue: { emit: auditEmit },
+        },
+      ],
+    }).compile();
+
+    const controller = moduleRef.get(SessionsAdminController);
+
+    // Simulate a request from a user with tenantId "t1"
+    const fakeReq = { user: { id: "u1", tenantId: "t1" }, headers: {} };
+    await controller.sessionsListJson(fakeReq as never);
+
+    // The controller must forward "t1" — NOT undefined
+    expect(listAllSessions).toHaveBeenCalledWith("t1");
   });
 });

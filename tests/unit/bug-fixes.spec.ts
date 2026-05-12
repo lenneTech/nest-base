@@ -235,59 +235,66 @@ describe("H2 · IdempotencyModule has exactly one APP_INTERCEPTOR binding", () =
 // ─── S1: bootstrap pre-flight rejects missing FILE_SHARE_LINK_SECRET ─────────
 
 describe("S1 · bootstrap pre-flight rejects missing FILE_SHARE_LINK_SECRET in production", () => {
-  // The pre-flight condition is:
-  //   cfg.env === "production" && (!FILE_SHARE_LINK_SECRET || secret.length < 32)
-  // We test the condition directly as a pure function extracted from bootstrap.ts
-  // so we don't need to invoke NestFactory.create() in a unit test.
-
-  function runPreflight(appEnv: string, secret: string | undefined): void {
-    if (
-      appEnv === "production" &&
-      (secret === undefined || secret === null || secret.length < 32)
-    ) {
-      throw new Error(
-        "FILE_SHARE_LINK_SECRET must be set to a random string of at least 32 characters in production",
-      );
-    }
-  }
+  // We import and test `isShareLinkSecretValid` — the shared predicate used by
+  // both resolveShareLinkSecret() (files.module.ts) and the bootstrap.ts
+  // pre-flight block. Testing the real export ensures the two callers stay in
+  // sync and catches the APP_ENV→NODE_ENV bug that local copies masked
+  // (Finding 2 + 6 fix).
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("throws when APP_ENV=production and FILE_SHARE_LINK_SECRET is missing", () => {
-    expect(() => runPreflight("production", undefined)).toThrow(/FILE_SHARE_LINK_SECRET.*32/);
+  it("returns false when NODE_ENV=production and FILE_SHARE_LINK_SECRET is missing", async () => {
+    const { isShareLinkSecretValid } = await import("../../src/core/files/share-link-secret.js");
+    expect(isShareLinkSecretValid("production", undefined)).toBe(false);
   });
 
-  it("throws when APP_ENV=production and FILE_SHARE_LINK_SECRET is shorter than 32 chars", () => {
-    expect(() => runPreflight("production", "tooshort")).toThrow(/FILE_SHARE_LINK_SECRET.*32/);
+  it("returns false when NODE_ENV=production and FILE_SHARE_LINK_SECRET is shorter than 32 chars", async () => {
+    const { isShareLinkSecretValid } = await import("../../src/core/files/share-link-secret.js");
+    expect(isShareLinkSecretValid("production", "tooshort")).toBe(false);
   });
 
-  it("does not throw when APP_ENV=production and FILE_SHARE_LINK_SECRET is at least 32 chars", () => {
+  it("returns true when NODE_ENV=production and FILE_SHARE_LINK_SECRET is at least 32 chars", async () => {
+    const { isShareLinkSecretValid } = await import("../../src/core/files/share-link-secret.js");
     const longSecret = "a".repeat(32);
-    expect(() => runPreflight("production", longSecret)).not.toThrow();
+    expect(isShareLinkSecretValid("production", longSecret)).toBe(true);
   });
 
-  it("does not throw in development even without FILE_SHARE_LINK_SECRET", () => {
-    expect(() => runPreflight("development", undefined)).not.toThrow();
+  it("returns true in development even without FILE_SHARE_LINK_SECRET", async () => {
+    const { isShareLinkSecretValid } = await import("../../src/core/files/share-link-secret.js");
+    expect(isShareLinkSecretValid("development", undefined)).toBe(true);
   });
 
-  it("does not throw in test even without FILE_SHARE_LINK_SECRET", () => {
-    expect(() => runPreflight("test", undefined)).not.toThrow();
+  it("returns true in test even without FILE_SHARE_LINK_SECRET", async () => {
+    const { isShareLinkSecretValid } = await import("../../src/core/files/share-link-secret.js");
+    expect(isShareLinkSecretValid("test", undefined)).toBe(true);
   });
 
-  it("process.exit is not called when listen=false (pre-flight is skipped)", () => {
-    // When bootstrap is called with listen:false (test mode), the pre-flight
-    // block is gated on `if (listen)` so process.exit(1) must never fire.
-    // We verify the gate by checking the condition directly.
+  it("process.exit is not called when bootstrap is invoked with listen=false", async () => {
+    // When bootstrap is called with listen:false, the pre-flight block is
+    // gated on `if (listen)` so process.exit(1) must never fire even when
+    // FILE_SHARE_LINK_SECRET is absent and NODE_ENV is "production".
+    // Mock NestFactory.create to avoid spinning up a real NestJS app.
     const exitSpy = vi.spyOn(process, "exit").mockImplementation((_code?: number) => {
       throw new Error("process.exit should not be called");
     });
 
-    const listen = false;
-    // Simulates what bootstrap does: pre-flight only runs when listen=true
-    if (listen) {
-      runPreflight("production", undefined);
+    const originalNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    const originalSecret = process.env.FILE_SHARE_LINK_SECRET;
+    delete process.env.FILE_SHARE_LINK_SECRET;
+
+    try {
+      const { bootstrap } = await import("../../src/core/app/bootstrap.js");
+      // listen:false → pre-flight block is skipped entirely
+      const app = await bootstrap({ listen: false });
+      await app.close();
+    } finally {
+      process.env.NODE_ENV = originalNodeEnv;
+      if (originalSecret !== undefined) {
+        process.env.FILE_SHARE_LINK_SECRET = originalSecret;
+      }
     }
 
     expect(exitSpy).not.toHaveBeenCalled();

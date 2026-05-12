@@ -3,6 +3,11 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service.js";
 import type { OutboxEntry, OutboxStorage } from "./outbox.js";
 
+// Module-level constant so all three usages (claimBatch UPDATE, markProcessed
+// WHERE, resetStaleSentinels WHERE) stay in sync if the sentinel value ever
+// changes. Inlining three copies risked silent divergence (Finding 3).
+const INFLIGHT_SENTINEL = new Date(0).toISOString();
+
 /**
  * Prisma-backed `OutboxStorage` (CF.RT.04 + CF.WH.06 + CF.JOBS.01 —
  * iter-107). Default storage when `DATABASE_URL` is set; replaces
@@ -27,9 +32,9 @@ export class PrismaOutboxStorage implements OutboxStorage {
     const payloadJson = JSON.stringify(entry.payload ?? null);
     await this.prisma.$executeRawUnsafe(
       `INSERT INTO outbox_entries
-         (id, seq, tenant_id, type, payload, occurred_at, processed_at)
+         (id, seq, tenant_id, type, payload, occurred_at, processed_at, claimed_at)
        VALUES
-         ($1::uuid, $2::int, $3::uuid, $4, $5::jsonb, $6::timestamp, $7::timestamp)`,
+         ($1::uuid, $2::int, $3::uuid, $4, $5::jsonb, $6::timestamp, $7::timestamp, $8::timestamp)`,
       entry.id,
       entry.seq,
       entry.tenantId,
@@ -37,6 +42,7 @@ export class PrismaOutboxStorage implements OutboxStorage {
       payloadJson,
       entry.occurredAt.toISOString(),
       entry.processedAt ? entry.processedAt.toISOString() : null,
+      entry.claimedAt ? entry.claimedAt.toISOString() : null,
     );
   }
 
@@ -55,13 +61,14 @@ export class PrismaOutboxStorage implements OutboxStorage {
     // lock is released.  `markProcessed` overwrites the sentinel with the
     // real completion timestamp (`NOW()`).  A dispatch failure leaves the
     // sentinel in place; a periodic cleanup job (or the next deployment)
-    // resets rows whose `processed_at` equals the epoch sentinel and whose
-    // `occurred_at` is older than the dispatch deadline — preserving
-    // at-least-once semantics without a long-held transaction.
-    const INFLIGHT_SENTINEL = new Date(0).toISOString(); // '1970-01-01T00:00:00.000Z'
+    // resets rows whose `claimed_at` is older than the dispatch deadline —
+    // preserving at-least-once semantics without a long-held transaction.
+    // `claimed_at` tracks when claimBatch wrote the sentinel so stale-
+    // sentinel detection isn't fooled by backlog events with old
+    // `occurred_at` values (Finding 1 fix).
     const rows = await this.prisma.$transaction(async (tx) => {
       const selected = (await tx.$queryRawUnsafe(
-        `SELECT id, seq, tenant_id, type, payload, occurred_at, processed_at
+        `SELECT id, seq, tenant_id, type, payload, occurred_at, processed_at, claimed_at
            FROM outbox_entries
           WHERE processed_at IS NULL
           ORDER BY seq ASC
@@ -76,16 +83,20 @@ export class PrismaOutboxStorage implements OutboxStorage {
         payload: unknown;
         occurred_at: Date;
         processed_at: Date | null;
+        claimed_at: Date | null;
       }>;
       if (selected.length > 0) {
         const ids = selected.map((r) => r.id);
         // Mark rows as in-flight within the same transaction so the lock
         // persists through the UPDATE commit and concurrent workers see
         // processed_at IS NOT NULL immediately after commit.
+        // Also stamp claimed_at = NOW() so resetStaleSentinels can measure
+        // stale-ness from claim time, not event time (Finding 1 fix).
         const placeholders = ids.map((_: string, i: number) => `$${i + 2}::uuid`).join(", ");
         await tx.$executeRawUnsafe(
           `UPDATE outbox_entries
-              SET processed_at = $1::timestamp
+              SET processed_at = $1::timestamp,
+                  claimed_at   = NOW()
             WHERE id IN (${placeholders})
               AND processed_at IS NULL`,
           INFLIGHT_SENTINEL,
@@ -103,6 +114,7 @@ export class PrismaOutboxStorage implements OutboxStorage {
         payload: r.payload,
         occurredAt: r.occurred_at,
         processedAt: r.processed_at,
+        claimedAt: r.claimed_at ?? undefined,
       }),
     );
   }
@@ -114,16 +126,17 @@ export class PrismaOutboxStorage implements OutboxStorage {
     //
     // The WHERE clause matches both:
     //  - rows still at NULL (never claimed, defensive),
-    //  - rows at the in-flight sentinel ('1970-01-01') set by claimBatch.
+    //  - rows at the in-flight sentinel set by claimBatch.
     // This covers the case where claimBatch claimed a row and the
     // dispatcher succeeded.
     const affected = await this.prisma.$executeRawUnsafe(
       `UPDATE outbox_entries
           SET processed_at = $1::timestamp
         WHERE id = $2::uuid
-          AND (processed_at IS NULL OR processed_at = '1970-01-01T00:00:00.000Z'::timestamp)`,
+          AND (processed_at IS NULL OR processed_at = $3::timestamp)`,
       processedAt.toISOString(),
       id,
+      INFLIGHT_SENTINEL,
     );
     return Number(affected) > 0;
   }
@@ -155,11 +168,16 @@ export class PrismaOutboxStorage implements OutboxStorage {
    * Returns the number of rows reset.
    */
   async resetStaleSentinels(): Promise<number> {
+    // Compare against claimed_at (when the sentinel was written) rather than
+    // occurred_at (when the event was enqueued). A backlog event with old
+    // occurred_at but a fresh claimed_at must NOT be reset — the worker may
+    // still be dispatching it (Finding 1 fix).
     const affected = await this.prisma.$executeRawUnsafe(
       `UPDATE outbox_entries
           SET processed_at = NULL
-        WHERE processed_at = '1970-01-01T00:00:00.000Z'::timestamp
-          AND occurred_at < NOW() - INTERVAL '5 minutes'`,
+        WHERE processed_at = $1::timestamp
+          AND claimed_at < NOW() - INTERVAL '5 minutes'`,
+      INFLIGHT_SENTINEL,
     );
     return Number(affected);
   }

@@ -208,4 +208,43 @@ describe("Story · ScheduledJobBullMQAdapter.onApplicationBootstrap wires every 
     // After destroy, clearAll is a no-op (timers array already empty)
     expect(() => adapter.clearAll()).not.toThrow();
   });
+
+  it("clears the interval timer on module destroy", async () => {
+    // Finding 13: verify that onModuleDestroy actually calls clearInterval
+    // for each registered timer rather than just not throwing.
+    vi.useFakeTimers();
+    const clearIntervalSpy = vi.spyOn(globalThis, "clearInterval");
+
+    try {
+      const { ScheduledJobBullMQAdapter } =
+        await import("../../src/core/jobs/scheduled-job-bullmq-adapter.js");
+
+      const fakeRegistry = {
+        list: () => [
+          {
+            name: "destroyJob",
+            cron: "0 8 * * *",
+            source: "Fake.tick",
+            run: async () => {},
+          },
+        ],
+        has: () => false,
+        runOnce: async () => {},
+      };
+      const fakeQueue = {
+        register: () => {},
+        enqueue: vi.fn().mockResolvedValue("fake-id"),
+      };
+
+      // @ts-expect-error — partial fake
+      const adapter = new ScheduledJobBullMQAdapter(fakeQueue, fakeRegistry);
+      adapter.onApplicationBootstrap();
+      adapter.onModuleDestroy();
+
+      expect(clearIntervalSpy).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+      vi.restoreAllMocks();
+    }
+  });
 });

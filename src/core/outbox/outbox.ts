@@ -20,6 +20,14 @@ export interface OutboxEntry {
   payload: unknown;
   occurredAt: Date;
   processedAt: Date | null;
+  /**
+   * Set by `claimBatch` the moment the in-flight sentinel is written.
+   * Used by `resetStaleSentinels` to measure stale-ness from claim time
+   * rather than event-enqueue time — prevents false resets for backlog
+   * events with old `occurredAt` values (Finding 1 fix).
+   * `undefined` on rows not yet claimed (appended but not picked up).
+   */
+  claimedAt?: Date;
 }
 
 export interface OutboxStorage {

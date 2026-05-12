@@ -54,6 +54,9 @@ export interface SessionRevokeStorage {
   /**
    * List sessions. Pass `tenantId` to scope results to a single tenant so
    * admins cannot observe sessions across tenant boundaries (H3 fix).
+   *
+   * @param tenantId - When `undefined`, returns sessions for all tenants
+   *   (single-tenant deployments). Implementations must not throw on undefined.
    */
   readonly listAllSessions: (tenantId?: string) => Promise<readonly SessionRecord[]>;
   readonly revokeSession: (sessionId: string) => Promise<void>;

@@ -7,6 +7,7 @@ import { HubPasswordService } from "./hub-password.service.js";
 import { HubSessionService } from "./hub-session.service.js";
 import { serverConfigFromEnv } from "../server/server-config.js";
 import type { AppEnv } from "../http/cookie-cors-config.js";
+import { isSecureCookieEnv } from "../http/cookie-security.js";
 
 const HUB_COOKIE_NAME = "hub.session";
 
@@ -99,11 +100,10 @@ export class HubController {
 }
 
 function setHubSessionCookie(res: Response, token: string, maxAgeMs: number): void {
-  // Mirror bootstrap.ts: secure in any environment except development/test
-  // so staging deployments (behind HTTPS) also receive the secure flag.
-  // Operators can override by setting HUB_COOKIE_SECURE=false.
-  const isSecure =
-    process.env.HUB_COOKIE_SECURE !== "false" && process.env.NODE_ENV !== "development";
+  // Use shared helper for the env-based check (stays in sync with bootstrap.ts).
+  // HUB_COOKIE_SECURE=false is an operator override that takes precedence —
+  // kept here to allow local HTTP testing without changing NODE_ENV (Finding 8 fix).
+  const isSecure = process.env.HUB_COOKIE_SECURE !== "false" && isSecureCookieEnv();
   res.cookie(HUB_COOKIE_NAME, token, {
     httpOnly: true,
     secure: isSecure,

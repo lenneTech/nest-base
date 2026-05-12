@@ -586,6 +586,11 @@ model OutboxEntry {
   payload     Json
   occurredAt  DateTime  @default(now()) @map("occurred_at")
   processedAt DateTime? @map("processed_at")
+  /// Stamped by `claimBatch` when the in-flight sentinel is written.
+  /// `resetStaleSentinels` compares against this column (not `occurred_at`)
+  /// so backlog events with old enqueue timestamps are not prematurely reset
+  /// while a worker is still dispatching them (Finding 1 fix).
+  claimedAt   DateTime? @map("claimed_at")
 
   @@index([processedAt, seq])
   @@map("outbox_entries")

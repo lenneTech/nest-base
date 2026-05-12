@@ -49,6 +49,8 @@ import {
   parseTraceparent,
 } from "../request-context/traceparent.js";
 import { AppModule } from "./app.module.js";
+import { isShareLinkSecretValid } from "../files/share-link-secret.js";
+import { isSecureCookieEnv } from "../http/cookie-security.js";
 
 export interface BootstrapOptions {
   /** When false, the app is created but `listen()` is skipped (used in tests). */
@@ -116,11 +118,10 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
       validateFeatureDependencies(preflightFeatures, { env: cfg.env });
       // Validate FILE_SHARE_LINK_SECRET early so a missing/weak secret in
       // production causes a loud startup failure rather than a 500 at the
-      // first share-link request.
-      if (
-        cfg.env === "production" &&
-        (!process.env.FILE_SHARE_LINK_SECRET || process.env.FILE_SHARE_LINK_SECRET.length < 32)
-      ) {
+      // first share-link request. Uses the shared predicate from
+      // share-link-secret.ts so this condition stays in sync with
+      // resolveShareLinkSecret() in files.module.ts (Finding 6 fix).
+      if (!isShareLinkSecretValid(process.env.NODE_ENV, process.env.FILE_SHARE_LINK_SECRET)) {
         throw new Error(
           "FILE_SHARE_LINK_SECRET must be set to a random string of at least 32 characters in production",
         );
@@ -317,14 +318,12 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
         }
 
         if (result.refreshedToken) {
-          // Mark secure in any non-development/test environment so staging
-          // deployments also get the secure flag — they share the same HTTPS
-          // setup as production (M5 fix).
-          const isSecureEnv =
-            process.env.NODE_ENV !== "development" && process.env.NODE_ENV !== "test";
+          // Use shared helper — stays in sync with hub.controller.ts login
+          // path and prevents the `!== "test"` branch from being omitted
+          // in one caller (Finding 8 fix).
           res.cookie(HUB_COOKIE_NAME, result.refreshedToken, {
             httpOnly: true,
-            secure: isSecureEnv,
+            secure: isSecureCookieEnv(),
             sameSite: "lax",
             maxAge: authCfg.cookie.maxAgeMs,
             path: "/",

@@ -8,6 +8,7 @@ import {
   Get,
   Header,
   HttpCode,
+  InternalServerErrorException,
   Module,
   NotFoundException,
   Param,
@@ -18,7 +19,7 @@ import {
 } from "@nestjs/common";
 import type { Response } from "express";
 
-import { loadFeatures } from "../features/features.js";
+import { loadFeatures, type Features } from "../features/features.js";
 import { Can } from "../permissions/can.guard.js";
 import { Public } from "../permissions/public.decorator.js";
 import { uuidV7 } from "../uuid/uuid-v7.js";
@@ -83,6 +84,7 @@ import type { StorageAdapter } from "./storage-adapter.js";
 import { tusUploadConfigDefaults } from "./tus-upload-config.js";
 import type { TusServerLike } from "./tus.module.js";
 import { buildTusFinishHook } from "./tus-finish-hook.js";
+import { isShareLinkSecretValid } from "./share-link-secret.js";
 
 const FILE_STORAGE = Symbol.for("lt:FileStorage");
 const FOLDER_STORAGE = Symbol.for("lt:FolderStorage");
@@ -393,12 +395,12 @@ class FolderController {
  */
 function resolveShareLinkSecret(): string {
   const secret = process.env.FILE_SHARE_LINK_SECRET ?? "dev-share-link-secret";
-  if (
-    process.env.APP_ENV === "production" &&
-    (process.env.FILE_SHARE_LINK_SECRET === undefined ||
-      process.env.FILE_SHARE_LINK_SECRET.length < 32)
-  ) {
-    throw new Error(
+  // Use the shared predicate (same one as bootstrap.ts pre-flight) so both
+  // callers stay in sync. Previously used APP_ENV which is never set — the
+  // check was always false, making the secret validation dead code in
+  // production (Finding 2 + 5 + 6 fix).
+  if (!isShareLinkSecretValid(process.env.NODE_ENV, process.env.FILE_SHARE_LINK_SECRET)) {
+    throw new InternalServerErrorException(
       "FILE_SHARE_LINK_SECRET must be set to a random string of at least 32 characters in production",
     );
   }
@@ -577,6 +579,9 @@ function buildCacheAdapter(
         if (policy === "reject" || policy === "keep") {
           svc.scanIndeterminatePolicy = policy;
         }
+        // Pre-compute features once at DI init time so uploadAndCreate()
+        // does not re-parse process.env on every request (Finding 4 fix).
+        svc.cachedFeatures = loadFeatures(process.env as Record<string, string | undefined>);
         return svc;
       },
       inject: [FILE_STORAGE, STORAGE_ORIGIN, FILE_SCANNER],
@@ -708,6 +713,13 @@ declare module "./file.service.js" {
      * unreachable). Strict deployments set this to `reject`.
      */
     scanIndeterminatePolicy?: "keep" | "reject";
+    /**
+     * Features snapshot parsed once at DI init time by the useFactory.
+     * Avoids a full Zod parse on every `uploadAndCreate` call (Finding 4 fix).
+     * Falls back to a fresh parse when not set (e.g. in unit tests that
+     * construct FileService directly without the DI factory).
+     */
+    cachedFeatures?: Features;
     uploadAndCreate(input: UploadAndCreateInput): Promise<FileRecord>;
     findById(id: string): Promise<FileRecord | null>;
   }
@@ -753,9 +765,10 @@ FileService.prototype.uploadAndCreate = async function uploadAndCreate(
   // bytes line up. Strict mode is opt-in via
   // `FEATURE_FILES_MIME_STRICT_ENABLED=true` so legacy clients that
   // send `application/octet-stream` for known image bodies still upload.
-  // Previously read process.env directly — now routes through features.ts
-  // so all toggle logic lives in one place (H2 fix).
-  const features = loadFeatures(process.env as Record<string, string | undefined>);
+  // Previously called loadFeatures() on every request — now uses the
+  // snapshot cached at DI init time by the useFactory (Finding 4 fix).
+  const features =
+    this.cachedFeatures ?? loadFeatures(process.env as Record<string, string | undefined>);
   const strictMime = features.filesMimeStrict.enabled;
   if (strictMime) {
     const probe = input.bytes.subarray(0, 256);
