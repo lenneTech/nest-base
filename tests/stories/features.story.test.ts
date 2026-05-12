@@ -38,6 +38,10 @@ describe("Story · Feature-Flag-System", () => {
       expect(features.mcp.enabled).toBe(false);
       expect(features.fieldEncryption.enabled).toBe(false);
       expect(features.geo.enabled).toBe(false);
+      // H2 fix: these two were previously read from process.env directly —
+      // they now live in FeaturesSchema with default=false.
+      expect(features.passwordPolicy.enabled).toBe(false);
+      expect(features.filesMimeStrict.enabled).toBe(false);
     });
 
     it("rejects unknown enum values for storageDefault", () => {
@@ -133,6 +137,20 @@ describe("Story · Feature-Flag-System", () => {
       expect(features.webhooks.enabled).toBe(false);
     });
 
+    it("H2 fix: FEATURE_PASSWORD_POLICY_ENABLED toggles features.passwordPolicy.enabled", () => {
+      const on = loadFeatures({ FEATURE_PASSWORD_POLICY_ENABLED: "true" });
+      expect(on.passwordPolicy.enabled).toBe(true);
+      const off = loadFeatures({ FEATURE_PASSWORD_POLICY_ENABLED: "false" });
+      expect(off.passwordPolicy.enabled).toBe(false);
+    });
+
+    it("H2 fix: FEATURE_FILES_MIME_STRICT_ENABLED toggles features.filesMimeStrict.enabled", () => {
+      const on = loadFeatures({ FEATURE_FILES_MIME_STRICT_ENABLED: "true" });
+      expect(on.filesMimeStrict.enabled).toBe(true);
+      const off = loadFeatures({ FEATURE_FILES_MIME_STRICT_ENABLED: "false" });
+      expect(off.filesMimeStrict.enabled).toBe(false);
+    });
+
     it("parses comma-separated socialProviders into an array", () => {
       const features = loadFeatures({ FEATURE_AUTH_METHODS_SOCIAL_PROVIDERS: "google,github" });
       expect(features.authMethods.socialProviders).toEqual(["google", "github"]);
@@ -164,6 +182,43 @@ describe("Story · Feature-Flag-System", () => {
     it("does not enforce production-only invariants in development", () => {
       const features = FeaturesSchema.parse({ rateLimit: { enabled: false } });
       expect(() => validateFeatureDependencies(features, { env: "development" })).not.toThrow();
+    });
+
+    it("L5 fix: throws when email.provider=smtp and EMAIL_HOST is not set", () => {
+      const savedEmailHost = process.env.EMAIL_HOST;
+      delete process.env.EMAIL_HOST;
+      try {
+        const features = FeaturesSchema.parse({ email: { enabled: true, provider: "smtp" } });
+        expect(() => validateFeatureDependencies(features)).toThrow(/EMAIL_HOST/i);
+      } finally {
+        if (savedEmailHost !== undefined) process.env.EMAIL_HOST = savedEmailHost;
+      }
+    });
+
+    it("L5 fix: passes when email.provider=smtp and EMAIL_HOST is set", () => {
+      const savedEmailHost = process.env.EMAIL_HOST;
+      process.env.EMAIL_HOST = "smtp.example.com";
+      try {
+        const features = FeaturesSchema.parse({ email: { enabled: true, provider: "smtp" } });
+        expect(() => validateFeatureDependencies(features)).not.toThrow();
+      } finally {
+        if (savedEmailHost !== undefined) {
+          process.env.EMAIL_HOST = savedEmailHost;
+        } else {
+          delete process.env.EMAIL_HOST;
+        }
+      }
+    });
+
+    it("L5 fix: does not throw when email is disabled even without EMAIL_HOST", () => {
+      const savedEmailHost = process.env.EMAIL_HOST;
+      delete process.env.EMAIL_HOST;
+      try {
+        const features = FeaturesSchema.parse({ email: { enabled: false } });
+        expect(() => validateFeatureDependencies(features)).not.toThrow();
+      } finally {
+        if (savedEmailHost !== undefined) process.env.EMAIL_HOST = savedEmailHost;
+      }
     });
   });
 

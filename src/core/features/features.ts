@@ -79,6 +79,13 @@ const DeviceManagementSchema = z.object({
 });
 const togglableDefault = (on: boolean) => z.object({ enabled: z.boolean().default(on) });
 
+// `passwordPolicy` — opt-in Better-Auth password entropy + optional HIBP
+// breach check. Off by default; enable via FEATURE_PASSWORD_POLICY_ENABLED=true.
+const PasswordPolicy = togglableDefault(false);
+// `filesMimeStrict` — magic-byte MIME sniffing on upload. Off by default so
+// legacy clients sending `application/octet-stream` continue to work; enable
+// via FEATURE_FILES_MIME_STRICT_ENABLED=true for strict deployments.
+const FilesMimeStrict = togglableDefault(false);
 const Webhooks = togglableDefault(false);
 const Search = togglableDefault(false);
 const Realtime = togglableDefault(false);
@@ -129,6 +136,8 @@ export const FeaturesSchema = z.object({
   observability: Observability.default(() => Observability.parse({})),
   jobs: JobsSchema.default(() => JobsSchema.parse({})),
   audit: Audit.default(() => Audit.parse({})),
+  passwordPolicy: PasswordPolicy.default(() => PasswordPolicy.parse({})),
+  filesMimeStrict: FilesMimeStrict.default(() => FilesMimeStrict.parse({})),
 });
 
 export type Features = z.infer<typeof FeaturesSchema>;
@@ -163,7 +172,9 @@ export type ToggleableFeatureKey =
   | "idempotency"
   | "observability"
   | "jobs"
-  | "audit";
+  | "audit"
+  | "passwordPolicy"
+  | "filesMimeStrict";
 
 /**
  * `loadFeatures(env)` reads `FEATURE_*` ENV-vars and merges them onto the
@@ -220,6 +231,10 @@ const SECTION_KEYS = new Set([
   "OBSERVABILITY",
   "JOBS",
   "AUDIT",
+  "PASSWORD_POLICY",
+  "PASSWORDPOLICY",
+  "FILES_MIME_STRICT",
+  "FILESMIMESTRICT",
 ]);
 
 const SECTION_TO_KEY: Record<string, FeatureKey> = {
@@ -253,6 +268,10 @@ const SECTION_TO_KEY: Record<string, FeatureKey> = {
   OBSERVABILITY: "observability",
   JOBS: "jobs",
   AUDIT: "audit",
+  PASSWORD_POLICY: "passwordPolicy",
+  PASSWORDPOLICY: "passwordPolicy",
+  FILES_MIME_STRICT: "filesMimeStrict",
+  FILESMIMESTRICT: "filesMimeStrict",
 };
 
 const FIELD_TO_PROP: Record<string, string> = {
@@ -363,6 +382,13 @@ export function validateFeatureDependencies(features: Features, ctx: ValidationC
   }
   if (ctx.env === "production" && !features.rateLimit.enabled) {
     throw new Error("feature `rateLimit` must stay enabled in production");
+  }
+  // SMTP provider requires a host — fail fast rather than discovering
+  // the misconfiguration at the first email send attempt (L5 fix).
+  if (features.email.enabled && features.email.provider === "smtp" && !process.env.EMAIL_HOST) {
+    throw new Error(
+      "feature `email` with provider=smtp requires EMAIL_HOST to be set",
+    );
   }
 }
 
