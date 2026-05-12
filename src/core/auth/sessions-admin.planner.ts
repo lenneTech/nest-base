@@ -24,6 +24,12 @@ export interface SessionRecord {
   readonly id: string;
   readonly userId: string;
   readonly createdAt: number;
+  /**
+   * Tenant the session belongs to. Used by the controller to scope list /
+   * revoke operations so admins cannot observe or revoke sessions across
+   * tenant boundaries (H3 fix).
+   */
+  readonly tenantId: string;
 }
 
 export type SessionRevokeStrategy =

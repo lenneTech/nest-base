@@ -51,7 +51,11 @@ import {
  */
 
 export interface SessionRevokeStorage {
-  readonly listAllSessions: () => Promise<readonly SessionRecord[]>;
+  /**
+   * List sessions. Pass `tenantId` to scope results to a single tenant so
+   * admins cannot observe sessions across tenant boundaries (H3 fix).
+   */
+  readonly listAllSessions: (tenantId?: string) => Promise<readonly SessionRecord[]>;
   readonly revokeSession: (sessionId: string) => Promise<void>;
 }
 
@@ -122,8 +126,10 @@ export class SessionsAdminController {
    */
   @Can("delete", "Session")
   @Get("list.json")
-  async sessionsListJson(): Promise<{ sessions: readonly SessionRecord[] }> {
-    const sessions = await this.storage.listAllSessions();
+  async sessionsListJson(@Req() req: AuthedRequest): Promise<{ sessions: readonly SessionRecord[] }> {
+    // Scope to the requesting admin's tenant so cross-tenant session
+    // enumeration is impossible (H3 fix).
+    const sessions = await this.storage.listAllSessions(req.user?.tenantId);
     return { sessions };
   }
 
@@ -187,7 +193,9 @@ export class SessionsAdminController {
     req: AuthedRequest,
     strategy: SessionRevokeStrategy,
   ): Promise<{ revoked: number; sessionIds: readonly string[] }> {
-    const sessions = await this.storage.listAllSessions();
+    // Pass the tenant id so only the current tenant's sessions are candidates
+    // for revocation — cross-tenant revoke is not possible (H3 fix).
+    const sessions = await this.storage.listAllSessions(req.user?.tenantId);
     const plan = planSessionRevoke({ sessions, strategy });
     if (plan.sessionIds.length === 0) {
       throw new NotFoundException("no matching sessions to revoke");

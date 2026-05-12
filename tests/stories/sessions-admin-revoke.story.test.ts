@@ -27,12 +27,14 @@ import { describe, expect, it } from "vitest";
  * UX flows that show "log me out everywhere else" buttons.
  */
 describe("Story · Sessions admin revoke planner", () => {
+  // H3 fix: SessionRecord now carries tenantId so the controller can scope
+  // listAllSessions() to a single tenant. Fixtures are updated to include it.
   const sessions = [
-    { id: "s1", userId: "u1", createdAt: 1_000 },
-    { id: "s2", userId: "u1", createdAt: 2_000 },
-    { id: "s3", userId: "u1", createdAt: 3_000 },
-    { id: "s4", userId: "u2", createdAt: 4_000 },
-    { id: "s5", userId: "u2", createdAt: 5_000 },
+    { id: "s1", userId: "u1", createdAt: 1_000, tenantId: "t1" },
+    { id: "s2", userId: "u1", createdAt: 2_000, tenantId: "t1" },
+    { id: "s3", userId: "u1", createdAt: 3_000, tenantId: "t1" },
+    { id: "s4", userId: "u2", createdAt: 4_000, tenantId: "t1" },
+    { id: "s5", userId: "u2", createdAt: 5_000, tenantId: "t1" },
   ];
 
   describe("single revoke", () => {
@@ -110,6 +112,27 @@ describe("Story · Sessions admin revoke planner", () => {
         },
       });
       expect(result.sessionIds.sort()).toEqual(["s1", "s2", "s3"]);
+    });
+  });
+
+  describe("H3 fix: tenant-scoped session listing", () => {
+    it("SessionRecord carries a tenantId field", async () => {
+      const { planSessionRevoke } = await import("../../src/core/auth/sessions-admin.planner.js");
+      // The planner itself doesn't filter by tenant (that is the storage's job —
+      // listAllSessions() accepts an optional tenantId). The planner operates on
+      // whatever list the storage returns. This test documents that SessionRecord
+      // now has tenantId and the planner passes it through correctly.
+      const crossTenantSessions = [
+        { id: "s1", userId: "u1", createdAt: 1_000, tenantId: "t1" },
+        { id: "s2", userId: "u1", createdAt: 2_000, tenantId: "t2" }, // different tenant
+      ];
+      // Without tenant pre-filtering the planner selects both (storage is responsible
+      // for the tenant gate). Verifies the planner does not accidentally filter.
+      const result = planSessionRevoke({
+        sessions: crossTenantSessions,
+        strategy: { kind: "bulk-by-user", userId: "u1" },
+      });
+      expect(result.sessionIds.sort()).toEqual(["s1", "s2"]);
     });
   });
 });

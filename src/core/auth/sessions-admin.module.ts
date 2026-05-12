@@ -28,7 +28,7 @@ import {
  */
 
 const noopRevokeStorage: SessionRevokeStorage = {
-  listAllSessions: async () => [],
+  listAllSessions: async (_tenantId?: string) => [],
   revokeSession: async (_sessionId: string) => {
     // Fail loudly rather than silently swallowing the revoke request.
     // A project that calls revokeSession without wiring a real storage
