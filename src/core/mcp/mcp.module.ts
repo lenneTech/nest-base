@@ -8,7 +8,11 @@ import {
   getMcpResourceMetadata,
   getMcpToolMetadata,
 } from "./mcp-decorators.js";
-import { McpServerModule } from "./mcp-server.js";
+import {
+  McpResourceAlreadyRegisteredError,
+  McpToolAlreadyRegisteredError,
+  McpServerModule,
+} from "./mcp-server.js";
 
 export const MCP_SERVER = Symbol.for("lt:McpServer");
 export const ROLE_COUNT_SOURCE = Symbol.for("lt:RoleCountSource");
@@ -59,10 +63,24 @@ class McpDiscoveryService implements OnApplicationBootstrap {
       }
       if (hasAny) {
         // Hand off to the planner — it walks the prototype itself.
+        // Narrow the catch to the two known duplicate-registration errors so
+        // unexpected failures (bad metadata, programming errors) are not
+        // silently swallowed (M7 fix).
         try {
           discoverMcpHandlers(this.mcpServer, instance);
-        } catch {
-          /* duplicate registration — ignore */
+        } catch (err) {
+          if (
+            err instanceof McpToolAlreadyRegisteredError ||
+            err instanceof McpResourceAlreadyRegisteredError
+          ) {
+            // Duplicate registrations can happen in test environments where
+            // multiple TestingModule instances share the same DI container —
+            // ignore them intentionally.
+          } else {
+            // Re-throw anything that is not a known duplicate error so the
+            // application boot fails loudly instead of silently misbehaving.
+            throw err;
+          }
         }
       }
     }
