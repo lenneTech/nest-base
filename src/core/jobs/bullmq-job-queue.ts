@@ -123,6 +123,7 @@ type BullMQWorker = {
  */
 class InProcessQueue implements BullMQQueue {
   readonly name: string;
+  private readonly logger: Logger;
   private readonly records = new Map<
     string,
     {
@@ -143,6 +144,7 @@ class InProcessQueue implements BullMQQueue {
 
   constructor(name: string) {
     this.name = name;
+    this.logger = new Logger(`InProcessQueue[${name}]`);
   }
 
   setHandler(handler: (data: unknown) => Promise<unknown>): void {
@@ -238,7 +240,9 @@ class InProcessQueue implements BullMQQueue {
   }
 
   private scheduleProcess(): void {
-    this.inFlight = this.inFlight.then(() => this.processOne()).catch(() => {});
+    this.inFlight = this.inFlight
+      .then(() => this.processOne())
+      .catch((err: unknown) => this.logger.error("InProcessQueue scheduling error", err));
   }
 
   private async processOne(): Promise<void> {
@@ -308,11 +312,10 @@ export class BullMQJobQueue {
       if (this.started) q.start();
       return;
     }
-    // Attach a rejection handler so startup errors propagate instead of
-    // being swallowed silently by a fire-and-forget void call.
-    this.registerBullMQWorker(name, handler).catch((err) => {
-      throw err;
-    });
+    // Fire-and-forget: registerBullMQWorker internally catches and logs all
+    // errors, so no outer handler is needed. Re-throwing inside .catch()
+    // would create an unhandled rejection with no additional benefit.
+    void this.registerBullMQWorker(name, handler);
   }
 
   /**

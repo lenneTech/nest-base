@@ -571,6 +571,11 @@ function buildCacheAdapter(
     {
       provide: FileService,
       useFactory: (storage: FileServiceStorage, origin: StorageAdapter, scanner: FileScanner) => {
+        // Validate the share-link HMAC secret at DI initialization time so a
+        // missing or short secret in production causes the server to refuse to
+        // start rather than throwing a 500 on the first share-link request.
+        // In dev/test the function returns the fallback without throwing.
+        resolveShareLinkSecret();
         const svc = FileService.withStorageAdapter(storage, origin);
         svc.fileScanner = scanner;
         const policy = process.env.FILE_SCAN_INDETERMINATE_POLICY;

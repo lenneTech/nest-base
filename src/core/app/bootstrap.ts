@@ -101,6 +101,22 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   }
 
   const cfg = serverConfigFromEnv(process.env);
+
+  // Pre-flight feature validation — runs before NestFactory.create() so
+  // incompatible feature combinations (e.g. webhooks without jobs, rate-limit
+  // disabled in production) are caught before any DI providers, timers, or
+  // connections are started. Only needs the parsed Features object from env;
+  // no DI access is required. Skipped in test mode (listen: false).
+  if (listen) {
+    try {
+      const preflightFeatures = loadFeatures(process.env as Record<string, string | undefined>);
+      validateFeatureDependencies(preflightFeatures, { env: cfg.env });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      process.stderr.write(`[bootstrap] feature validation failed: ${msg}\n`);
+      process.exit(1);
+    }
+  }
   // Iter-206 CF.OBS closure: when no test override is supplied, the
   // app uses `nestjs-pino`'s `Logger` which is wired via `LoggerModule`
   // in `AppModule` (HTTP-request middleware + injectable Pino). The
@@ -527,17 +543,8 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   await app.init();
 
   if (listen) {
-    // Fail fast on incompatible feature combinations (e.g. webhooks without
-    // jobs, rate-limit disabled in production). Called after DI is fully
-    // initialised so all env vars are resolved.
-    try {
-      const bootFeatures = loadFeatures(process.env as Record<string, string | undefined>);
-      validateFeatureDependencies(bootFeatures, { env: cfg.env });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      process.stderr.write(`[bootstrap] feature validation failed: ${msg}\n`);
-      process.exit(1);
-    }
+    // Feature validation already ran as a pre-flight check before
+    // NestFactory.create() — no need to repeat it here.
     await app.listen(cfg.port, cfg.host);
     if (cfg.env !== "production") {
       // Spawn Prisma Studio as a sibling process. The first dev start

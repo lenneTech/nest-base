@@ -64,6 +64,7 @@ export class PostgresThrottlerStore implements ThrottlerStorage {
   ): Promise<ThrottlerStorageRecord> {
     const row = await this.backend.upsert(key, ttlMs, now);
     const timeToExpire = Math.max(0, Math.floor((row.expiresAt - now) / 1000));
+    // > not >= : the limit-th request is allowed; the (limit+1)-th is blocked
     const isBlocked = row.count > limit;
     return {
       totalHits: row.count,

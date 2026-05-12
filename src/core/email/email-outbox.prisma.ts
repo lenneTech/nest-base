@@ -144,17 +144,33 @@ export class PrismaEmailOutboxStorage implements EmailOutboxStorage {
         ? [{ attemptCount: "desc" as const }, { id: "asc" as const }]
         : [{ createdAt: "desc" as const }, { id: "asc" as const }];
 
-    // Resolve cursor for forward pagination
+    // Resolve cursor for forward pagination.
+    // The cursor encodes the sort key value + the row id so page boundaries
+    // are stable even when multiple rows share the same sort key value.
+    // When sortBy="attempts" the sort key is attemptCount (integer);
+    // otherwise it is createdAt (unix-ms timestamp). Using the wrong sort key
+    // here caused duplicate/missing rows on page 2+ when sortBy="attempts".
     let cursorCondition: Record<string, unknown> | undefined;
     if (filter.cursor) {
       try {
         const decoded = decodeCursor(filter.cursor);
-        cursorCondition = {
-          OR: [
-            { createdAt: { lt: new Date(decoded.sortValue) } },
-            { createdAt: { equals: new Date(decoded.sortValue) }, id: { gt: decoded.id } },
-          ],
-        };
+        if (filter.sortBy === "attempts") {
+          // Descending by attemptCount: next page has lower count, or equal
+          // count but higher id (tie-break on id ASC within the same count).
+          cursorCondition = {
+            OR: [
+              { attemptCount: { lt: decoded.sortValue } },
+              { attemptCount: decoded.sortValue, id: { gt: decoded.id } },
+            ],
+          };
+        } else {
+          cursorCondition = {
+            OR: [
+              { createdAt: { lt: new Date(decoded.sortValue) } },
+              { createdAt: { equals: new Date(decoded.sortValue) }, id: { gt: decoded.id } },
+            ],
+          };
+        }
       } catch {
         // ignore malformed cursor — start from beginning
       }
@@ -174,10 +190,15 @@ export class PrismaEmailOutboxStorage implements EmailOutboxStorage {
     const typedRows = rows as PrismaEmailOutboxRow[];
     const hasMore = typedRows.length > limit;
     const items = (hasMore ? typedRows.slice(0, limit) : typedRows).map(toRecord);
+    // Encode the correct sort key into the cursor so page 2+ uses the same
+    // field that the ORDER BY clause sorts on.
     const nextCursor =
       hasMore && items.length > 0
         ? encodeCursor({
-            sortValue: items[items.length - 1]!.createdAt.getTime(),
+            sortValue:
+              filter.sortBy === "attempts"
+                ? items[items.length - 1]!.attemptCount
+                : items[items.length - 1]!.createdAt.getTime(),
             id: items[items.length - 1]!.id,
           })
         : undefined;

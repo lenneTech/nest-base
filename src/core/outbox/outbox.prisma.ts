@@ -141,4 +141,26 @@ export class PrismaOutboxStorage implements OutboxStorage {
     const raw = rows[0]?.max_seq ?? 0;
     return typeof raw === "number" ? raw : Number.parseInt(String(raw), 10);
   }
+
+  /**
+   * Reset stale in-flight sentinel rows from a previous process crash.
+   *
+   * `claimBatch` marks rows with `processed_at = epoch` as in-flight.
+   * If the worker process crashes before calling `markProcessed`, those
+   * rows stay at the epoch sentinel forever and are never retried because
+   * the `claimBatch` WHERE clause filters `processed_at IS NULL`. This
+   * startup sweep resets rows older than 5 minutes back to NULL so they
+   * re-enter the dispatch queue on the next tick.
+   *
+   * Returns the number of rows reset.
+   */
+  async resetStaleSentinels(): Promise<number> {
+    const affected = await this.prisma.$executeRawUnsafe(
+      `UPDATE outbox_entries
+          SET processed_at = NULL
+        WHERE processed_at = '1970-01-01T00:00:00.000Z'::timestamp
+          AND occurred_at < NOW() - INTERVAL '5 minutes'`,
+    );
+    return Number(affected);
+  }
 }

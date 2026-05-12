@@ -17,15 +17,24 @@ export const OUTBOX_DISPATCHERS = Symbol.for("lt:OutboxDispatchers");
 class InMemoryOutboxStorage implements OutboxStorage {
   private readonly entries: OutboxEntry[] = [];
   private readonly processed = new Set<string>();
+  // Tracks entries currently being dispatched so two concurrent callers
+  // to claimBatch() cannot receive the same rows.
+  private readonly inFlight = new Set<string>();
+
   async append(entry: OutboxEntry): Promise<void> {
     this.entries.push(entry);
   }
   async claimBatch(limit: number): Promise<OutboxEntry[]> {
-    return this.entries.filter((e) => !this.processed.has(e.id)).slice(0, limit);
+    const batch = this.entries
+      .filter((e) => !this.processed.has(e.id) && !this.inFlight.has(e.id))
+      .slice(0, limit);
+    for (const e of batch) this.inFlight.add(e.id);
+    return batch;
   }
   async markProcessed(id: string, _processedAt: Date): Promise<boolean> {
     void _processedAt;
     if (this.processed.has(id)) return false;
+    this.inFlight.delete(id);
     this.processed.add(id);
     return true;
   }
@@ -54,10 +63,26 @@ export class OutboxWorkerLifecycle implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit(): Promise<void> {
-    // Seed nextSeq from the DB max(seq) so cross-restart seq collisions
-    // are prevented. Only meaningful when the Prisma adapter is active
-    // (DATABASE_URL set); the in-memory adapter starts fresh each boot.
+    // Only run DB-backed operations when a real database is configured.
+    // The in-memory adapter starts fresh each boot so these steps are no-ops there.
     if (process.env.DATABASE_URL) {
+      // Reset stale in-flight sentinel rows left by a previous process crash.
+      // Without this, rows marked with processed_at = epoch by a crashed worker
+      // would stay stuck forever — the claimBatch WHERE clause only touches
+      // processed_at IS NULL rows.
+      try {
+        const reset = await this.prismaStorage.resetStaleSentinels();
+        if (reset > 0) {
+          this.logger.warn(`outbox: reset ${reset} stale sentinel row(s) from previous crash`);
+        }
+      } catch (err) {
+        // Non-fatal: stranded sentinels will remain but at-least-once delivery
+        // is preserved for all non-sentinel rows. Log and continue.
+        this.logger.warn(`outbox: failed to reset stale sentinels: ${err}`);
+      }
+
+      // Seed nextSeq from the DB max(seq) so cross-restart seq collisions
+      // are prevented.
       try {
         const max = await this.prismaStorage.maxSeq();
         this.recorder.initSeq(max + 1);

@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { OUTBOX_STORAGE } from "../../src/core/outbox/outbox.module.js";
 import type { OutboxEntry, OutboxStorage } from "../../src/core/outbox/outbox.js";
+import { PrismaOutboxStorage } from "../../src/core/outbox/outbox.prisma.js";
 import { PrismaService } from "../../src/core/prisma/prisma.service.js";
 import { uuidV7 } from "../../src/core/uuid/uuid-v7.js";
 
@@ -120,5 +121,57 @@ describe("Story · PrismaOutboxStorage", () => {
     // previous (FIFO ordering on seq).
     expect(indices[0]).toBeLessThan(indices[1]!);
     expect(indices[1]).toBeLessThan(indices[2]!);
+  });
+
+  it("resetStaleSentinels resets rows at the epoch sentinel older than 5 minutes", async () => {
+    // Manually insert a row with processed_at = epoch (the in-flight sentinel)
+    // and occurred_at 10 minutes in the past so it qualifies for cleanup.
+    const staleTenantId = "00000000-0000-0000-0000-000000000302";
+    const staleId = uuidV7();
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO outbox_entries (id, seq, tenant_id, type, payload, occurred_at, processed_at)
+       VALUES ($1::uuid, 9999999, $2::uuid, 'sentinel.stale', '{}'::jsonb,
+               NOW() - INTERVAL '10 minutes',
+               '1970-01-01T00:00:00.000Z'::timestamp)`,
+      staleId,
+      staleTenantId,
+    );
+
+    // Also insert a fresh sentinel row (< 5 minutes old) — must NOT be reset.
+    const freshId = uuidV7();
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO outbox_entries (id, seq, tenant_id, type, payload, occurred_at, processed_at)
+       VALUES ($1::uuid, 9999998, $2::uuid, 'sentinel.fresh', '{}'::jsonb,
+               NOW() - INTERVAL '1 minute',
+               '1970-01-01T00:00:00.000Z'::timestamp)`,
+      freshId,
+      staleTenantId,
+    );
+
+    const prismaStorage = new PrismaOutboxStorage(prisma);
+    const resetCount = await prismaStorage.resetStaleSentinels();
+    // At least the stale row must have been reset (others in the suite don't qualify).
+    expect(resetCount).toBeGreaterThanOrEqual(1);
+
+    // Verify: stale row's processed_at is now NULL (re-enters dispatch queue).
+    const [staleRow] = (await prisma.$queryRawUnsafe(
+      `SELECT processed_at FROM outbox_entries WHERE id = $1::uuid`,
+      staleId,
+    )) as Array<{ processed_at: Date | null }>;
+    expect(staleRow?.processed_at).toBeNull();
+
+    // Verify: fresh row is still at the epoch sentinel (not reset).
+    const [freshRow] = (await prisma.$queryRawUnsafe(
+      `SELECT processed_at FROM outbox_entries WHERE id = $1::uuid`,
+      freshId,
+    )) as Array<{ processed_at: Date | null }>;
+    // Fresh row is < 5 minutes old → NOT reset by the sentinel cleanup.
+    expect(freshRow?.processed_at).not.toBeNull();
+
+    // Cleanup.
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM outbox_entries WHERE tenant_id = $1::uuid`,
+      staleTenantId,
+    );
   });
 });

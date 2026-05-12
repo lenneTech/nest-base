@@ -85,16 +85,9 @@ describe("Story · Outbox", () => {
     expect(batch.map((e) => e.type)).toEqual(["a", "b", "c"]);
   });
 
-  it("L2 TODO — seq must not restart from 1 after process restart (Prisma-backed storage)", async () => {
-    // Documents the expected behavior: when the outbox recorder is re-created
-    // (process restart) with a storage that already holds rows with seq up to N,
-    // the new recorder should start from N+1, not from 1.
-    //
-    // The fix requires OutboxRecorder to expose an `initSeq(n)` method and
-    // OutboxModule.onModuleInit to call `SELECT MAX(seq) FROM outbox_entries`
-    // and invoke it. Until that lands, this test documents the gap.
-    //
-    // TODO(seq): remove this todo comment and implement the fix in outbox.module.ts.
+  it("seq does not restart from 1 after process restart when initSeq is called", async () => {
+    // OutboxRecorder exposes initSeq(n) and OutboxModule.onModuleInit seeds it
+    // from SELECT MAX(seq) so new entries after restart always have seq > max(old seq).
     const storage = makeStorage();
     const rec1 = new OutboxRecorder(storage);
     const a = await rec1.record({ tenantId: "t1", type: "x", payload: {} });
@@ -102,12 +95,13 @@ describe("Story · Outbox", () => {
     expect(b.seq).toBeGreaterThan(a.seq);
 
     // Simulate restart: new recorder instance, same storage (rows persist).
+    // OutboxModule.onModuleInit would call initSeq(maxSeq + 1) here.
     const rec2 = new OutboxRecorder(storage);
+    rec2.initSeq(b.seq + 1);
     const c = await rec2.record({ tenantId: "t1", type: "x", payload: {} });
 
-    // Expected: c.seq > b.seq (no seq collision after restart).
-    // Actual current behavior: c.seq === 1 (resets) which is < b.seq — a bug.
-    // Once the fix lands, change this to: expect(c.seq).toBeGreaterThan(b.seq);
-    expect(c.seq).toBe(1); // Documents the current broken behavior.
+    // After initSeq, the new entry must have a seq strictly greater than the
+    // last entry before the simulated restart — no seq collision.
+    expect(c.seq).toBeGreaterThan(b.seq);
   });
 });
