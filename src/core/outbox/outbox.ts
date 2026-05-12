@@ -62,6 +62,13 @@ export class OutboxRecorder {
     return entry;
   }
 
+  /**
+   * @deprecated Use `storage.claimBatch()` directly (M3 fix). The worker
+   * owns claiming and calls `storage.claimBatch()` directly. This thin
+   * delegation has no production callers and survives only for the test
+   * fixtures in `outbox.story.test.ts` that exercise claim semantics
+   * against the in-memory storage directly.
+   */
   async claim(limit: number): Promise<OutboxEntry[]> {
     return this.storage.claimBatch(limit);
   }
