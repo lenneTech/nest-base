@@ -87,16 +87,17 @@ export class PrismaApiKeyStorage implements ApiKeyStorage {
     }
   }
 
-  async updateLastUsed(id: string, at: Date): Promise<void> {
+  async updateLastUsed(id: string, at: Date): Promise<boolean> {
     try {
       await this.client().apiKey.update({
         where: { id },
         data: { lastUsedAt: at },
       });
+      return true;
     } catch {
-      // Best-effort — a missing row is treated as a no-op so the
-      // verify path never fails on a key that was deleted between
-      // lookup and write.
+      // The key was deleted or revoked between `findByLookupId` and this
+      // write. Return false so the caller can reject the verification (M4 fix).
+      return false;
     }
   }
 

@@ -60,7 +60,12 @@ export interface ApiKeyStorage {
   findByLookupId(lookupId: string): Promise<ApiKeyRecord | null>;
   listByUser(userId: string): Promise<ApiKeyRecord[]>;
   delete(id: string): Promise<boolean>;
-  updateLastUsed(id: string, at: Date): Promise<void>;
+  /**
+   * Stamp `last_used_at` on an active key. Returns `false` when no row
+   * was updated — meaning the key was deleted or revoked between the
+   * `findByLookupId` fetch above and this write (M4 TOCTOU fix).
+   */
+  updateLastUsed(id: string, at: Date): Promise<boolean>;
   /**
    * Replace the rotation-mutable fields (`lookupId`, `hash`) in place.
    * Returns the updated record or null if `id` is unknown.
@@ -119,7 +124,12 @@ export class ApiKeyService {
     }
     const ok = await argon2Verify(record.hash, secret!);
     if (!ok) throw new ApiKeyInvalidError();
-    await this.storage.updateLastUsed(record.id, new Date());
+    // Close the TOCTOU window: if the key was revoked between `findByLookupId`
+    // and this write, `updateLastUsed` returns false (no row updated). Treat
+    // that as an invalid key — the caller must not receive a valid VerifyResult
+    // for a key that was deleted while the argon2 check was running (M4 fix).
+    const stamped = await this.storage.updateLastUsed(record.id, new Date());
+    if (!stamped) throw new ApiKeyInvalidError();
     return { userId: record.userId, scopes: record.scopes };
   }
 

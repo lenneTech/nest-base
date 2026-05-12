@@ -51,9 +51,11 @@ class InMemoryApiKeyStorage implements ApiKeyStorage {
   async delete(id: string): Promise<boolean> {
     return this.map.delete(id);
   }
-  async updateLastUsed(id: string, at: Date): Promise<void> {
+  async updateLastUsed(id: string, at: Date): Promise<boolean> {
     const r = this.map.get(id);
-    if (r) this.map.set(id, { ...r, lastUsedAt: at });
+    if (!r) return false;
+    this.map.set(id, { ...r, lastUsedAt: at });
+    return true;
   }
   async rotate(id: string, lookupId: string, hash: string): Promise<ApiKeyRecord | null> {
     const r = this.map.get(id);

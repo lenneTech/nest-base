@@ -52,8 +52,9 @@ describe("Story · Scoped API-Keys", () => {
       },
       async updateLastUsed(id, at) {
         const idx = records.findIndex((r) => r.id === id);
-        if (idx < 0) return;
+        if (idx < 0) return false;
         records[idx] = { ...records[idx]!, lastUsedAt: at };
+        return true;
       },
       async rotate(id, lookupId, hash) {
         const idx = records.findIndex((r) => r.id === id);
@@ -140,6 +141,25 @@ describe("Story · Scoped API-Keys", () => {
       await svc.verifyKey(plaintext);
       const stored = storage.records.find((r) => r.id === record.id)!;
       expect(stored.lastUsedAt).toBeInstanceOf(Date);
+    });
+
+    it("M4 TOCTOU: rejects with ApiKeyInvalidError when the key is revoked between lookup and updateLastUsed", async () => {
+      // Simulate the race: the argon2 verify succeeds but the key row is
+      // deleted before updateLastUsed runs — updateLastUsed returns false.
+      const storage = makeStorage();
+      const svc = new ApiKeyService(storage);
+      const { plaintext } = await svc.createKey({ userId: "u1", name: "k", scopes: ["x"] });
+
+      // Inject a storage shim where updateLastUsed simulates the row disappearing.
+      const original = storage.updateLastUsed.bind(storage);
+      // @ts-expect-error — overriding for TOCTOU test
+      storage.updateLastUsed = async (_id: string, _at: Date): Promise<boolean> => {
+        // Pretend the row was deleted between verify and this write.
+        return false;
+      };
+      void original; // suppress unused warning
+
+      await expect(svc.verifyKey(plaintext)).rejects.toThrow(ApiKeyInvalidError);
     });
   });
 
