@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, type OnApplicationBootstrap } from "@nestjs/common";
+import { Inject, Injectable, Logger, type OnApplicationBootstrap, type OnModuleDestroy } from "@nestjs/common";
 
 import { JobQueueService } from "./jobs.module.js";
 import { SCHEDULED_JOB_REGISTRY, type ScheduledJobRegistry } from "./scheduled-job.registry.js";
@@ -32,13 +32,15 @@ import { SCHEDULED_JOB_REGISTRY, type ScheduledJobRegistry } from "./scheduled-j
  *   (e.g. `cron-parser`) can replace this if non-daily schedules are
  *   needed in the future.
  *
- * Registers `JobQueueService` handler + enqueues the first tick
- * immediately on boot so the job runs at least once per restart even
- * when the interval hasn't elapsed yet (matches typical cron-at-startup
- * behaviour).
+ * Registers `JobQueueService` handler + schedules recurring enqueues
+ * via `setInterval`. The FIRST enqueue fires after one full interval
+ * (not at boot). Use a dedicated seeding mechanism or a one-shot enqueue
+ * call in project bootstrap if you need "run immediately on restart"
+ * behaviour (M1 fix — corrects the contradicting "enqueues immediately"
+ * claim that appeared in older iterations).
  */
 @Injectable()
-export class ScheduledJobBullMQAdapter implements OnApplicationBootstrap {
+export class ScheduledJobBullMQAdapter implements OnApplicationBootstrap, OnModuleDestroy {
   private readonly log = new Logger("ScheduledJobBullMQAdapter");
   private readonly timers: ReturnType<typeof setInterval>[] = [];
 
@@ -99,6 +101,15 @@ export class ScheduledJobBullMQAdapter implements OnApplicationBootstrap {
   }
 
   /**
+   * NestJS lifecycle hook — clear all scheduled timers when the module
+   * is torn down so the process can exit cleanly and tests don't leak
+   * open handles (H1 fix).
+   */
+  onModuleDestroy(): void {
+    this.clearAll();
+  }
+
+  /**
    * Clear all intervals — called by the test harness or on module
    * destroy to prevent timer leaks.
    */
@@ -117,6 +128,13 @@ export class ScheduledJobBullMQAdapter implements OnApplicationBootstrap {
  *
  * Returns `24 * 60 * 60 * 1000` (daily) for unrecognised patterns so
  * unrecognised crons fail safe rather than running at zero interval.
+ *
+ * **Wall-clock alignment caveat (M1 fix):** This function derives only
+ * the period (e.g. `0 * * * *` → 3600 s). The resulting `setInterval`
+ * fires after one full period from startup, NOT at the next wall-clock
+ * occurrence of the cron expression. For exact wall-clock scheduling
+ * (e.g. "always at 04:00 UTC"), replace with BullMQ native repeat
+ * patterns (requires direct `Queue` access and a Redis-backed scheduler).
  */
 export function parseCronToIntervalMs(cron: string): number {
   const parts = cron.trim().split(/\s+/);

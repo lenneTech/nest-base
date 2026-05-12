@@ -175,4 +175,35 @@ describe("Story · ScheduledJobBullMQAdapter.onApplicationBootstrap wires every 
     expect(registerCalls).toHaveLength(0);
     adapter.clearAll(); // no-op, but safe
   });
+
+  it("H1 fix: onModuleDestroy() clears all active timers (same effect as clearAll)", async () => {
+    const { ScheduledJobBullMQAdapter } =
+      await import("../../src/core/jobs/scheduled-job-bullmq-adapter.js");
+
+    const fakeRegistry = {
+      list: () => [
+        {
+          name: "job1",
+          cron: "0 8 * * *",
+          source: "Fake.tick",
+          run: async () => {},
+        },
+      ],
+      has: () => false,
+      runOnce: async () => {},
+    };
+    const fakeQueue = {
+      register: () => {},
+      enqueue: vi.fn().mockResolvedValue("fake-id"),
+    };
+
+    // @ts-expect-error — partial fake
+    const adapter = new ScheduledJobBullMQAdapter(fakeQueue, fakeRegistry);
+    adapter.onApplicationBootstrap();
+
+    // onModuleDestroy should not throw and should clear timers
+    expect(() => adapter.onModuleDestroy()).not.toThrow();
+    // After destroy, clearAll is a no-op (timers array already empty)
+    expect(() => adapter.clearAll()).not.toThrow();
+  });
 });
