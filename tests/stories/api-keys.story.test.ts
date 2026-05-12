@@ -105,7 +105,11 @@ describe("Story · Scoped API-Keys", () => {
       const storage = makeStorage();
       const svc = new ApiKeyService(storage);
       const { plaintext } = await svc.createKey({ userId: "u1", name: "k", scopes: ["x"] });
-      const tampered = `${plaintext.slice(0, -2)}aa`;
+      // Flip the last hex char to something guaranteed different from the
+      // original so the tamper is never a no-op regardless of the random secret.
+      const lastChar = plaintext[plaintext.length - 1]!;
+      const flipped = lastChar === "a" ? "b" : "a";
+      const tampered = `${plaintext.slice(0, -1)}${flipped}`;
       await expect(svc.verifyKey(tampered)).rejects.toThrow(ApiKeyInvalidError);
     });
 
