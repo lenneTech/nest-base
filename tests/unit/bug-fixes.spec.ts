@@ -172,16 +172,16 @@ describe("C1 · parseCronToIntervalMs converts cron expressions to intervals", (
     expect(parseCronToIntervalMs("0 * * * *")).toBe(60 * 60 * 1000);
   });
 
-  it("unrecognised pattern defaults to 24h (fail-safe)", async () => {
+  it("unrecognised pattern returns null (caller decides fallback)", async () => {
     const { parseCronToIntervalMs } =
       await import("../../src/core/jobs/scheduled-job-bullmq-adapter.js");
-    expect(parseCronToIntervalMs("*/5 * * * *")).toBe(24 * 60 * 60 * 1000);
+    expect(parseCronToIntervalMs("*/5 * * * *")).toBeNull();
   });
 
-  it("malformed expression defaults to 24h", async () => {
+  it("malformed expression returns null", async () => {
     const { parseCronToIntervalMs } =
       await import("../../src/core/jobs/scheduled-job-bullmq-adapter.js");
-    expect(parseCronToIntervalMs("not-a-cron")).toBe(24 * 60 * 60 * 1000);
+    expect(parseCronToIntervalMs("not-a-cron")).toBeNull();
   });
 });
 
