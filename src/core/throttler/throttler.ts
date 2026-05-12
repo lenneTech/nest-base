@@ -110,6 +110,17 @@ export class ThrottlerService {
     const states: ConsumeResult["windows"] = [];
     let violatedWindow: string | undefined;
 
+    // All windows are incremented unconditionally — including windows
+    // checked AFTER a violation is already found. This is intentional:
+    // accurate accounting requires that every request lands in every
+    // counter regardless of the outcome (L3 design decision).
+    //
+    // If you need "don't count against later windows when an earlier
+    // window already blocked", change this to a two-pass approach:
+    //   1. Read (without increment) all windows.
+    //   2. If no violation → increment all.
+    // That requires adding a read-only `peek` method to ThrottlerStorage,
+    // which is a larger API change. Document here until that need arises.
     for (const window of input.windows) {
       const compositeKey = `${input.key}::${window.name}`;
       const record = await this.storage.increment(
