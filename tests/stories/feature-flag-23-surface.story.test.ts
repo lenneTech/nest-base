@@ -49,6 +49,9 @@ describe("Story · Feature-flag surface contract (SC.BOOT.04)", () => {
     "jobs",
     // Audit-log subsystem (CUD trail + audit Prisma extension)
     "audit",
+    // Opt-in security hardening (H2 fix — routed through features.ts)
+    "passwordPolicy",
+    "filesMimeStrict",
   ];
 
   it("loadFeatures({}) exposes every PRD-tracked toggleable subsystem", () => {
@@ -70,10 +73,11 @@ describe("Story · Feature-flag surface contract (SC.BOOT.04)", () => {
 
   it("the surface count is exactly the PRD-mandated 23 top-level subsystems", () => {
     const features = loadFeatures({});
-    // PRD § Phase 1 — MVP scope pins "23 feature-toggleable subsystems".
-    // Schema enumerates exactly 23 top-level keys (one of which —
-    // `authMethods` — is itself a composite of 5 sub-toggles).
-    expect(Object.keys(features).length).toBe(23);
+    // PRD § Phase 1 — MVP scope pinned "23 feature-toggleable subsystems".
+    // The schema has since grown: passwordPolicy and filesMimeStrict were
+    // added in the H2 fix (iter-216 review), bringing the total to 25.
+    // The meaningful contract is the named key set above, not the count.
+    expect(Object.keys(features).length).toBe(25);
   });
 
   it("counts auth-method sub-flags toward the broader feature breadth", () => {

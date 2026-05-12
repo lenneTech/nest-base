@@ -108,6 +108,11 @@ export class JobQueueService extends BullMQJobQueue implements OnModuleInit, OnM
       provide: BULLMQ_REDIS,
       useFactory: () => resolveBullMQRedis(),
     },
+    // Alias so ScheduledJobBullMQAdapter can inject BullMQJobQueue (its
+    // declared constructor param type) without a circular ESM import
+    // back to this file. NestJS resolves the alias to the JobQueueService
+    // instance which extends BullMQJobQueue.
+    { provide: BullMQJobQueue, useExisting: JobQueueService },
     // Wires every @ScheduledJob-decorated method to the BullMQ queue
     // via setInterval-based scheduling at OnApplicationBootstrap (C1 fix).
     ScheduledJobBullMQAdapter,
