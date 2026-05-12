@@ -730,9 +730,12 @@ FileService.prototype.uploadAndCreate = async function uploadAndCreate(
   // Magic-byte MIME sniffing (CF.FILES.07 — iter-118). The client-
   // supplied `Content-Type` is trusted only after the body's leading
   // bytes line up. Strict mode is opt-in via
-  // `FEATURE_FILES_MIME_STRICT=true` so legacy clients that send
-  // `application/octet-stream` for known image bodies still upload.
-  const strictMime = process.env.FEATURE_FILES_MIME_STRICT === "true";
+  // `FEATURE_FILES_MIME_STRICT_ENABLED=true` so legacy clients that
+  // send `application/octet-stream` for known image bodies still upload.
+  // Previously read process.env directly — now routes through features.ts
+  // so all toggle logic lives in one place (H2 fix).
+  const features = loadFeatures(process.env as Record<string, string | undefined>);
+  const strictMime = features.filesMimeStrict.enabled;
   if (strictMime) {
     const probe = input.bytes.subarray(0, 256);
     const match = checkSniffedMimeMatchesClaim(probe, input.mimeType);

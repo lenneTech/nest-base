@@ -221,14 +221,17 @@ const MIN_SECRET_LEN = 32;
           // `activeOrganizationId` so clients can omit the x-tenant-id
           // header after a POST /api/auth/organization/set-active call.
           ...(features.organization.enabled ? { organization: {} } : {}),
-          // Password policy enforcement is opt-in via env. The
+          // Password policy enforcement is opt-in via features.ts.
+          // Set FEATURE_PASSWORD_POLICY_ENABLED=true to activate. The
           // service exposes the policy validator (entropy + optional
           // HIBP breach check) so signup / change-password run the
           // gate before persisting the hash. Default min entropy =
           // 50 bits (≈ 12-char mixed-case+digit). HIBP check is
           // enabled when `FEATURE_PASSWORD_HIBP=true` (production
           // egress to api.pwnedpasswords.com required).
-          ...(process.env.FEATURE_PASSWORD_POLICY === "true"
+          // Previously read process.env directly — now routes through
+          // features.ts so all toggle logic lives in one place (H2 fix).
+          ...(features.passwordPolicy.enabled
             ? {
                 passwordPolicy: {
                   ...(process.env.PASSWORD_POLICY_MIN_ENTROPY_BITS
