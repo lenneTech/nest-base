@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { Injectable } from "@nestjs/common";
+import { Injectable, type OnModuleDestroy } from "@nestjs/common";
 
 /**
  * GDPR export-job registry (CF.GDPR.* — iter-106).
@@ -40,6 +40,8 @@ interface MutableGdprExportJob {
   completedAt: Date | null;
   payload: unknown;
   error: string | null;
+  /** Handle returned by `setTimeout` for the eviction timer, if scheduled. */
+  evictionTimer?: ReturnType<typeof setTimeout>;
 }
 
 export class GdprExportJobNotFoundError extends Error {
@@ -55,8 +57,22 @@ export interface EnqueueGdprExportInput {
 }
 
 @Injectable()
-export class GdprExportJobRegistry {
+export class GdprExportJobRegistry implements OnModuleDestroy {
   private readonly jobs = new Map<string, MutableGdprExportJob>();
+
+  /**
+   * Cancel all pending eviction timers on module teardown to prevent
+   * open handles that would keep the process alive past its intended
+   * lifetime (L2 fix).
+   */
+  onModuleDestroy(): void {
+    for (const job of this.jobs.values()) {
+      if (job.evictionTimer !== undefined) {
+        clearTimeout(job.evictionTimer);
+      }
+    }
+    this.jobs.clear();
+  }
 
   enqueue(input: EnqueueGdprExportInput): GdprExportJob {
     const job: MutableGdprExportJob = {
@@ -96,7 +112,8 @@ export class GdprExportJobRegistry {
     // Evict terminal jobs after 24 h to prevent unbounded heap growth.
     // The in-memory registry is the default; Prisma-backed adapters retain
     // entries permanently in the DB and do not use this timer.
-    setTimeout(() => this.jobs.delete(jobId), 24 * 60 * 60 * 1000);
+    // Store the handle so onModuleDestroy() can cancel it (L2 fix).
+    job.evictionTimer = setTimeout(() => this.jobs.delete(jobId), 24 * 60 * 60 * 1000);
   }
 
   fail(jobId: string, err: Error): void {
@@ -107,7 +124,8 @@ export class GdprExportJobRegistry {
     job.completedAt = new Date();
     job.error = err.message;
     // Evict terminal jobs after 24 h to prevent unbounded heap growth.
-    setTimeout(() => this.jobs.delete(jobId), 24 * 60 * 60 * 1000);
+    // Store the handle so onModuleDestroy() can cancel it (L2 fix).
+    job.evictionTimer = setTimeout(() => this.jobs.delete(jobId), 24 * 60 * 60 * 1000);
   }
 
   get(jobId: string): GdprExportJob | null {
