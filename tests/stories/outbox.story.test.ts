@@ -51,22 +51,22 @@ describe("Story · Outbox", () => {
     expect(storage.rows).toHaveLength(2);
   });
 
-  it("claim() returns at most `limit` unprocessed entries", async () => {
+  it("claimBatch() returns at most `limit` unprocessed entries", async () => {
     const storage = makeStorage();
     const rec = new OutboxRecorder(storage);
     for (let i = 0; i < 5; i++) {
       await rec.record({ tenantId: "t1", type: "x", payload: { v: i } });
     }
-    const batch = await rec.claim(3);
+    const batch = await storage.claimBatch(3);
     expect(batch).toHaveLength(3);
   });
 
-  it("markProcessed() removes the entry from the next claim", async () => {
+  it("markProcessed() removes the entry from the next claimBatch", async () => {
     const storage = makeStorage();
     const rec = new OutboxRecorder(storage);
     const entry = await rec.record({ tenantId: "t1", type: "x", payload: {} });
     await rec.markProcessed(entry.id);
-    const batch = await rec.claim(10);
+    const batch = await storage.claimBatch(10);
     expect(batch.find((e) => e.id === entry.id)).toBeUndefined();
   });
 
@@ -81,7 +81,7 @@ describe("Story · Outbox", () => {
     await rec.record({ tenantId: "t1", type: "a", payload: {} });
     await rec.record({ tenantId: "t1", type: "b", payload: {} });
     await rec.record({ tenantId: "t1", type: "c", payload: {} });
-    const batch = await rec.claim(10);
+    const batch = await storage.claimBatch(10);
     expect(batch.map((e) => e.type)).toEqual(["a", "b", "c"]);
   });
 

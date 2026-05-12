@@ -142,7 +142,7 @@ export class ScheduledJobBullMQAdapter implements OnApplicationBootstrap, OnModu
  *
  * Returns `null` for unrecognised patterns so the caller can decide how
  * to handle an unsupported expression (log, skip, or apply a safe default).
- * A warning is emitted for visibility before returning null.
+ * The caller (onApplicationBootstrap) logs the warning via this.log.warn.
  *
  * **Wall-clock alignment caveat (M1 fix):** This function derives only
  * the period (e.g. `0 * * * *` → 3600 s). The resulting `setInterval`
@@ -154,9 +154,6 @@ export class ScheduledJobBullMQAdapter implements OnApplicationBootstrap, OnModu
 export function parseCronToIntervalMs(cron: string): number | null {
   const parts = cron.trim().split(/\s+/);
   if (parts.length < 5) {
-    console.warn(
-      `[parseCronToIntervalMs] unrecognised cron expression (too few fields): "${cron}"`,
-    );
     return null;
   }
 
@@ -186,7 +183,7 @@ export function parseCronToIntervalMs(cron: string): number | null {
     return 24 * 60 * 60 * 1000;
   }
 
-  // Unrecognised — warn and let the caller decide.
-  console.warn(`[parseCronToIntervalMs] unrecognised cron expression: "${cron}"`);
+  // Unrecognised — return null so the caller (onApplicationBootstrap) can
+  // emit a structured log via this.log.warn and apply a safe fallback.
   return null;
 }

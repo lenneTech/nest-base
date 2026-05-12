@@ -107,9 +107,12 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   // All checks only need env vars; no DI access required.
   // Skipped in test mode (listen: false) so e2e tests that temporarily set
   // NODE_ENV=production to verify dev-hub gating don't fail here.
+  // Hoist feature loading so the same object is reused for the pre-flight
+  // validation and the OTel bootstrap below — avoids parsing env twice.
+  const preflightFeatures = loadFeatures(process.env as Record<string, string | undefined>);
+
   if (listen) {
     try {
-      const preflightFeatures = loadFeatures(process.env as Record<string, string | undefined>);
       validateFeatureDependencies(preflightFeatures, { env: cfg.env });
       // Validate FILE_SHARE_LINK_SECRET early so a missing/weak secret in
       // production causes a loud startup failure rather than a 500 at the
@@ -149,9 +152,8 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   // In tests (`listen: false`), the SDK is intentionally skipped to
   // keep test boots fast + free of network noise.
   if (listen) {
-    const features = loadFeatures(process.env as Record<string, string | undefined>);
     const otelPlan = planOtelBootstrap({
-      observabilityEnabled: features.observability.enabled,
+      observabilityEnabled: preflightFeatures.observability.enabled,
       otlpEndpoint: process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
       serviceName: process.env.OTEL_SERVICE_NAME,
     });

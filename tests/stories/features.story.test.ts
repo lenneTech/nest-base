@@ -171,7 +171,7 @@ describe("Story · Feature-Flag-System", () => {
       expect(() => validateFeatureDependencies(features)).toThrow(/webhooks.*jobs/i);
     });
 
-    it("throws when search is enabled with files=false (search indexes file metadata too — expected combination broken)", () => {
+    it("throws when rateLimit is disabled in production", () => {
       // documented invariant: rateLimit cannot be off in production-like config
       const features = FeaturesSchema.parse({ rateLimit: { enabled: false } });
       expect(() => validateFeatureDependencies(features, { env: "production" })).toThrow(

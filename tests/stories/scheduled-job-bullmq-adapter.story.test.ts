@@ -40,15 +40,14 @@ describe("Story · parseCronToIntervalMs converts cron to setInterval millis", (
     expect(parseCronToIntervalMs("0 * * * *")).toBe(60 * 60 * 1000);
   });
 
-  it("unrecognised pattern → null (caller decides; a warning is emitted)", async () => {
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+  it("unrecognised pattern → null (caller decides; warning is emitted at call-site via this.log.warn)", async () => {
     const { parseCronToIntervalMs } =
       await import("../../src/core/jobs/scheduled-job-bullmq-adapter.js");
     expect(parseCronToIntervalMs("*/15 * * * *")).toBeNull();
     expect(parseCronToIntervalMs("bad-cron")).toBeNull();
     expect(parseCronToIntervalMs("")).toBeNull();
-    expect(warnSpy).toHaveBeenCalled();
-    warnSpy.mockRestore();
+    // No console.warn assertion: the warning is emitted by the call-site
+    // (onApplicationBootstrap) via this.log.warn — not inside parseCronToIntervalMs.
   });
 });
 

@@ -156,7 +156,6 @@ describe("Story · Scoped API-Keys", () => {
 
       // Inject a storage shim where updateLastUsed simulates the row disappearing.
       const original = storage.updateLastUsed.bind(storage);
-      // @ts-expect-error — overriding for TOCTOU test
       storage.updateLastUsed = async (_id: string, _at: Date): Promise<boolean> => {
         // Pretend the row was deleted between verify and this write.
         return false;

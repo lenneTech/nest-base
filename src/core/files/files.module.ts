@@ -394,7 +394,7 @@ class FolderController {
 function resolveShareLinkSecret(): string {
   const secret = process.env.FILE_SHARE_LINK_SECRET ?? "dev-share-link-secret";
   if (
-    process.env.NODE_ENV === "production" &&
+    process.env.APP_ENV === "production" &&
     (process.env.FILE_SHARE_LINK_SECRET === undefined ||
       process.env.FILE_SHARE_LINK_SECRET.length < 32)
   ) {
@@ -642,7 +642,7 @@ function buildCacheAdapter(
           // gracefully degrade to "no TUS" when the import fails so
           // boot doesn't crash — the upload-complete hook still works
           // for the single-shot POST /files/upload path.
-          // eslint-disable-next-line no-console
+          // Logger unavailable in static useFactory context — console.warn is intentional here
           console.warn(`[FilesModule] TUS server failed to load: ${String(err)}`);
           return null;
         }

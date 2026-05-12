@@ -3,6 +3,7 @@ import {
   Injectable,
   Logger,
   Module,
+  Optional,
   type OnModuleDestroy,
   type OnModuleInit,
 } from "@nestjs/common";
@@ -57,7 +58,10 @@ export class OutboxWorkerLifecycle implements OnModuleInit, OnModuleDestroy {
     @Inject(OUTBOX_STORAGE) storage: OutboxStorage,
     @Inject(OUTBOX_DISPATCHERS) dispatchers: OutboxDispatcher[],
     private readonly recorder: OutboxRecorderProvider,
-    private readonly prismaStorage: PrismaOutboxStorage,
+    // Optional so that when no DATABASE_URL is set, NestJS does not fail
+    // to resolve PrismaOutboxStorage (it is still registered but the DB
+    // connection is absent — the null guard below makes the calls safe).
+    @Optional() private readonly prismaStorage: PrismaOutboxStorage | null,
   ) {
     this.worker = new OutboxWorker(storage, dispatchers, { batchSize: 50 });
   }
@@ -65,7 +69,7 @@ export class OutboxWorkerLifecycle implements OnModuleInit, OnModuleDestroy {
   async onModuleInit(): Promise<void> {
     // Only run DB-backed operations when a real database is configured.
     // The in-memory adapter starts fresh each boot so these steps are no-ops there.
-    if (process.env.DATABASE_URL) {
+    if (process.env.DATABASE_URL && this.prismaStorage) {
       // Reset stale in-flight sentinel rows left by a previous process crash.
       // Without this, rows marked with processed_at = epoch by a crashed worker
       // would stay stuck forever — the claimBatch WHERE clause only touches
