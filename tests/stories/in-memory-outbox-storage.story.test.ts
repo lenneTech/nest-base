@@ -72,6 +72,6 @@ describe("Story · InMemoryOutboxStorage retry behaviour", () => {
     await storage.markProcessed(entry.id, new Date());
 
     const batch = await storage.claimBatch(10);
-    expect(batch.find((e) => e.id === entry.id)).toBeUndefined();
+    expect(batch.find((e: { id: string }) => e.id === entry.id)).toBeUndefined();
   });
 });
