@@ -40,7 +40,7 @@ import { PrismaService } from "../prisma/prisma.service.js";
 import { buildDevPortalShellInput, renderDevPortalShell } from "./dev-portal-shell.js";
 import { filterUsers } from "./user-admin-planner.js";
 import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from "../auth/better-auth.token.js";
-import { serverConfigFromEnv } from "../server/server-config.js";
+import { ConfigService } from "../config/config.service.js";
 
 const DEFAULT_LIST_LIMIT = 100;
 const MAX_LIST_LIMIT = 500;
@@ -79,6 +79,7 @@ export interface UserDetailResponse extends UserListEntry {
 export class UserAdminController {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
     @Optional() @Inject(BETTER_AUTH_INSTANCE) private readonly auth: BetterAuthInstance | null,
   ) {}
 
@@ -114,11 +115,12 @@ export class UserAdminController {
     const limit = clampLimit(limitRaw);
     const offset = parseOffset(offsetRaw);
 
-    // Fetch all users with their session counts in one round-trip by
-    // including `_count.sessions`. Filtering + slicing then happens in
-    // the planner (pure, tested in the story test).
+    // Fetch users with their session counts in one round-trip.
+    // Safety cap of 500 rows prevents OOM on large user tables; the
+    // planner further slices to the requested limit + offset.
     const rows = await this.prisma.user.findMany({
       orderBy: { createdAt: "desc" },
+      take: MAX_LIST_LIMIT,
       include: { _count: { select: { sessions: true } } },
     });
 
@@ -266,11 +268,9 @@ export class UserAdminController {
       );
     }
 
-    // Resolve the internal base URL. For dev this is typically
-    // http://localhost:3000 — the same host the NestJS server is
-    // listening on, reachable via loopback.
-    const cfg = serverConfigFromEnv(process.env);
-    const baseUrl = cfg.baseUrl ?? "http://localhost:3000";
+    // Resolve the internal base URL from the injected ConfigService —
+    // avoids re-parsing process.env via Zod on every request (MIN-2).
+    const baseUrl = this.config.server.baseUrl ?? "http://localhost:3000";
     const url = `${baseUrl}/api/auth/admin/${action}`;
 
     const res = await fetch(url, {
@@ -302,8 +302,7 @@ export class UserAdminController {
   }
 
   private assertDev(): void {
-    const cfg = serverConfigFromEnv(process.env);
-    if (cfg.env !== "development") {
+    if (this.config.server.env !== "development") {
       throw new NotFoundException();
     }
   }

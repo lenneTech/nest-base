@@ -136,4 +136,31 @@ describe("Story · BullMQJobQueue lifecycle — in-process queue (null Redis)", 
 
     await queue.stop();
   });
+
+  // -------------------------------------------------------------------------
+  // 5. InProcessQueue eviction: records map stays under 2000 after >2000 jobs
+  // -------------------------------------------------------------------------
+
+  it("eviction: records map stays below 2000 entries after processing 2001 jobs (MIN-3)", async () => {
+    const queue = new BullMQJobQueue(null);
+    await queue.start();
+
+    queue.register("bulk", async () => {
+      // Fast no-op handler so the queue drains quickly
+    });
+
+    // Enqueue 2001 jobs — enough to trigger the eviction threshold (2000).
+    const COUNT = 2001;
+    for (let i = 0; i < COUNT; i++) {
+      await queue.enqueue("bulk", { index: i });
+    }
+    await queue.drain();
+
+    // After draining, listJobs() should return fewer than 2000 records because
+    // the eviction pass removed the oldest completed entries.
+    const allJobs = await queue.listJobs();
+    expect(allJobs.length).toBeLessThan(2000);
+
+    await queue.stop();
+  });
 });

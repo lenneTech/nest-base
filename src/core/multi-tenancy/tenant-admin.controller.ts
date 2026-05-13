@@ -38,7 +38,7 @@ import { PrismaService } from "../prisma/prisma.service.js";
 import { buildDevPortalShellInput, renderDevPortalShell } from "../dx/dev-portal-shell.js";
 import { buildTenantStats, filterTenants } from "./tenant-admin-planner.js";
 import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from "../auth/better-auth.token.js";
-import { serverConfigFromEnv } from "../server/server-config.js";
+import { ConfigService } from "../config/config.service.js";
 
 const DEFAULT_LIST_LIMIT = 100;
 const MAX_LIST_LIMIT = 500;
@@ -101,6 +101,7 @@ export class TenantAdminController {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
     @Optional() @Inject(BETTER_AUTH_INSTANCE) private readonly auth: BetterAuthInstance | null,
   ) {}
 
@@ -138,9 +139,12 @@ export class TenantAdminController {
     const limit = clampLimit(limitRaw);
     const offset = parseOffset(offsetRaw);
 
-    // Fetch all orgs with member counts in a single round-trip.
+    // Fetch orgs with member counts in a single round-trip.
+    // Safety cap of 500 rows prevents OOM on large tenant tables; the
+    // planner further slices to the requested limit + offset.
     const rows = await this.prisma.organization.findMany({
       orderBy: { createdAt: "desc" },
+      take: MAX_LIST_LIMIT,
       include: {
         _count: { select: { members: true } },
         settings: { select: { deletedAt: true } },
@@ -494,8 +498,9 @@ export class TenantAdminController {
       );
     }
 
-    const cfg = serverConfigFromEnv(process.env);
-    const baseUrl = cfg.baseUrl ?? "http://localhost:3000";
+    // Use injected ConfigService to avoid re-parsing process.env via
+    // Zod on every request (MIN-2 fix).
+    const baseUrl = this.config.server.baseUrl ?? "http://localhost:3000";
     const url = `${baseUrl}/api/auth/organization/${action}`;
 
     const res = await fetch(url, {
@@ -519,8 +524,7 @@ export class TenantAdminController {
   }
 
   private assertDev(): void {
-    const cfg = serverConfigFromEnv(process.env);
-    if (cfg.env !== "development") {
+    if (this.config.server.env !== "development") {
       // Return 404 in non-dev environments to avoid leaking admin surface.
       throw new NotFoundException();
     }

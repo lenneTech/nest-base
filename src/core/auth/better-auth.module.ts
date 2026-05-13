@@ -289,12 +289,16 @@ function buildPrismaSessionStore(prisma: PrismaService): DeviceHandlingSessionSt
       });
     },
     async listForUser(userId) {
+      // Push the expiry filter into the DB so we don't load all
+      // sessions for a user who has accumulated many stale rows.
+      // Cap at 100 to stay memory-bounded; a legitimate user won't
+      // have more than that many active sessions at once. The
+      // post-filter below is a defensive second check in case the
+      // DB clock and the process clock disagree slightly.
       const rows = await prisma.session.findMany({
-        where: { userId },
-        // Drop expired sessions — they're functionally revoked, no
-        // point comparing against a hash that the user can't actually
-        // sign in with anymore.
-        // (Better-Auth's adapter doesn't auto-prune; we filter on read.)
+        where: { userId, expiresAt: { gt: new Date() } },
+        orderBy: { createdAt: "desc" },
+        take: 100,
       });
       const now = Date.now();
       return rows
