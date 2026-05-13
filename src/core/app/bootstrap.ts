@@ -115,7 +115,12 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
 
   if (listen) {
     try {
-      validateFeatureDependencies(preflightFeatures, { env: cfg.env });
+      // Pass EMAIL_HOST into the context so validateFeatureDependencies
+      // stays a pure function (no direct process.env access) (Fix #18).
+      validateFeatureDependencies(preflightFeatures, {
+        env: cfg.env,
+        emailHost: process.env.EMAIL_HOST,
+      });
       // Validate FILE_SHARE_LINK_SECRET early so a missing/weak secret in
       // production causes a loud startup failure rather than a 500 at the
       // first share-link request. Uses the shared predicate from
@@ -273,9 +278,10 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
         res.setHeader("traceparent", formatTraceparent({ traceId, parentId, sampled }));
       }
 
-      const cfg = serverConfigFromEnv(process.env);
       // AppEnv is "development" | "staging" | "production"; the Hub stage
       // includes "local" and "test" as additional values for test tooling.
+      // Use the outer `cfg` captured by closure rather than re-parsing env
+      // on every request (Fix #17: duplicate serverConfigFromEnv() call removed).
       const stage = (
         cfg.env === "development" ? "local" : cfg.env === "production" ? "production" : "staging"
       ) as "local" | "production" | "test" | "staging";

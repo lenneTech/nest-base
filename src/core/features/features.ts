@@ -364,6 +364,13 @@ function coerceValue(prop: string, raw: string): unknown {
 
 export interface ValidationContext {
   env?: AppEnv;
+  /**
+   * SMTP host value — used to validate that EMAIL_HOST is set when the
+   * email feature is enabled with provider=smtp in production (Fix #18).
+   * Pass `process.env.EMAIL_HOST` at the call-site so this pure function
+   * no longer reads `process.env` directly.
+   */
+  emailHost?: string;
 }
 
 /**
@@ -392,7 +399,7 @@ export function validateFeatureDependencies(features: Features, ctx: ValidationC
     ctx.env === "production" &&
     features.email.enabled &&
     features.email.provider === "smtp" &&
-    !process.env.EMAIL_HOST
+    !ctx.emailHost
   ) {
     throw new Error("feature `email` with provider=smtp requires EMAIL_HOST to be set");
   }
