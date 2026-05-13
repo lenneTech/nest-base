@@ -30,6 +30,8 @@ import {
   Query,
 } from "@nestjs/common";
 
+import { ResourceNotFoundError } from "../errors/resource-not-found-error.js";
+
 import { Can } from "../permissions/can.guard.js";
 import { Public } from "../permissions/public.decorator.js";
 import { PrismaService } from "../prisma/prisma.service.js";
@@ -202,7 +204,7 @@ export class TenantAdminController {
       },
     });
 
-    if (!row) throw new NotFoundException("tenant not found");
+    if (!row) throw new ResourceNotFoundError("Tenant", id);
 
     // Sum file sizes for the tenant — file_blobs uses the org id as tenantId.
     const fileSizeAgg = await this.prisma.fileBlob
@@ -279,7 +281,7 @@ export class TenantAdminController {
     this.assertDev();
 
     if (!body.name?.trim()) {
-      throw new BadRequestException("name is required");
+      throw new BadRequestException({ message: "name is required", code: "CORE_VALIDATION" });
     }
 
     // Create the org via BA organization admin API.
@@ -337,7 +339,7 @@ export class TenantAdminController {
 
     // Verify org exists before mutating settings.
     const org = await this.prisma.organization.findUnique({ where: { id } });
-    if (!org) throw new NotFoundException("tenant not found");
+    if (!org) throw new ResourceNotFoundError("Tenant", id);
 
     // Update org metadata via BA if name/slug changed.
     if (body.name || body.slug) {
@@ -378,7 +380,7 @@ export class TenantAdminController {
     this.assertDev();
 
     const org = await this.prisma.organization.findUnique({ where: { id } });
-    if (!org) throw new NotFoundException("tenant not found");
+    if (!org) throw new ResourceNotFoundError("Tenant", id);
 
     await this.prisma.tenantSettings.upsert({
       where: { organizationId: id },
@@ -398,7 +400,7 @@ export class TenantAdminController {
     this.assertDev();
 
     const org = await this.prisma.organization.findUnique({ where: { id } });
-    if (!org) throw new NotFoundException("tenant not found");
+    if (!org) throw new ResourceNotFoundError("Tenant", id);
 
     await this.prisma.tenantSettings.upsert({
       where: { organizationId: id },
@@ -421,7 +423,7 @@ export class TenantAdminController {
     this.assertDev();
 
     if (!body.email?.trim()) {
-      throw new BadRequestException("email is required");
+      throw new BadRequestException({ message: "email is required", code: "CORE_VALIDATION" });
     }
 
     await this.callBaOrgAdmin("invite-member", {
@@ -462,7 +464,7 @@ export class TenantAdminController {
     this.assertDev();
 
     if (!body.role?.trim()) {
-      throw new BadRequestException("role is required");
+      throw new BadRequestException({ message: "role is required", code: "CORE_VALIDATION" });
     }
 
     await this.callBaOrgAdmin("update-member-role", {
@@ -519,6 +521,7 @@ export class TenantAdminController {
   private assertDev(): void {
     const cfg = serverConfigFromEnv(process.env);
     if (cfg.env !== "development") {
+      // Return 404 in non-dev environments to avoid leaking admin surface.
       throw new NotFoundException();
     }
   }
