@@ -7,7 +7,19 @@ project owner reviews and answers.
 
 ## Open
 
-_None._
+### 2026-05-13 · Tests · Redis-backed path coverage gap
+
+- **Context:** `tests/stories/redis-module.story.test.ts` only tests the
+  no-Redis fallback path. The Redis-backed paths for `RedisPermissionCache`,
+  `RedisRecipientRateLimiter`, and `RedisNewDeviceThrottle` have no automated
+  test coverage at all.
+- **Question:** should we add a Testcontainers-backed integration test suite
+  for these Redis adapters, or is manual QA (with `REDIS_URL` set) sufficient?
+- **Working assumption:** manual QA for now. A future slice can add a
+  `tests/stories/redis-module.integration.story.test.ts` that starts a Redis
+  testcontainer (similar to `global-setup.ts` for Postgres) and exercises the
+  live paths.
+- **Status:** open.
 
 <!--
 Per entry:

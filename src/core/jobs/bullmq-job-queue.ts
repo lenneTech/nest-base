@@ -483,7 +483,16 @@ export class BullMQJobQueue {
         removeOnComplete: { count: 1000 },
         removeOnFail: { count: 500 },
       },
-    }) as unknown as BullMQQueue;
+    }) as unknown as BullMQQueue & { on(event: string, handler: (...args: unknown[]) => void): void };
+    // Prevent unhandled 'error' event crash on BullMQ Queue-level errors
+    // (distinct from ioredis connection errors, which are already handled on
+    // the ioredis client). BullMQ emits its own error events; without a
+    // listener Node/Bun would throw an uncaught 'error' event.
+    queue.on("error", (err: unknown) => {
+      this.bullmqLogger.error(
+        `BullMQ queue "${name}" error: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    });
     this.queues.set(name, queue);
     return queue;
   }

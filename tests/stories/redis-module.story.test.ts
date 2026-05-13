@@ -7,6 +7,13 @@ import { describe, expect, it } from "vitest";
  * receive `null` and must guard accordingly. Redis-connected behaviour
  * is verified at the integration layer only when REDIS_URL is
  * available.
+ *
+ * Coverage gap (tracked in OPEN_QUESTIONS.md):
+ * The Redis-backed paths for `RedisPermissionCache`, `RedisRecipientRateLimiter`,
+ * and `RedisNewDeviceThrottle` are NOT covered here. Integration tests for those
+ * require a live Redis instance (testcontainer or service container in CI).
+ * Until those tests land, the Redis-backed paths are exercised only in
+ * manual QA runs with `REDIS_URL` set.
  */
 
 describe("Story · RedisClient provider (no-Redis fallback)", () => {

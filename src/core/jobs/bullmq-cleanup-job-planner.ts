@@ -11,6 +11,13 @@
  *
  * The planner is pure — no BullMQ imports, no I/O — so tests run
  * without a live Redis connection.
+ *
+ * TODO(jobs): wire this once BullMQ native repeat jobs replace
+ * setInterval-based scheduling in ScheduledJobBullMQAdapter. At that
+ * point `buildBullMQCleanupJobPlan` should be called for each
+ * CleanupKind in `JobsModule.onApplicationBootstrap` (or equivalent)
+ * and the resulting plan passed to `BullMQJobQueue.register()` with a
+ * `repeat: { pattern: plan.repeatPattern }` option.
  */
 
 /** Recognised cleanup job kinds — one per cron task. */

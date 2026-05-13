@@ -65,6 +65,10 @@ export class OutboxRecorder {
     if (!input.type) throw new Error("outbox: type is required");
     const entry: OutboxEntry = {
       id: uuidV7(),
+      // In multi-pod deployments, two pods seeding from the same MAX(seq) can
+      // emit duplicate seq values briefly at startup. claimBatch uses
+      // SELECT FOR UPDATE SKIP LOCKED which is robust to duplicates — ordering
+      // is best-effort, not strict.
       seq: this.nextSeq++,
       tenantId: input.tenantId,
       type: input.type,

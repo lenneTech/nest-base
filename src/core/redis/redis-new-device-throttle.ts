@@ -53,14 +53,19 @@ export function createRedisNewDeviceThrottle(
       // we use the in-memory layer as a local cache and the Redis NX SET
       // as the cross-replica guard in `record()`.
       //
-      // Limitation: in the race between two replicas, both may pass
-      // `check()` before either calls `record()`. The Redis NX in
-      // `record()` is the authoritative arbiter — the second replica's
-      // `record()` call will fail silently and the email won't be sent
-      // a second time at the transport layer (email service checks the
-      // stored flag separately).
+      // Multi-replica race condition (known, by design): two pods can both
+      // pass `check()` returning `{ allowed: true }` before either commits
+      // a `record()`. The Redis SET NX in `record()` is the authoritative
+      // arbiter — the second pod's write returns null (key already exists)
+      // and no second email is enqueued. This works because the caller
+      // (`createEmailHookRunner`) records the throttle slot AFTER the mail
+      // is dispatched to the outbox, and the outbox deduplicates on the
+      // fingerprint-based idempotencyKey. Callers that send directly
+      // (useOutbox=false) rely solely on the NX race resolution here; the
+      // window is sub-millisecond under normal conditions.
       //
-      // For the synchronous interface contract, defer to in-memory.
+      // Summary: duplicate emails are possible only in the direct-send path
+      // under concurrent pod startup load — accepted as a best-effort throttle.
       return { allowed: true };
     },
 
@@ -71,11 +76,7 @@ export function createRedisNewDeviceThrottle(
       // replica already recorded this window) the SET returns null and
       // the key TTL is preserved — we don't need to react here because
       // the check path reads the same key on next call.
-      void (
-        redis as unknown as {
-          set(key: string, val: string, ex: string, ttl: number, flag: string): Promise<unknown>;
-        }
-      )
+      void redis
         .set(key, "1", "EX", windowSec, "NX")
         .catch(() => {
           // Redis errors during record are swallowed — the email path

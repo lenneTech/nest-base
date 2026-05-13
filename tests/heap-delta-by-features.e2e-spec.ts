@@ -92,6 +92,11 @@ function spawnMeasurement(featureEnv: Record<string, string>): HeapMeasurement {
     cwd: ROOT,
     env: {
       ...process.env,
+      // Clear REDIS_URL so the heap measurement child uses the no-Redis
+      // in-memory fallback path. A dev environment that has REDIS_URL set
+      // (with a password-protected local instance) would cause a NOAUTH
+      // error in the child before the app even boots, crashing the measurement.
+      REDIS_URL: "",
       ...featureEnv,
     },
     timeout: CHILD_TIMEOUT_MS,

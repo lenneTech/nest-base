@@ -3,6 +3,7 @@ import {
   Injectable,
   Logger,
   Module,
+  Optional,
   type OnModuleDestroy,
   type OnModuleInit,
 } from "@nestjs/common";
@@ -64,7 +65,7 @@ async function resolveBullMQRedis(): Promise<RedisDuplex | null> {
 export class JobQueueService extends BullMQJobQueue implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger("JobQueueService");
 
-  constructor(@Inject(BULLMQ_REDIS) redis: RedisDuplex | null = null) {
+  constructor(@Optional() @Inject(BULLMQ_REDIS) redis: RedisDuplex | null = null) {
     super(redis);
   }
 

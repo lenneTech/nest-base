@@ -332,6 +332,18 @@ export class RealtimeOutboxDispatcherLifecycle implements OnModuleInit {
 const SOCKET_IO_REDIS_ADAPTER = Symbol.for("lt:SocketIoRedisAdapter");
 
 /**
+ * Minimal subset of the ioredis client surface that @socket.io/redis-adapter
+ * requires. Avoids importing ioredis types directly — the adapter itself types
+ * its parameters as `any`, so we only need enough to remove the `as never` cast
+ * and keep TypeScript checking the properties we actually call (quit, duplicate).
+ */
+interface RedisAdapterClient {
+  duplicate(): RedisAdapterClient;
+  quit(): Promise<string>;
+  on(event: string, listener: (...args: unknown[]) => void): this;
+}
+
+/**
  * Lifecycle hook that installs the Socket.IO Redis adapter when
  * `REDIS_URL` is set. Runs after the gateway server is available
  * (`OnModuleInit`). When `adapterPair` is null, the default
@@ -344,7 +356,7 @@ export class SocketIoRedisAdapterLifecycle implements OnModuleInit, OnModuleDest
   constructor(
     private readonly gateway: RealtimeGateway,
     @Inject(SOCKET_IO_REDIS_ADAPTER)
-    private readonly adapterPair: { pub: unknown; sub: unknown } | null,
+    private readonly adapterPair: { pub: RedisAdapterClient; sub: RedisAdapterClient } | null,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -353,7 +365,13 @@ export class SocketIoRedisAdapterLifecycle implements OnModuleInit, OnModuleDest
       const { createAdapter } = await import("@socket.io/redis-adapter");
       if (this.gateway.server) {
         this.gateway.server.adapter(
-          createAdapter(this.adapterPair.pub as never, this.adapterPair.sub as never),
+          // createAdapter is typed with `any` parameters in @socket.io/redis-adapter;
+          // casting through unknown satisfies TS without suppressing type checking on
+          // the RedisAdapterClient interface we use throughout this class.
+          createAdapter(
+            this.adapterPair.pub as unknown,
+            this.adapterPair.sub as unknown,
+          ),
         );
         this.log.log("Socket.IO Redis adapter installed (cross-pod broadcasts enabled)");
       }
@@ -367,8 +385,8 @@ export class SocketIoRedisAdapterLifecycle implements OnModuleInit, OnModuleDest
   async onModuleDestroy(): Promise<void> {
     if (!this.adapterPair) return;
     try {
-      await (this.adapterPair.pub as { quit(): Promise<unknown> }).quit();
-      await (this.adapterPair.sub as { quit(): Promise<unknown> }).quit();
+      await this.adapterPair.pub.quit();
+      await this.adapterPair.sub.quit();
     } catch {
       // Swallow disconnect errors on shutdown.
     }
@@ -380,21 +398,28 @@ export class SocketIoRedisAdapterLifecycle implements OnModuleInit, OnModuleDest
  * Returns null when `REDIS_URL` is not set so test bootstraps stay
  * connection-free.
  */
-async function resolveSocketIoRedisPair(): Promise<{ pub: unknown; sub: unknown } | null> {
+async function resolveSocketIoRedisPair(): Promise<{
+  pub: RedisAdapterClient;
+  sub: RedisAdapterClient;
+} | null> {
   const url = process.env.REDIS_URL;
   if (!url) return null;
   try {
     const { default: Redis } = await import("ioredis");
-    const pub = new Redis(url);
+    const pub = new Redis(url) as unknown as RedisAdapterClient;
     const sub = pub.duplicate();
     // Prevent unhandled 'error' event crash on auth failures, network drops,
     // or TLS rejections. ioredis surfaces these via its internal retry logic;
     // commands reject individually instead of crashing the process.
-    pub.on("error", (err: Error) => {
-      process.stderr.write(`[ioredis/pub] connection error: ${err.message}\n`);
+    pub.on("error", (err: unknown) => {
+      process.stderr.write(
+        `[ioredis/pub] connection error: ${err instanceof Error ? err.message : String(err)}\n`,
+      );
     });
-    sub.on("error", (err: Error) => {
-      process.stderr.write(`[ioredis/sub] connection error: ${err.message}\n`);
+    sub.on("error", (err: unknown) => {
+      process.stderr.write(
+        `[ioredis/sub] connection error: ${err instanceof Error ? err.message : String(err)}\n`,
+      );
     });
     return { pub, sub };
   } catch {
