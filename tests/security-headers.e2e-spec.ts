@@ -28,10 +28,12 @@ describe("Security headers (Helmet + CSP)", () => {
     expect(response.headers["x-content-type-options"]).toBe("nosniff");
   });
 
-  it("sets X-Frame-Options to deny clickjacking", async () => {
+  it("sets X-Frame-Options to SAMEORIGIN to deny clickjacking", async () => {
     const response = await request(app.getHttpServer()).get("/");
-    expect(response.headers["x-frame-options"]).toBeDefined();
-    expect(response.headers["x-frame-options"].toUpperCase()).toMatch(/^(DENY|SAMEORIGIN)$/);
+    // Helmet sets SAMEORIGIN by default; DENY is also acceptable — both
+    // prevent framing by third-party sites. The exact value is asserted
+    // rather than just "defined" so header removal is caught (Fix #15).
+    expect(response.headers["x-frame-options"]).toBe("SAMEORIGIN");
   });
 
   it("sets a Content-Security-Policy header that restricts default-src", async () => {
@@ -47,7 +49,9 @@ describe("Security headers (Helmet + CSP)", () => {
 
   it("sets a Referrer-Policy header (no leakage of full URL on navigation)", async () => {
     const response = await request(app.getHttpServer()).get("/");
-    expect(response.headers["referrer-policy"]).toBeDefined();
+    // Helmet defaults to "no-referrer" — assert the concrete value so
+    // header removal or policy weakening is caught (Fix #15).
+    expect(response.headers["referrer-policy"]).toBe("no-referrer");
   });
 });
 
