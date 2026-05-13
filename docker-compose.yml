@@ -54,7 +54,9 @@ services:
   powersync:
     # PowerSync sync engine. Pulls the WAL from
     # Postgres, applies sync-rules.yaml, exposes WebSocket+HTTP for clients.
-    image: journeyapps/powersync-service:latest
+    # Pin to a specific release to avoid unexpected breaking changes on `docker compose pull`.
+    # Check https://github.com/powersync-ja/powersync-service/releases for the latest tag.
+    image: journeyapps/powersync-service:0.9.5
     restart: unless-stopped
     depends_on:
       postgres:
@@ -108,19 +110,23 @@ services:
   redis:
     image: redis:8-alpine
     restart: unless-stopped
+    # Host-port binding is for local dev only. Do not expose in production.
+    # To disable the host binding, comment out the ports block below.
     ports:
-      - '${REDIS_HOST_PORT:-6379}:6379'
+      - '127.0.0.1:${REDIS_HOST_PORT:-6379}:6379'
     volumes:
       - redis_data:/data
-    command: redis-server --save 60 1 --loglevel warning
+    command: redis-server --save 60 1 --loglevel warning --requirepass "${REDIS_PASSWORD}"
     healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
+      test: ['CMD', 'redis-cli', '-a', "${REDIS_PASSWORD}", 'ping']
       interval: 10s
       timeout: 3s
       retries: 5
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:latest
+    # Pin to a specific release to avoid unexpected breaking changes on `docker compose pull`.
+    # Check https://github.com/open-telemetry/opentelemetry-collector-contrib/releases for the latest tag.
+    image: otel/opentelemetry-collector-contrib:0.123.0
     restart: unless-stopped
     command: ['--config=/etc/otel-config.yaml']
     volumes:

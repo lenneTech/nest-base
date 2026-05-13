@@ -36,7 +36,10 @@ import type { NewDeviceThrottle } from "../devices/new-device-throttle.js";
  * / plugin story tests that just need a callable handler.
  */
 
-const MIN_SECRET_LEN = 32;
+// Better-Auth recommendation: ≥ 64 chars ensures sufficient entropy for
+// HMAC-SHA256 session signing. 32-char secrets are technically valid but
+// leave less headroom against brute-force on short inputs.
+const MIN_SECRET_LEN = 64;
 
 export interface TwoFactorOptions {
   /** Issuer label embedded in the TOTP URI shown in authenticator apps. */

@@ -115,7 +115,7 @@ export class GdprController {
     }
     const job = this.exportJobs.get(jobId);
     if (!job) {
-      throw new NotFoundException(`gdpr export job not found: ${jobId}`);
+      throw new NotFoundException("export job not found");
     }
     if (job.userId !== req.user.id) {
       throw new ForbiddenException("export job belongs to another user");

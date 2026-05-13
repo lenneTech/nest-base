@@ -97,7 +97,7 @@ export class AddressController {
   ): Promise<AddressRecord> {
     const tenantId = requireTenantHeader(tenantHeader);
     const r = await this.storage.findById(id, tenantId);
-    if (!r) throw new NotFoundException(`address not found: ${id}`);
+    if (!r) throw new NotFoundException("address not found");
     return this.decryptIfEnabled(r);
   }
 

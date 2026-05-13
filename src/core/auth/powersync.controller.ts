@@ -80,8 +80,10 @@ export class PowerSyncController {
     let batch: PowerSyncCrudBatch;
     try {
       batch = parsePowerSyncCrudBatch(body);
-    } catch (err) {
-      throw new BadRequestException((err as Error).message);
+    } catch {
+      // Internal parse-error details must not reach the client — they
+      // may expose token structure or schema shape information.
+      throw new BadRequestException("invalid CRUD batch");
     }
 
     // 1. Hydrate the in-memory Map from the durable store. Only the

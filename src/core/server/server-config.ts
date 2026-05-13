@@ -78,8 +78,14 @@ function presentValidBaseUrl(value: string | undefined): string | undefined {
 }
 
 function normalizeAppEnv(raw: string | undefined): AppEnv {
-  if (raw === undefined || raw === "test") return DEFAULT_ENV;
-  return raw as AppEnv;
+  // Vitest sets NODE_ENV=test — map it to development so tests get
+  // dev-friendly defaults (insecure cookies, localhost CORS) without
+  // us having to expand the AppEnv union.
+  if (raw === "test") return "development";
+  if (raw === "development" || raw === "staging" || raw === "production") return raw;
+  // Unknown or missing NODE_ENV defaults to production — safer than
+  // defaulting to development, which would expose hub/admin routes.
+  return "production";
 }
 
 /** Treat empty strings the same as undefined — many CI runners surface unset

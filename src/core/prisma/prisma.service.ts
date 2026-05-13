@@ -393,10 +393,18 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   ): Promise<T> {
     const id = tenantId ?? getCurrentTenantId();
     if (!id) throw new RlsTenantMissingError();
+    // Defense-in-depth: validate UUID format at the call-site even though
+    // upstream code (parseTenantHeader) already validates. An invalid format
+    // here means a programming error — fail loudly before touching SQL.
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      throw new Error(`runWithRlsTenant: invalid tenant ID format`);
+    }
     return this.$transaction(async (tx) => {
       // SET LOCAL only persists for the current transaction — the next
       // checkout from the connection pool sees a clean state.
-      await tx.$executeRawUnsafe(`SET LOCAL "app.tenant_id" = '${escapeSqlString(id)}'`);
+      // UUID format is validated above; UUIDs only contain hex digits and
+      // hyphens so no further escaping is required.
+      await tx.$executeRawUnsafe(`SET LOCAL "app.tenant_id" = '${id}'`);
       return fn(tx);
     });
   }
@@ -407,14 +415,4 @@ export class RlsTenantMissingError extends Error {
     super("runWithRlsTenant: no tenant id in scope (header missing or interceptor not registered)");
     this.name = "RlsTenantMissingError";
   }
-}
-
-/**
- * Defense in depth SQL escaping only.
- * UUID format is enforced upstream by parseTenantHeader(); this function
- * does NOT throw on non-UUID input — it only escapes single-quotes to
- * prevent SQL injection if a non-UUID value somehow reaches this path.
- */
-function escapeSqlString(input: string): string {
-  return input.replaceAll("'", "''");
 }

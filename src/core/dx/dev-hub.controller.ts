@@ -499,7 +499,7 @@ export class DevHubController {
     this.assertDev();
     const meta = FEATURE_CATALOG.find((f) => f.key === key);
     if (!meta) {
-      throw new BadRequestException(`unknown feature key: ${key}`);
+      throw new BadRequestException("unknown feature key");
     }
     if (typeof body?.enabled !== "boolean") {
       throw new BadRequestException("body.enabled must be boolean");

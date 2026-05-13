@@ -57,7 +57,10 @@ export function cookieDefaults(env: AppEnv): CookieConfig {
   return env === "development" ? { ...base, secure: false } : { ...base, secure: true };
 }
 
-export function corsDefaults(env: AppEnv): CorsConfig {
+export function corsDefaults(
+  env: AppEnv,
+  envVars?: Record<string, string | undefined>,
+): CorsConfig {
   if (env === "development") {
     return {
       allowedOrigins: [
@@ -73,5 +76,30 @@ export function corsDefaults(env: AppEnv): CorsConfig {
       maxAgeSeconds: 600,
     };
   }
-  return { allowedOrigins: [], credentials: false, maxAgeSeconds: 600 };
+  return productionCorsConfig(envVars);
+}
+
+/**
+ * Build CORS config for staging/production from `CORS_ALLOWED_ORIGINS`.
+ *
+ * Set the env-var to a comma-separated list of allowed origins:
+ *   CORS_ALLOWED_ORIGINS=https://app.example.com,https://www.example.com
+ *
+ * When unset, all origins are denied (`allowedOrigins: []`) — the safe
+ * default that prevents credential-bearing cross-origin requests.
+ */
+function productionCorsConfig(envVars?: Record<string, string | undefined>): CorsConfig {
+  const vars = envVars ?? (process.env as Record<string, string | undefined>);
+  const rawOrigins = vars["CORS_ALLOWED_ORIGINS"];
+  const allowedOrigins = rawOrigins
+    ? rawOrigins
+        .split(",")
+        .map((o) => o.trim())
+        .filter(Boolean)
+    : [];
+  return {
+    allowedOrigins,
+    credentials: allowedOrigins.length > 0,
+    maxAgeSeconds: 600,
+  };
 }

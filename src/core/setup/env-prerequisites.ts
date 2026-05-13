@@ -41,7 +41,11 @@ const REQUIRED: ReadonlyArray<MissingEnvVar> = [
   },
   {
     key: "BETTER_AUTH_SECRET",
-    hint: "≥ 32-byte random secret used to sign sessions.",
+    hint: "≥ 64-character random secret (use: openssl rand -base64 48)",
+  },
+  {
+    key: "NODE_ENV",
+    hint: "Must be 'production', 'staging', or 'development'. Controls hub/admin route availability.",
   },
 ];
 

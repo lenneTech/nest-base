@@ -21,6 +21,7 @@ import {
   Get,
   Header,
   Inject,
+  Logger,
   NotFoundException,
   Optional,
   Param,
@@ -94,6 +95,8 @@ export interface TenantDetailResponse extends TenantListEntry {
 
 @Controller("admin/tenants")
 export class TenantAdminController {
+  private readonly logger = new Logger(TenantAdminController.name);
+
   constructor(
     private readonly prisma: PrismaService,
     @Optional() @Inject(BETTER_AUTH_INSTANCE) private readonly auth: BetterAuthInstance | null,
@@ -199,7 +202,7 @@ export class TenantAdminController {
       },
     });
 
-    if (!row) throw new NotFoundException(`tenant "${id}" not found`);
+    if (!row) throw new NotFoundException("tenant not found");
 
     // Sum file sizes for the tenant — file_blobs uses the org id as tenantId.
     const fileSizeAgg = await this.prisma.fileBlob
@@ -334,7 +337,7 @@ export class TenantAdminController {
 
     // Verify org exists before mutating settings.
     const org = await this.prisma.organization.findUnique({ where: { id } });
-    if (!org) throw new NotFoundException(`tenant "${id}" not found`);
+    if (!org) throw new NotFoundException("tenant not found");
 
     // Update org metadata via BA if name/slug changed.
     if (body.name || body.slug) {
@@ -375,7 +378,7 @@ export class TenantAdminController {
     this.assertDev();
 
     const org = await this.prisma.organization.findUnique({ where: { id } });
-    if (!org) throw new NotFoundException(`tenant "${id}" not found`);
+    if (!org) throw new NotFoundException("tenant not found");
 
     await this.prisma.tenantSettings.upsert({
       where: { organizationId: id },
@@ -395,7 +398,7 @@ export class TenantAdminController {
     this.assertDev();
 
     const org = await this.prisma.organization.findUnique({ where: { id } });
-    if (!org) throw new NotFoundException(`tenant "${id}" not found`);
+    if (!org) throw new NotFoundException("tenant not found");
 
     await this.prisma.tenantSettings.upsert({
       where: { organizationId: id },
@@ -503,9 +506,11 @@ export class TenantAdminController {
 
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      throw new BadRequestException(
-        `BA org /${action} failed (${res.status})${text ? `: ${text.slice(0, 200)}` : ""}`,
-      );
+      // Log the internal BA response server-side only — the raw body may
+      // contain stack traces, token fragments, or schema details that must
+      // not reach the client.
+      this.logger.error(`BA org /${action} failed (${res.status}): ${text}`);
+      throw new BadRequestException("organization operation failed");
     }
 
     return res.json() as Promise<T>;

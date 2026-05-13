@@ -176,13 +176,13 @@ class RoleAdminService {
       // Use a sentinel error shape Prisma's `.delete()` would have
       // raised on a missing row — the controller catches this and
       // surfaces a 404, matching the prior contract.
-      throw new NotFoundException(`role not found: ${id}`);
+      throw new NotFoundException("role not found");
     }
   }
   async update(id: string, tenantId: string, body: RolePatchBody) {
     // Scope to the operator's tenant — same defense-in-depth as create().
     const existing = await this.prisma.role.findFirst({ where: { id, tenantId } });
-    if (!existing) throw new NotFoundException(`role not found: ${id}`);
+    if (!existing) throw new NotFoundException("role not found");
     return this.prisma.role.update({
       where: { id },
       data: {
@@ -288,7 +288,7 @@ class PermissionAdminService {
     // role. Probing here pins the role to the operator's tenant.
     const role = await this.prisma.role.findFirst({ where: { id: roleId, tenantId } });
     if (!role) {
-      throw new NotFoundException(`role not found: ${roleId}`);
+      throw new NotFoundException("role not found");
     }
     return this.prisma.rolePolicy.create({ data: { roleId, policyId } });
   }
@@ -297,7 +297,7 @@ class PermissionAdminService {
     // role belongs to the operator's tenant.
     const role = await this.prisma.role.findFirst({ where: { id: roleId, tenantId } });
     if (!role) {
-      throw new NotFoundException(`role not found: ${roleId}`);
+      throw new NotFoundException("role not found");
     }
     return this.prisma.rolePolicy.delete({ where: { roleId_policyId: { roleId, policyId } } });
   }
@@ -380,7 +380,7 @@ class RoleAdminController {
   async get(@Headers("x-tenant-id") tenantHeader: string | undefined, @Param("id") id: string) {
     const tenantId = requireTenantHeader(tenantHeader);
     const record = await this.service.get(id, tenantId);
-    if (!record) throw new NotFoundException(`role not found: ${id}`);
+    if (!record) throw new NotFoundException("role not found");
     return record;
   }
   @Delete(":id")
@@ -390,7 +390,7 @@ class RoleAdminController {
       await this.service.delete(id, tenantId);
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
-      throw new NotFoundException(`role not found: ${id}`);
+      throw new NotFoundException("role not found");
     }
     this.permissions?.invalidateAll();
     return { removed: true };
@@ -414,7 +414,7 @@ class RoleAdminController {
     const tenantId = requireTenantHeader(tenantHeader);
     // Verify the role belongs to the operator's tenant before exposing data.
     const role = await this.service.get(id, tenantId);
-    if (!role) throw new NotFoundException(`role not found: ${id}`);
+    if (!role) throw new NotFoundException("role not found");
     return this.service.listPolicies(id, tenantId);
   }
 }
@@ -439,7 +439,7 @@ class PolicyAdminController {
   @Get(":id")
   async get(@Param("id") id: string) {
     const record = await this.service.get(id);
-    if (!record) throw new NotFoundException(`policy not found: ${id}`);
+    if (!record) throw new NotFoundException("policy not found");
     return record;
   }
   @Delete(":id")
@@ -447,7 +447,7 @@ class PolicyAdminController {
     try {
       await this.service.delete(id);
     } catch {
-      throw new NotFoundException(`policy not found: ${id}`);
+      throw new NotFoundException("policy not found");
     }
     this.permissions?.invalidateAll();
     return { removed: true };
@@ -455,7 +455,7 @@ class PolicyAdminController {
   @Get(":id/roles")
   async listRoles(@Param("id") id: string) {
     const policy = await this.service.get(id);
-    if (!policy) throw new NotFoundException(`policy not found: ${id}`);
+    if (!policy) throw new NotFoundException("policy not found");
     return this.service.listRoles(id);
   }
 }
@@ -480,7 +480,7 @@ class PermissionAdminController {
   @Get(":id")
   async get(@Param("id") id: string) {
     const record = await this.service.get(id);
-    if (!record) throw new NotFoundException(`permission not found: ${id}`);
+    if (!record) throw new NotFoundException("permission not found");
     return record;
   }
   @Delete(":id")
@@ -488,7 +488,7 @@ class PermissionAdminController {
     try {
       await this.service.delete(id);
     } catch {
-      throw new NotFoundException(`permission not found: ${id}`);
+      throw new NotFoundException("permission not found");
     }
     this.permissions?.invalidateAll();
     return { removed: true };
@@ -522,7 +522,7 @@ class PermissionAdminController {
       await this.service.detachFromRole(roleId, policyId, tenantId);
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
-      throw new NotFoundException(`attach link not found: ${roleId}/${policyId}`);
+      throw new NotFoundException("attach link not found");
     }
     this.permissions?.invalidateAll();
     return { removed: true };

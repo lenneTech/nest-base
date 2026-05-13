@@ -166,7 +166,10 @@ class FileController {
         throw new NotFoundException("share link expired");
       }
       if (err instanceof InvalidShareLinkError) {
-        throw new BadRequestException(`invalid share link: ${err.message}`);
+        // Keep internal token-structure details out of the response body —
+        // messages like "token must have 4 dot-separated segments" would
+        // expose implementation details to unauthenticated callers.
+        throw new BadRequestException("invalid or expired share link");
       }
       throw err;
     }
@@ -175,7 +178,7 @@ class FileController {
     // tenant. A tampered tenant id would have already failed the
     // signature check above.
     const record = await this.service.findByIdInTenant(verified.tenantId, verified.fileId);
-    if (!record) throw new NotFoundException(`file not found: ${verified.fileId}`);
+    if (!record) throw new NotFoundException("file not found");
     return record;
   }
 
@@ -183,7 +186,7 @@ class FileController {
   @Get(":id")
   async get(@Param("id") id: string): Promise<FileRecord> {
     const record = await this.service.findById(id);
-    if (!record) throw new NotFoundException(`file not found: ${id}`);
+    if (!record) throw new NotFoundException("file not found");
     return record;
   }
 
@@ -272,7 +275,7 @@ class FileController {
     for (const id of ids) {
       const record = await this.service.findById(id);
       if (!record) {
-        throw new NotFoundException(`file not found: ${id}`);
+        throw new NotFoundException("file not found");
       }
       const bytes = await adapter.get(record.storageKey);
       entries.push({ filename: safeZipFilename(record.filename), bytes });
@@ -308,7 +311,7 @@ class FileController {
     @Body() body: { ttlSeconds?: unknown } | undefined,
   ): Promise<{ shareToken: string; url: string; expiresAt: string }> {
     const file = await this.service.findById(id);
-    if (!file) throw new NotFoundException(`file not found: ${id}`);
+    if (!file) throw new NotFoundException("file not found");
     const ttlInput = body && typeof body.ttlSeconds === "number" ? body.ttlSeconds : 86_400;
     const ttlSeconds = Math.min(Math.max(60, Math.floor(ttlInput)), 7 * 86_400);
     const expiresAtMs = Date.now() + ttlSeconds * 1000;
