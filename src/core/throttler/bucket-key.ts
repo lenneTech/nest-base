@@ -33,6 +33,24 @@ export class ThrottleBucketKeyMissingError extends Error {
   }
 }
 
+/**
+ * SECURITY NOTE (MAJ-5 — IP spoofing via X-Forwarded-For):
+ *
+ * The `ip` value MUST come from a validated, trusted source. When using
+ * Express `req.ip`, ensure `trust proxy` is configured to trust only your
+ * load-balancer (e.g. `app.set("trust proxy", 1)`, NOT `true`). Setting
+ * `trust proxy: true` causes Express to read the leftmost value from
+ * `X-Forwarded-For`, which an attacker can forge freely — allowing
+ * bucket-key spoofing (one client appearing as many IPs, each with
+ * a fresh quota window).
+ *
+ * The correct approach when behind a single proxy layer:
+ *   - `trust proxy: 1` — Express takes the rightmost value added by the
+ *     trusted proxy, which the client cannot control.
+ *
+ * If the deployment adds multiple proxy hops, set `trust proxy: N` where
+ * N is the number of trusted proxy hops. See OPEN_QUESTIONS.md for details.
+ */
 export function buildThrottleBucketKey(subject: ThrottleBucketSubject): string {
   const identity = pickIdentity(subject);
   const method = subject.method.toUpperCase();

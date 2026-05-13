@@ -130,8 +130,8 @@ describe("Story · PrismaOutboxStorage", () => {
     expect(indices[1]).toBeLessThan(indices[2]!);
   });
 
-  it("resetStaleSentinels resets rows at the epoch sentinel older than 5 minutes", async () => {
-    // Manually insert a row with processed_at = epoch (the in-flight sentinel)
+  it("resetStaleSentinels resets rows at the far-future sentinel older than 5 minutes", async () => {
+    // Manually insert a row with processed_at = far-future sentinel (the in-flight marker)
     // and claimed_at 10 minutes in the past so it qualifies for cleanup.
     const staleTenantId = "00000000-0000-0000-0000-000000000302";
     const staleId = uuidV7();
@@ -139,7 +139,7 @@ describe("Story · PrismaOutboxStorage", () => {
       `INSERT INTO outbox_entries (id, seq, tenant_id, type, payload, occurred_at, processed_at, claimed_at)
        VALUES ($1::uuid, 9999999, $2::uuid, 'sentinel.stale', '{}'::jsonb,
                NOW() - INTERVAL '10 minutes',
-               '1970-01-01T00:00:00.000Z'::timestamp,
+               '9999-12-31T23:59:59.999Z'::timestamp,
                NOW() - INTERVAL '10 minutes')`,
       staleId,
       staleTenantId,
@@ -151,7 +151,7 @@ describe("Story · PrismaOutboxStorage", () => {
       `INSERT INTO outbox_entries (id, seq, tenant_id, type, payload, occurred_at, processed_at, claimed_at)
        VALUES ($1::uuid, 9999998, $2::uuid, 'sentinel.fresh', '{}'::jsonb,
                NOW() - INTERVAL '1 minute',
-               '1970-01-01T00:00:00.000Z'::timestamp,
+               '9999-12-31T23:59:59.999Z'::timestamp,
                NOW() - INTERVAL '1 minute')`,
       freshId,
       staleTenantId,
@@ -170,7 +170,7 @@ describe("Story · PrismaOutboxStorage", () => {
     )) as Array<{ processed_at: Date | null }>;
     expect(staleRow?.processed_at).toBeNull();
 
-    // Verify: fresh row is still at the epoch sentinel (not reset).
+    // Verify: fresh row is still at the far-future sentinel (not reset).
     const [freshRow] = (await prisma.$queryRawUnsafe(
       `SELECT processed_at FROM outbox_entries WHERE id = $1::uuid`,
       freshId,
@@ -195,7 +195,7 @@ describe("Story · PrismaOutboxStorage", () => {
       `INSERT INTO outbox_entries (id, seq, tenant_id, type, payload, occurred_at, processed_at, claimed_at)
        VALUES ($1::uuid, 9999997, $2::uuid, 'sentinel.backlog', '{}'::jsonb,
                NOW() - INTERVAL '10 minutes',
-               '1970-01-01T00:00:00.000Z'::timestamp,
+               '9999-12-31T23:59:59.999Z'::timestamp,
                NOW() - INTERVAL '1 minute')`,
       backlogId,
       testTenantId,
@@ -205,7 +205,7 @@ describe("Story · PrismaOutboxStorage", () => {
     await prismaStorage.resetStaleSentinels();
 
     // Despite occurred_at being 10 min ago, claimed_at is only 1 min ago
-    // so the row must still have the epoch sentinel — NOT reset.
+    // so the row must still have the far-future sentinel — NOT reset.
     const [row] = (await prisma.$queryRawUnsafe(
       `SELECT processed_at FROM outbox_entries WHERE id = $1::uuid`,
       backlogId,

@@ -135,8 +135,9 @@ describe("Story · OutboxWorker maxAttempts retry cap", () => {
       maxAttempts: 3,
     });
 
-    const processed = await worker.runOnce();
-    expect(processed).toBe(1);
+    const result = await worker.runOnce();
+    expect(result.processed).toBe(1);
+    expect(result.deadLettered).toBe(0);
     expect(dispatched).toBe(true);
     expect(storage.processed).toContain("entry-ok");
   });

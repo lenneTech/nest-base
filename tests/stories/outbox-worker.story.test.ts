@@ -80,7 +80,7 @@ describe("Story · Outbox Worker", () => {
 
     expect(storage.rows[0]!.processedAt).toBeInstanceOf(Date);
     const second = await worker.runOnce();
-    expect(second).toBe(0);
+    expect(second.processed).toBe(0);
   });
 
   it("a failing dispatcher does not stop sibling dispatchers from running", async () => {
@@ -141,8 +141,8 @@ describe("Story · Outbox Worker", () => {
       },
     };
     const worker = new OutboxWorker(storage, [dispatcher], { batchSize: 3 });
-    const processed = await worker.runOnce();
-    expect(processed).toBe(3);
+    const result = await worker.runOnce();
+    expect(result.processed).toBe(3);
     expect(dispatcher.calls).toBe(3);
   });
 
@@ -150,7 +150,9 @@ describe("Story · Outbox Worker", () => {
     const storage = makeStorage();
     const dispatch = vi.fn();
     const worker = new OutboxWorker(storage, [{ name: "d", dispatch }], { batchSize: 5 });
-    expect(await worker.runOnce()).toBe(0);
+    const result = await worker.runOnce();
+    expect(result.processed).toBe(0);
+    expect(result.deadLettered).toBe(0);
     expect(dispatch).not.toHaveBeenCalled();
   });
 });

@@ -6,7 +6,12 @@ import type { OutboxEntry, OutboxStorage } from "./outbox.js";
 // Module-level constant so all three usages (claimBatch UPDATE, markProcessed
 // WHERE, resetStaleSentinels WHERE) stay in sync if the sentinel value ever
 // changes. Inlining three copies risked silent divergence (Finding 3).
-const INFLIGHT_SENTINEL = new Date(0).toISOString();
+//
+// Far-future sentinel (MIN-2): using the Unix epoch (new Date(0)) risks
+// treating legacy backfill rows with processed_at = epoch as in-flight.
+// A sentinel in the far future (year 9999) is unambiguous — no legitimate
+// dispatch timestamp will ever reach it.
+const INFLIGHT_SENTINEL = new Date("9999-12-31T23:59:59.999Z").toISOString();
 
 /**
  * Prisma-backed `OutboxStorage` (CF.RT.04 + CF.WH.06 + CF.JOBS.01 —

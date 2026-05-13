@@ -35,6 +35,20 @@ export interface AuthenticatedRequest extends Request {
      * present (issue #103).
      */
     activeOrganizationId?: string | null;
+    /**
+     * Scopes granted to this request context.
+     *
+     * Populated when the request is authenticated via a scoped API key
+     * (MAJ-1). When present, the CASL ability builder SHOULD intersect
+     * the user's full permission set with the allowed actions implied by
+     * these scopes.
+     *
+     * NOTE: scope intersection is not yet implemented in the CASL ability
+     * builder. See OPEN_QUESTIONS.md MAJ-1 for the enforcement plan.
+     * Until that slice lands, scopes are propagated here as an audit trail
+     * but do NOT restrict the effective CASL ability.
+     */
+    scopes?: string[];
   };
 }
 

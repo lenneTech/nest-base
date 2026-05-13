@@ -7,6 +7,83 @@ project owner reviews and answers.
 
 ## Open
 
+### 2026-05-13 · Auth · MAJ-1: API-Key scopes not enforced in CASL ability
+
+- **Context:** `ApiKeyService.verifyKey()` returns `{ userId, scopes }`. The
+  `scopes` array is now propagated to `req.user.scopes` (added to the
+  `AuthenticatedRequest` interface in `session-middleware.ts`). However the
+  CASL ability builder (`src/core/permissions/casl-ability.ts`) does NOT
+  currently intersect the user's full permission set with the allowed actions
+  implied by the key's scopes. A key with `scopes: ["read:invoice"]` therefore
+  has full user permissions, not just read-invoice.
+- **Why acceptable now:** `ApiKeyService.verifyKey()` is the custom key
+  subsystem (not the Better-Auth `apiKeys` plugin). It has no consumers in the
+  session middleware path — keys verified via this service reach CASL unchanged.
+  The Better-Auth plugin path is separate and also does not enforce scopes at
+  the CASL layer.
+- **Correct fix:** In the CASL ability builder, when `req.user.scopes` is set,
+  derive a restricted ability by intersecting the user's full ability with the
+  scope-allowed actions. E.g. `scopes: ["read:invoice"]` should produce an
+  ability that allows only `can("read", "Invoice")` even if the user's role
+  allows broader access. Reject unknown scope strings against a defined allowlist
+  at `createKey()` time.
+- **Status:** open — `req.user.scopes` is propagated (audit trail), enforcement
+  is deferred pending scope-allowlist design.
+
+### 2026-05-13 · Outbox · MAJ-3: Attempt counter in-memory — not persistent across pod restarts
+
+- **Context:** `OutboxWorker.attemptCounts` is a `Map<string, number>` that
+  resets on process restart. In a multi-replica or crash-restart scenario the
+  counter starts from 0 again — a poison-pill entry that exhausted its
+  `maxAttempts` during a long-running process will be retried indefinitely after
+  a pod restart.
+- **Why acceptable now:** The worker logs at `error` level when it dead-letters
+  an entry (MAJ-4 fix), so on-call alerts will fire. Single-process deployments
+  are not affected. Dead-lettering works correctly within one process lifetime.
+- **Correct fix:** Add `attempt_count Int @default(0)` to the `outbox_entries`
+  Prisma schema. On each dispatch attempt increment the DB column atomically
+  (`UPDATE outbox_entries SET attempt_count = attempt_count + 1 WHERE id = $1`)
+  and read it back instead of the in-memory map. Migration:
+  ```sql
+  ALTER TABLE outbox_entries ADD COLUMN attempt_count INTEGER NOT NULL DEFAULT 0;
+  ```
+  Remove the `attemptCounts: Map` field from `OutboxWorker`.
+- **Status:** open — in-memory counter is the current implementation; must be
+  fixed before horizontal scaling.
+
+### 2026-05-13 · Throttler · MAJ-5: IP bucket-key spoofable via X-Forwarded-For
+
+- **Context:** `buildThrottleBucketKey()` accepts `ip` from the caller without
+  validation. If Express `trust proxy` is set to `true` (instead of `1`), the
+  leftmost `X-Forwarded-For` value is used — which an attacker controls.
+  This allows per-IP rate-limit buckets to be bypassed by rotating spoofed IPs.
+- **Why acceptable now:** Express `trust proxy` defaults to `false` in fresh
+  NestJS apps. The risk only materialises when the deployer sets `trust proxy: true`.
+- **Correct fix:** Set `app.set("trust proxy", 1)` in `main.ts` (or per the
+  number of trusted proxy hops). Never use `trust proxy: true`. Document the
+  deployment requirement in `README.md` and the production checklist. Optionally
+  add a startup assertion that warns when `trust proxy` is set to `true`.
+  See the security comment on `buildThrottleBucketKey()` in
+  `src/core/throttler/bucket-key.ts` for details.
+- **Status:** open — code comment added; deployment fix is operator responsibility.
+
+### 2026-05-13 · GDPR · MIN-4: GdprExportJobRegistry is in-memory → Multi-Replica 404
+
+- **Context:** `GdprExportJobRegistry` stores export jobs in a `Map<string,
+  MutableGdprExportJob>`. In a multi-replica deployment, a client that polls
+  `/me/export/:jobId` may hit a different pod than the one that started the job
+  — that pod has no record of the job and returns 404.
+- **Why acceptable now:** GDPR exports are infrequent and the default deployment
+  is single-replica. The registry already has a `GDPR_EXPORT_REGISTRY` token
+  so project code can substitute a Prisma-backed adapter.
+- **Correct fix:** Persist job state in a `gdpr_export_jobs` Prisma table with
+  columns `id, user_id, tenant_id, status, requested_at, completed_at, payload,
+  error`. Implement a `PrismaGdprExportJobRegistry` adapter and wire it as the
+  default via the `GDPR_EXPORT_REGISTRY` token when a DB is present.
+  Alternatively, use a shared Redis key (`lt:gdpr:export:<jobId>`) with a 24h
+  TTL — this is lighter-weight and avoids a schema migration.
+- **Status:** open — in-memory registry is the current default; track as MIN-4.
+
 ### 2026-05-13 · Redis · `RedisPermissionCache.invalidateAll()` is a no-op
 
 - **Context:** `createRedisPermissionCache` in `src/core/redis/redis-permission-cache.ts` is not

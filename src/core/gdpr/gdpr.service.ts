@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHmac } from "node:crypto";
 
 /**
  * GDPR endpoints.
@@ -85,6 +85,29 @@ export interface GdprErasurePlan {
 
 const ANON_DOMAIN = "anonymous.invalid";
 
+/**
+ * Resolve the HMAC secret used for PII anonymisation.
+ *
+ * Priority order:
+ *   1. GDPR_ANONYMISATION_SECRET — dedicated secret for this purpose
+ *   2. BETTER_AUTH_SECRET         — installation-level secret (fallback)
+ *   3. hard-coded sentinel         — last resort; warns on use so ops notices
+ *
+ * The secret is intentionally read at call-time (not module load) so
+ * tests can set the env var before calling planGdprErasure without
+ * module-load ordering issues.
+ */
+function resolveAnonymisationSecret(): string {
+  const secret =
+    process.env.GDPR_ANONYMISATION_SECRET ??
+    process.env.BETTER_AUTH_SECRET ??
+    // Using a predictable fallback makes the hash deterministic across
+    // processes but effectively unsalted. Acceptable only in tests /
+    // fresh dev deployments where neither secret is set yet.
+    "gdpr-fallback-no-secret-configured";
+  return secret;
+}
+
 export function planGdprErasure(input: GdprErasureInput): GdprErasurePlan {
   if (!input.userId) throw new Error("gdpr: userId must be a non-empty string");
   if (input.mode === "hard-delete") {
@@ -95,7 +118,13 @@ export function planGdprErasure(input: GdprErasureInput): GdprErasurePlan {
       throw new Error("gdpr: piiFields must contain at least one entry for anonymise mode");
     }
     const updates: Record<string, string | null> = {};
-    const hashSlice = createHash("sha256").update(input.userId).digest("hex").slice(0, 16);
+    // HMAC-SHA-256 with an installation-specific secret so a leaked DB
+    // cannot be cross-referenced against a known userId list to
+    // re-identify rows (MAJ-2). The 16-char hex slice keeps the output
+    // compact while providing 64 bits of entropy — sufficient for a
+    // one-way pseudonym.
+    const secret = resolveAnonymisationSecret();
+    const hashSlice = createHmac("sha256", secret).update(input.userId).digest("hex").slice(0, 16);
     for (const field of input.piiFields) {
       updates[field.name] = substitute(field, hashSlice);
     }

@@ -9,7 +9,7 @@ import {
 } from "@nestjs/common";
 
 import { OutboxRecorder, type OutboxEntry, type OutboxStorage } from "./outbox.js";
-import { OutboxWorker, type OutboxDispatcher } from "./outbox-worker.js";
+import { OutboxWorker, type OutboxDispatcher, type OutboxWorkerResult } from "./outbox-worker.js";
 import { PrismaOutboxStorage } from "./outbox.prisma.js";
 
 export const OUTBOX_STORAGE = Symbol.for("lt:OutboxStorage");
@@ -126,7 +126,7 @@ export class OutboxWorkerLifecycle implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Test hook. */
-  async tickOnce(): Promise<number> {
+  async tickOnce(): Promise<OutboxWorkerResult> {
     return this.worker.runOnce();
   }
 }

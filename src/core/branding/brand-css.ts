@@ -40,9 +40,12 @@ export interface RenderBrandCssOptions {
  * a brand-string surfaced in CSS.
  */
 export function escapeCssValue(input: string): string {
-  // Keep: a-z A-Z 0-9 # - . _ space comma colon
-  // Drop: < > ; ( ) \ ' " { } / *  (everything else)
-  return input.replace(/[^a-zA-Z0-9#\-._ ,:]/g, "");
+  // Keep: a-z A-Z 0-9 # - . _ space comma percent
+  // Drop: : ; < > ( ) \ ' " { } / * and everything else.
+  // `:` is removed (NIT-1) — it is not needed for valid CSS color or
+  // font-size values and could be misused to inject CSS property
+  // separators (e.g. `color: red; background: url(...)`).
+  return input.replace(/[^a-zA-Z0-9#\-._,% ]/g, "");
 }
 
 export function renderBrandCss(brand: BrandConfig, options: RenderBrandCssOptions = {}): string {

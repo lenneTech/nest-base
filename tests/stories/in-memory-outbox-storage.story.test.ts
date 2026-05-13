@@ -33,11 +33,11 @@ describe("Story · InMemoryOutboxStorage retry behaviour", () => {
 
     // First tick — dispatcher fails; entry must NOT be permanently lost.
     const firstTick = await worker.runOnce();
-    expect(firstTick).toBe(0); // nothing marked processed
+    expect(firstTick.processed).toBe(0); // nothing marked processed
 
     // Second tick — the entry must be re-claimed and retried.
     const secondTick = await worker.runOnce();
-    expect(secondTick).toBe(0); // still failing
+    expect(secondTick.processed).toBe(0); // still failing
     expect(dispatchCalls).toBe(2); // dispatcher was called on BOTH ticks
   });
 
@@ -56,12 +56,12 @@ describe("Story · InMemoryOutboxStorage retry behaviour", () => {
     const worker = new OutboxWorker(storage, [dispatcher], { batchSize: 10 });
 
     const first = await worker.runOnce();
-    expect(first).toBe(1); // entry processed
+    expect(first.processed).toBe(1); // entry processed
     expect(calls).toBe(1);
 
     // Second tick — nothing to process.
     const second = await worker.runOnce();
-    expect(second).toBe(0);
+    expect(second.processed).toBe(0);
     expect(calls).toBe(1); // not called again
   });
 

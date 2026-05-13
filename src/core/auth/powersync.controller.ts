@@ -2,14 +2,15 @@ import {
   BadRequestException,
   Body,
   Controller,
-  Headers,
   HttpCode,
   HttpStatus,
   Inject,
   Optional,
   Post,
+  UnauthorizedException,
 } from "@nestjs/common";
 
+import { getCurrentTenantId } from "../multi-tenancy/tenant-context.js";
 import { Can } from "../permissions/can.guard.js";
 
 import { applyPowerSyncCrudBatch } from "./powersync-demo-client.js";
@@ -25,20 +26,6 @@ interface StoreRow {
   id: string;
   updatedAt: Date;
   [key: string]: unknown;
-}
-
-const UUID_PATTERN =
-  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-
-function requireTenantHeader(tenantHeader: string | undefined): string {
-  const tenantId = tenantHeader?.trim() ?? "";
-  if (tenantId.length === 0) {
-    throw new BadRequestException("x-tenant-id header is required");
-  }
-  if (!UUID_PATTERN.test(tenantId)) {
-    throw new BadRequestException("x-tenant-id header must be a valid UUID");
-  }
-  return tenantId;
 }
 
 /**
@@ -72,11 +59,15 @@ export class PowerSyncController {
   @Can("write", "PowerSync")
   @Post("crud")
   @HttpCode(HttpStatus.NO_CONTENT)
-  async crud(
-    @Headers("x-tenant-id") tenantHeader: string | undefined,
-    @Body() body: unknown,
-  ): Promise<{ rejected?: unknown[] }> {
-    const tenantId = requireTenantHeader(tenantHeader);
+  async crud(@Body() body: unknown): Promise<{ rejected?: unknown[] }> {
+    // Use the tenant already validated and set by TenantInterceptor via
+    // AsyncLocalStorage (MIN-5). requireTenantHeader() previously re-read
+    // the raw x-tenant-id header and re-validated the UUID format,
+    // bypassing the interceptor's tenant-membership check entirely.
+    const tenantId = getCurrentTenantId();
+    if (!tenantId) {
+      throw new UnauthorizedException("no active tenant");
+    }
     let batch: PowerSyncCrudBatch;
     try {
       batch = parsePowerSyncCrudBatch(body);
