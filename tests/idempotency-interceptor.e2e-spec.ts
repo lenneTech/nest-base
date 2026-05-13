@@ -46,7 +46,8 @@ describe("E2E · Idempotency-Key interceptor through HTTP layer", () => {
   const originalBaseUrl = process.env.APP_BASE_URL;
 
   beforeAll(async () => {
-    process.env.BETTER_AUTH_SECRET = "test-secret-32-chars-minimum-aaaaaaaa";
+    process.env.BETTER_AUTH_SECRET =
+      "test-better-auth-secret-for-testing-purposes-only-1234567890abcd";
     process.env.APP_BASE_URL = "http://localhost:3000";
     const { AppModule } = await import("../src/core/app/app.module.js");
     const moduleRef = await Test.createTestingModule({

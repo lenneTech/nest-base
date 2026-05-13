@@ -56,7 +56,8 @@ describe("E2E · Field-encryption Prisma extension fires through the extended cl
     // The schema is unaffected; the column stays TEXT and just stores
     // the AES-GCM ciphertext blob.
     process.env.FIELD_ENCRYPTION_MODEL_FIELDS = "Role.description";
-    process.env.BETTER_AUTH_SECRET = "test-secret-32-chars-minimum-aaaaaaaa";
+    process.env.BETTER_AUTH_SECRET =
+      "test-better-auth-secret-for-testing-purposes-only-1234567890abcd";
     process.env.APP_BASE_URL = "http://localhost:3000";
 
     const { bootstrap } = await import("../src/core/app/bootstrap.js");

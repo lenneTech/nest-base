@@ -19,7 +19,8 @@ describe("Better-Auth · plugin mount", () => {
   const originalEnv = { ...process.env };
 
   beforeAll(async () => {
-    process.env.BETTER_AUTH_SECRET = "test-secret-32-chars-minimum-aaaaaaaa";
+    process.env.BETTER_AUTH_SECRET =
+      "test-better-auth-secret-for-testing-purposes-only-1234567890abcd";
     process.env.APP_BASE_URL = "http://localhost:3000";
     // Plugins are on by default (twoFactor=true, passkey=true). Social
     // providers stay empty unless we set credentials, which we do here

@@ -59,7 +59,8 @@ describe("E2E · APP_FILTER inheritance via Test.createTestingModule({ imports: 
   beforeAll(async () => {
     // Better-Auth boots eagerly when AppModule loads — give it the
     // bare-minimum env so its config validation passes.
-    process.env.BETTER_AUTH_SECRET = "test-secret-32-chars-minimum-aaaaaaaa";
+    process.env.BETTER_AUTH_SECRET =
+      "test-better-auth-secret-for-testing-purposes-only-1234567890abcd";
     process.env.APP_BASE_URL = "http://localhost:3000";
     const { AppModule } = await import("../src/core/app/app.module.js");
     const moduleRef = await Test.createTestingModule({

@@ -40,7 +40,8 @@ describe("Files · share-link round-trip", () => {
     rememberEnv("STORAGE_BASE_URL");
     rememberEnv("FILE_SHARE_LINK_SECRET");
 
-    process.env.BETTER_AUTH_SECRET = "test-secret-32-chars-minimum-aaaaaaaa";
+    process.env.BETTER_AUTH_SECRET =
+      "test-better-auth-secret-for-testing-purposes-only-1234567890abcd";
     process.env.APP_BASE_URL = "http://localhost:3000";
     process.env.FEATURE_FILES_STORAGE_DEFAULT = "local";
     process.env.FILE_SHARE_LINK_SECRET = "iter-112-share-link-secret";

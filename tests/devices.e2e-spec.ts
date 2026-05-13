@@ -44,7 +44,8 @@ describe("E2E · Device-handling", () => {
   const emailCalls: Array<{ template: string; to: string; vars?: object }> = [];
 
   beforeAll(async () => {
-    process.env.BETTER_AUTH_SECRET = "test-secret-32-chars-minimum-aaaaaaaa";
+    process.env.BETTER_AUTH_SECRET =
+      "test-better-auth-secret-for-testing-purposes-only-1234567890abcd";
     process.env.APP_BASE_URL = "http://localhost:3000";
     process.env.APP_NAME = "TestApp";
     process.env.FEATURE_DEVICE_MANAGEMENT_ENABLED = "true";

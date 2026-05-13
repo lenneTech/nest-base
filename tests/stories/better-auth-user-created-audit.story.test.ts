@@ -31,7 +31,8 @@ describe("Story · Better-Auth user.create.after → audit_log", () => {
   const email = `audit-user-${Date.now()}@example.com`;
 
   beforeAll(async () => {
-    process.env.BETTER_AUTH_SECRET = "test-secret-32-chars-minimum-aaaaaaaa";
+    process.env.BETTER_AUTH_SECRET =
+      "test-better-auth-secret-for-testing-purposes-only-1234567890abcd";
     process.env.APP_BASE_URL = "http://localhost:3000";
     process.env.FEATURE_AUDIT_ENABLED = "true";
 
