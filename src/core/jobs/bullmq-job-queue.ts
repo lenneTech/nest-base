@@ -511,6 +511,15 @@ export class BullMQJobQueue {
           `BullMQ worker for ${name} failed job ${(job as { id?: string })?.id}: ${err instanceof Error ? err.message : String(err)}`,
         );
       });
+      worker.on("error", (err) => {
+        // Prevent unhandled 'error' event crash on Redis auth failures,
+        // network drops, or TLS rejections — the worker reconnects via
+        // its own retry logic; we surface the error through the logger
+        // rather than crashing the process.
+        this.bullmqLogger.error(
+          `BullMQ worker "${name}" connection error: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      });
       this.workers.set(name, worker);
     } catch (err) {
       this.bullmqLogger.error(

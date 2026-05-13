@@ -84,7 +84,7 @@ file answers it. It is the single source of truth referenced by
 | Webhook Inspector (endpoints + deliveries + re-deliver) | CF.WH.08–10 | C | `src/core/webhooks/inspector-{store,aggregates,curl,csrf}.ts` | |
 | **Jobs & Scheduling** | | | | |
 | BullMQ job queue (in-memory fallback when `REDIS_URL` unset) | CF.JOBS.01 | A → fusion | `src/core/jobs/job-queue.ts` + `src/core/outbox/{outbox,outbox-worker}.ts` | done — BullMQ merged in PR #136, pg-boss removed in PR #140 |
-| @ScheduledJob cron decorator | CF.JOBS.02 | A → fusion | (pending Phase-2 port) | |
+| @ScheduledJob cron decorator | CF.JOBS.02 | C | `src/core/jobs/scheduled-job-bullmq-adapter.ts` | setInterval-based scheduling; wall-clock drift on restart is documented |
 | Jobs Dashboard (queues / list / retry / drawer / cron) | CF.JOBS.03–07 | C+A | `src/core/jobs/dev-jobs-aggregations.ts` + `src/core/dx/admin-spa.controller.ts` | |
 | **Observability** | | | | |
 | OpenTelemetry SDK + auto-instrumentations | CF.OBS.01–02 + TR.BE.16 | A → fusion | (pending Phase-2 port — only @opentelemetry/api shipped) | |

@@ -90,10 +90,17 @@ export class ScheduledJobBullMQAdapter implements OnApplicationBootstrap, OnModu
         `wiring "${entry.name}" (${entry.source}) cron="${entry.cron}" → interval=${intervalMs}ms`,
       );
 
-      // Schedule recurring enqueues. The first enqueue happens after
-      // one full interval so the job runs on its configured schedule.
-      // Production deployments that want "run immediately on start" should
-      // use a dedicated seeding mechanism or a separate one-shot enqueue.
+      // setInterval-based scheduling: the interval starts from server boot,
+      // not from wall-clock midnight. A restart at 07:59 will run a "daily
+      // at 08:00" job at 07:59 the next day. This is acceptable for the
+      // current jobs (apiKeyExpiry, gdprErasure); time-sensitive jobs need a
+      // proper cron scheduler (e.g. BullMQ native repeat with a Redis-backed
+      // scheduler process).
+      //
+      // The first enqueue happens after one full interval so the job runs
+      // on its configured schedule. Production deployments that want
+      // "run immediately on start" should use a dedicated seeding mechanism
+      // or a separate one-shot enqueue.
       const timer = setInterval(() => {
         this.queue.enqueue(entry.name, {}).catch((err: unknown) => {
           this.log.error(

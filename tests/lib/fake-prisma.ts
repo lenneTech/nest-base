@@ -56,6 +56,17 @@ type Row = Record<string, unknown> & {
   updatedAt: Date;
 };
 
+/**
+ * Prisma-style range filter operators supported by the fake's `matchesWhere`.
+ * Allows story tests to use DB-level cursor patterns like `{ id: { lt: x } }`.
+ */
+export type FakeRangeFilter<V> = { lt?: V; lte?: V; gt?: V; gte?: V };
+
+/** Where clause accepted by the fake: simple equality OR Prisma-style range filter per field. */
+export type FakeWhere<T extends Row> = {
+  [K in keyof T]?: T[K] | FakeRangeFilter<T[K]>;
+};
+
 export interface TableMock<T extends Row> {
   /**
    * `data.id` is optional in the fake. `dbgenerated("uuid_generate_v7()")`
@@ -65,9 +76,9 @@ export interface TableMock<T extends Row> {
    * supply an explicit id keep their value untouched.
    */
   create(input: { data: Partial<T> }): Promise<T>;
-  findUnique(input: { where: Partial<T> }): Promise<T | null>;
+  findUnique(input: { where: FakeWhere<T> }): Promise<T | null>;
   findMany(input?: {
-    where?: Partial<T>;
+    where?: FakeWhere<T>;
     orderBy?: { [k: string]: "asc" | "desc" } | Array<{ [k: string]: "asc" | "desc" }>;
     /** Number of rows to discard from the start of the filtered+ordered result. */
     skip?: number;
@@ -75,9 +86,9 @@ export interface TableMock<T extends Row> {
     take?: number;
   }): Promise<T[]>;
   /** Returns the number of rows that match `where` (no pagination slicing). */
-  count(input?: { where?: Partial<T> }): Promise<number>;
-  update(input: { where: Partial<T>; data: Partial<T> }): Promise<T>;
-  delete(input: { where: Partial<T> }): Promise<T>;
+  count(input?: { where?: FakeWhere<T> }): Promise<number>;
+  update(input: { where: FakeWhere<T>; data: Partial<T> }): Promise<T>;
+  delete(input: { where: FakeWhere<T> }): Promise<T>;
   /** Test-only: clear all rows. Use in `beforeEach` to reset state. */
   __reset(): void;
 }
@@ -85,9 +96,35 @@ export interface TableMock<T extends Row> {
 function makeTable<T extends Row>(): TableMock<T> {
   const rows = new Map<string, T>();
 
-  const matchesWhere = (row: T, where: Partial<T>): boolean => {
+  const matchesWhere = (row: T, where: FakeWhere<T>): boolean => {
     for (const [key, value] of Object.entries(where)) {
       const rowValue = row[key as keyof T];
+
+      // Support Prisma-style range filter objects: `{ lt, lte, gt, gte }`.
+      // When the value is a plain (non-null, non-Date) object, interpret its
+      // keys as Prisma filter operators so services can use DB-level cursor
+      // pagination patterns like `{ id: { lt: cursor } }` in story tests.
+      if (
+        value !== null &&
+        typeof value === "object" &&
+        !(value instanceof Date) &&
+        !Array.isArray(value)
+      ) {
+        const filterObj = value as Record<string, unknown>;
+        // Cast to a comparable union; the runtime semantics for Date/number/
+        // string are correct via valueOf() — TypeScript needs the explicit cast
+        // to allow the relational operators on `unknown` values.
+        const rv = rowValue as string | number | Date;
+        for (const [op, operand] of Object.entries(filterObj)) {
+          const cmp = operand as string | number | Date;
+          if (op === "lt" && !(rv < cmp)) return false;
+          if (op === "lte" && !(rv <= cmp)) return false;
+          if (op === "gt" && !(rv > cmp)) return false;
+          if (op === "gte" && !(rv >= cmp)) return false;
+        }
+        continue;
+      }
+
       // Real Prisma + Postgres treat `where: { col: null }` and
       // "column was never assigned on insert" identically, because the
       // column defaults to NULL. The naive `!==` check excluded rows
@@ -103,7 +140,7 @@ function makeTable<T extends Row>(): TableMock<T> {
     return true;
   };
 
-  const findFirst = (where: Partial<T>): T | undefined => {
+  const findFirst = (where: FakeWhere<T>): T | undefined => {
     for (const row of rows.values()) {
       if (matchesWhere(row, where)) return row;
     }

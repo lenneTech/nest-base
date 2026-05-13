@@ -387,6 +387,15 @@ async function resolveSocketIoRedisPair(): Promise<{ pub: unknown; sub: unknown 
     const { default: Redis } = await import("ioredis");
     const pub = new Redis(url);
     const sub = pub.duplicate();
+    // Prevent unhandled 'error' event crash on auth failures, network drops,
+    // or TLS rejections. ioredis surfaces these via its internal retry logic;
+    // commands reject individually instead of crashing the process.
+    pub.on("error", (err: Error) => {
+      process.stderr.write(`[ioredis/pub] connection error: ${err.message}\n`);
+    });
+    sub.on("error", (err: Error) => {
+      process.stderr.write(`[ioredis/sub] connection error: ${err.message}\n`);
+    });
     return { pub, sub };
   } catch {
     return null;

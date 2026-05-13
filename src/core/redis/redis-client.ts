@@ -45,7 +45,14 @@ export async function resolveRedisClient(
   if (!redisUrl) return null;
   try {
     const { default: Redis } = await import("ioredis");
-    return new Redis(redisUrl) as unknown as RedisClientLike;
+    const client = new Redis(redisUrl);
+    // Prevent unhandled 'error' event crash on auth failures, network drops,
+    // or TLS rejections. ioredis surfaces these via its internal retry logic;
+    // commands reject individually instead of crashing the process.
+    client.on("error", (err: Error) => {
+      process.stderr.write(`[ioredis] connection error: ${err.message}\n`);
+    });
+    return client as unknown as RedisClientLike;
   } catch {
     // ioredis not available or URL invalid — degrade gracefully.
     return null;

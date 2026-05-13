@@ -37,7 +37,14 @@ async function resolveBullMQRedis(): Promise<RedisDuplex | null> {
   }
   try {
     const { default: Redis } = await import("ioredis");
-    return new Redis(url) as unknown as RedisDuplex;
+    const client = new Redis(url);
+    // Prevent unhandled 'error' event crash on auth failures, network drops,
+    // or TLS rejections. ioredis surfaces these via its internal retry logic;
+    // commands reject individually instead of crashing the process.
+    client.on("error", (err: Error) => {
+      process.stderr.write(`[ioredis/BullMQ] connection error: ${err.message}\n`);
+    });
+    return client as unknown as RedisDuplex;
   } catch {
     return null;
   }

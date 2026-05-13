@@ -75,23 +75,37 @@ export class ExampleService {
     tenantId: string,
     query: ListExampleQuery,
   ): Promise<CursorPage<ExampleResponse & CursorRecord>> {
+    // Push pagination to DB: cursor filter + take limit+1 lets Prisma handle
+    // the slice instead of loading every tenant row and slicing in-memory.
+    //
+    // The cursor is the raw record id of the last item on the previous page.
+    // We resolve its createdAt first so the main query can use a stable
+    // createdAt < cursorDate range filter — this avoids loading all rows
+    // and works correctly regardless of ID format (UUID v4 or v7).
+    let cursorDate: Date | undefined;
+    if (query.cursor) {
+      const cursorRecord = await this.prisma.runWithRlsTenant(
+        (tx) => tx.example.findUnique({ where: { id: query.cursor! } }),
+        tenantId,
+      );
+      cursorDate = cursorRecord?.createdAt ?? undefined;
+    }
+
     const records = await this.prisma.runWithRlsTenant(
       (tx) =>
         tx.example.findMany({
           where: {
             tenantId,
             ...(query.status ? { status: query.status } : {}),
+            ...(cursorDate ? { createdAt: { lt: cursorDate } } : {}),
           },
           orderBy: { createdAt: "desc" },
+          take: query.limit + 1,
         }),
       tenantId,
     );
-    const startIndex = query.cursor
-      ? Math.max(0, records.findIndex((r) => r.id === query.cursor) + 1)
-      : 0;
-    const page = records.slice(startIndex, startIndex + query.limit + 1);
     return buildCursorPage(
-      page.map((r) => ({ ...toResponse(r), id: r.id, sortValue: r.createdAt.toISOString() })),
+      records.map((r) => ({ ...toResponse(r), id: r.id, sortValue: r.createdAt.toISOString() })),
       query.limit,
     );
   }
