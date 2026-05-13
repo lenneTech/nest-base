@@ -128,7 +128,9 @@ describe("Story · ApiKeyExpiryRunner", () => {
       expect(moduleSrc).toContain('from "./api-key-expiry.factory.js"');
       // ConfigService was added to the inject array in Fix #16 so the factory
       // can read server.baseUrl instead of accessing process.env directly.
-      expect(moduleSrc).toMatch(/inject:\s*\[\s*PrismaService,\s*EmailService,\s*ConfigService\s*\]/);
+      expect(moduleSrc).toMatch(
+        /inject:\s*\[\s*PrismaService,\s*EmailService,\s*ConfigService\s*\]/,
+      );
     });
 
     it("the default factory file reads expiring keys via Prisma + dispatches via EmailService", () => {

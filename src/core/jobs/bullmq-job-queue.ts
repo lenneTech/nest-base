@@ -210,8 +210,7 @@ class InProcessQueue implements BullMQQueue {
   async getJobCounts(..._types: string[]): Promise<Record<string, number>> {
     const counts: Record<string, number> = {};
     for (const r of this.records.values()) {
-      const state =
-        r.state === "retry" ? "delayed" : r.state === "created" ? "waiting" : r.state;
+      const state = r.state === "retry" ? "delayed" : r.state === "created" ? "waiting" : r.state;
       counts[state] = (counts[state] ?? 0) + 1;
     }
     return counts;
@@ -663,7 +662,10 @@ export class BullMQJobQueue {
    * silently-failed BullMQ workers (Fix #1).
    */
   getWorkerHealth(): Map<string, { status: "running" | "failed" | "in-process"; error?: Error }> {
-    const result = new Map<string, { status: "running" | "failed" | "in-process"; error?: Error }>();
+    const result = new Map<
+      string,
+      { status: "running" | "failed" | "in-process"; error?: Error }
+    >();
     for (const name of this.workers.keys()) {
       result.set(name, { status: "running" });
     }

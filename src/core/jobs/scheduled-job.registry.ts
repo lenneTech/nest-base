@@ -1,4 +1,10 @@
-import { Inject, Injectable, Logger, NotFoundException, type OnApplicationBootstrap } from "@nestjs/common";
+import {
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  type OnApplicationBootstrap,
+} from "@nestjs/common";
 import { DiscoveryService } from "@nestjs/core";
 
 import { getScheduledJobs } from "./scheduled-job.decorator.js";
