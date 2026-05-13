@@ -44,8 +44,6 @@ export const REALTIME_TRANSPORT = Symbol.for("lt:RealtimeTransport");
 
 @Injectable()
 export class RealtimeServiceLifecycle implements OnModuleInit, OnModuleDestroy {
-  private unsubscribeBroadcast: (() => void) | null = null;
-
   constructor(
     @Inject(REALTIME_SERVICE) private readonly service: RealtimeService,
     private readonly gateway: BroadcastTarget,
@@ -61,18 +59,15 @@ export class RealtimeServiceLifecycle implements OnModuleInit, OnModuleDestroy {
     this.service.subscribeAll((channel, payload) => {
       this.gateway.broadcast(channel, "message", payload);
     });
-
-    this.unsubscribeBroadcast = () => {
-      // subscribeAll has no off() — the service.stop() teardown closes
-      // the transport so no further messages arrive after destroy.
-    };
+    // subscribeAll() has no corresponding off() — the transport is torn down
+    // in onModuleDestroy() via service.stop(), which closes the underlying
+    // connection so no further messages arrive after destroy (Fix #14).
   }
 
   async onModuleDestroy(): Promise<void> {
-    if (this.unsubscribeBroadcast) {
-      this.unsubscribeBroadcast();
-      this.unsubscribeBroadcast = null;
-    }
+    // service.stop() closes the transport so the subscribeAll() handler
+    // installed in onModuleInit() stops receiving messages automatically —
+    // no explicit unsubscribe call is required (Fix #14).
     await this.service.stop();
   }
 }

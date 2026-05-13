@@ -61,8 +61,13 @@ export async function resolveRedisClient(
       process.stderr.write(`[ioredis] connection error: ${err.message}\n`);
     });
     return client as unknown as RedisClientLike;
-  } catch {
-    // ioredis not available or URL invalid — degrade gracefully.
+  } catch (err) {
+    // ioredis not available or URL is malformed — log the error so
+    // operators know why Redis is disabled rather than silently degrading
+    // (Fix #7: malformed REDIS_URL was previously swallowed without a trace).
+    process.stderr.write(
+      `[RedisClient] failed to create ioredis client (URL: ${redisUrl ? redisUrl.replace(/:\/\/[^@]*@/, "://<credentials>@") : "empty"}): ${err instanceof Error ? err.message : String(err)}\n`,
+    );
     return null;
   }
 }

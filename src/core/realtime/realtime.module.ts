@@ -138,9 +138,10 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     this.liveSockets.set(client.id, client);
     this.state.recordConnect({
       id: client.id,
-      // Production wires Better-Auth-resolved identity here; pre-auth
-      // we tag the connection anonymous so the inspector can show every
-      // socket without crashing on missing fields.
+      // TODO(realtime): Production auth-handshake not yet wired.
+      // Every connecting socket is currently tagged "anonymous".
+      // Tracked in OPEN_QUESTIONS.md — wire Better-Auth session cookie
+      // or token validation here before the feature goes to production.
       userId: "anonymous",
       tenantId: "anonymous",
     });
@@ -419,7 +420,12 @@ async function resolveSocketIoRedisPair(): Promise<{
       );
     });
     return { pub, sub };
-  } catch {
+  } catch (err) {
+    // Log the error so operators know the URL was malformed rather than
+    // silently falling back to in-memory mode (Fix #7 companion).
+    process.stderr.write(
+      `[RealtimeModule] failed to create ioredis pair for Socket.IO adapter (URL: ${url ? url.replace(/:\/\/[^@]*@/, "://<credentials>@") : "empty"}): ${err instanceof Error ? err.message : String(err)}\n`,
+    );
     return null;
   }
 }

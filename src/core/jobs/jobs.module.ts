@@ -46,7 +46,12 @@ async function resolveBullMQRedis(): Promise<RedisDuplex | null> {
       process.stderr.write(`[ioredis/BullMQ] connection error: ${err.message}\n`);
     });
     return client as unknown as RedisDuplex;
-  } catch {
+  } catch (err) {
+    // Log the error so operators know the URL was malformed rather than
+    // silently falling back to in-process mode (Fix #7 companion).
+    process.stderr.write(
+      `[JobsModule] failed to create ioredis client for BullMQ (URL: ${url ? url.replace(/:\/\/[^@]*@/, "://<credentials>@") : "empty"}): ${err instanceof Error ? err.message : String(err)}\n`,
+    );
     return null;
   }
 }
