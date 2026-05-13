@@ -32,6 +32,8 @@ import {
   Query,
 } from "@nestjs/common";
 
+import { Public } from "../permissions/public.decorator.js";
+
 import { buildDevPortalShellInput, renderDevPortalShell } from "./dev-portal-shell.js";
 import {
   buildFolderBreadcrumb,
@@ -81,6 +83,9 @@ export class DevFilesController {
    * explicitly here means route inventory shows `/hub/files` as a
    * first-class route instead of "covered by splat".
    */
+  @Public(
+    "dev-hub file browser — NODE_ENV=development only; assertDev() rejects production requests",
+  )
   @Get()
   @Header("content-type", "text/html; charset=utf-8")
   page(): string {
@@ -90,6 +95,9 @@ export class DevFilesController {
     );
   }
 
+  @Public(
+    "dev-hub file browser — NODE_ENV=development only; assertDev() rejects production requests",
+  )
   @Get("tree.json")
   async tree(
     @Query("tenantId") tenantQuery: string | undefined,
@@ -105,6 +113,9 @@ export class DevFilesController {
     return { tree };
   }
 
+  @Public(
+    "dev-hub file browser — NODE_ENV=development only; assertDev() rejects production requests",
+  )
   @Get("list.json")
   async list(
     @Query("tenantId") tenantQuery: string | undefined,
@@ -187,6 +198,9 @@ export class DevFilesController {
     return { files, totalCount: rows.length };
   }
 
+  @Public(
+    "dev-hub file browser — NODE_ENV=development only; assertDev() rejects production requests",
+  )
   @Get("breadcrumb.json")
   async breadcrumb(
     @Query("tenantId") tenantQuery: string | undefined,

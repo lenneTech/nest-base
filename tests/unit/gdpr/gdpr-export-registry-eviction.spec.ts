@@ -54,3 +54,58 @@ describe("GdprExportJobRegistry · eviction timer (M7)", () => {
     expect(registry.get(job.id)).not.toBeNull();
   });
 });
+
+/**
+ * Unit · GdprExportJobRegistry — stale-job sweep (Fix 3.3)
+ *
+ * Ensures that PENDING/RUNNING jobs older than 2 h are marked FAILED
+ * by the periodic sweep so the registry doesn't accumulate zombie entries
+ * after pod crashes or lost context.
+ */
+describe("GdprExportJobRegistry — stale-job sweep", () => {
+  let registry: GdprExportJobRegistry;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    registry = new GdprExportJobRegistry();
+    // Trigger onModuleInit manually (NestJS lifecycle in DI, not called in tests)
+    registry.onModuleInit();
+  });
+
+  afterEach(() => {
+    registry.onModuleDestroy();
+    vi.useRealTimers();
+  });
+
+  it("marks a PENDING job as FAILED after the stale threshold passes", () => {
+    const job = registry.enqueue({ userId: "u1", tenantId: "t1" });
+    expect(job.status).toBe("PENDING");
+
+    // Advance time past the 2-hour stale threshold + one sweep interval
+    vi.advanceTimersByTime(2 * 60 * 60 * 1000 + 10 * 60 * 1000 + 1);
+
+    const updated = registry.get(job.id);
+    expect(updated?.status).toBe("FAILED");
+    expect(updated?.error).toMatch(/stale/i);
+  });
+
+  it("marks a RUNNING job as FAILED after the stale threshold passes", () => {
+    const job = registry.enqueue({ userId: "u2", tenantId: "t2" });
+    registry.start(job.id);
+    expect(registry.get(job.id)?.status).toBe("RUNNING");
+
+    vi.advanceTimersByTime(2 * 60 * 60 * 1000 + 10 * 60 * 1000 + 1);
+
+    const updated = registry.get(job.id);
+    expect(updated?.status).toBe("FAILED");
+  });
+
+  it("does not mark a recently enqueued job as FAILED", () => {
+    const job = registry.enqueue({ userId: "u3", tenantId: "t3" });
+    // Only advance 1 sweep interval — not yet past the 2-hour threshold
+    vi.advanceTimersByTime(10 * 60 * 1000 + 1);
+
+    const updated = registry.get(job.id);
+    expect(updated?.status).toBe("PENDING");
+  });
+});

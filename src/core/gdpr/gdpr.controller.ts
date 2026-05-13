@@ -165,6 +165,8 @@ export class GdprController {
     // returned `requestedAt` is the original request's timestamp,
     // which the UI uses to render "your account erases on
     // <requestedAt + 30 days>".
+    // Parameters via positional $1,$2 binding — SQL-injection safe.
+    // Do NOT use string interpolation here.
     const existing = (await this.prisma.$queryRawUnsafe(
       `SELECT requested_at FROM pending_erasures
         WHERE user_id = $1::uuid
@@ -185,6 +187,8 @@ export class GdprController {
   }
 
   private async insertPendingErasure(userId: string): Promise<Date> {
+    // Parameters via positional $1,$2 binding — SQL-injection safe.
+    // Do NOT use string interpolation here.
     const inserted = (await this.prisma.$queryRawUnsafe(
       `INSERT INTO pending_erasures (id, user_id, requested_at)
        VALUES (gen_random_uuid(), $1::uuid, NOW())

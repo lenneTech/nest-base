@@ -103,16 +103,40 @@ export function createRedisPermissionCache(
     },
 
     async invalidateAll() {
-      // INTENTIONAL NO-OP — see OPEN_QUESTIONS.md "RedisPermissionCache.invalidateAll() is a no-op".
-      //
-      // A correct cross-replica flush would require either:
-      //   a) SCAN + DEL on the "lt:perm:" key pattern (O(N) keys, blocks Redis briefly), or
-      //   b) a Pub/Sub invalidation channel that each replica subscribes to.
-      //
-      // FLUSHDB is not an option — it would wipe unrelated data.
-      // Until a multi-pod permission-cache use-case exists, let TTL drain entries
-      // naturally (default 30s). Callers needing immediate consistency MUST use
-      // invalidate(userId, tenantId) instead.
+      try {
+        // SCAN the keyspace for all permission-cache keys and DEL them in one
+        // batch. SCAN is non-blocking (cursor-based), COUNT 100 is a hint to
+        // Redis about batch size — it does not cap the result strictly.
+        // DO NOT use FLUSHDB — it would wipe unrelated Redis data.
+        const scanStream = (redis as unknown as { scanStream?: (opts: { match: string; count: number }) => AsyncIterable<string[]> }).scanStream;
+        if (typeof scanStream === "function") {
+          // ioredis exposes scanStream() as a convenience over the SCAN cursor.
+          const stream = scanStream.call(redis, { match: `${KEY_PREFIX}*`, count: 100 });
+          const keys: string[] = [];
+          for await (const batch of stream) {
+            keys.push(...batch);
+          }
+          if (keys.length > 0) {
+            await redis.del(...keys);
+          }
+        } else {
+          // Fallback: manual SCAN cursor loop for clients that don't provide scanStream.
+          let cursor = "0";
+          const keys: string[] = [];
+          do {
+            const result = await (redis as unknown as { scan: (cursor: string, matchFlag: string, pattern: string, countFlag: string, count: number) => Promise<[string, string[]]> })
+              .scan(cursor, "MATCH", `${KEY_PREFIX}*`, "COUNT", 100);
+            cursor = result[0];
+            keys.push(...result[1]);
+          } while (cursor !== "0");
+          if (keys.length > 0) {
+            await redis.del(...keys);
+          }
+        }
+      } catch {
+        // Swallowed — invalidation is best-effort. The 30s TTL will drain
+        // entries naturally even if the sweep fails.
+      }
     },
   };
 }

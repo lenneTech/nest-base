@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { Injectable, type OnModuleDestroy } from "@nestjs/common";
+import { Injectable, Logger, type OnModuleInit, type OnModuleDestroy } from "@nestjs/common";
 
 /**
  * GDPR export-job registry (CF.GDPR.* — iter-106).
@@ -56,9 +56,31 @@ export interface EnqueueGdprExportInput {
   readonly tenantId: string | null;
 }
 
+/** PENDING/RUNNING jobs older than this threshold are marked FAILED on sweep. */
+const STALE_JOB_AGE_MS = 2 * 60 * 60 * 1000; // 2 hours
+/** Sweep interval — checked every 10 minutes. */
+const STALE_SWEEP_INTERVAL_MS = 10 * 60 * 1000;
+
 @Injectable()
-export class GdprExportJobRegistry implements OnModuleDestroy {
+export class GdprExportJobRegistry implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(GdprExportJobRegistry.name);
   private readonly jobs = new Map<string, MutableGdprExportJob>();
+  private staleSweepTimer?: ReturnType<typeof setInterval>;
+
+  /**
+   * Start the periodic stale-job sweep. Jobs stuck in PENDING or RUNNING
+   * for more than 2 hours are marked FAILED so the registry doesn't
+   * accumulate zombie entries after pod crashes or lost context.
+   */
+  onModuleInit(): void {
+    this.staleSweepTimer = setInterval(() => {
+      this.sweepStaleJobs();
+    }, STALE_SWEEP_INTERVAL_MS);
+    // Allow the timer to be GC'd if the process exits without calling destroy
+    if (this.staleSweepTimer.unref) {
+      this.staleSweepTimer.unref();
+    }
+  }
 
   /**
    * Cancel all pending eviction timers on module teardown to prevent
@@ -66,12 +88,37 @@ export class GdprExportJobRegistry implements OnModuleDestroy {
    * lifetime (L2 fix).
    */
   onModuleDestroy(): void {
+    if (this.staleSweepTimer !== undefined) {
+      clearInterval(this.staleSweepTimer);
+    }
     for (const job of this.jobs.values()) {
       if (job.evictionTimer !== undefined) {
         clearTimeout(job.evictionTimer);
       }
     }
     this.jobs.clear();
+  }
+
+  /**
+   * Mark PENDING/RUNNING jobs that are older than `STALE_JOB_AGE_MS` as
+   * FAILED. This prevents registry accumulation after pod crashes where
+   * the in-progress job never receives a `complete()` or `fail()` call.
+   */
+  private sweepStaleJobs(): void {
+    const cutoff = Date.now() - STALE_JOB_AGE_MS;
+    for (const job of this.jobs.values()) {
+      if (
+        (job.status === "PENDING" || job.status === "RUNNING") &&
+        job.requestedAt.getTime() < cutoff
+      ) {
+        job.status = "FAILED";
+        job.completedAt = new Date();
+        job.error = "job timed out — marked FAILED by stale-job sweep";
+        this.logger.warn(`GDPR export job ${job.id} marked FAILED by stale-job sweep`);
+        // Schedule eviction like regular failures.
+        job.evictionTimer = setTimeout(() => this.jobs.delete(job.id), 24 * 60 * 60 * 1000);
+      }
+    }
   }
 
   enqueue(input: EnqueueGdprExportInput): GdprExportJob {

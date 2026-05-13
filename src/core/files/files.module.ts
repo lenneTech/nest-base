@@ -85,6 +85,8 @@ import { tusUploadConfigDefaults } from "./tus-upload-config.js";
 import type { TusServerLike } from "./tus.module.js";
 import { buildTusFinishHook } from "./tus-finish-hook.js";
 import { isShareLinkSecretValid } from "./share-link-secret.js";
+import { BetterAuthModule } from "../auth/better-auth.module.js";
+import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from "../auth/better-auth.token.js";
 
 const FILE_STORAGE = Symbol.for("lt:FileStorage");
 const FOLDER_STORAGE = Symbol.for("lt:FolderStorage");
@@ -478,6 +480,7 @@ const bootFeatures = loadFeatures(process.env as Record<string, string | undefin
  * migration between backends.
  */
 @Module({
+  imports: [BetterAuthModule],
   controllers: [FileController, FolderController, AssetController, IpxCacheController],
   providers: [
     // ── Metadata storage (Prisma) ─────────────────────────────────
@@ -620,6 +623,7 @@ const bootFeatures = loadFeatures(process.env as Record<string, string | undefin
         origin: StorageAdapter,
         config: { mountPath: string; chunkExpirationSeconds: number },
         fileService: FileService,
+        auth: BetterAuthInstance | null,
       ): Promise<TusServerLike | null> => {
         if (!bootFeatures.files.tus) return null;
         const dataStore = new StorageAdapterDataStore(origin);
@@ -644,7 +648,10 @@ const bootFeatures = loadFeatures(process.env as Record<string, string | undefin
             // upload into FileService and expose the resulting File.id
             // + storageKey as response headers so callers don't need a
             // follow-up GET /files/:id request.
-            onUploadFinish: buildTusFinishHook({ fileService, dataStore }),
+            // Fix 1.1: pass auth so the hook can validate that the
+            // metadata tenantId matches the session tenantId —
+            // TUS runs outside the NestJS middleware stack.
+            onUploadFinish: buildTusFinishHook({ fileService, dataStore, auth }),
           });
           return bridgePrismaDelegate<TusServerLike>(server);
         } catch (err) {
@@ -657,7 +664,7 @@ const bootFeatures = loadFeatures(process.env as Record<string, string | undefin
           return null;
         }
       },
-      inject: [STORAGE_ORIGIN, TUS_CONFIG, FileService],
+      inject: [STORAGE_ORIGIN, TUS_CONFIG, FileService, BETTER_AUTH_INSTANCE],
     },
   ],
   exports: [
@@ -725,6 +732,13 @@ declare module "./file.service.js" {
      * construct FileService directly without the DI factory).
      */
     cachedFeatures?: Features;
+    /**
+     * Insert a pre-built FileRecord directly into the metadata store.
+     * Used by `tus-finish-hook` after bytes are already placed at the
+     * final storage key — avoids the scanVerdict / uploadAndCreate
+     * double-put path.
+     */
+    insertRecord(record: FileRecord): Promise<void>;
     uploadAndCreate(input: UploadAndCreateInput): Promise<FileRecord>;
     findById(id: string): Promise<FileRecord | null>;
   }
@@ -847,6 +861,13 @@ FileService.prototype.findById = async function findById(
   id: string,
 ): Promise<FileRecord | null> {
   return getFileServiceStorage(this).findById(id);
+};
+
+FileService.prototype.insertRecord = async function insertRecord(
+  this: FileService,
+  record: FileRecord,
+): Promise<void> {
+  await getFileServiceStorage(this).insert(record);
 };
 
 /**

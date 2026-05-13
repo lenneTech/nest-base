@@ -4,6 +4,7 @@ import { resolveStoragePath } from "./storage-path.js";
 import type { StorageAdapterDataStore } from "./storage-adapter-data-store.js";
 import type { FileService } from "./file.service.js";
 import { uuidV7 } from "../uuid/uuid-v7.js";
+import type { BetterAuthInstance } from "../auth/better-auth.token.js";
 
 /**
  * Minimal shape of a completed TUS Upload that the finish hook needs.
@@ -22,20 +23,40 @@ export interface TusFinishHookResult {
   headers?: Record<string, string | number>;
 }
 
+/**
+ * Minimal shape of the HTTP request object passed to TUS hooks.
+ * The TUS server v3 uses srvx's ServerRequest (extends Fetch API Request)
+ * so the `headers` field is a Fetch API `Headers` object compatible with
+ * BetterAuth's `getSession({ headers })` call.
+ */
+export interface TusHookRequest {
+  headers: Headers;
+}
+
 export interface BuildTusFinishHookOptions {
   fileService: FileService;
   dataStore: StorageAdapterDataStore;
+  /**
+   * Optional BetterAuth instance used to validate that the session
+   * tenantId matches the upload metadata tenantId (Fix 1.1 — tenant
+   * spoofing guard). When null or undefined the check is skipped so
+   * projects that haven't wired Better-Auth still get uploads; this
+   * is the pre-fix backward-compat path.
+   */
+  auth?: BetterAuthInstance | null;
 }
 
 /**
  * Factory for the `onUploadFinish` callback wired into `@tus/server`.
  *
  * When all bytes are received the hook:
- *   1. Reads the assembled bytes from the `_tus/<id>` staging area.
- *   2. Promotes them into the FileService (creates a FileRecord with
+ *   1. Validates that the session tenantId matches the Upload-Metadata
+ *      tenantId (Fix 1.1 — prevent tenant spoofing via metadata header).
+ *   2. Reads the assembled bytes from the `_tus/<id>` staging area.
+ *   3. Promotes them into the FileService (creates a FileRecord with
  *      a deterministic storage key under `<tenantId>/<folderId>/<id>-<filename>`).
- *   3. Cleans up the `_tus/<id>` staging entry.
- *   4. Returns `Upload-File-Id` and `Upload-Storage-Key` headers so
+ *   4. Cleans up the `_tus/<id>` staging entry.
+ *   5. Returns `Upload-File-Id` and `Upload-Storage-Key` headers so
  *      callers don't need a follow-up request (issue #102).
  *
  * The hook expects these keys in the TUS `Upload-Metadata` field
@@ -48,26 +69,66 @@ export interface BuildTusFinishHookOptions {
  *
  * Signature matches `@tus/server` v2 `ServerOptions.onUploadFinish`:
  *   `(req, upload) => Promise<{ headers?, status_code?, body? }>`
- * The `req` parameter is unused here (we only need upload metadata)
- * but must be present to satisfy the framework contract.
+ *
+ * Security note: the TUS server is mounted outside the NestJS middleware
+ * stack (via Express `app.use()`), so `BetterAuthSessionMiddleware` and
+ * `TenantInterceptor` do NOT run for TUS requests. The tenant-validation
+ * check in this hook is therefore the only server-side enforcement that
+ * the metadata `tenantId` matches an authenticated session.
  */
 export function buildTusFinishHook(
   opts: BuildTusFinishHookOptions,
-): (_req: unknown, upload: TusFinishHookUpload) => Promise<TusFinishHookResult> {
-  const { fileService, dataStore } = opts;
+): (req: TusHookRequest, upload: TusFinishHookUpload) => Promise<TusFinishHookResult> {
+  const { fileService, dataStore, auth } = opts;
 
   return async function onUploadFinish(
-    _req: unknown,
+    req: TusHookRequest,
     upload: TusFinishHookUpload,
   ): Promise<TusFinishHookResult> {
     const meta = upload.metadata ?? {};
     const filename = meta["filename"] ?? upload.id;
     const mimeType = meta["filetype"] ?? "application/octet-stream";
-    const tenantId = meta["tenantId"] ?? "";
+    const metaTenantId = meta["tenantId"] ?? "";
     const uploaderId = meta["uploaderId"] ?? "";
     // `null` string or absent → treat as root folder
     const rawFolderId = meta["folderId"];
     const folderId = rawFolderId === null || rawFolderId === undefined ? null : rawFolderId;
+
+    // Fix 1.1 — Tenant validation: ensure the metadata tenantId matches the
+    // session's active organization / tenantId. The TUS server runs outside
+    // the NestJS middleware stack so we must validate the session explicitly
+    // here rather than relying on TenantInterceptor.
+    //
+    // When `auth` is null (BetterAuth not configured) we skip the check so
+    // unauthenticated / development setups still function. In production the
+    // auth instance is always provided.
+    if (auth && metaTenantId) {
+      const session = await resolveSession(auth, req.headers);
+      if (!session) {
+        // No valid session — reject the upload to prevent unauthenticated
+        // file creation. Return a 401-equivalent via status_code so @tus/server
+        // surfaces it as an HTTP error instead of continuing.
+        return {
+          ...(tusErrorResponse(401, "tus-finish-hook: unauthenticated upload rejected") as object),
+        };
+      }
+      const sessionTenantId =
+        (session as { session?: { activeOrganizationId?: string | null } }).session
+          ?.activeOrganizationId ??
+        (session as { user?: { tenantId?: string | null } }).user?.tenantId ??
+        "";
+      if (sessionTenantId && sessionTenantId !== metaTenantId) {
+        // The Upload-Metadata tenantId was spoofed — reject with 403.
+        return {
+          ...(tusErrorResponse(
+            403,
+            `tus-finish-hook: metadata tenantId "${metaTenantId}" does not match session tenantId "${sessionTenantId}"`,
+          ) as object),
+        };
+      }
+    }
+
+    const tenantId = metaTenantId;
 
     // Read the assembled bytes from the TUS staging area.
     const bytes = await dataStore.readBody(upload.id);
@@ -115,6 +176,33 @@ export function buildTusFinishHook(
       },
     };
   };
+}
+
+/**
+ * Attempt to resolve a Better-Auth session from the request headers.
+ * Returns null on any failure (missing cookie, expired session, etc.).
+ * The `headers` parameter is a Fetch API `Headers` object — BetterAuth's
+ * `api.getSession` accepts this shape directly.
+ */
+async function resolveSession(
+  auth: BetterAuthInstance,
+  headers: Headers,
+): Promise<unknown> {
+  try {
+    return await auth.api.getSession({ headers });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Build a TUS-compatible error response object.
+ * @tus/server reads `status_code` + `body` on the returned object to
+ * construct the HTTP error response when an `onUploadFinish` hook returns
+ * a non-success shape.
+ */
+function tusErrorResponse(statusCode: number, message: string): { status_code: number; body: string } {
+  return { status_code: statusCode, body: message };
 }
 
 function detectDriverName(adapter: object): string {

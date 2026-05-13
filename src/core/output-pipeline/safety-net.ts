@@ -97,8 +97,20 @@ export function applySafetyNet(value: unknown, options: SafetyNetOptions): unkno
   return walkAndMask(value, fields, patterns);
 }
 
+/**
+ * Normalise a field name for case- and underscore-insensitive comparison.
+ * Strips underscores so `auth_token` and `authToken` are treated as the
+ * same secret field name — mirrors the same normalisation in
+ * `remove-secrets.ts` so both stages of the output pipeline use a
+ * consistent matching strategy.
+ */
 function normalize(fields: readonly string[]): Set<string> {
-  return new Set(fields.map((f) => f.toLowerCase()));
+  return new Set(fields.map((f) => f.toLowerCase().replaceAll("_", "")));
+}
+
+/** Normalise a single key for lookup — used by walkForFieldHit. */
+function normalizeKey(k: string): string {
+  return k.toLowerCase().replaceAll("_", "");
 }
 
 function walkForFieldHit(value: unknown, fields: Set<string>): string | null {
@@ -111,7 +123,7 @@ function walkForFieldHit(value: unknown, fields: Set<string>): string | null {
   }
   if (value !== null && typeof value === "object") {
     for (const [key, child] of Object.entries(value)) {
-      if (fields.has(key.toLowerCase())) return key;
+      if (fields.has(normalizeKey(key))) return key;
       const hit = walkForFieldHit(child, fields);
       if (hit !== null) return hit;
     }
@@ -150,7 +162,7 @@ function walkAndMask(value: unknown, fields: Set<string>, patterns: readonly Reg
   if (value !== null && typeof value === "object") {
     const out: Record<string, unknown> = {};
     for (const [key, child] of Object.entries(value)) {
-      if (fields.has(key.toLowerCase())) {
+      if (fields.has(normalizeKey(key))) {
         out[key] = "[redacted]";
         continue;
       }

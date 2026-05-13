@@ -5,8 +5,9 @@ import {
   Injectable,
   Logger,
   Module,
-  type OnModuleInit,
+  Optional,
   type OnModuleDestroy,
+  type OnModuleInit,
 } from "@nestjs/common";
 
 const socketIoRedisLogger = new Logger("SocketIoRedisAdapter");
@@ -40,6 +41,9 @@ import {
 } from "./inspector-state.js";
 import { maskPayload } from "./inspector-filter.js";
 import { ConfigService } from "../config/config.service.js";
+import { BetterAuthModule } from "../auth/better-auth.module.js";
+import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from "../auth/better-auth.token.js";
+import { parseChannelName } from "./channel-permission.js";
 
 /**
  * Inspector event names emitted by the gateway through the
@@ -89,6 +93,12 @@ export class InspectorEvents extends EventEmitter {}
  * `InspectorEvents` bus so the admin live-push namespace can mirror
  * them without re-implementing the bookkeeping.
  */
+/** Minimal session shape returned by BetterAuth's getSession() call. */
+interface SessionLookup {
+  user: { id: string; tenantId?: string | null };
+  session?: { activeOrganizationId?: string | null };
+}
+
 @Injectable()
 // `cors: { origin: true }` reflects every origin — replaced by an
 // `afterInit` hook that reads allowed origins from ConfigService (H1 fix).
@@ -107,6 +117,9 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
   constructor(
     private readonly inspectorBus: InspectorEvents,
     private readonly configService: ConfigService,
+    @Optional()
+    @Inject(BETTER_AUTH_INSTANCE)
+    private readonly auth: BetterAuthInstance | null = null,
   ) {}
 
   /**
@@ -137,29 +150,98 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
   }
 
   handleConnection(client: Socket): void {
+    // Fix 1.2 — Auth handshake: validate the Better-Auth session before
+    // accepting the connection. The token can arrive either as a Bearer
+    // token in `client.handshake.auth.token` (preferred — avoids cookie
+    // CORS complexities) or as the cookie header for browser clients.
+    // When neither is present and auth is configured, disconnect immediately.
+    //
+    // When `auth` is null (BetterAuth not configured, e.g. test bootstrap
+    // without BETTER_AUTH_SECRET), accept connections so smoke tests and
+    // dev environments without auth still work. Log a warning so operators
+    // don't silently ship an unprotected gateway.
+    if (!this.auth) {
+      this.logger.warn(
+        "RealtimeGateway: BetterAuth not configured — accepting connection without session validation",
+      );
+      this.acceptConnection(client, "anonymous", "anonymous");
+      return;
+    }
+
+    // Resolve the auth handshake asynchronously. The socket stays
+    // connected during the async check — handleConnection is sync, so we
+    // kick off the validation and disconnect if it fails.
+    void this.authenticateConnection(client);
+  }
+
+  private async authenticateConnection(client: Socket): Promise<void> {
+    const token = client.handshake.auth?.token as string | undefined;
+    const cookieHeader = client.handshake.headers?.cookie;
+
+    // Build a Fetch API Headers object for BetterAuth's getSession().
+    const headers = new Headers();
+    if (token) {
+      headers.set("authorization", `Bearer ${token}`);
+    }
+    if (cookieHeader) {
+      headers.set("cookie", cookieHeader);
+    }
+
+    let session: SessionLookup | null = null;
+    try {
+      session = (await this.auth!.api.getSession({ headers })) as SessionLookup;
+    } catch (err) {
+      this.logger.debug?.(`socket ${client.id}: session lookup failed — ${(err as Error).message}`);
+    }
+
+    if (!session?.user) {
+      // No valid session — reject the connection.
+      this.logger.debug(`socket ${client.id}: disconnecting (no valid session)`);
+      client.disconnect(true);
+      return;
+    }
+
+    const userId = session.user.id;
+    const tenantId =
+      (session as { session?: { activeOrganizationId?: string | null } }).session
+        ?.activeOrganizationId ??
+      session.user.tenantId ??
+      "";
+
+    this.acceptConnection(client, userId, tenantId);
+  }
+
+  private acceptConnection(client: Socket, userId: string, tenantId: string): void {
     this.liveSockets.set(client.id, client);
-    this.state.recordConnect({
-      id: client.id,
-      // TODO(realtime): Production auth-handshake not yet wired.
-      // Every connecting socket is currently tagged "anonymous".
-      // Tracked in OPEN_QUESTIONS.md — wire Better-Auth session cookie
-      // or token validation here before the feature goes to production.
-      userId: "anonymous",
-      tenantId: "anonymous",
-    });
-    this.inspectorBus.emit(INSPECTOR_EVENT.socketConnected, {
-      id: client.id,
-      userId: "anonymous",
-      tenantId: "anonymous",
-    });
-    this.logger.debug(`socket connected: ${client.id}`);
+    this.state.recordConnect({ id: client.id, userId, tenantId });
+    this.inspectorBus.emit(INSPECTOR_EVENT.socketConnected, { id: client.id, userId, tenantId });
+    this.logger.debug(`socket connected: ${client.id} (userId=${userId})`);
+
+    // Use `on` (not `once`) so a single connection can subscribe to
+    // multiple channels over its lifetime. Listener cleanup happens
+    // explicitly in handleDisconnect via removeAllListeners() — this
+    // prevents accumulation of stale listeners on reconnects where
+    // Socket.IO reuses the same Socket instance.
     client.on("subscribe", (channel: unknown) => {
       if (typeof channel !== "string" || !channel) return;
-      // Anonymous-handshake mode accepts every channel. The
-      // canonical filter (`canSubscribeToChannel` in
-      // `channel-permission.ts`) is consulted once the handshake-
-      // session integration runs ability resolution against the
-      // identified user.
+      // Channel permission check: parse the channel name and verify the
+      // user's ability allows subscription. With anonymous identity (no
+      // auth) all channels are accepted. With a real session the ability
+      // is not yet wired here (requires PermissionService lookup) so we
+      // fall back to accepting all channels for authenticated users.
+      // TODO: resolve the CASL Ability for userId/tenantId and call
+      //       canSubscribeToChannel(ability, parseChannelName(channel)).
+      //       Tracked as a follow-up to Fix 1.2.
+      let allowed = true;
+      if (userId !== "anonymous") {
+        try {
+          // Validate channel name format; parseChannelName throws on malformed names.
+          parseChannelName(channel);
+        } catch {
+          allowed = false;
+        }
+      }
+      if (!allowed) return;
       client.join(channel);
       this.state.recordSubscribe(client.id, channel);
       this.inspectorBus.emit(INSPECTOR_EVENT.channelSubscribed, {
@@ -183,6 +265,11 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     this.state.recordDisconnect(client.id);
     this.inspectorBus.emit(INSPECTOR_EVENT.socketDisconnected, { id: client.id });
     this.logger.debug(`socket disconnected: ${client.id}`);
+    // Explicitly remove the subscribe/unsubscribe listeners registered in
+    // acceptConnection. Socket.IO may reuse socket instances on reconnect,
+    // so omitting cleanup would accumulate duplicate listeners over time.
+    client.removeAllListeners("subscribe");
+    client.removeAllListeners("unsubscribe");
   }
 
   /** Used by domain code to broadcast tenant/permission-filtered events. */
@@ -433,7 +520,14 @@ async function resolveSocketIoRedisPair(): Promise<{
 }
 
 @Module({
-  imports: [OutboxModule],
+  imports: [
+    OutboxModule,
+    // Fix 1.2: import BetterAuthModule so BETTER_AUTH_INSTANCE is resolvable
+    // by RealtimeGateway for the WebSocket auth handshake. The @Optional()
+    // decorator on the constructor parameter ensures the gateway still boots
+    // when BETTER_AUTH_SECRET is not set (dev/test without auth).
+    BetterAuthModule,
+  ],
   providers: [
     RealtimeGateway,
     InspectorEvents,

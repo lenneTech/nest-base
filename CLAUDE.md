@@ -200,6 +200,18 @@ The decorator lives at `src/core/permissions/public.decorator.ts`.
 The skill [`wiring-permissions`](./.claude/skills/wiring-permissions.md)
 has the decision flow + worked examples.
 
+## Conventions a quick scan won't catch (continued)
+
+- **OutputPipeline.run() on every object-returning endpoint** — every
+  Controller endpoint that returns objects/records/lists MUST call
+  `OutputPipeline.run()` with a CASL `ability` for Stage 1+2 (field
+  filtering). Returning a raw Prisma result or a plain DTO object without
+  running the pipeline bypasses CASL field-level restrictions. Use
+  `removeSecrets()` (Stage 3) at minimum when the pipeline is not wired.
+  See `src/core/output-pipeline/output-pipeline.interceptor.ts` for the
+  interceptor contract and `docs/architecture.md` "Output pipeline" for
+  the 4-stage design.
+
 ## Quality bar
 
 - Bun-only commands; never shell out to `node`/`npm` from scripts

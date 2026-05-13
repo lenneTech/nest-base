@@ -273,20 +273,33 @@ export class UserAdminController {
     const baseUrl = this.config.server.baseUrl ?? "http://localhost:3000";
     const url = `${baseUrl}/api/auth/admin/${action}`;
 
+    // Build the Authorization header. The BA admin plugin validates that the
+    // calling session belongs to a user with the admin role. Without a token
+    // the BA endpoint returns 401 / 403. Two acceptable paths:
+    //
+    //   1. `BETTER_AUTH_ADMIN_TOKEN` is set — use it as a Bearer service-account
+    //      token. The token must belong to an admin-role BA session created via
+    //      POST /api/auth/sign-in/email for a user with the admin role.
+    //
+    //   2. No token — the caller (the dev-hub running in the same process) is
+    //      already gated by `@Can("manage", "User")` at the NestJS layer, but
+    //      the BA admin plugin still validates the session on its own endpoint.
+    //      Without a valid admin session token the call will fail; operators
+    //      MUST set BETTER_AUTH_ADMIN_TOKEN for ban/unban/revoke to work.
+    //
+    // Fix 2.2: previously no Authorization header was sent at all. Now the
+    // header is included when BETTER_AUTH_ADMIN_TOKEN is configured so the
+    // BA admin plugin can authenticate the internal service call.
+    const adminToken = process.env.BETTER_AUTH_ADMIN_TOKEN;
+    const authHeaders: Record<string, string> = adminToken
+      ? { Authorization: `Bearer ${adminToken}` }
+      : {};
+
     const res = await fetch(url, {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        // The BA admin plugin requires an `Authorization` header with
-        // admin credentials. For dev-hub purposes we rely on the
-        // `CanGuard` enforcing the CASL `manage:User` gate before we
-        // reach here — the BA admin endpoint itself is called with
-        // a service-account pattern (no additional credential needed
-        // because the dev-hub runs in a trusted server-side context).
-        //
-        // If BA admin requires a session token here in practice,
-        // operators can supply a service-account bearer token via the
-        // `BETTER_AUTH_ADMIN_TOKEN` env var (future extension point).
+        ...authHeaders,
       },
       body: JSON.stringify(
         Object.fromEntries(Object.entries(payload).filter(([, v]) => v !== undefined)),

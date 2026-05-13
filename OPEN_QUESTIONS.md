@@ -23,7 +23,9 @@ project owner reviews and answers.
   b) a dedicated Pub/Sub channel (`lt:perm:invalidate`) that each pod subscribes to; on message,
      flush the local in-memory fallback map and optionally issue a SCAN+DEL.
   Do NOT use `FLUSHDB` — it would wipe unrelated Redis data.
-- **Status:** open (no production wiring exists yet; safe to defer).
+- **Status:** fixed (2026-05-13) — `invalidateAll()` now uses SCAN+DEL via ioredis `scanStream()`
+  with a manual cursor-loop fallback. Live path coverage is tracked under the existing
+  "Tests · Redis-backed path coverage gap (Fix #11)" entry below.
 
 ### 2026-05-13 · Jobs · Multi-pod duplicate execution of `setInterval`-scheduled jobs
 
@@ -125,7 +127,55 @@ project owner reviews and answers.
   `handleConnection`, resolve `userId`/`tenantId`, and reject the socket on
   failure. See `src/core/realtime/realtime.module.ts` line ~140 and
   `canSubscribeToChannel` in `channel-permission.ts`.
-- **Status:** open.
+- **Status:** fixed (2026-05-13) — Fix 1.2 wires the BetterAuth session lookup
+  in `handleConnection` via `authenticateConnection()`. Unauthenticated sockets
+  are disconnected. When `auth` is null (BETTER_AUTH_SECRET not set) the gateway
+  falls back to anonymous mode with a warning log. CASL ability resolution for
+  per-channel subscription gating is still pending (noted as a TODO in the code).
+
+### 2026-05-13 · OutputPipeline · Stage 1+2 CASL enforcement gap (Fix 2.4)
+
+- **Context:** The 4-stage output pipeline runs via `OutputPipelineInterceptor`.
+  However, several controllers (especially `FileController`, `FolderController`,
+  `GdprController`) return Prisma results directly without calling
+  `OutputPipeline.run()` with a CASL ability — Stage 1+2 field filtering is
+  bypassed for those routes.
+- **Why it's acceptable now:** Stages 3+4 (`removeSecrets`, safety-net) still
+  run for all intercepted endpoints. The CASL field filter (Stages 1+2) adds
+  fine-grained per-field access control; without it the worst case is that a
+  user sees fields their role technically doesn't have `read` permission for.
+  The broader `@Can()` guard still gates the entire action.
+- **Planned fix:** wire `OutputPipeline.run(ability, subject, value)` in every
+  controller endpoint that returns entity objects. This requires resolving the
+  CASL ability inside the handler (inject `PermissionService`, call
+  `getAbility(userId, tenantId)`). An interceptor-level fix would inject the
+  ability once per request and run the pipeline transparently — preferred over
+  per-handler wiring.
+- **Status:** open (deferred; invasive change requiring permission-service wiring
+  in all affected controllers).
+
+### 2026-05-13 · Files · tenantId from query-param in FileController/FolderController (Fix 2.5)
+
+- **Context:** `GET /files?tenantId=<id>` and `GET /folders?tenantId=<id>` accept
+  the tenant via a query parameter. The `TenantInterceptor` normally reads
+  `x-tenant-id` from headers and populates the AsyncLocalStorage context. For
+  these endpoints the query param bypasses the standard interceptor path.
+- **Why it's acceptable now:** The CASL `@Can("read", "File")` gate and
+  service-layer Prisma queries both filter by `tenantId` explicitly. The RLS
+  policy is the last-resort backstop.
+- **Planned fix:** remove the `?tenantId=` query param pattern from
+  `FileController` and `FolderController` and require the standard
+  `x-tenant-id` header so the TenantInterceptor sets the RLS context before
+  any query runs. This is a breaking API change — existing callers must be
+  updated.
+- **Status:** open (deferred; breaking change requiring client migration).
+
+### 2026-05-13 · Realtime · `OUTBOX_DISPATCHERS` push()-mutation vs. useFactory (Fix 4.2)
+
+- **Context:** Code-review finding Fix 4.2 suggests replacing the `dispatchers.push(new RealtimeOutboxDispatcher(gateway))` call in `RealtimeOutboxDispatcherLifecycle.onModuleInit()` with a `useFactory` provider for `OUTBOX_DISPATCHERS` in `RealtimeModule`. However, `OutboxModule` exports `OUTBOX_DISPATCHERS` as a shared singleton `useValue: []` array, and `OutboxWorkerLifecycle` holds a direct reference to that same array object. A `useFactory` override on `OUTBOX_DISPATCHERS` inside `RealtimeModule` would only rebind the token within `RealtimeModule`'s DI scope — the `OutboxWorker` inside `OutboxModule` would still see the original empty array, so dispatchers would never be invoked.
+- **Why push() is correct:** The mutation on the shared array reference is the only way to make dispatchers visible to the `OutboxWorker`. The deduplication guard (`dispatchers.some(d => d.name === "realtime-outbox")`) prevents double-registration on hot-reload. `WebhooksModule` uses the same pattern.
+- **Correct fix (requires architecture change):** Migrate `OUTBOX_DISPATCHERS` from `useValue: []` to a NestJS `useFactory` that collects dispatchers via a multi-provider token, then re-exports the composed array. This requires changes to `OutboxModule`, `RealtimeModule`, `WebhooksModule` simultaneously to keep the integration consistent.
+- **Status:** open (deferred; push()-mutation is safe with the deduplication guard).
 
 ### 2026-05-13 · Outbox · Multi-pod seq collision in `OutboxRecorder`
 
