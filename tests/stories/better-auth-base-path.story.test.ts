@@ -56,7 +56,7 @@ describe("Story · BETTER_AUTH_BASE_PATH env var (#101)", () => {
   it("buildBetterAuth reflects BETTER_AUTH_BASE_PATH in options.basePath", () => {
     process.env.BETTER_AUTH_BASE_PATH = "/my/auth";
     const auth = buildBetterAuth({
-      secret: "a".repeat(32),
+      secret: "a".repeat(64),
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 60,
     });
@@ -65,7 +65,7 @@ describe("Story · BETTER_AUTH_BASE_PATH env var (#101)", () => {
 
   it("buildBetterAuth still uses /api/auth when env var is absent", () => {
     const auth = buildBetterAuth({
-      secret: "a".repeat(32),
+      secret: "a".repeat(64),
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 60,
     });

@@ -48,7 +48,7 @@ describe("Story · Better-Auth per-route rate-limit customRules", () => {
 
   describe("buildBetterAuth() → rateLimit.customRules wiring", () => {
     const BASE_INPUT = {
-      secret: "test-secret-32-chars-minimum-aaaaaaaa",
+      secret: "test-secret-that-is-at-least-64-characters-long-for-testing-purposes",
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 3600,
     } as const;

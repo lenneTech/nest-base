@@ -13,7 +13,7 @@ import { buildBetterAuth } from "../../src/core/auth/better-auth.js";
 describe("Story · Better-Auth integration / factory", () => {
   it("buildBetterAuth() returns an object with a callable `handler`", () => {
     const auth = buildBetterAuth({
-      secret: "a".repeat(32),
+      secret: "a".repeat(64),
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 60 * 60 * 24,
     });
@@ -23,7 +23,7 @@ describe("Story · Better-Auth integration / factory", () => {
 
   it("the instance exposes the resolved mount path under `options.basePath`", () => {
     const auth = buildBetterAuth({
-      secret: "a".repeat(32),
+      secret: "a".repeat(64),
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 60,
     });
@@ -33,7 +33,7 @@ describe("Story · Better-Auth integration / factory", () => {
   it("rejects a baseUrl that is not parseable", () => {
     expect(() =>
       buildBetterAuth({
-        secret: "a".repeat(32),
+        secret: "a".repeat(64),
         baseUrl: "not-a-url",
         sessionExpiresInSeconds: 60,
       }),

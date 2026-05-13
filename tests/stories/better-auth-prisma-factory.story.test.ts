@@ -20,7 +20,7 @@ import { buildBetterAuth } from "../../src/core/auth/better-auth.js";
 describe("Story · Better-Auth factory · Prisma persistence", () => {
   it("returns an instance whose options.database is the in-memory adapter when no prisma is passed", () => {
     const auth = buildBetterAuth({
-      secret: "a".repeat(32),
+      secret: "a".repeat(64),
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 60,
     });
@@ -40,7 +40,7 @@ describe("Story · Better-Auth factory · Prisma persistence", () => {
       verification: {},
     };
     const auth = buildBetterAuth({
-      secret: "a".repeat(32),
+      secret: "a".repeat(64),
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 60,
       prisma: stubPrisma,

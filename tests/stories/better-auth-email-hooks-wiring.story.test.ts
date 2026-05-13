@@ -28,7 +28,7 @@ describe("Story · Better-Auth email-hooks wiring", () => {
 
   it("does NOT register sendVerificationEmail / sendResetPassword when emailHooks is omitted", () => {
     const auth = buildBetterAuth({
-      secret: "a".repeat(32),
+      secret: "a".repeat(64),
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 60,
     });
@@ -41,7 +41,7 @@ describe("Story · Better-Auth email-hooks wiring", () => {
   it("registers sendVerificationEmail when an email sender is supplied", async () => {
     const sender = fakeSender();
     const auth = buildBetterAuth({
-      secret: "a".repeat(32),
+      secret: "a".repeat(64),
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 60,
       emailHooks: { sender, appName: "Acme" },
@@ -71,7 +71,7 @@ describe("Story · Better-Auth email-hooks wiring", () => {
   it("registers sendResetPassword when an email sender is supplied", async () => {
     const sender = fakeSender();
     const auth = buildBetterAuth({
-      secret: "a".repeat(32),
+      secret: "a".repeat(64),
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 60,
       emailHooks: { sender, appName: "Acme" },
@@ -101,7 +101,7 @@ describe("Story · Better-Auth email-hooks wiring", () => {
   it("fires the welcome template via afterEmailVerification", async () => {
     const sender = fakeSender();
     const auth = buildBetterAuth({
-      secret: "a".repeat(32),
+      secret: "a".repeat(64),
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 60,
       emailHooks: { sender, appName: "Acme" },

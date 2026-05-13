@@ -55,7 +55,7 @@ describe("Story · isPreHashedSha256 (pre-hashed password shape detector)", () =
 describe("Story · buildBetterAuth password.hash hook — pre-hashed bypass (issue #100)", () => {
   it("resolves without throwing when password carries the sha256: sentinel", async () => {
     const auth = buildBetterAuth({
-      secret: "a".repeat(32),
+      secret: "a".repeat(64),
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 60,
       passwordPolicy: { minEntropyBits: 50 },
@@ -76,7 +76,7 @@ describe("Story · buildBetterAuth password.hash hook — pre-hashed bypass (iss
     const { PasswordPolicyError } = await import("../../src/core/auth/password-policy.js");
 
     const auth = buildBetterAuth({
-      secret: "a".repeat(32),
+      secret: "a".repeat(64),
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 60,
       passwordPolicy: { minEntropyBits: 50 },

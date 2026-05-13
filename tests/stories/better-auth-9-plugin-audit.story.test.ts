@@ -147,7 +147,7 @@ describe("Story · 9 Better-Auth plugins audit", () => {
    */
   describe("SC.BOOT.06 — buildBetterAuth() mounts plugin endpoints (factory contract)", () => {
     const BASE_INPUT = {
-      secret: "test-secret-32-chars-minimum-aaaaaaaa",
+      secret: "test-secret-that-is-at-least-64-characters-long-for-testing-purposes",
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 3600,
     } as const;
@@ -232,7 +232,7 @@ describe("Story · 9 Better-Auth plugins audit", () => {
 
   describe("SC.BOOT.07 — buildBetterAuth() factory does NOT mount plugin endpoints when options omitted", () => {
     const BASE_INPUT = {
-      secret: "test-secret-32-chars-minimum-aaaaaaaa",
+      secret: "test-secret-that-is-at-least-64-characters-long-for-testing-purposes",
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 3600,
     } as const;

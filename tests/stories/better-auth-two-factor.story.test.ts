@@ -22,7 +22,7 @@ describe("Story · Better-Auth Two-Factor", () => {
 
   it("does not expose two-factor endpoints when twoFactor option is omitted", () => {
     const auth = buildBetterAuth({
-      secret: "a".repeat(32),
+      secret: "a".repeat(64),
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 60,
     });
@@ -33,7 +33,7 @@ describe("Story · Better-Auth Two-Factor", () => {
 
   it("wires the twoFactor plugin and exposes the three TOTP endpoints when configured", () => {
     const auth = buildBetterAuth({
-      secret: "a".repeat(32),
+      secret: "a".repeat(64),
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 60,
       twoFactor: { issuer: "TestApp" },
@@ -46,7 +46,7 @@ describe("Story · Better-Auth Two-Factor", () => {
   it("rejects an empty issuer (TOTP requires a non-empty issuer label)", () => {
     expect(() =>
       buildBetterAuth({
-        secret: "a".repeat(32),
+        secret: "a".repeat(64),
         baseUrl: "http://localhost:3000",
         sessionExpiresInSeconds: 60,
         twoFactor: { issuer: "" },

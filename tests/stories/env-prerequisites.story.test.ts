@@ -9,6 +9,7 @@ describe("Story · ENV Prerequisites", () => {
         env: {
           DATABASE_URL: "postgresql://u:p@localhost:5432/db",
           BETTER_AUTH_SECRET: "real-secret-thats-long-enough",
+          NODE_ENV: "development",
         },
         envFileExists: true,
         envExampleExists: true,
@@ -31,7 +32,8 @@ describe("Story · ENV Prerequisites", () => {
       const plan = checkEnvPrerequisites({
         env: {
           DATABASE_URL: "postgresql://u:p@localhost:5432/db",
-          BETTER_AUTH_SECRET: "change-me-32-chars-minimum-XXXXXX",
+          BETTER_AUTH_SECRET: "change-me-64-chars-minimum-XXXXXX",
+          NODE_ENV: "development",
         },
         envFileExists: true,
         envExampleExists: true,

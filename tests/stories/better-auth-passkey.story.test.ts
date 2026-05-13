@@ -21,7 +21,7 @@ describe("Story · Better-Auth Passkey", () => {
 
   it("does not expose passkey endpoints when passkey option is omitted", () => {
     const auth = buildBetterAuth({
-      secret: "a".repeat(32),
+      secret: "a".repeat(64),
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 60,
     });
@@ -34,7 +34,7 @@ describe("Story · Better-Auth Passkey", () => {
 
   it("wires the passkey plugin and exposes the five WebAuthn endpoints when configured", () => {
     const auth = buildBetterAuth({
-      secret: "a".repeat(32),
+      secret: "a".repeat(64),
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 60,
       passkey: { rpName: "Acme" },
@@ -49,7 +49,7 @@ describe("Story · Better-Auth Passkey", () => {
   it("rejects an empty rpName (WebAuthn requires a relying-party label)", () => {
     expect(() =>
       buildBetterAuth({
-        secret: "a".repeat(32),
+        secret: "a".repeat(64),
         baseUrl: "http://localhost:3000",
         sessionExpiresInSeconds: 60,
         passkey: { rpName: "" },
@@ -60,7 +60,7 @@ describe("Story · Better-Auth Passkey", () => {
   it("rejects an explicit empty rpID", () => {
     expect(() =>
       buildBetterAuth({
-        secret: "a".repeat(32),
+        secret: "a".repeat(64),
         baseUrl: "http://localhost:3000",
         sessionExpiresInSeconds: 60,
         passkey: { rpName: "Acme", rpID: "" },
@@ -81,7 +81,7 @@ describe("Story · Better-Auth Passkey", () => {
 
   it("coexists with twoFactor — both plugins can be wired together", () => {
     const auth = buildBetterAuth({
-      secret: "a".repeat(32),
+      secret: "a".repeat(64),
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 60,
       twoFactor: { issuer: "Acme" },

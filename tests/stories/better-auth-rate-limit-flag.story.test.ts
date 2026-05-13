@@ -79,7 +79,7 @@ describe("Story · BETTER_AUTH_RATE_LIMIT_ENABLED flag", () => {
 
   describe("buildBetterAuth() respects the flag via rateLimitEnabled input", () => {
     const BASE_INPUT = {
-      secret: "test-secret-32-chars-minimum-aaaaaaaa",
+      secret: "test-secret-that-is-at-least-64-characters-long-for-testing-purposes",
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 3600,
     } as const;

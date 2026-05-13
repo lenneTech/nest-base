@@ -23,7 +23,7 @@ describe("Story · Better-Auth Social-Login", () => {
 
   it("does not configure social providers when the option is omitted", () => {
     const auth = buildBetterAuth({
-      secret: "a".repeat(32),
+      secret: "a".repeat(64),
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 60,
     });
@@ -36,7 +36,7 @@ describe("Story · Better-Auth Social-Login", () => {
 
   it("wires google into Better-Auth options when configured", () => {
     const auth = buildBetterAuth({
-      secret: "a".repeat(32),
+      secret: "a".repeat(64),
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 60,
       socialProviders: {
@@ -51,7 +51,7 @@ describe("Story · Better-Auth Social-Login", () => {
 
   it("wires multiple providers in a single call", () => {
     const auth = buildBetterAuth({
-      secret: "a".repeat(32),
+      secret: "a".repeat(64),
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 60,
       socialProviders: {
@@ -68,7 +68,7 @@ describe("Story · Better-Auth Social-Login", () => {
   it("rejects an empty clientId", () => {
     expect(() =>
       buildBetterAuth({
-        secret: "a".repeat(32),
+        secret: "a".repeat(64),
         baseUrl: "http://localhost:3000",
         sessionExpiresInSeconds: 60,
         socialProviders: {
@@ -81,7 +81,7 @@ describe("Story · Better-Auth Social-Login", () => {
   it("rejects an empty clientSecret", () => {
     expect(() =>
       buildBetterAuth({
-        secret: "a".repeat(32),
+        secret: "a".repeat(64),
         baseUrl: "http://localhost:3000",
         sessionExpiresInSeconds: 60,
         socialProviders: {
@@ -104,7 +104,7 @@ describe("Story · Better-Auth Social-Login", () => {
 
   it("coexists with twoFactor and passkey wiring", () => {
     const auth = buildBetterAuth({
-      secret: "a".repeat(32),
+      secret: "a".repeat(64),
       baseUrl: "http://localhost:3000",
       sessionExpiresInSeconds: 60,
       twoFactor: { issuer: "Acme" },

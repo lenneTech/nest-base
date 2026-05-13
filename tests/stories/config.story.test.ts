@@ -16,7 +16,9 @@ import { loadAppConfig } from "../../src/core/config/app-config.js";
 describe("Story · ENV-Validation + Config Module", () => {
   describe("loadAppConfig()", () => {
     it("returns a valid config for a minimal env (defaults applied)", () => {
-      const cfg = loadAppConfig({});
+      // Pass NODE_ENV=development explicitly — without it normalizeAppEnv
+      // defaults to "production" (safe default when env is unknown).
+      const cfg = loadAppConfig({ NODE_ENV: "development" });
       expect(cfg.server.port).toBeGreaterThan(0);
       expect(cfg.server.env).toBe("development");
       expect(cfg.systemSetup.enabled).toBe(false);
@@ -42,6 +44,7 @@ describe("Story · ENV-Validation + Config Module", () => {
         SYSTEM_SETUP_ADMIN_PASSWORD: "super-secret-12345",
       });
       expect(cfg.systemSetup.enabled).toBe(true);
+      if (!cfg.systemSetup.enabled) throw new Error("expected enabled");
       expect(cfg.systemSetup.adminEmail).toBe("admin@example.com");
     });
 

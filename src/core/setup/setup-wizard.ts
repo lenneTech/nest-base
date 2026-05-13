@@ -142,10 +142,18 @@ function renderEnvExample(answers: WizardAnswers): string {
   // Redis host-port for BullMQ job queue + Socket.IO cross-pod adapter.
   // Unset when Redis features are not required (single-replica deploys).
   lines.push(`REDIS_HOST_PORT=${answers.redisHostPort ?? 6379}`);
-  lines.push(`REDIS_URL=redis://localhost:${answers.redisHostPort ?? 6379}`);
+  lines.push("REDIS_PASSWORD=change-me-redis-password");
+  lines.push(
+    `REDIS_URL=redis://:change-me-redis-password@localhost:${answers.redisHostPort ?? 6379}`,
+  );
+  lines.push("");
+  lines.push("# ── CORS ──────────────────────────────────────────────────────");
+  lines.push("# Comma-separated list of allowed origins for staging/production.");
+  lines.push("# Leave unset to deny all cross-origin requests (safe default).");
+  lines.push("# CORS_ALLOWED_ORIGINS=https://app.change-me.com");
   lines.push("");
   lines.push("# ── Auth (Better-Auth) ─────────────────────────────────────────");
-  lines.push("BETTER_AUTH_SECRET=change-me-32-chars-minimum-XXXXXX");
+  lines.push("BETTER_AUTH_SECRET=change-me-64-chars-minimum-XXXXXX");
   lines.push("# Rate-limiter for /api/auth/* routes (credential-stuffing protection).");
   lines.push("# Defaults to false in test/development (rapid runs exhaust the window),");
   lines.push("# true in production. Set explicitly to override the NODE_ENV default.");
