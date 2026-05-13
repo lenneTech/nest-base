@@ -120,24 +120,36 @@ export class ExampleService {
   }
 
   async update(tenantId: string, id: string, dto: UpdateExampleDto): Promise<ExampleResponse> {
-    // Verify the record exists in this tenant before issuing the
-    // UPDATE. RLS would also block a foreign-tenant write, but the
-    // explicit check produces a clean ExampleNotFoundError instead
-    // of a generic Prisma error.
-    await this.findById(tenantId, id);
-    const record = await this.prisma.runWithRlsTenant(
-      (tx) =>
-        tx.example.update({
-          where: { id },
-          data: {
-            ...(dto.name !== undefined ? { name: dto.name } : {}),
-            ...(dto.description !== undefined ? { description: dto.description } : {}),
-            ...(dto.status !== undefined ? { status: dto.status } : {}),
-          },
-        }),
-      tenantId,
-    );
-    return toResponse(record);
+    // Fuse read + write into a single RLS transaction so there is no
+    // window between "does this record exist?" and "update it". Prisma
+    // throws P2025 when the WHERE clause matches nothing — we convert
+    // that to an ExampleNotFoundError for a clean 404 response. RLS
+    // still rejects cross-tenant access at the DB layer even if the
+    // caller crafts a forged tenantId.
+    try {
+      const record = await this.prisma.runWithRlsTenant(
+        (tx) =>
+          tx.example.update({
+            where: { id, tenantId },
+            data: {
+              ...(dto.name !== undefined ? { name: dto.name } : {}),
+              ...(dto.description !== undefined ? { description: dto.description } : {}),
+              ...(dto.status !== undefined ? { status: dto.status } : {}),
+            },
+          }),
+        tenantId,
+      );
+      return toResponse(record);
+    } catch (err) {
+      // P2025 = "Record to update not found." — treat as a missing resource.
+      if (
+        err instanceof Error &&
+        (err as { code?: string }).code === "P2025"
+      ) {
+        throw new ExampleNotFoundError(id);
+      }
+      throw err;
+    }
   }
 
   async remove(tenantId: string, id: string): Promise<void> {
