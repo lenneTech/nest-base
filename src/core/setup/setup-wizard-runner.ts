@@ -64,7 +64,8 @@ interface SecretSpec {
 }
 
 const SECRET_VARS: Record<string, SecretSpec> = {
-  BETTER_AUTH_SECRET: { bytes: 32, encoding: "base64url" },
+  // 48 bytes → 64 base64url chars, matching the MIN_SECRET_LEN=64 check in better-auth.ts
+  BETTER_AUTH_SECRET: { bytes: 48, encoding: "base64url" },
   POSTGRES_PASSWORD: { bytes: 24, encoding: "base64url" },
   POWERSYNC_DB_PASSWORD: { bytes: 24, encoding: "base64url" },
   FIELD_ENCRYPTION_KEK: { bytes: 32, encoding: "base64" },
