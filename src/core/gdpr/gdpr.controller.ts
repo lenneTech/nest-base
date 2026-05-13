@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Get,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
   Param,
   Req,
@@ -41,6 +42,8 @@ interface AuthedRequest extends Request {
  */
 @Controller("me")
 export class GdprController {
+  private readonly logger = new Logger(GdprController.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly exportJobs: GdprExportJobRegistry,
@@ -71,8 +74,14 @@ export class GdprController {
     });
     // Run the export synthesizer asynchronously — the controller
     // returns immediately; the job transitions PENDING → RUNNING →
-    // COMPLETED in the background.
-    void this.runExport(job.id, req.user.id, req.user.tenantId ?? null);
+    // COMPLETED in the background. The .catch() ensures any unexpected
+    // throw outside runExport's internal try/catch is logged rather than
+    // silently swallowed as an unhandled rejection.
+    void this.runExport(job.id, req.user.id, req.user.tenantId ?? null).catch((err: unknown) =>
+      this.logger.error(
+        `GDPR export failed unexpectedly for job ${job.id}: ${err instanceof Error ? err.message : String(err)}`,
+      ),
+    );
     return {
       jobId: job.id,
       status: job.status,

@@ -15,33 +15,45 @@ import { PrismaOutboxStorage } from "./outbox.prisma.js";
 export const OUTBOX_STORAGE = Symbol.for("lt:OutboxStorage");
 export const OUTBOX_DISPATCHERS = Symbol.for("lt:OutboxDispatchers");
 
-class InMemoryOutboxStorage implements OutboxStorage {
+/**
+ * In-memory OutboxStorage for single-process deployments (tests, dev without
+ * a DATABASE_URL). Not safe for multi-replica use — use PrismaOutboxStorage.
+ *
+ * Exported so story tests can exercise the retry / inFlight behaviour directly
+ * without bootstrapping a full NestJS module.
+ *
+ * Design note on inFlight: we intentionally do NOT use a permanent inFlight
+ * set here. PrismaOutboxStorage prevents double-claiming via `processedAt IS
+ * NULL` sentinel rows + `SELECT FOR UPDATE SKIP LOCKED`. In the single-process
+ * in-memory case there is no concurrent-caller race (one setInterval ticks
+ * runOnce() sequentially) so an inFlight set only causes entries whose
+ * dispatcher threw to disappear permanently — the inFlight entry is never
+ * cleared, claimBatch() filters it out, and the entry is silently lost.
+ * Filtering by `processedAt === null` alone is the correct at-least-once
+ * contract for a single-process store.
+ */
+export class InMemoryOutboxStorage implements OutboxStorage {
   private readonly entries: OutboxEntry[] = [];
   private readonly processed = new Set<string>();
-  // Tracks entries currently being dispatched so two concurrent callers
-  // to claimBatch() cannot receive the same rows.
-  private readonly inFlight = new Set<string>();
 
   async append(entry: OutboxEntry): Promise<void> {
     this.entries.push(entry);
   }
   async claimBatch(limit: number): Promise<OutboxEntry[]> {
     const batch = this.entries
-      .filter((e) => !this.processed.has(e.id) && !this.inFlight.has(e.id))
+      .filter((e) => !this.processed.has(e.id))
       .slice(0, limit);
     // Set claimedAt to mirror PrismaOutboxStorage — keeps both adapters
     // symmetric so resetStaleSentinels logic works correctly in either impl.
     const now = new Date();
     for (const e of batch) {
       e.claimedAt = now;
-      this.inFlight.add(e.id);
     }
     return batch;
   }
   async markProcessed(id: string, _processedAt: Date): Promise<boolean> {
     void _processedAt;
     if (this.processed.has(id)) return false;
-    this.inFlight.delete(id);
     this.processed.add(id);
     return true;
   }

@@ -92,6 +92,17 @@ export class JobQueueService extends BullMQJobQueue implements OnModuleInit, OnM
 
   async onModuleDestroy(): Promise<void> {
     await this.stop();
+    // Close the dedicated BullMQ Redis connection after BullMQ queues/workers
+    // have shut down. Without this the ioredis socket keeps the process alive
+    // after `app.close()`, preventing clean test teardown and graceful deploys.
+    if (this.redis) {
+      const status = (this.redis as unknown as { status?: string }).status;
+      if (status === "ready" || status === "connect") {
+        await (this.redis as unknown as { quit(): Promise<string> })
+          .quit()
+          .catch(() => (this.redis as unknown as { disconnect(): void }).disconnect());
+      }
+    }
     this.logger.log("job queue stopped");
   }
 }

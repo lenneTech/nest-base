@@ -58,11 +58,12 @@ export function createRedisRecipientRateLimiter(
       try {
         const key = `${KEY_PREFIX}${email.trim().toLowerCase()}`;
         const count = await redis.incr(key);
-        // Set expiry only on first increment (when count === 1) so the
-        // window resets naturally without extending it on every send.
-        if (count === 1) {
-          await redis.pexpire(key, windowMs);
-        }
+        // Always refresh the TTL, not just on the first increment.
+        // If the process crashes between INCR and PEXPIRE the key has no TTL
+        // and the email address becomes permanently rate-limited. Setting the
+        // TTL on every send self-heals leaked keys at the cost of resetting the
+        // window with each message — acceptable for best-effort email throttling.
+        await redis.pexpire(key, windowMs);
         if (count > limit) {
           // Approximate retryAt: windowMs from now (we don't store the
           // window start time in the counter, keeping the value simple).

@@ -103,9 +103,16 @@ export function createRedisPermissionCache(
     },
 
     async invalidateAll() {
-      // Full-flush across replicas requires FLUSHDB which is too destructive.
-      // Let TTL drain entries naturally. For immediate consistency, callers
-      // that need strong guarantees should use invalidate(userId, tenantId).
+      // INTENTIONAL NO-OP — see OPEN_QUESTIONS.md "RedisPermissionCache.invalidateAll() is a no-op".
+      //
+      // A correct cross-replica flush would require either:
+      //   a) SCAN + DEL on the "lt:perm:" key pattern (O(N) keys, blocks Redis briefly), or
+      //   b) a Pub/Sub invalidation channel that each replica subscribes to.
+      //
+      // FLUSHDB is not an option — it would wipe unrelated data.
+      // Until a multi-pod permission-cache use-case exists, let TTL drain entries
+      // naturally (default 30s). Callers needing immediate consistency MUST use
+      // invalidate(userId, tenantId) instead.
     },
   };
 }

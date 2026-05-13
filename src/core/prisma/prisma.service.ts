@@ -410,10 +410,10 @@ export class RlsTenantMissingError extends Error {
 }
 
 /**
- * Defense in depth — the interceptor already validates the header is
- * a UUID, but this method may be called directly with arbitrary input.
- * Anything that's not a UUID throws; we still escape the literal so a
- * future tenantId scheme change can't surprise us with injection.
+ * Defense in depth SQL escaping only.
+ * UUID format is enforced upstream by parseTenantHeader(); this function
+ * does NOT throw on non-UUID input — it only escapes single-quotes to
+ * prevent SQL injection if a non-UUID value somehow reaches this path.
  */
 function escapeSqlString(input: string): string {
   return input.replaceAll("'", "''");

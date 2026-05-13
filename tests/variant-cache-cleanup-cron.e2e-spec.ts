@@ -94,10 +94,15 @@ describe("E2E · VariantCacheCleanupCron prunes orphan rows from real Postgres",
       new Date(now - 30 * 24 * 60 * 60 * 1000), // 30 days ago — fresh
     );
 
-    expect(await countOurs()).toBe(3);
+    // No pre-cleanup count assertion: concurrent specs that boot the app fire
+    // their own `VariantCacheCleanupCron.runOnce()` on OnModuleInit, which can
+    // sweep OUR ancient + borderline-old rows between seed() and the assertion.
+    // The post-cleanup count is the real test — and it's the same number whether
+    // OUR cron or a concurrent boot's cron did the pruning (mirrors the pattern
+    // established in verification-cleanup-cron.e2e-spec.ts line 74–79).
     await cron.runOnce();
-    // Two stale rows pruned, one fresh row remains. Concurrent
-    // specs' rows aren't counted in OUR count.
+    // Two stale rows pruned (100d + 91d old); one fresh row (30d) remains.
+    // Concurrent specs' rows aren't counted in OUR PREFIX-scoped count.
     expect(await countOurs()).toBe(1);
   });
 
