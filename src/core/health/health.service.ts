@@ -7,6 +7,7 @@ import {
 import { EMAIL_OUTBOX_STORAGE } from "../email/email-outbox.module.js";
 import type { EmailOutboxStorage } from "../email/email-outbox.js";
 import { PrismaService } from "../prisma/prisma.service.js";
+import type { BullMQJobQueue } from "../jobs/bullmq-job-queue.js";
 
 export interface CheckResult {
   status: "ok" | "fail";
@@ -26,19 +27,30 @@ export interface ReadinessReport {
      * mails don't keep stacking up.
      */
     emailOutbox?: EmailOutboxHealthResult;
+    /**
+     * Present when JobsModule is loaded (always true in production).
+     * Signals `fail` when any BullMQ worker registration failed at
+     * startup — the LB drains the instance so jobs don't silently
+     * pile up on a pod that can't process them.
+     */
+    jobs?: { status: "ok" | "fail" };
   };
 }
 
 /**
  * Aggregates readiness checks. Currently Postgres connectivity +
- * email-outbox lag (issue #11). Later slices add Redis/RustFS once
- * those land.
+ * email-outbox lag (issue #11) + BullMQ worker health (CRIT-1).
+ * Later slices add Redis/RustFS once those land.
  */
 @Injectable()
 export class HealthService {
   constructor(
     private readonly prisma: PrismaService,
     @Optional() @Inject(EMAIL_OUTBOX_STORAGE) private readonly emailOutbox?: EmailOutboxStorage,
+    // BullMQJobQueue is exported under the class token in JobsModule.
+    // @Optional() so HealthModule does not need to import JobsModule —
+    // it receives null when the job queue is not loaded (test bootstraps).
+    @Optional() private readonly jobQueue?: BullMQJobQueue,
   ) {}
 
   async checkDatabase(): Promise<CheckResult> {
@@ -85,9 +97,15 @@ export class HealthService {
     ]);
     const dbOk = database.status === "ok";
     const outboxOk = !emailOutbox || emailOutbox.status === "ok";
-    const status: ReadinessReport["status"] = dbOk && outboxOk ? "ok" : "fail";
+    // Worker health is synchronous — no async probe needed.
+    const jobsReady = this.jobQueue ? this.jobQueue.isReady() : true;
+    const status: ReadinessReport["status"] =
+      dbOk && outboxOk && jobsReady ? "ok" : "fail";
     const checks: ReadinessReport["checks"] = { database };
     if (emailOutbox) checks.emailOutbox = emailOutbox;
+    if (this.jobQueue) {
+      checks.jobs = { status: jobsReady ? "ok" : "fail" };
+    }
     return { status, checks };
   }
 }
