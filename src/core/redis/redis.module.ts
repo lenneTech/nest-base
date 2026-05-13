@@ -1,11 +1,4 @@
-import {
-  Global,
-  Inject,
-  Injectable,
-  Module,
-  Optional,
-  type OnModuleDestroy,
-} from "@nestjs/common";
+import { Global, Inject, Injectable, Module, Optional, type OnModuleDestroy } from "@nestjs/common";
 
 import { type RedisClientLike, resolveRedisClient } from "./redis-client.js";
 
@@ -28,9 +21,7 @@ export const REDIS_CLIENT = Symbol.for("lt:RedisClient");
  */
 @Injectable()
 class RedisLifecycle implements OnModuleDestroy {
-  constructor(
-    @Optional() @Inject(REDIS_CLIENT) private readonly client: RedisClientLike | null,
-  ) {}
+  constructor(@Optional() @Inject(REDIS_CLIENT) private readonly client: RedisClientLike | null) {}
 
   async onModuleDestroy(): Promise<void> {
     if (!this.client) return;

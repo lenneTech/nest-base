@@ -40,9 +40,7 @@ export class InMemoryOutboxStorage implements OutboxStorage {
     this.entries.push(entry);
   }
   async claimBatch(limit: number): Promise<OutboxEntry[]> {
-    const batch = this.entries
-      .filter((e) => !this.processed.has(e.id))
-      .slice(0, limit);
+    const batch = this.entries.filter((e) => !this.processed.has(e.id)).slice(0, limit);
     // Set claimedAt to mirror PrismaOutboxStorage — keeps both adapters
     // symmetric so resetStaleSentinels logic works correctly in either impl.
     const now = new Date();
