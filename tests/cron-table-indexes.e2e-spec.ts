@@ -61,8 +61,10 @@ describe("E2E · Cron-driven table index probes (iter-199)", () => {
     expect(result[0]?.indexname).toBe(indexName);
   }
 
-  it("`pending_erasures_eligible_idx` exists (GdprErasureRunner: WHERE completed_at IS NULL — leading-column lookup on the composite index)", async () => {
-    await probeIndex("pending_erasures", "pending_erasures_eligible_idx");
+  it("`pending_erasures_completed_at_cancelled_at_requested_at_idx` exists (GdprErasureRunner: WHERE completed_at IS NULL — leading-column lookup on the composite index)", async () => {
+    // Index was renamed from `pending_erasures_eligible_idx` to the full
+    // column-list form by the add-missing-indexes migration (Prisma canonical naming).
+    await probeIndex("pending_erasures", "pending_erasures_completed_at_cancelled_at_requested_at_idx");
   });
 
   it("`pending_erasures_user_id_idx` exists (lookup-by-user for GDPR self-service flows)", async () => {

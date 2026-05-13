@@ -135,6 +135,8 @@ model Member {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([organizationId])
+  @@index([userId])
   @@map("member")
 }
 
@@ -150,6 +152,8 @@ model Invitation {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   inviter        User         @relation("InviterUser", fields: [inviterId], references: [id], onDelete: Cascade)
 
+  @@index([organizationId])
+  @@index([email])
   @@map("invitation")
 }
 
@@ -383,6 +387,8 @@ model WebhookDelivery {
 
   endpoint WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
 
+  @@index([endpointId, status, nextRetryAt])
+  @@index([status, nextRetryAt])
   @@map("webhook_deliveries")
 }
 
