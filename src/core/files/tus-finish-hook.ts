@@ -184,10 +184,7 @@ export function buildTusFinishHook(
  * The `headers` parameter is a Fetch API `Headers` object — BetterAuth's
  * `api.getSession` accepts this shape directly.
  */
-async function resolveSession(
-  auth: BetterAuthInstance,
-  headers: Headers,
-): Promise<unknown> {
+async function resolveSession(auth: BetterAuthInstance, headers: Headers): Promise<unknown> {
   try {
     return await auth.api.getSession({ headers });
   } catch {
@@ -201,7 +198,10 @@ async function resolveSession(
  * construct the HTTP error response when an `onUploadFinish` hook returns
  * a non-success shape.
  */
-function tusErrorResponse(statusCode: number, message: string): { status_code: number; body: string } {
+function tusErrorResponse(
+  statusCode: number,
+  message: string,
+): { status_code: number; body: string } {
   return { status_code: statusCode, body: message };
 }
 

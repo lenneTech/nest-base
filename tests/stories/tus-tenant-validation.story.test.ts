@@ -20,7 +20,10 @@ import {
 // Fakes
 // ---------------------------------------------------------------------------
 
-function fakeRequest(sessionTenantId: string | null | undefined, hasSession = true): TusHookRequest {
+function fakeRequest(
+  sessionTenantId: string | null | undefined,
+  hasSession = true,
+): TusHookRequest {
   const headers = new Headers({ cookie: "session=fake" });
   return {
     headers,
