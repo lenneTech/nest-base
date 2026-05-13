@@ -66,9 +66,16 @@ async function toJobRecord(
   },
   queueName: string,
 ): Promise<JobRecord> {
+  // Guard against missing job id — BullMQ guarantees an id for every
+  // persisted job, but the type allows null/undefined for safety. A
+  // missing id here would silently propagate to the Hub and break
+  // the detail drawer, so we fail loudly instead (Fix #2).
+  if (!job.id) {
+    throw new Error(`BullMQ job missing id in queue "${queueName}"`);
+  }
   const rawState = await job.getState();
   return {
-    id: job.id!,
+    id: job.id,
     name: queueName,
     state: mapBullMQState(rawState),
     attempt: job.attemptsMade + 1, // BullMQ counts from 0; Hub shows 1-indexed
@@ -105,6 +112,8 @@ type BullMQQueue = {
   name: string;
   add(name: string, data: unknown, opts?: unknown): Promise<{ id?: string | null }>;
   getJobs(types: readonly string[], start?: number, end?: number): Promise<Array<BullMQJobShape>>;
+  /** O(1) per-state Redis LLEN calls — use for aggregates instead of getJobs(). */
+  getJobCounts(...types: string[]): Promise<Record<string, number>>;
   getJob(id: string): Promise<BullMQJobShape | null | undefined>;
   close(): Promise<void>;
 };
@@ -191,6 +200,21 @@ class InProcessQueue implements BullMQQueue {
 
   async getJobs(_types: readonly string[]): Promise<Array<BullMQJobShape>> {
     return [...this.records.values()].map((r) => this.wrapRecord(r));
+  }
+
+  /**
+   * In-process queue does not use Redis LLEN — compute counts from the
+   * in-memory records instead. Only called via the BullMQQueue interface;
+   * the `getAggregates()` fast-path only activates when `redis !== null`.
+   */
+  async getJobCounts(..._types: string[]): Promise<Record<string, number>> {
+    const counts: Record<string, number> = {};
+    for (const r of this.records.values()) {
+      const state =
+        r.state === "retry" ? "delayed" : r.state === "created" ? "waiting" : r.state;
+      counts[state] = (counts[state] ?? 0) + 1;
+    }
+    return counts;
   }
 
   async getJob(id: string): Promise<BullMQJobShape | null> {
@@ -290,6 +314,8 @@ export class BullMQJobQueue {
   private readonly queues = new Map<string, BullMQQueue>();
   // BullMQ Worker instances keyed by queue name.
   private readonly workers = new Map<string, BullMQWorker>();
+  // Tracks worker startup failures: queue name → error (Fix #1).
+  private readonly workerFailures = new Map<string, Error>();
   // In-process queues used when redis === null.
   private readonly inProcessQueues = new Map<string, InProcessQueue>();
   // Tracks whether start() has been called so late-registered queues
@@ -372,11 +398,91 @@ export class BullMQJobQueue {
 
   /**
    * Aggregate snapshot for the `/hub/jobs/queues.json` endpoint.
-   * Built by running `buildJobAggregates` over the full job list.
+   *
+   * When backed by real BullMQ queues, uses `queue.getJobCounts()`
+   * which issues one Redis LLEN call per state (O(1)) instead of
+   * fetching every job record (O(N)). Latency / p95 stats are omitted
+   * in this path because they require individual job timestamps — the
+   * Hub renders them as null when unavailable (Fix #3).
+   *
+   * For the in-process fallback (redis === null) we still call
+   * `listJobs()` because the in-memory queue is bounded to the
+   * current process lifetime and never grows large.
    */
   async getAggregates(): Promise<JobAggregates> {
-    const all = await this.listJobs();
-    return buildJobAggregates(all);
+    if (!this.redis) {
+      // In-process fallback — bounded list, full scan is fine.
+      const all = await this.listJobs();
+      return buildJobAggregates(all);
+    }
+
+    // BullMQ path: use getJobCounts() — O(1) Redis LLEN calls, no job fetch.
+    const queueNames = [...this.queues.keys()];
+    if (queueNames.length === 0) {
+      return buildJobAggregates([]);
+    }
+
+    const allStates = ["waiting", "active", "completed", "failed", "delayed", "paused"] as const;
+    let totalCompleted = 0;
+    let totalFailed = 0;
+    let totalActive = 0;
+    let totalWaiting = 0;
+    let totalDelayed = 0;
+    const queueAggregates: import("./dev-jobs-aggregations.js").QueueAggregate[] = [];
+
+    for (const queueName of queueNames) {
+      const queue = this.queues.get(queueName);
+      if (!queue) continue;
+      const counts = await queue.getJobCounts(...allStates);
+      const completed = counts["completed"] ?? 0;
+      const failed = counts["failed"] ?? 0;
+      const active = counts["active"] ?? 0;
+      const waiting = counts["waiting"] ?? 0;
+      const delayed = counts["delayed"] ?? 0;
+      const paused = counts["paused"] ?? 0;
+      const total = completed + failed + active + waiting + delayed + paused;
+      const finished = completed + failed;
+      totalCompleted += completed;
+      totalFailed += failed;
+      totalActive += active;
+      totalWaiting += waiting;
+      totalDelayed += delayed;
+      queueAggregates.push({
+        name: queueName,
+        total,
+        counts: {
+          created: waiting + paused,
+          active,
+          completed,
+          failed,
+          cancelled: 0,
+          retry: delayed,
+        },
+        // Latency stats require individual job timestamps — not available
+        // via getJobCounts(). Rendered as null by the Hub dashboard.
+        p95LatencyMs: null,
+        failureRate: finished === 0 ? 0 : failed / finished,
+      });
+    }
+
+    const totalJobs = totalCompleted + totalFailed + totalActive + totalWaiting + totalDelayed;
+    const totalFinished = totalCompleted + totalFailed;
+    return {
+      totalJobs,
+      totals: {
+        created: totalWaiting,
+        active: totalActive,
+        completed: totalCompleted,
+        failed: totalFailed,
+        cancelled: 0,
+        retry: totalDelayed,
+      },
+      failureRate: totalFinished === 0 ? 0 : totalFailed / totalFinished,
+      // Global p95 not available via counts — individual job fetch would
+      // defeat the purpose of this optimisation.
+      p95LatencyMs: null,
+      queues: queueAggregates.sort((a, b) => a.name.localeCompare(b.name)),
+    };
   }
 
   /**
@@ -533,10 +639,51 @@ export class BullMQJobQueue {
       });
       this.workers.set(name, worker);
     } catch (err) {
+      // Upgrade from warn → error and include the full stack so the ops
+      // team sees the real cause (auth failure, TLS error, etc.) rather
+      // than a truncated message. Also record the failure so
+      // getWorkerHealth() can surface it (Fix #1).
+      const error = err instanceof Error ? err : new Error(String(err));
+      this.workerFailures.set(name, error);
       this.bullmqLogger.error(
-        `BullMQ Worker registration for ${name} failed: ${err instanceof Error ? err.message : String(err)}`,
+        `BullMQ Worker registration for "${name}" failed: ${error.message}`,
+        error.stack,
       );
     }
+  }
+
+  /**
+   * Returns a snapshot of each known worker's health status.
+   * Status values:
+   *   - `"running"` — the Worker was registered successfully
+   *   - `"failed"` — registration threw an error (see the error field)
+   *   - `"in-process"` — using the in-process queue fallback (no Redis)
+   *
+   * Intended for health-check endpoints so an ops team can detect
+   * silently-failed BullMQ workers (Fix #1).
+   */
+  getWorkerHealth(): Map<string, { status: "running" | "failed" | "in-process"; error?: Error }> {
+    const result = new Map<string, { status: "running" | "failed" | "in-process"; error?: Error }>();
+    for (const name of this.workers.keys()) {
+      result.set(name, { status: "running" });
+    }
+    for (const [name, error] of this.workerFailures) {
+      result.set(name, { status: "failed", error });
+    }
+    for (const name of this.inProcessQueues.keys()) {
+      if (!result.has(name)) {
+        result.set(name, { status: "in-process" });
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Returns `false` when any registered BullMQ worker failed to start.
+   * Used by health checks to signal an unhealthy job queue state (Fix #1).
+   */
+  isReady(): boolean {
+    return this.workerFailures.size === 0;
   }
 
   private async fetchJobsFromQueue(queueName: string): Promise<JobRecord[]> {

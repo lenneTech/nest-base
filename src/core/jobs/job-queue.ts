@@ -1,3 +1,5 @@
+import { ConflictException, NotFoundException } from "@nestjs/common";
+
 import {
   buildJobAggregates,
   type JobAggregates,
@@ -38,14 +40,24 @@ export class JobHandlerNotRegisteredError extends Error {
   }
 }
 
-export class JobNotFoundError extends Error {
+/**
+ * Thrown when a job id is not found in the queue store.
+ * Extends `NotFoundException` so the ProblemDetails filter maps it to
+ * HTTP 404 automatically when it escapes a controller (Fix #20).
+ */
+export class JobNotFoundError extends NotFoundException {
   constructor(id: string) {
     super(`job not found: ${id}`);
     this.name = "JobNotFoundError";
   }
 }
 
-export class JobNotRetryableError extends Error {
+/**
+ * Thrown when a job is not in the `failed` state and cannot be retried.
+ * Extends `ConflictException` (HTTP 409) — the job exists but the
+ * operation conflicts with its current state (Fix #20).
+ */
+export class JobNotRetryableError extends ConflictException {
   constructor(id: string, state: JobState) {
     super(`job ${id} is not retryable in state ${state}`);
     this.name = "JobNotRetryableError";

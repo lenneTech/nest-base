@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, type OnApplicationBootstrap } from "@nestjs/common";
+import { Inject, Injectable, Logger, NotFoundException, type OnApplicationBootstrap } from "@nestjs/common";
 import { DiscoveryService } from "@nestjs/core";
 
 import { getScheduledJobs } from "./scheduled-job.decorator.js";
@@ -41,7 +41,12 @@ export interface ScheduledJobEntry {
 
 export const SCHEDULED_JOB_REGISTRY = Symbol.for("lt:ScheduledJobRegistry");
 
-export class ScheduledJobNotFoundError extends Error {
+/**
+ * Thrown when `runOnce(name)` is called with an unknown job name.
+ * Extends `NotFoundException` so the ProblemDetails filter maps it to
+ * HTTP 404 automatically when it escapes a controller (Fix #20).
+ */
+export class ScheduledJobNotFoundError extends NotFoundException {
   constructor(name: string) {
     super(`scheduled job "${name}" not found`);
     this.name = "ScheduledJobNotFoundError";

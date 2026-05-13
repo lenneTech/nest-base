@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 /**
  * Story · ScheduledJobBullMQAdapter — cron wiring to BullMQ (C1 fix)
+ * + daily cron semantics documentation (Fix #4).
  *
  * Before this adapter, `DiscoveryScheduledJobRegistry` discovered
  * `@ScheduledJob`-decorated methods but nothing read the registry to
@@ -246,5 +247,33 @@ describe("Story · ScheduledJobBullMQAdapter.onApplicationBootstrap wires every 
       vi.useRealTimers();
       vi.restoreAllMocks();
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Fix #4: Daily cron semantics — document that parseCronToIntervalMs tracks
+// the 24h period, NOT the wall-clock next-fire time.
+// ---------------------------------------------------------------------------
+
+describe("Story · Daily-cron semantics: parseCronToIntervalMs tracks period, not next-fire (Fix #4)", () => {
+  it("all daily-at-HH:MM crons return a 24h interval (wall-clock time ignored — tracks period, not next-fire)", async () => {
+    const { parseCronToIntervalMs } =
+      await import("../../src/core/jobs/scheduled-job-bullmq-adapter.js");
+
+    // All these expressions represent "once a day" — the hour/minute
+    // of the fire time is ignored by parseCronToIntervalMs. The
+    // setInterval-based scheduler always fires every 24h regardless of
+    // when the cron would have fired next on a real cron daemon.
+    //
+    // KNOWN SEMANTIC GAP (see OPEN_QUESTIONS.md): if the app boots at
+    // 09:00 with a cron of "30 23 * * *" (fire at 23:30), the next
+    // real fire should be in 14.5h — but setInterval fires it again
+    // after exactly 24h. The operator sees a ~14.5h drift on first
+    // execution after boot. This is acceptable for the current
+    // single-pod, non-time-critical jobs (GDPR erasure, API-key expiry).
+    expect(parseCronToIntervalMs("30 23 * * *")).toBe(24 * 60 * 60 * 1000);
+    expect(parseCronToIntervalMs("0 1 * * *")).toBe(24 * 60 * 60 * 1000);
+    expect(parseCronToIntervalMs("0 0 * * *")).toBe(24 * 60 * 60 * 1000);
+    expect(parseCronToIntervalMs("59 23 * * *")).toBe(24 * 60 * 60 * 1000);
   });
 });
