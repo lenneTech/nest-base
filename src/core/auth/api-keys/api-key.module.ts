@@ -10,6 +10,7 @@ import {
   Post,
 } from "@nestjs/common";
 
+import { ConfigService } from "../../config/config.service.js";
 import { EmailModule } from "../../email/email.module.js";
 import { EmailService } from "../../email/email.service.js";
 import { loadFeatures } from "../../features/features.js";
@@ -161,9 +162,9 @@ class ApiKeyController {
       // is fully functional out-of-the-box. Projects override the
       // provider when they want a different reader / template / adapter.
       provide: ApiKeyExpiryRunner,
-      useFactory: (prisma: PrismaService, email: EmailService) =>
-        new ApiKeyExpiryRunner(buildDefaultApiKeyExpiryRunnerInput({ prisma, email })),
-      inject: [PrismaService, EmailService],
+      useFactory: (prisma: PrismaService, email: EmailService, config: ConfigService) =>
+        new ApiKeyExpiryRunner(buildDefaultApiKeyExpiryRunnerInput({ prisma, email, config })),
+      inject: [PrismaService, EmailService, ConfigService],
     },
   ],
   exports: [ApiKeyService, API_KEY_STORAGE, ApiKeyExpiryRunner],

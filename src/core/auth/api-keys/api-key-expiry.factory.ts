@@ -1,5 +1,6 @@
 import { Logger } from "@nestjs/common";
 
+import { ConfigService } from "../../config/config.service.js";
 import { EmailService } from "../../email/email.service.js";
 import { PrismaService } from "../../prisma/prisma.service.js";
 import type { ApiKeyExpiryRecord, ExpiryNotification } from "./api-key-expiry.notifier.js";
@@ -10,6 +11,8 @@ const log = new Logger("ApiKeyExpiryRunnerFactory");
 interface ApiKeyExpiryFactoryDeps {
   readonly prisma: PrismaService;
   readonly email: EmailService;
+  /** Used to resolve `server.baseUrl` instead of reading `process.env` directly. */
+  readonly config: ConfigService;
 }
 
 /**
@@ -102,8 +105,14 @@ async function sendExpiryEmail(
   }
 
   const expiresAtIso = new Date(notification.expiresAt).toISOString();
-  const baseUrl = process.env.PUBLIC_BASE_URL ?? "http://localhost:3000";
+  // Use ConfigService (Fix #16) instead of reading process.env directly —
+  // keeps config access consistent with the rest of the codebase and avoids
+  // a pure-planner caller having to read process.env directly.
+  const baseUrl = deps.config.server.baseUrl;
   const manageUrl = `${baseUrl.replace(/\/$/, "")}/dev/api-keys`;
+  // APP_NAME is not (yet) in AppConfig/BrandConfig — fall back to brand.name
+  // once brand injection is available; for now read from process.env with a
+  // sensible default (same fallback the Better-Auth email hooks use).
   const appName = process.env.APP_NAME ?? "nest-base";
 
   // Idempotency-key collapses repeated dispatch attempts inside the
