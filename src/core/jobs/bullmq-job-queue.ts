@@ -483,7 +483,9 @@ export class BullMQJobQueue {
         removeOnComplete: { count: 1000 },
         removeOnFail: { count: 500 },
       },
-    }) as unknown as BullMQQueue & { on(event: string, handler: (...args: unknown[]) => void): void };
+    }) as unknown as BullMQQueue & {
+      on(event: string, handler: (...args: unknown[]) => void): void;
+    };
     // Prevent unhandled 'error' event crash on BullMQ Queue-level errors
     // (distinct from ioredis connection errors, which are already handled on
     // the ioredis client). BullMQ emits its own error events; without a

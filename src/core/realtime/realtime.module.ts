@@ -368,10 +368,7 @@ export class SocketIoRedisAdapterLifecycle implements OnModuleInit, OnModuleDest
           // createAdapter is typed with `any` parameters in @socket.io/redis-adapter;
           // casting through unknown satisfies TS without suppressing type checking on
           // the RedisAdapterClient interface we use throughout this class.
-          createAdapter(
-            this.adapterPair.pub as unknown,
-            this.adapterPair.sub as unknown,
-          ),
+          createAdapter(this.adapterPair.pub as unknown, this.adapterPair.sub as unknown),
         );
         this.log.log("Socket.IO Redis adapter installed (cross-pod broadcasts enabled)");
       }

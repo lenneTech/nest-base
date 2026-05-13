@@ -18,7 +18,13 @@ export interface RedisClientLike {
   get(key: string): Promise<string | null>;
   set(key: string, value: string, ...args: unknown[]): Promise<string | null>;
   /** EX NX SET — set key with TTL only if it does not already exist. */
-  set(key: string, value: string, exFlag: "EX", seconds: number, nxFlag: "NX"): Promise<string | null>;
+  set(
+    key: string,
+    value: string,
+    exFlag: "EX",
+    seconds: number,
+    nxFlag: "NX",
+  ): Promise<string | null>;
   setex(key: string, seconds: number, value: string): Promise<string>;
   incr(key: string): Promise<number>;
   pexpire(key: string, milliseconds: number): Promise<number>;

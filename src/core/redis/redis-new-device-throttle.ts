@@ -76,12 +76,10 @@ export function createRedisNewDeviceThrottle(
       // replica already recorded this window) the SET returns null and
       // the key TTL is preserved — we don't need to react here because
       // the check path reads the same key on next call.
-      void redis
-        .set(key, "1", "EX", windowSec, "NX")
-        .catch(() => {
-          // Redis errors during record are swallowed — the email path
-          // degrades to "allow" rather than blocking the sign-in flow.
-        });
+      void redis.set(key, "1", "EX", windowSec, "NX").catch(() => {
+        // Redis errors during record are swallowed — the email path
+        // degrades to "allow" rather than blocking the sign-in flow.
+      });
     },
   };
 }
