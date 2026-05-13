@@ -9,6 +9,8 @@ import {
   type OnModuleDestroy,
 } from "@nestjs/common";
 
+const socketIoRedisLogger = new Logger("SocketIoRedisAdapter");
+
 import { OUTBOX_DISPATCHERS, OutboxModule } from "../outbox/outbox.module.js";
 import type { OutboxDispatcher } from "../outbox/outbox-worker.js";
 import { RealtimeOutboxDispatcher } from "./outbox-realtime.dispatcher.js";
@@ -150,7 +152,7 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
       userId: "anonymous",
       tenantId: "anonymous",
     });
-    this.logger.log(`socket connected: ${client.id}`);
+    this.logger.debug(`socket connected: ${client.id}`);
     client.on("subscribe", (channel: unknown) => {
       if (typeof channel !== "string" || !channel) return;
       // Anonymous-handshake mode accepts every channel. The
@@ -180,7 +182,7 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     this.liveSockets.delete(client.id);
     this.state.recordDisconnect(client.id);
     this.inspectorBus.emit(INSPECTOR_EVENT.socketDisconnected, { id: client.id });
-    this.logger.log(`socket disconnected: ${client.id}`);
+    this.logger.debug(`socket disconnected: ${client.id}`);
   }
 
   /** Used by domain code to broadcast tenant/permission-filtered events. */
@@ -410,21 +412,21 @@ async function resolveSocketIoRedisPair(): Promise<{
     // or TLS rejections. ioredis surfaces these via its internal retry logic;
     // commands reject individually instead of crashing the process.
     pub.on("error", (err: unknown) => {
-      process.stderr.write(
-        `[ioredis/pub] connection error: ${err instanceof Error ? err.message : String(err)}\n`,
+      socketIoRedisLogger.error(
+        `ioredis pub connection error: ${err instanceof Error ? err.message : String(err)}`,
       );
     });
     sub.on("error", (err: unknown) => {
-      process.stderr.write(
-        `[ioredis/sub] connection error: ${err instanceof Error ? err.message : String(err)}\n`,
+      socketIoRedisLogger.error(
+        `ioredis sub connection error: ${err instanceof Error ? err.message : String(err)}`,
       );
     });
     return { pub, sub };
   } catch (err) {
     // Log the error so operators know the URL was malformed rather than
     // silently falling back to in-memory mode (Fix #7 companion).
-    process.stderr.write(
-      `[RealtimeModule] failed to create ioredis pair for Socket.IO adapter (URL: ${url ? url.replace(/:\/\/[^@]*@/, "://<credentials>@") : "empty"}): ${err instanceof Error ? err.message : String(err)}\n`,
+    socketIoRedisLogger.error(
+      `failed to create ioredis pair for Socket.IO adapter (URL: ${url ? url.replace(/:\/\/[^@]*@/, "://:***@") : "empty"}): ${err instanceof Error ? err.message : String(err)}`,
     );
     return null;
   }

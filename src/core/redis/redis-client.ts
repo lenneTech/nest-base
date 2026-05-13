@@ -10,6 +10,10 @@
  * central degradation contract for the Redis feature set.
  */
 
+import { Logger } from "@nestjs/common";
+
+const redisClientLogger = new Logger("RedisClient");
+
 /**
  * Minimal ioredis interface callers use. Kept narrow so tests can
  * supply simple fakes without importing ioredis types.
@@ -58,15 +62,15 @@ export async function resolveRedisClient(
     // or TLS rejections. ioredis surfaces these via its internal retry logic;
     // commands reject individually instead of crashing the process.
     client.on("error", (err: Error) => {
-      process.stderr.write(`[ioredis] connection error: ${err.message}\n`);
+      redisClientLogger.error(`ioredis connection error: ${err.message}`);
     });
     return client as unknown as RedisClientLike;
   } catch (err) {
     // ioredis not available or URL is malformed — log the error so
     // operators know why Redis is disabled rather than silently degrading
     // (Fix #7: malformed REDIS_URL was previously swallowed without a trace).
-    process.stderr.write(
-      `[RedisClient] failed to create ioredis client (URL: ${redisUrl ? redisUrl.replace(/:\/\/[^@]*@/, "://<credentials>@") : "empty"}): ${err instanceof Error ? err.message : String(err)}\n`,
+    redisClientLogger.error(
+      `failed to create ioredis client (URL: ${redisUrl ? redisUrl.replace(/:\/\/[^@]*@/, "://:***@") : "empty"}): ${err instanceof Error ? err.message : String(err)}`,
     );
     return null;
   }

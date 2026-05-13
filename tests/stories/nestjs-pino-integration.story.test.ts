@@ -43,9 +43,10 @@ describe("Story · nestjs-pino LoggerModule integration (CF.OBS — iter-206)", 
     // Test env must disable autoLogging entirely (isTest ? false : ...)
     expect(moduleSrc).toMatch(/autoLogging:\s*isTest\s*\?\s*false/);
     expect(moduleSrc).toMatch(/quietReqLogger:\s*isTest/);
-    // Non-test env routes success logs to debug so info output stays clean
+    // Non-test env routes success logs to info (NIT-1: changed from debug
+    // so 2xx requests appear in default log views without extra log-level config)
     expect(moduleSrc).toMatch(/customLogLevel/);
-    expect(moduleSrc).toMatch(/return\s*"debug"/);
+    expect(moduleSrc).toMatch(/return\s*"info"/);
   });
 
   it("bootstrap.ts swaps app.useLogger to nestjs-pino's Logger when no test override is supplied", async () => {

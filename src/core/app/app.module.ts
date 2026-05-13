@@ -6,6 +6,7 @@ import { LoggerModule } from "nestjs-pino";
 import { ProblemDetailsExceptionFilter } from "../errors/problem-details.filter.js";
 import { createLogger } from "../observability/logger.js";
 import { serverConfigFromEnv } from "../server/server-config.js";
+import type { AuthenticatedRequest } from "../auth/session-middleware.js";
 
 import { ApiKeyModule } from "../auth/api-keys/api-key.module.js";
 import { BetterAuthModule } from "../auth/better-auth.module.js";
@@ -115,7 +116,28 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
             customLogLevel: (_req, res) => {
               if (res.statusCode >= 500) return "error";
               if (res.statusCode >= 400) return "warn";
-              return "debug";
+              return "info";
+            },
+            // Attach userId + tenantId from the resolved session (set by
+            // BetterAuthSessionMiddleware) so every HTTP log line carries
+            // per-user correlation without a manual Logger.log() call.
+            // req.requestId comes from RequestContextMiddleware (set on
+            // req via the X-Request-Id echo header).
+            customProps: (req) => {
+              const user = (req as AuthenticatedRequest).user;
+              // requestId is stamped onto the request object by
+              // RequestContextMiddleware — access via unknown cast since
+              // Express's IncomingMessage type doesn't declare it.
+              const requestId =
+                (req as unknown as { requestId?: string }).requestId ??
+                req.headers["x-request-id"];
+              return {
+                ...(requestId ? { requestId } : {}),
+                ...(user?.id ? { userId: user.id } : {}),
+                ...(user?.activeOrganizationId
+                  ? { tenantId: user.activeOrganizationId }
+                  : {}),
+              };
             },
             // Skip the per-request `req.id` generation in tests — pino-http
             // calls genReqId on every request which adds measurable

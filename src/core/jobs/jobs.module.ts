@@ -7,6 +7,8 @@ import {
   type OnModuleDestroy,
   type OnModuleInit,
 } from "@nestjs/common";
+
+const bullmqRedisLogger = new Logger("BullMQRedis");
 import { DiscoveryModule } from "@nestjs/core";
 
 import { BullMQJobQueue, type RedisDuplex } from "./bullmq-job-queue.js";
@@ -43,14 +45,14 @@ async function resolveBullMQRedis(): Promise<RedisDuplex | null> {
     // or TLS rejections. ioredis surfaces these via its internal retry logic;
     // commands reject individually instead of crashing the process.
     client.on("error", (err: Error) => {
-      process.stderr.write(`[ioredis/BullMQ] connection error: ${err.message}\n`);
+      bullmqRedisLogger.error(`ioredis connection error: ${err.message}`);
     });
     return client as unknown as RedisDuplex;
   } catch (err) {
     // Log the error so operators know the URL was malformed rather than
     // silently falling back to in-process mode (Fix #7 companion).
-    process.stderr.write(
-      `[JobsModule] failed to create ioredis client for BullMQ (URL: ${url ? url.replace(/:\/\/[^@]*@/, "://<credentials>@") : "empty"}): ${err instanceof Error ? err.message : String(err)}\n`,
+    bullmqRedisLogger.error(
+      `failed to create ioredis client for BullMQ (URL: ${url ? url.replace(/:\/\/[^@]*@/, "://:***@") : "empty"}): ${err instanceof Error ? err.message : String(err)}`,
     );
     return null;
   }

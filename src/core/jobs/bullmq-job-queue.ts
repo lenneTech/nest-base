@@ -286,7 +286,33 @@ class InProcessQueue implements BullMQQueue {
       record.failedReason = msg;
       record.finishedOn = Date.now();
     }
+    // Evict oldest completed/failed entries when the map grows too large.
+    // The in-process queue is meant for dev/test; 2000 entries is already
+    // generous — capping prevents unbounded memory growth in long-running
+    // processes without Redis (MIN-3 fix).
+    this.evictOldEntries();
     if (this.running && this.pendingIds.length > 0) this.scheduleProcess();
+  }
+
+  /**
+   * Remove the oldest 500 completed/failed entries when `records` exceeds
+   * 2000. Active and pending entries are never evicted.
+   */
+  private evictOldEntries(): void {
+    const EVICT_THRESHOLD = 2000;
+    const EVICT_BATCH = 500;
+    if (this.records.size <= EVICT_THRESHOLD) return;
+    const terminal: string[] = [];
+    for (const [entryId, r] of this.records) {
+      if (r.state === "completed" || r.state === "failed") {
+        terminal.push(entryId);
+      }
+    }
+    // Records map preserves insertion order; deleting the first EVICT_BATCH
+    // removes the oldest entries.
+    for (const entryId of terminal.slice(0, EVICT_BATCH)) {
+      this.records.delete(entryId);
+    }
   }
 }
 
@@ -697,7 +723,10 @@ export class BullMQJobQueue {
     }
     const queue = this.queues.get(queueName);
     if (!queue) return [];
-    const jobs = await queue.getJobs(BULLMQ_JOB_STATES);
+    // Limit to 200 jobs per queue to prevent OOM on large queues in the Hub
+    // dashboard. This is a safety cap; the Hub's own pagination layer
+    // applies on top for display purposes.
+    const jobs = await queue.getJobs(BULLMQ_JOB_STATES, 0, 200);
     return Promise.all(jobs.map((j) => toJobRecord(j, queueName)));
   }
 
