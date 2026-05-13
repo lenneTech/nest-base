@@ -129,14 +129,11 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
               // RequestContextMiddleware — access via unknown cast since
               // Express's IncomingMessage type doesn't declare it.
               const requestId =
-                (req as unknown as { requestId?: string }).requestId ??
-                req.headers["x-request-id"];
+                (req as unknown as { requestId?: string }).requestId ?? req.headers["x-request-id"];
               return {
                 ...(requestId ? { requestId } : {}),
                 ...(user?.id ? { userId: user.id } : {}),
-                ...(user?.activeOrganizationId
-                  ? { tenantId: user.activeOrganizationId }
-                  : {}),
+                ...(user?.activeOrganizationId ? { tenantId: user.activeOrganizationId } : {}),
               };
             },
             // Skip the per-request `req.id` generation in tests — pino-http

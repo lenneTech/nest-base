@@ -99,8 +99,7 @@ export class HealthService {
     const outboxOk = !emailOutbox || emailOutbox.status === "ok";
     // Worker health is synchronous — no async probe needed.
     const jobsReady = this.jobQueue ? this.jobQueue.isReady() : true;
-    const status: ReadinessReport["status"] =
-      dbOk && outboxOk && jobsReady ? "ok" : "fail";
+    const status: ReadinessReport["status"] = dbOk && outboxOk && jobsReady ? "ok" : "fail";
     const checks: ReadinessReport["checks"] = { database };
     if (emailOutbox) checks.emailOutbox = emailOutbox;
     if (this.jobQueue) {

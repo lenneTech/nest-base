@@ -142,10 +142,7 @@ export class ExampleService {
       return toResponse(record);
     } catch (err) {
       // P2025 = "Record to update not found." — treat as a missing resource.
-      if (
-        err instanceof Error &&
-        (err as { code?: string }).code === "P2025"
-      ) {
+      if (err instanceof Error && (err as { code?: string }).code === "P2025") {
         throw new ExampleNotFoundError(id);
       }
       throw err;
