@@ -127,6 +127,52 @@ project owner reviews and answers.
   `canSubscribeToChannel` in `channel-permission.ts`.
 - **Status:** open.
 
+### 2026-05-13 · Outbox · Multi-pod seq collision in `OutboxRecorder`
+
+- **Context:** `OutboxRecorder` seeds its `seq` counter at startup using
+  `MAX(seq)` from the `outbox_entries` table. When two pods boot simultaneously
+  (e.g. during a rolling deploy) both see the same `MAX(seq)` value as their
+  starting point. The first few entries written by both pods will carry
+  duplicate `seq` values; the per-second worker processes them in
+  non-deterministic order until the two counters diverge naturally.
+- **Why it's acceptable now:** `seq` is used for ordering within a single
+  pod's claim batch — duplicate seq values across pods cause entries to be
+  processed out of strict global order for at most a few seconds at startup.
+  The at-least-once dispatch guarantee is unaffected (entries still get
+  processed; `processedAt` is set after success). No data loss occurs.
+- **Correct fix:** change `seq` to a Postgres `BIGSERIAL` column with
+  DB-side auto-increment instead of App-side counter. This shifts the
+  monotonic guarantee to the DB layer and eliminates the TOCTOU window
+  entirely. Migration: `ALTER TABLE outbox_entries ALTER COLUMN seq SET DEFAULT nextval('<seq_name>')`.
+- **Status:** open (acceptable until multi-pod horizontal scaling is needed).
+
+### 2026-05-13 · Jobs/Observability · Business metrics not instrumented in BullMQ and Outbox
+
+- **Context:** Code-review finding MIN-5 requests `MetricsService.counter()`
+  instrumentation in `BullMQJobQueue` (jobs_enqueued_total,
+  jobs_completed_total, jobs_failed_total) and `OutboxWorker`
+  (outbox_dispatched_total, outbox_dead_lettered_total).
+- **Why deferred:** `MetricsService` is provided by `MetricsModule`, which is
+  conditionally loaded via `features.observability.enabled`. `BullMQJobQueue`
+  is a plain class (not a NestJS injectable); `JobQueueService` extends it and
+  IS a NestJS provider in `JobsModule`, but `JobsModule` does not import
+  `MetricsModule`. `OutboxWorker` is similarly a plain class instantiated by
+  `OutboxModule`. Adding the instrumentation requires either:
+  a) Making `MetricsModule` `@Global()` so every module can inject
+     `MetricsService` without an explicit import, or
+  b) Introducing an `@Optional()` `MetricsService` parameter into
+     `JobQueueService` and `OutboxModule`, with `JobsModule` and `OutboxModule`
+     importing `MetricsModule` (or adding a forward reference).
+  Both approaches need a design decision before implementation to avoid
+  circular-module issues.
+- **Correct fix when wiring:** prefer option (a) — mark `MetricsModule`
+  `@Global()` so the `MetricsService` token is available everywhere without
+  per-module imports. Then add `@Optional() private readonly metrics?: MetricsService`
+  to `JobQueueService` and wire the counters in `enqueue()`, the worker
+  `completed`/`failed` callbacks, and `OutboxWorker.runOnce()`.
+- **Status:** open (no instrumentation exists today; safe to defer until
+  observability is a hard requirement).
+
 <!--
 Per entry:
 
