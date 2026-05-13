@@ -1,3 +1,5 @@
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
+
 import type { PrismaService } from "../../prisma/prisma.service.js";
 import type { ApiKeyRecord, ApiKeyStorage } from "./api-key.service.js";
 
@@ -82,8 +84,14 @@ export class PrismaApiKeyStorage implements ApiKeyStorage {
     try {
       await this.client().apiKey.delete({ where: { id } });
       return true;
-    } catch {
-      return false;
+    } catch (err) {
+      // P2025 = "Record to delete does not exist" — treat as "already gone",
+      // return false. All other Prisma errors (network, constraint, etc.) are
+      // unexpected and must propagate so the caller can react (Fix #12).
+      if (err instanceof PrismaClientKnownRequestError && err.code === "P2025") {
+        return false;
+      }
+      throw err;
     }
   }
 
@@ -94,10 +102,14 @@ export class PrismaApiKeyStorage implements ApiKeyStorage {
         data: { lastUsedAt: at },
       });
       return true;
-    } catch {
-      // The key was deleted or revoked between `findByLookupId` and this
-      // write. Return false so the caller can reject the verification (M4 fix).
-      return false;
+    } catch (err) {
+      // P2025 = record not found — the key was deleted or revoked between
+      // `findByLookupId` and this write; return false so the caller can
+      // reject the verification (M4 fix). Re-throw all other errors (Fix #12).
+      if (err instanceof PrismaClientKnownRequestError && err.code === "P2025") {
+        return false;
+      }
+      throw err;
     }
   }
 
@@ -108,8 +120,14 @@ export class PrismaApiKeyStorage implements ApiKeyStorage {
         data: { lookupId, hash },
       });
       return this.fromRow(row);
-    } catch {
-      return null;
+    } catch (err) {
+      // P2025 = record not found — the key was deleted concurrently;
+      // return null so the caller rejects the rotation. Re-throw all
+      // other errors (Fix #12).
+      if (err instanceof PrismaClientKnownRequestError && err.code === "P2025") {
+        return null;
+      }
+      throw err;
     }
   }
 

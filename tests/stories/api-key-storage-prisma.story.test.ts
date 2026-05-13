@@ -1,8 +1,17 @@
 import { describe, expect, it } from "vitest";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
 
 import { PrismaApiKeyStorage } from "../../src/core/auth/api-keys/api-key-storage.prisma.js";
 import type { ApiKeyRecord } from "../../src/core/auth/api-keys/api-key.service.js";
 import type { PrismaService } from "../../src/core/prisma/prisma.service.js";
+
+/** Build a fake P2025 "record not found" error matching Prisma's runtime shape. */
+function fakeP2025(msg: string): PrismaClientKnownRequestError {
+  return new PrismaClientKnownRequestError(msg, {
+    code: "P2025",
+    clientVersion: "0.0.0",
+  });
+}
 
 /**
  * Story · `PrismaApiKeyStorage` (CF.STORAGE.01 closure — iter-171).
@@ -48,7 +57,10 @@ describe("Story · PrismaApiKeyStorage delegates to prisma.apiKey (iter-171)", (
         async delete(input: { where: { id: string } }) {
           captured.delete.push(input.where);
           if (!rows.has(input.where.id)) {
-            throw new Error("Record to delete does not exist.");
+            // Simulate Prisma P2025 "record not found" error (Fix #12: tests
+            // now throw the real Prisma error shape so the storage can distinguish
+            // P2025 from unexpected errors).
+            throw fakeP2025("Record to delete does not exist.");
           }
           const existing = rows.get(input.where.id)!;
           rows.delete(input.where.id);
@@ -57,7 +69,8 @@ describe("Story · PrismaApiKeyStorage delegates to prisma.apiKey (iter-171)", (
         async update(input: { where: { id: string }; data: Record<string, unknown> }) {
           captured.update.push(input);
           if (!rows.has(input.where.id)) {
-            throw new Error("Record to update not found.");
+            // Simulate Prisma P2025 "record not found" error.
+            throw fakeP2025("Record to update not found.");
           }
           const existing = rows.get(input.where.id)!;
           const next = { ...existing, ...input.data };
