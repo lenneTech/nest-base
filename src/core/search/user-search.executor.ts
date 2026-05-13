@@ -20,6 +20,13 @@ import { toTsquery } from "./fts-query.js";
 
 export interface BuildUserSearchSqlInput {
   readonly limit: number;
+  /**
+   * When true, append an EXISTS subquery on the `member` table that
+   * restricts results to users who are members of the requesting
+   * tenant ($3). When false (dev search tester, admin cross-tenant
+   * view), the filter is omitted.
+   */
+  readonly filterByTenant: boolean;
 }
 
 export function buildUserSearchSql(input: BuildUserSearchSqlInput): string {
@@ -27,24 +34,34 @@ export function buildUserSearchSql(input: BuildUserSearchSqlInput): string {
   // without language-specific snowball lemmatisation. ts_headline
   // wraps every match with `<b>...</b>` (the renderer's trust
   // boundary documented in src/core/dx/CLAUDE.md).
-  // Static SQL — only the tsquery + limit are parameterised.
-  void input;
+  // MAJ-4 fix: when filterByTenant=true, scope results to the requesting
+  // tenant via an EXISTS subquery on the `member` table. $3 is the
+  // tenantId (organization_id). Static SQL — tsquery, limit (and
+  // optionally tenantId) are parameterised.
+  const tenantClause = input.filterByTenant
+    ? `AND EXISTS (
+        SELECT 1 FROM member m
+        WHERE m.user_id = u.id
+          AND m.organization_id = $3
+      )`
+    : "";
   return `
     SELECT
-      id,
+      u.id,
       ts_rank(
-        to_tsvector('simple', coalesce(email, '') || ' ' || coalesce(name, '')),
+        to_tsvector('simple', coalesce(u.email, '') || ' ' || coalesce(u.name, '')),
         to_tsquery('simple', $1)
       ) AS rank,
       ts_headline(
         'simple',
-        coalesce(email, '') || ' ' || coalesce(name, ''),
+        coalesce(u.email, '') || ' ' || coalesce(u.name, ''),
         to_tsquery('simple', $1),
         'StartSel=<b>, StopSel=</b>, MaxWords=20, MinWords=1'
       ) AS highlight
-    FROM users
-    WHERE to_tsvector('simple', coalesce(email, '') || ' ' || coalesce(name, ''))
+    FROM users u
+    WHERE to_tsvector('simple', coalesce(u.email, '') || ' ' || coalesce(u.name, ''))
           @@ to_tsquery('simple', $1)
+      ${tenantClause}
     ORDER BY rank DESC
     LIMIT $2
   `;
@@ -85,10 +102,13 @@ export class PrismaUserSearchExecutor implements ResourceSearchExecutor {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async search(query: string, limit: number): Promise<SearchHit[]> {
+  async search(query: string, limit: number, tenantId: string): Promise<SearchHit[]> {
     const tsquery = toTsquery(query);
-    const sql = buildUserSearchSql({ limit });
-    const rows = (await this.prisma.$queryRawUnsafe(sql, tsquery, limit)) as Array<{
+    const sql = buildUserSearchSql({ limit, filterByTenant: !!tenantId });
+    // Conditionally pass tenantId — when filterByTenant is false (dev search
+    // tester, empty tenantId) the SQL omits $3 entirely so we don't bind it.
+    const params: unknown[] = tenantId ? [tsquery, limit, tenantId] : [tsquery, limit];
+    const rows = (await this.prisma.$queryRawUnsafe(sql, ...params)) as Array<{
       id: string;
       rank: number;
       highlight: string;

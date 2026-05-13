@@ -56,6 +56,28 @@ export function decodeCursor(cursor: string): CursorRecord {
   return { sortValue: s, id: i };
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * MIN-5 — UUID-format guard for entity cursors.
+ *
+ * `decodeCursor` is generic and used for non-UUID ids too (e.g. the
+ * error-code catalogue uses the code string "CORE_001" as the cursor id).
+ * This helper lets callers that KNOW their entity ids are UUIDs add
+ * validation without breaking the generic contract of `decodeCursor` itself.
+ *
+ * Usage:
+ * ```ts
+ * const { id, sortValue } = decodeCursor(cursor);
+ * assertCursorIdIsUuid(id); // throws CursorMalformedError if not a UUID
+ * ```
+ */
+export function assertCursorIdIsUuid(id: string): void {
+  if (!UUID_RE.test(id)) {
+    throw new CursorMalformedError("cursor id must be a UUID");
+  }
+}
+
 export function buildCursorPage<T extends CursorRecord>(rows: T[], limit: number): CursorPage<T> {
   if (!Number.isFinite(limit) || limit < 1) {
     throw new Error(`cursor: limit must be a positive integer (got ${limit})`);

@@ -82,7 +82,10 @@ export class PermissionService {
       this.cache.delete(this.cacheKey(userId, tenantId));
       return;
     }
-    const prefix = `${userId}|`;
+    // MIN-2: use the encoded prefix so userIds containing `|` are matched
+    // correctly (a raw prefix like `foo|bar|` would also match unrelated
+    // user `foo|bar`).
+    const prefix = `${encodeURIComponent(userId)}|`;
     for (const key of this.cache.keys()) {
       if (key.startsWith(prefix)) this.cache.delete(key);
     }
@@ -105,7 +108,10 @@ export class PermissionService {
   }
 
   private cacheKey(userId: string, tenantId: string): string {
-    return `${userId}|${tenantId}`;
+    // MIN-2: encode each component so a `|` character in userId or tenantId
+    // cannot collide with the separator. Without encoding, userId="a|b" and
+    // tenantId="c" would produce the same key as userId="a" and tenantId="b|c".
+    return `${encodeURIComponent(userId)}|${encodeURIComponent(tenantId)}`;
   }
 
   private evictIfNeeded(): void {

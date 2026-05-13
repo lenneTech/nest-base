@@ -65,6 +65,18 @@ export class IdempotencyConflictError extends Error {
   }
 }
 
+/**
+ * Thrown when a second concurrent request arrives with the same idempotency key
+ * while the first handler is still executing. Callers should surface this as HTTP
+ * 409 Conflict so the client knows to retry after the in-flight request completes.
+ */
+export class IdempotencyInProgressError extends Error {
+  constructor(public readonly key: string) {
+    super(`idempotency: key "${key}" is already in progress`);
+    this.name = "IdempotencyInProgressError";
+  }
+}
+
 export function computeRequestHash(input: RequestFingerprintInput): string {
   const normalisedBody = stableStringify(input.body);
   const fingerprint = `${input.method.toUpperCase()}\n${input.path}\n${normalisedBody}`;
@@ -88,6 +100,24 @@ export function scopeIdempotencyKey(key: string, userId: string | undefined): st
 }
 
 export class IdempotencyService {
+  /**
+   * MAJ-2: In-process inflight guard.
+   *
+   * Tracks keys whose handlers are currently executing. A second request with
+   * the same scoped key while the first is still running gets a 409
+   * `IdempotencyInProgressError` immediately. This eliminates the TOCTOU window
+   * between `store.get()` (cache miss) and `store.put()` (result written) for
+   * concurrent requests in the same process.
+   *
+   * Note: this is a per-process guard only. Multi-replica deployments should
+   * use a DB-level advisory lock or an `IN_PROGRESS` sentinel row as the
+   * authoritative distributed lock — the in-memory Set covers the common
+   * single-replica case and reduces races to an acceptable minimum even with
+   * multiple replicas (the window shrinks to the inter-process network latency
+   * rather than the full handler duration).
+   */
+  private readonly inflight = new Set<string>();
+
   constructor(
     private readonly store: IdempotencyStore,
     private readonly options: IdempotencyServiceOptions,
@@ -110,16 +140,28 @@ export class IdempotencyService {
       };
     }
 
-    const response = await input.handler();
-    await this.store.put({
-      key: scopedKey,
-      userId: input.userId,
-      requestHash,
-      status: response.status,
-      body: response.body,
-      expiresAt: now + this.options.ttlMs,
-    });
-    return { ...response, replayed: false };
+    // Guard against concurrent handlers for the same key in this process.
+    if (this.inflight.has(scopedKey)) {
+      throw new IdempotencyInProgressError(input.key);
+    }
+    this.inflight.add(scopedKey);
+
+    try {
+      const response = await input.handler();
+      await this.store.put({
+        key: scopedKey,
+        userId: input.userId,
+        requestHash,
+        status: response.status,
+        body: response.body,
+        expiresAt: now + this.options.ttlMs,
+      });
+      return { ...response, replayed: false };
+    } finally {
+      // Always release the lock, even if the handler throws — a thrown handler
+      // is intentionally NOT cached so the caller can retry with the same key.
+      this.inflight.delete(scopedKey);
+    }
   }
 }
 

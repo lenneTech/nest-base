@@ -25,7 +25,12 @@ export interface VerifyOptions {
   toleranceSeconds: number;
 }
 
-const HEADER_RE = /^t=(\d+),v1=([A-Za-z0-9+/]+=*)$/;
+// MIN-4: support the Standard Webhooks multi-signature header format where
+// multiple `v1=<sig>` tokens may appear in a single header value, separated
+// by spaces. The original regex only parsed a single v1 token.
+// e.g. "t=1234567890,v1=sig1 v1=sig2" — at least one token must match.
+const TIMESTAMP_RE = /t=(\d+)/;
+const V1_TOKEN_RE = /v1=([A-Za-z0-9+/]+=*)/g;
 
 export function verifyHmacSignatureHeader(
   secret: string,
@@ -33,16 +38,23 @@ export function verifyHmacSignatureHeader(
   header: string,
   options: VerifyOptions,
 ): boolean {
-  const match = HEADER_RE.exec(header);
-  if (!match) return false;
-  const ts = Number(match[1]);
-  const sig = match[2]!;
+  const tMatch = TIMESTAMP_RE.exec(header);
+  if (!tMatch) return false;
+  const ts = Number(tMatch[1]);
   if (!Number.isFinite(ts)) return false;
   if (Math.abs(ts - options.now) > options.toleranceSeconds) return false;
 
+  // Collect all v1= tokens — the spec allows multiple for key rotation.
+  const v1Tokens = [...header.matchAll(V1_TOKEN_RE)].map((m) => m[1]!);
+  if (v1Tokens.length === 0) return false;
+
   const expected = signWebhookBody(secret, String(ts), body);
-  const a = Buffer.from(expected, "base64");
-  const b = Buffer.from(sig, "base64");
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(a, b);
+  const expectedBuf = Buffer.from(expected, "base64");
+
+  // Verification passes if at least one token matches (timing-safe comparison).
+  return v1Tokens.some((sig) => {
+    const sigBuf = Buffer.from(sig, "base64");
+    if (expectedBuf.length !== sigBuf.length) return false;
+    return timingSafeEqual(expectedBuf, sigBuf);
+  });
 }

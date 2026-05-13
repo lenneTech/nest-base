@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 
+import { checkSniffedMimeMatchesClaim } from "./magic-byte-sniffer.js";
 import { resolveStoragePath } from "./storage-path.js";
 import type { StorageAdapterDataStore } from "./storage-adapter-data-store.js";
 import type { FileService } from "./file.service.js";
@@ -102,7 +103,16 @@ export function buildTusFinishHook(
     // When `auth` is null (BetterAuth not configured) we skip the check so
     // unauthenticated / development setups still function. In production the
     // auth instance is always provided.
-    if (auth && metaTenantId) {
+    if (auth) {
+      // CRIT-1: empty metaTenantId with auth configured is always an error —
+      // a blank tenantId would previously pass the `if (auth && metaTenantId)`
+      // guard and land the file root-scoped.
+      if (!metaTenantId) {
+        return {
+          ...(tusErrorResponse(400, "tus-finish-hook: tenantId metadata is required") as object),
+        };
+      }
+
       const session = await resolveSession(auth, req.headers);
       if (!session) {
         // No valid session — reject the upload to prevent unauthenticated
@@ -117,8 +127,12 @@ export function buildTusFinishHook(
           ?.activeOrganizationId ??
         (session as { user?: { tenantId?: string | null } }).user?.tenantId ??
         "";
-      if (sessionTenantId && sessionTenantId !== metaTenantId) {
-        // The Upload-Metadata tenantId was spoofed — reject with 403.
+      // CRIT-2: if sessionTenantId is empty the session has no active org —
+      // we cannot verify the claim, so reject. Previously the falsy guard
+      // `if (sessionTenantId && ...)` skipped this check entirely.
+      if (!sessionTenantId || sessionTenantId !== metaTenantId) {
+        // The Upload-Metadata tenantId was spoofed or the session has no
+        // active organization — reject with 403.
         return {
           ...(tusErrorResponse(
             403,
@@ -132,6 +146,21 @@ export function buildTusFinishHook(
 
     // Read the assembled bytes from the TUS staging area.
     const bytes = await dataStore.readBody(upload.id);
+
+    // MAJ-5: MIME sniffing — verify that the actual content matches the
+    // client-supplied filetype metadata. A PE binary uploaded as "image/png"
+    // must be rejected here. The sniffer returns ok=true when the format is
+    // unrecognised (lenient: unknown formats are allowed through) and ok=false
+    // only when the sniffed type actively contradicts the claim.
+    const sniffResult = checkSniffedMimeMatchesClaim(bytes.subarray(0, 256), mimeType);
+    if (!sniffResult.ok) {
+      return {
+        ...(tusErrorResponse(
+          415,
+          `tus-finish-hook: MIME mismatch — claimed "${sniffResult.claimed}", sniffed "${sniffResult.sniffed}"`,
+        ) as object),
+      };
+    }
 
     const fileId = uuidV7();
     const sha256 = createHash("sha256").update(bytes).digest("hex");

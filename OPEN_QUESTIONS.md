@@ -233,6 +233,28 @@ Per entry:
 - **Status:** open | answered (date + decision)
 -->
 
+### 2026-05-13 · Files · StorageAdapterDataStore — full upload rewrite on every PATCH (MIN-3)
+
+- **Context:** `StorageAdapterDataStore.write()` (in `src/core/files/storage-adapter-data-store.ts`)
+  reads the entire previously-uploaded body on every PATCH request, appends the new chunk in
+  memory, and writes the full merged blob back to the storage adapter. For a 100 MB upload broken
+  into 20 × 5 MB chunks, the last PATCH reads 95 MB, appends 5 MB, and writes 100 MB —
+  O(N²) I/O over the upload lifetime.
+- **Why acceptable now:** The `StorageAdapter` contract is byte-buffer shaped (not stream-shaped)
+  and does not expose an `append(offset, chunk)` primitive. All supported backends (local, postgres,
+  S3/RustFS) only offer `put(key, fullBody)`. The S3 backend does have `createMultipartUpload` /
+  `uploadPart` / `completeMultipartUpload` APIs but the current `S3StorageAdapter` does not expose
+  them through the common interface. The per-upload memory cap (`TUS_MAX_UPLOAD_BYTES` = 50 MB)
+  limits the worst-case heap growth to ~2× the cap.
+- **Correct fix when needed:** Add an optional `append(key, chunk, offset): Promise<void>` method
+  to the `StorageAdapter` interface. Implement it for `S3StorageAdapter` using AWS S3 Multipart
+  Upload (create → upload parts → complete). `StorageAdapterDataStore.write()` calls `append` when
+  the adapter exposes it, otherwise falls back to the current read-merge-write loop.
+  Alternatively, switch large uploads to the official `@tus/s3-store` which implements multipart
+  natively.
+- **Status:** open — documented as known limitation; safe to defer until large-file upload
+  performance becomes a hard requirement.
+
 ## Answered
 
 ### 2026-04-28 · Permissions · `Permission.fields = []` semantics

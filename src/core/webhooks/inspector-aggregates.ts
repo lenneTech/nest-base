@@ -24,6 +24,12 @@ export interface DeliveryAggregateInput {
   occurredAt: string;
   errorMessage?: string;
   /**
+   * NIT-2: tenant that owns this delivery. Used to filter the buffer
+   * per-tenant when reading from the inspector endpoint so admins only
+   * see deliveries for their own organization.
+   */
+  tenantId?: string;
+  /**
    * True for deliveries triggered via the inspector "Send test event"
    * button. Test deliveries are visible in the list (when the toggle
    * is on) but excluded from aggregate metrics so they don't skew

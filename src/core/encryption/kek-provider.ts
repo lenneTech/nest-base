@@ -17,19 +17,27 @@ const KEK_BYTES = 32; // AES-256
 
 /** Reads the base64-encoded KEK from `FIELD_ENCRYPTION_KEK`. */
 export class EnvKekProvider implements KekProvider {
+  // NIT-3: cache the decoded key material so base64 decoding only happens
+  // once. Parsing the same Buffer on every call is cheap but wasteful for
+  // a hot path (every encrypted-field read/write calls getKek()).
+  private _kek?: Buffer;
+
   constructor(private readonly env: Record<string, string | undefined>) {}
 
   getKek(): Buffer {
-    const raw = this.env.FIELD_ENCRYPTION_KEK;
-    if (!raw) {
-      throw new Error("FIELD_ENCRYPTION_KEK env-var is required");
+    if (!this._kek) {
+      const raw = this.env.FIELD_ENCRYPTION_KEK;
+      if (!raw) {
+        throw new Error("FIELD_ENCRYPTION_KEK env-var is required");
+      }
+      const buf = Buffer.from(raw, "base64");
+      if (buf.length !== KEK_BYTES) {
+        throw new Error(
+          `FIELD_ENCRYPTION_KEK must decode to ${KEK_BYTES} bytes (received ${buf.length})`,
+        );
+      }
+      this._kek = buf;
     }
-    const buf = Buffer.from(raw, "base64");
-    if (buf.length !== KEK_BYTES) {
-      throw new Error(
-        `FIELD_ENCRYPTION_KEK must decode to ${KEK_BYTES} bytes (received ${buf.length})`,
-      );
-    }
-    return buf;
+    return this._kek;
   }
 }

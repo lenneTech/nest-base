@@ -152,6 +152,51 @@ describe("Story · TUS Tenant Validation (Fix 1.1)", () => {
     });
   });
 
+  describe("CRIT-1 — empty tenantId in metadata must return 400", () => {
+    it("rejects with 400 when metadata tenantId is an empty string", async () => {
+      const req = fakeRequest("tenant-abc");
+      const auth = fakeAuth(req);
+      const fileService = fakeFileService();
+      const dataStore = fakeDataStore();
+
+      const hook = buildTusFinishHook({
+        fileService: fileService as never,
+        dataStore: dataStore as never,
+        auth: auth as never,
+      });
+
+      // Upload with empty tenantId in metadata
+      const result = await hook(req, upload(""));
+
+      expect((result as { status_code?: number }).status_code).toBe(400);
+      expect(fileService.insertRecord).not.toHaveBeenCalled();
+      expect(fileService.storageAdapter.put).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("CRIT-2 — session without active org must return 403", () => {
+    it("rejects with 403 when session has no activeOrganizationId (empty sessionTenantId)", async () => {
+      const META_TENANT = "33333333-3333-3333-3333-333333333333";
+      // Session with empty/null activeOrganizationId (no active org)
+      const req = fakeRequest("" /* sessionTenantId is empty */);
+      const auth = fakeAuth(req);
+      const fileService = fakeFileService();
+      const dataStore = fakeDataStore();
+
+      const hook = buildTusFinishHook({
+        fileService: fileService as never,
+        dataStore: dataStore as never,
+        auth: auth as never,
+      });
+
+      const result = await hook(req, upload(META_TENANT));
+
+      expect((result as { status_code?: number }).status_code).toBe(403);
+      expect(fileService.insertRecord).not.toHaveBeenCalled();
+      expect(fileService.storageAdapter.put).not.toHaveBeenCalled();
+    });
+  });
+
   describe("when auth is not wired (backward-compat / dev mode)", () => {
     it("allows the upload without session validation when auth is null", async () => {
       const TENANT = "11111111-1111-1111-1111-111111111111";

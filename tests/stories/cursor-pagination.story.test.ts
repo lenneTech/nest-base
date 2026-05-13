@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   CursorMalformedError,
+  assertCursorIdIsUuid,
   buildCursorPage,
   decodeCursor,
   encodeCursor,
@@ -49,6 +50,20 @@ describe("Story · Cursor pagination", () => {
     it("handles numeric sortValues round-trip", () => {
       const cursor = encodeCursor({ sortValue: 42, id: "r-1" });
       expect(decodeCursor(cursor)).toEqual({ sortValue: 42, id: "r-1" });
+    });
+  });
+
+  describe("assertCursorIdIsUuid (MIN-5 fix)", () => {
+    it("accepts valid UUID v4/v7 format ids", () => {
+      expect(() => assertCursorIdIsUuid("00000000-0000-0000-0000-000000000001")).not.toThrow();
+      expect(() => assertCursorIdIsUuid("018eac43-0000-7000-8000-000000000001")).not.toThrow();
+    });
+
+    it("rejects non-UUID ids", () => {
+      expect(() => assertCursorIdIsUuid("not-a-uuid")).toThrow(CursorMalformedError);
+      expect(() => assertCursorIdIsUuid("r-1")).toThrow(CursorMalformedError);
+      expect(() => assertCursorIdIsUuid("CORE_001")).toThrow(CursorMalformedError);
+      expect(() => assertCursorIdIsUuid("")).toThrow(CursorMalformedError);
     });
   });
 

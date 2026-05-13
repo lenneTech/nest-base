@@ -164,6 +164,14 @@ export class WebhookDispatcher {
 
     const nextFailures = endpoint.consecutiveFailures + 1;
     await this.options.endpointStore.setFailureCount(endpoint.id, nextFailures);
+    // MIN-1: disable() before record() to close the TOCTOU window where the
+    // endpoint appears enabled between the record() write and the subsequent
+    // disable(). Any concurrent fanout that reads the endpoint between those
+    // two calls would see it as still active. Disabling first is the safer
+    // order — a delivery record for an already-disabled endpoint is harmless.
+    if (shouldAutoDisable(nextFailures, this.retry)) {
+      await this.options.endpointStore.disable(endpoint.id);
+    }
     await this.options.deliveryStore.record({
       id: deliveryId(input),
       endpointId: endpoint.id,
@@ -172,9 +180,6 @@ export class WebhookDispatcher {
       ...(response ? { statusCode: response.status } : {}),
       attemptCount: 1,
     });
-    if (shouldAutoDisable(nextFailures, this.retry)) {
-      await this.options.endpointStore.disable(endpoint.id);
-    }
     if (httpError && process.env.NODE_ENV !== "test") {
       // Log path: real binding hands httpError to the logger; tests
       // don't need observable side-effects for the throw case.

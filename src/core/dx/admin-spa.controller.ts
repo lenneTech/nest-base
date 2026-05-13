@@ -244,6 +244,7 @@ export class AdminSpaController {
     @Query("search") search: string | undefined,
     @Query("cursor") cursor: string | undefined,
     @Query("limit") limitRaw: string | undefined,
+    @Headers("x-tenant-id") tenantHeader: string | undefined,
   ): WebhookInspectorPageInput {
     this.assertDev();
     const limit = clampLimit(limitRaw);
@@ -255,7 +256,7 @@ export class AdminSpaController {
     if (to) filter.to = to;
     if (search) filter.search = search;
 
-    const all = this.snapshotDeliveries();
+    const all = this.snapshotDeliveries(tenantHeader?.trim());
     const matched = filterDeliveries({
       deliveries: all,
       ...(filter.endpointId !== undefined && { endpointId: filter.endpointId }),
@@ -282,10 +283,12 @@ export class AdminSpaController {
   }
 
   @Get("webhooks/aggregates.json")
-  webhookAggregatesJson(): WebhookAggregatesResponse {
+  webhookAggregatesJson(
+    @Headers("x-tenant-id") tenantHeader: string | undefined,
+  ): WebhookAggregatesResponse {
     this.assertDev();
     const now = Date.now();
-    const all = this.snapshotDeliveries();
+    const all = this.snapshotDeliveries(tenantHeader?.trim());
     const aggregates = buildEndpointAggregates({
       deliveries: all,
       now,
@@ -715,7 +718,15 @@ export class AdminSpaController {
     if (!this.searchService) {
       return { query: q, hits: [] };
     }
-    const rawHits = await this.searchService.search(q, { limit: SEARCH_TESTER_PAGE_SIZE });
+    // The search tester is a dev-only admin tool. It intentionally searches
+    // across all tenants (tenantId = "" disables the member-EXISTS filter in
+    // the Postgres executor) so developers can verify FTS configuration without
+    // needing a specific organization context. The caller already validated that
+    // `NODE_ENV === "development"` via `assertDev()`.
+    const rawHits = await this.searchService.search(q, {
+      limit: SEARCH_TESTER_PAGE_SIZE,
+      tenantId: "",
+    });
     const hits: SearchTesterPageInput["hits"] = rawHits.map((hit) => ({
       resource: hit.resource,
       id: hit.id,
@@ -731,8 +742,15 @@ export class AdminSpaController {
 
   // ── helpers ─────────────────────────────────────────────────────
 
-  private snapshotDeliveries(): DeliveryAggregateInput[] {
-    const buf = getWebhookInspectorBuffer().recent();
+  private snapshotDeliveries(tenantId?: string): DeliveryAggregateInput[] {
+    // NIT-2: filter the process-level singleton buffer to only show deliveries
+    // for the requesting admin's tenant. A blank tenantId falls back to
+    // `recent()` (all entries) so demo/dev mode still works without a tenant
+    // header. The inspector is dev-only (`assertDev()` gate) so this is a
+    // best-effort cross-tenant isolation improvement, not a hard security boundary.
+    const buf = tenantId
+      ? getWebhookInspectorBuffer().recentForTenant(tenantId)
+      : getWebhookInspectorBuffer().recent();
     if (buf.length > 0) return [...buf];
     return buildDemoDeliveries({ now: Date.now() });
   }

@@ -75,6 +75,17 @@ export class WebhookInspectorBuffer {
     return Object.freeze([...this.records]);
   }
 
+  /**
+   * NIT-2: return only records whose `tenantId` matches the caller's
+   * active tenant. Records without a `tenantId` stamp (legacy / demo
+   * entries) are included so the inspector works even on setups that
+   * don't set the tenant field on every write.
+   */
+  recentForTenant(tenantId: string): readonly DeliveryAggregateInput[] {
+    const filtered = this.records.filter((r) => !r.tenantId || r.tenantId === tenantId);
+    return Object.freeze(filtered);
+  }
+
   size(): number {
     return this.records.length;
   }

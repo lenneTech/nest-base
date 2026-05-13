@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Get, Query } from "@nestjs/common";
+import { BadRequestException, Controller, Get, Headers, Query } from "@nestjs/common";
 
 import { Can } from "../permissions/can.guard.js";
 import { type SearchHit } from "./cross-resource-search.js";
@@ -14,6 +14,10 @@ const MAX_LIMIT = 100;
  * `sanitizeFtsQuery()`, fans it out to every registered resource
  * executor, sorts by `ts_rank` descending. With no executors
  * registered (current default), returns an empty array.
+ *
+ * MAJ-4 fix: the `x-tenant-id` header is required so executors can
+ * scope their queries to the requesting tenant — without it, FTS
+ * queries would return rows from ALL tenants (cross-tenant PII leak).
  */
 @Controller("search")
 export class SearchController {
@@ -25,6 +29,7 @@ export class SearchController {
     @Query("q") q: string | undefined,
     @Query("limit") limit: string | undefined,
     @Query("only") only: string | undefined,
+    @Headers("x-tenant-id") tenantHeader: string | undefined,
   ): Promise<{ hits: SearchHit[]; total: number }> {
     if (!q || q.trim() === "") {
       throw new BadRequestException("query parameter `q` is required");
@@ -32,6 +37,11 @@ export class SearchController {
     const parsedLimit = limit ? Math.min(Number(limit) || DEFAULT_LIMIT, MAX_LIMIT) : DEFAULT_LIMIT;
     if (!Number.isFinite(parsedLimit) || parsedLimit <= 0) {
       throw new BadRequestException("limit must be a positive integer");
+    }
+    // Require a tenant context — cross-tenant search would leak PII.
+    const tenantId = tenantHeader?.trim() ?? "";
+    if (!tenantId) {
+      throw new BadRequestException("x-tenant-id header is required");
     }
     const tables = only
       ? only
@@ -41,6 +51,7 @@ export class SearchController {
       : undefined;
     const hits = await this.service.search(q, {
       limit: parsedLimit,
+      tenantId,
       ...(tables && tables.length > 0 ? { only: tables } : {}),
     });
     return { hits, total: hits.length };

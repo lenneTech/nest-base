@@ -25,6 +25,28 @@ export interface McpContext {
   user?: McpUser;
 }
 
+/**
+ * Pluggable permission checker injected into `McpServerModule`.
+ * Production binding delegates to `PermissionService.abilityFor()`; tests
+ * can supply a stub without wiring the full CASL stack.
+ */
+export interface McpPermissionChecker {
+  can(userId: string, tenantId: string, action: string, resource: string): Promise<boolean>;
+}
+
+/**
+ * Thrown by `invokeTool` when the authenticated user lacks the permission
+ * declared on the `@McpTool` decorator.
+ */
+export class McpForbiddenError extends Error {
+  constructor(action?: string, resource?: string) {
+    super(
+      action && resource ? `mcp: forbidden — cannot ${action} on ${resource}` : "mcp: forbidden",
+    );
+    this.name = "McpForbiddenError";
+  }
+}
+
 export interface McpPermission {
   resource: string;
   action: string;
@@ -64,17 +86,37 @@ export class McpResourceAlreadyRegisteredError extends Error {
   }
 }
 
+export interface McpServerModuleOptions {
+  info: McpServerInfo;
+  /**
+   * Optional permission checker. When provided, `invokeTool` enforces
+   * the `permission` declared on each `@McpTool` definition against
+   * the authenticated user in the context. When absent the permission
+   * check is skipped (backward-compat path for projects that haven't
+   * wired CASL yet).
+   */
+  permissionChecker?: McpPermissionChecker;
+}
+
 export class McpServerModule {
   private readonly _server: McpServer;
   private readonly _info: McpServerInfo;
   private readonly tools = new Map<string, McpToolDefinition>();
   private readonly resources = new Map<string, McpResourceDefinition>();
+  private readonly permissionChecker?: McpPermissionChecker;
 
-  constructor(info: McpServerInfo) {
-    if (!info.name) throw new Error("mcp: server name must be a non-empty string");
-    if (!info.version) throw new Error("mcp: server version must be a non-empty string");
-    this._info = { name: info.name, version: info.version };
-    this._server = new McpServer({ name: info.name, version: info.version });
+  constructor(infoOrOptions: McpServerInfo | McpServerModuleOptions) {
+    // Accept both legacy `McpServerInfo` shape and the new options object.
+    const opts: McpServerModuleOptions =
+      "info" in infoOrOptions
+        ? (infoOrOptions as McpServerModuleOptions)
+        : { info: infoOrOptions as McpServerInfo };
+
+    if (!opts.info.name) throw new Error("mcp: server name must be a non-empty string");
+    if (!opts.info.version) throw new Error("mcp: server version must be a non-empty string");
+    this._info = { name: opts.info.name, version: opts.info.version };
+    this._server = new McpServer({ name: opts.info.name, version: opts.info.version });
+    this.permissionChecker = opts.permissionChecker;
   }
 
   get info(): McpServerInfo {
@@ -123,6 +165,22 @@ export class McpServerModule {
   async invokeTool(name: string, input: unknown, ctx: McpContext): Promise<unknown> {
     const tool = this.tools.get(name);
     if (!tool) throw new Error(`mcp: unknown tool "${name}"`);
+
+    // MAJ-1: enforce the permission declared on the @McpTool decorator.
+    // When a checker is wired and the tool declares a required permission,
+    // verify the authenticated user has the ability before invoking the handler.
+    if (tool.permission && ctx.user && this.permissionChecker) {
+      const allowed = await this.permissionChecker.can(
+        ctx.user.id,
+        ctx.user.tenantId,
+        tool.permission.action,
+        tool.permission.resource,
+      );
+      if (!allowed) {
+        throw new McpForbiddenError(tool.permission.action, tool.permission.resource);
+      }
+    }
+
     const parsed = tool.inputSchema ? tool.inputSchema.parse(input) : input;
     return tool.handler(parsed, ctx);
   }
