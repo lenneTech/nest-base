@@ -49,22 +49,42 @@ function resolveAuthPrefix(): string {
  *
  * Hub and admin SPA pages now live at /hub/* and /admin/* (no /api
  * prefix) following the routing fix.
+ *
+ * MAJ-2: When `OPENAPI_REQUIRE_AUTH=true` is set (default in
+ * production), the OpenAPI spec endpoints (`/api/openapi`,
+ * `/api/openapi.json`, `/api-docs-json`, `/openapi`) are removed from
+ * the public allowlist — they require a valid JWT session. This
+ * prevents unauthenticated clients from enumerating all API routes
+ * and schemas.
+ * Default: required in production, public in development/staging.
  */
-const STATIC_PUBLIC_PREFIXES = [
+function resolveOpenapiRequireAuth(): boolean {
+  const raw = process.env.OPENAPI_REQUIRE_AUTH;
+  if (raw === "true" || raw === "1") return true;
+  if (raw === "false" || raw === "0") return false;
+  // Default: require auth in production, allow public in dev/staging.
+  return (process.env.NODE_ENV ?? "development") === "production";
+}
+
+const BASE_STATIC_PUBLIC_PREFIXES = [
   "/health/",
   "/docs/",
   // Hub and admin SPA pages at root level (no /api prefix).
   "/hub/",
   "/admin/",
   "/errors/",
+  // HMAC-signed share links — the token is the auth.
+  "/api/files/share/",
+];
+
+const OPENAPI_PUBLIC_PREFIXES = [
   "/openapi",
   // /api/openapi.json — raw JSON data endpoint consumed by SDK generators.
   // Still at /api/openapi.json (unlike the SPA viewer page which moved to /openapi).
   "/api/openapi",
-  // HMAC-signed share links — the token is the auth.
-  "/api/files/share/",
 ];
-const PUBLIC_EXACT = new Set([
+
+const BASE_PUBLIC_EXACT = new Set([
   "/",
   // API identity endpoint (AppController @Get() under the global /api/ prefix).
   "/api/",
@@ -72,21 +92,44 @@ const PUBLIC_EXACT = new Set([
   "/errors",
   // Legacy /api/errors — kept public so cached SDK calls still work.
   "/api/errors",
-  "/openapi",
-  "/api-docs-json",
   "/hub/login",
   "/hub/logout",
   "/hub",
 ]);
 
+const OPENAPI_PUBLIC_EXACT = new Set(["/openapi", "/api-docs-json"]);
+
+function resolvePublicPrefixes(): string[] {
+  if (resolveOpenapiRequireAuth()) {
+    return BASE_STATIC_PUBLIC_PREFIXES;
+  }
+  return [...BASE_STATIC_PUBLIC_PREFIXES, ...OPENAPI_PUBLIC_PREFIXES];
+}
+
+function resolvePublicExact(): Set<string> {
+  if (resolveOpenapiRequireAuth()) {
+    return BASE_PUBLIC_EXACT;
+  }
+  return new Set([...BASE_PUBLIC_EXACT, ...OPENAPI_PUBLIC_EXACT]);
+}
+
+// isPathProtected() re-resolves public path lists on every call so
+// env changes (OPENAPI_REQUIRE_AUTH, BETTER_AUTH_BASE_PATH) are
+// honoured without a module re-import. No module-level snapshots needed.
+
 export function isPathProtected(path: string): boolean {
   if (!path) throw new Error("isPathProtected: path is required");
-  if (PUBLIC_EXACT.has(path)) return false;
+  // Resolve both lists dynamically on every call so env-var changes
+  // (OPENAPI_REQUIRE_AUTH, BETTER_AUTH_BASE_PATH) are reflected
+  // without a module re-import.
+  const publicExact = resolvePublicExact();
+  const publicPrefixes = resolvePublicPrefixes();
+  if (publicExact.has(path)) return false;
   // Derive the auth prefix dynamically so BETTER_AUTH_BASE_PATH is
   // honoured without a server restart side-effect on the static list.
   const authPrefix = resolveAuthPrefix();
   if (path.startsWith(authPrefix) || path === authPrefix.slice(0, -1)) return false;
-  for (const prefix of STATIC_PUBLIC_PREFIXES) {
+  for (const prefix of publicPrefixes) {
     if (path.startsWith(prefix) || path === prefix.slice(0, -1)) return false;
   }
   return true;

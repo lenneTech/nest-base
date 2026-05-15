@@ -46,11 +46,17 @@ export function resolvePowerSyncConflict<T extends { updatedAt?: Date }>(
 
   const serverNewer = serverRow.updatedAt instanceof Date && serverRow.updatedAt > clientUpdatedAt;
 
-  if (serverNewer && rejectedFields.length === 0) {
-    return { outcome: "server-wins", merged: serverRow, rejectedFields: [] };
+  if (serverNewer) {
+    // Server is ahead: discard the entire stale client patch regardless
+    // of whether protected fields are touched. Applying non-protected
+    // fields from a stale client would silently overwrite fresher server
+    // state. The caller receives `rejectedFields` so it can surface a
+    // 409 to the client with context about what was not applied.
+    return { outcome: "server-wins", merged: serverRow, rejectedFields };
   }
 
-  // Apply non-protected fields; preserve server values for protected ones.
+  // Client is at least as fresh as the server — apply the patch.
+  // Protected fields are never overwritten (privilege escalation guard).
   const merged: T = { ...serverRow };
   for (const key of patchKeys) {
     if (protectedSet.has(key)) continue;

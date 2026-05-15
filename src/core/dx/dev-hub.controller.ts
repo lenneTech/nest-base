@@ -1550,7 +1550,11 @@ function isSafeStaticName(name: string): boolean {
   if (!name || name.length > 256) return false;
   if (name.includes("/") || name.includes("\\")) return false;
   if (name.startsWith(".")) return false;
-  return /^[a-zA-Z0-9._-]+\.(js|css|map|svg|woff2?)$/.test(name);
+  // NIT-2: Only allow one optional dot-segment before the final allowed
+  // extension. The previous regex `[a-zA-Z0-9._-]+` accepted names like
+  // `evil.html.js` (double-extension bypass) — the `[a-zA-Z0-9]+` base
+  // plus one optional `.[a-zA-Z0-9]+` segment enforces at most two parts.
+  return /^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9]+)?\.(js|css|map|svg|woff2?)$/.test(name);
 }
 
 function assertNonEmptyString(value: unknown, fieldName: string): string {

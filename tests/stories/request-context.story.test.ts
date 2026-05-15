@@ -138,10 +138,25 @@ describe("Story · Request-Context (W3C Trace Context)", () => {
       expect(response.status).toBe(200);
       expect(response.body.traceId).toBe("0af7651916cd43dd8448eb211c80319c");
       expect(response.body.parentId).toBe("b7ad6b7169203331");
-      expect(response.body.sampled).toBe(true);
+      // MIN-1 fix: external callers (no x-internal-request: 1) cannot force
+      // sampled=true — the gateway strips the sampled flag on external requests
+      // to prevent OTLP exporter budget exhaustion via traceparent injection.
+      expect(response.body.sampled).toBe(false);
       expect(response.body.requestId).toBeTypeOf("string");
       expect(response.headers["x-request-id"]).toBe(response.body.requestId);
-      expect(response.headers["traceparent"]).toBe(traceparent);
+    });
+
+    it("reuses trace + sampled flag when the caller is trusted (x-internal-request: 1)", async () => {
+      const traceparent = "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01";
+      const response = await request(app.getHttpServer())
+        .get("/_ctx")
+        .set("traceparent", traceparent)
+        .set("x-internal-request", "1");
+      expect(response.status).toBe(200);
+      expect(response.body.traceId).toBe("0af7651916cd43dd8448eb211c80319c");
+      expect(response.body.parentId).toBe("b7ad6b7169203331");
+      // Internal callers are trusted — sampled=true from their traceparent is respected.
+      expect(response.body.sampled).toBe(true);
     });
 
     it("generates a fresh trace when the header is missing or malformed", async () => {

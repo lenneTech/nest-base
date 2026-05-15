@@ -22,17 +22,27 @@ export interface RequestContext {
   sampled: boolean;
 }
 
-const storage = new AsyncLocalStorage<RequestContext>();
+export const requestContextStorage = new AsyncLocalStorage<RequestContext>();
 
 export function getRequestContext(): RequestContext | undefined {
-  return storage.getStore();
+  return requestContextStorage.getStore();
 }
 
+/**
+ * Run `fn` inside the request context `ctx`. The callback can be either
+ * synchronous or asynchronous — `AsyncLocalStorage.run()` is synchronous
+ * itself, so all async continuations that originate inside `fn` share the
+ * same context without any wrapping `async`.
+ *
+ * Prefer calling `requestContextStorage.run(ctx, fn)` directly in the
+ * Express middleware layer so the context is set synchronously before
+ * `next()` is called (MAJ-3 fix).
+ */
 export async function runWithRequestContext<T>(
   ctx: RequestContext,
   fn: () => Promise<T> | T,
 ): Promise<T> {
-  return storage.run(ctx, fn);
+  return requestContextStorage.run(ctx, fn);
 }
 
 /** Generate a UUID v7 request-id (time-ordered, RFC 9562). */

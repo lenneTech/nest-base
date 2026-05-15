@@ -36,19 +36,21 @@ export class PrismaAdminProvisioningStorage implements AdminProvisioningStorage 
     return row ? { email: row.email } : null;
   }
 
-  async createAdmin(input: { email: string; password: string }): Promise<AdminRecord> {
+  async createAdmin(input: {
+    email: string;
+    password: string;
+  }): Promise<{ record: AdminRecord; status: "created" | "already_exists" }> {
     // Better-Auth's `hashPassword` uses scrypt with the same parameters
     // every sign-up flow uses, so the bootstrap admin's hash is
     // verifiable via the standard `accounts` lookup at sign-in.
     const { hashPassword } = await import("better-auth/crypto");
     const passwordHash = await hashPassword(input.password);
 
-    // Create User + matching Account in one transaction so a partial
-    // failure can't leave the row half-provisioned. Concurrent boots
-    // (e.g. the heap-budget harness spawns several Nest apps in
-    // parallel) race against the unique `email` index — catch
-    // P2002 and surface the existing row so the service treats the
-    // outcome as `already_exists` rather than crashing the boot.
+    // Single-transaction create: no prior findAdminByEmail round-trip.
+    // Concurrent boots race against the unique `email` index — catch
+    // P2002 and surface "already_exists" so the caller never errors on
+    // a duplicate. This is the single DB call that replaces the old
+    // find-then-create two-step (CRIT-2 TOCTOU fix).
     try {
       await this.prisma.$transaction(async (tx) => {
         const user = await tx.user.create({
@@ -68,16 +70,16 @@ export class PrismaAdminProvisioningStorage implements AdminProvisioningStorage 
         });
       });
       this.logger.log(`bootstrap admin provisioned (email=${input.email})`);
+      return { record: { email: input.email }, status: "created" };
     } catch (err) {
       if (isUniqueConstraintError(err)) {
         this.logger.log(
           `bootstrap admin already exists (concurrent provisioning, email=${input.email})`,
         );
-      } else {
-        throw err;
+        return { record: { email: input.email }, status: "already_exists" };
       }
+      throw err;
     }
-    return { email: input.email };
   }
 }
 

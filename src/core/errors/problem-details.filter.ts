@@ -89,14 +89,20 @@ export class ProblemDetailsExceptionFilter implements ExceptionFilter {
     }
 
     if (exception instanceof ETagPreconditionFailedError) {
+      // MIN-3: Do NOT include currentETag in the 412 response body.
+      // Leaking the current ETag in the error response would allow a
+      // client that cannot read the resource (blocked by CASL) to brute-
+      // force or infer ETag values without a legitimate read session.
+      // The client MUST re-fetch the resource to obtain the fresh ETag,
+      // which is itself protected by CASL field-level access control.
       const detail = problemDetails({
         code: "CORE_PRECONDITION_FAILED",
         status: 412,
         title: "Precondition Failed",
-        detail: exception.message,
+        detail: "If-Match header did not match the current resource version",
         instance: req.originalUrl ?? req.url,
       });
-      return { ...detail, ...correlation, currentETag: exception.currentETag };
+      return { ...detail, ...correlation };
     }
 
     if (exception instanceof ZodError) {

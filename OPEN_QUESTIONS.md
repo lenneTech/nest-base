@@ -349,3 +349,47 @@ Per entry:
   action (or via an inverted rule). See `docs/architecture.md`
   "Permission model" for the current behaviour.
 - **Status:** answered.
+
+### 2026-05-15 · Concurrency · MIN-5: ETag primitives have no controller call-sites
+
+- **Context:** `verifyIfMatch` and `computeETag` in
+  `src/core/concurrency/etag.ts` are exported but have zero call-sites
+  in controllers or services. The `ETagPreconditionFailedError` handler
+  in `problem-details.filter.ts` is therefore dead code in production.
+- **Why acceptable now:** The ETag primitives are infrastructure; wiring
+  them requires updating every mutating controller to (1) `computeETag`
+  from the loaded resource, (2) `verifyIfMatch` against the
+  `If-Match` header, and (3) include the current ETag in every GET
+  response. This is a non-trivial cross-cutting change and is deferred
+  to a dedicated "optimistic-concurrency" slice.
+- **Correct fix:** For each mutable resource controller:
+  1. Add `ETag: <computeETag(resource)>` to GET response headers.
+  2. In PUT/PATCH handlers, call `verifyIfMatch(currentETag, req.headers["if-match"])`.
+  3. The `problem-details.filter.ts` handler then fires on a mismatch.
+  Start with the most contention-prone resources (User profile, tenant
+  settings). A story test that boots the app and verifies the full ETag
+  round-trip should accompany each resource wired.
+- **Status:** open — primitives exist; controller wiring is deferred.
+
+### 2026-05-15 · Observability · MIN-1: traceparent sampled injection — full fix deferred
+
+- **Context:** External callers can inject `traceparent: 00-...-...-01`
+  (sampled=1) to force the OTLP exporter to capture full traces for their
+  requests, potentially exhausting the exporter budget or leaking internal
+  timing to an attacker. The MAJ-3/MIN-1 fix in
+  `request-context.middleware.ts` limits `sampled=true` to requests
+  carrying `x-internal-request: 1`, which is a best-effort mitigation.
+- **Why partial:** A full fix requires one of:
+  a) IP allowlist: only accept trusted traceparent from known internal
+     CIDR ranges (load-balancer IPs). This is infrastructure-level and
+     must be configured per-deployment.
+  b) Header HMAC: sign `x-internal-request` with a shared secret so
+     only the LB can set it. Adds a key-rotation concern.
+  The current fix (strip `sampled` for external requests) is safe for
+  most deployments; a malicious caller can still correlate their
+  own trace but cannot force sampling on other users' requests.
+- **Correct full fix:** Implement IP-based allowlist at the ingress
+  (Traefik / nginx) that strips `traceparent` from external traffic
+  entirely, then re-injects a fresh one. Document in deployment guide.
+- **Status:** partial mitigation shipped (2026-05-15); full fix is
+  operator/infra responsibility.

@@ -43,7 +43,8 @@ import { maskPayload } from "./inspector-filter.js";
 import { ConfigService } from "../config/config.service.js";
 import { BetterAuthModule } from "../auth/better-auth.module.js";
 import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from "../auth/better-auth.token.js";
-import { parseChannelName } from "./channel-permission.js";
+import { canSubscribeToChannel, parseChannelName } from "./channel-permission.js";
+import { PermissionService } from "../permissions/permission.service.js";
 
 /**
  * Inspector event names emitted by the gateway through the
@@ -120,6 +121,8 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     @Optional()
     @Inject(BETTER_AUTH_INSTANCE)
     private readonly auth: BetterAuthInstance | null = null,
+    @Optional()
+    private readonly permissionService: PermissionService | null = null,
   ) {}
 
   /**
@@ -164,6 +167,8 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
       this.logger.warn(
         "RealtimeGateway: BetterAuth not configured — accepting connection without session validation",
       );
+      // No ability passed: anonymous connections cannot subscribe to any
+      // channel (canSubscribeToChannel defaults to deny when ability is null).
       this.acceptConnection(client, "anonymous", "anonymous");
       return;
     }
@@ -208,11 +213,37 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
       session.user.tenantId ??
       "";
 
-    this.acceptConnection(client, userId, tenantId);
+    // Resolve CASL ability for this user/tenant so channel subscriptions
+    // can be permission-checked synchronously in the subscribe listener.
+    // If PermissionService is not wired (feature off / test bootstrap),
+    // the ability stays undefined → all channel subscriptions will be
+    // denied (secure default).
+    let ability: import("../permissions/casl-ability.js").Ability | undefined;
+    if (this.permissionService) {
+      try {
+        ability = await this.permissionService.abilityFor(userId, tenantId);
+      } catch (err) {
+        this.logger.debug?.(
+          `socket ${client.id}: failed to resolve CASL ability — ${(err as Error).message}`,
+        );
+      }
+    }
+
+    this.acceptConnection(client, userId, tenantId, ability);
   }
 
-  private acceptConnection(client: Socket, userId: string, tenantId: string): void {
+  private acceptConnection(
+    client: Socket,
+    userId: string,
+    tenantId: string,
+    ability?: import("../permissions/casl-ability.js").Ability,
+  ): void {
     this.liveSockets.set(client.id, client);
+    // Store identity and CASL ability on the socket's data bag so the
+    // subscribe listener can perform per-channel permission checks without
+    // a second async lookup. The ability is resolved once per connection
+    // and cached for the socket's lifetime.
+    (client.data as Record<string, unknown>).ability = ability ?? null;
     this.state.recordConnect({ id: client.id, userId, tenantId });
     this.inspectorBus.emit(INSPECTOR_EVENT.socketConnected, { id: client.id, userId, tenantId });
     this.logger.debug(`socket connected: ${client.id} (userId=${userId})`);
@@ -225,18 +256,17 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     client.on("subscribe", (channel: unknown) => {
       if (typeof channel !== "string" || !channel) return;
       // Channel permission check: parse the channel name and verify the
-      // user's ability allows subscription. With anonymous identity (no
-      // auth) all channels are accepted. With a real session the ability
-      // is not yet wired here (requires PermissionService lookup) so we
-      // fall back to accepting all channels for authenticated users.
-      // TODO: resolve the CASL Ability for userId/tenantId and call
-      //       canSubscribeToChannel(ability, parseChannelName(channel)).
-      //       Tracked as a follow-up to Fix 1.2.
-      let allowed = true;
-      if (userId !== "anonymous") {
+      // user's CASL ability allows subscription. A missing ability (no
+      // PermissionService wired or anonymous connection) defaults to
+      // deny-all — security posture favors explicit over permissive.
+      let allowed = false;
+      const storedAbility = (
+        client.data as { ability?: import("../permissions/casl-ability.js").Ability | null }
+      ).ability;
+      if (storedAbility) {
         try {
-          // Validate channel name format; parseChannelName throws on malformed names.
-          parseChannelName(channel);
+          const parsed = parseChannelName(channel);
+          allowed = canSubscribeToChannel(storedAbility, parsed);
         } catch {
           allowed = false;
         }

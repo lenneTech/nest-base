@@ -16,7 +16,17 @@ export interface AdminRecord {
 
 export interface AdminProvisioningStorage {
   findAdminByEmail(email: string): Promise<AdminRecord | null>;
-  createAdmin(input: { email: string; password: string }): Promise<AdminRecord>;
+  /**
+   * Create the admin account. Implementations MUST be idempotent:
+   * when an admin with the same email already exists, they MUST return
+   * `{ status: "already_exists" }` rather than throwing. This collapses
+   * the previous find-then-create two-step into a single DB round-trip
+   * (upsert or P2002-catch), eliminating the TOCTOU race window.
+   */
+  createAdmin(input: {
+    email: string;
+    password: string;
+  }): Promise<{ record: AdminRecord; status: "created" | "already_exists" }>;
 }
 
 export type ProvisionResult =
@@ -32,17 +42,17 @@ export class SystemSetupService {
       return { status: "disabled" };
     }
 
-    const existing = await this.storage.findAdminByEmail(config.adminEmail);
-    if (existing) {
-      return { status: "already_exists", email: existing.email };
-    }
-
+    // Single DB call: createAdmin is idempotent and returns whether it
+    // actually created a new row or found an existing one. This replaces
+    // the previous find-then-create pattern which had a TOCTOU race
+    // window: two concurrent boots could both see "no admin exists" and
+    // both attempt to create, causing one to fail with P2002.
     try {
-      const created = await this.storage.createAdmin({
+      const result = await this.storage.createAdmin({
         email: config.adminEmail,
         password: config.adminPassword,
       });
-      return { status: "created", email: created.email };
+      return { status: result.status, email: result.record.email };
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       throw new Error(`system-setup: failed to provision initial admin (${reason})`);

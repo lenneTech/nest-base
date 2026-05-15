@@ -27,6 +27,11 @@ interface User {
   deletedAt: Date | null;
 }
 
+/** Simulate Prisma's P2025 "Record not found" error shape (duck-typed). */
+function makePrismaP2025(message = "Record to update not found"): Error {
+  return Object.assign(new Error(message), { code: "P2025" });
+}
+
 function makeDelegate(): ModelDelegate<User> & { rows: User[] } {
   const rows: User[] = [];
   return {
@@ -51,13 +56,14 @@ function makeDelegate(): ModelDelegate<User> & { rows: User[] } {
     },
     async update(args) {
       const idx = rows.findIndex((r) => r.id === args.where.id);
-      if (idx < 0) throw new Error("not found");
+      // Throw P2025 so BaseRepository wraps it as RepositoryNotFoundError
+      if (idx < 0) throw makePrismaP2025();
       rows[idx] = { ...rows[idx]!, ...args.data };
       return rows[idx]!;
     },
     async delete(args) {
       const idx = rows.findIndex((r) => r.id === args.where.id);
-      if (idx < 0) throw new Error("not found");
+      if (idx < 0) throw makePrismaP2025();
       const [removed] = rows.splice(idx, 1);
       return removed!;
     },
@@ -168,6 +174,63 @@ describe("Story · BaseRepository", () => {
       const repo = new UserRepository(delegate);
       await repo.hardDelete("1");
       expect(delegate.rows).toHaveLength(0);
+    });
+
+    it("update() re-throws non-P2025 errors without wrapping as RepositoryNotFoundError", async () => {
+      // MAJ-4 fix: before the fix, ANY error from the delegate would be
+      // re-thrown as RepositoryNotFoundError (including DB-down / constraint
+      // violations). Now only P2025 is wrapped.
+      const networkError = new Error("Connection refused");
+      const brokenDelegate: ModelDelegate<User> = {
+        async findUnique() {
+          return null;
+        },
+        async findMany() {
+          return [];
+        },
+        async create(args) {
+          return args.data;
+        },
+        async update() {
+          throw networkError;
+        },
+        async delete() {
+          throw networkError;
+        },
+      };
+      const repo = new UserRepository(brokenDelegate);
+      // The original error propagates unchanged — NOT wrapped as RepositoryNotFoundError.
+      await expect(repo.update("1", { email: "b@x.com" })).rejects.toThrow("Connection refused");
+      await expect(repo.update("1", { email: "b@x.com" })).rejects.not.toThrow(
+        RepositoryNotFoundError,
+      );
+    });
+
+    it("update() wraps P2025 as RepositoryNotFoundError", async () => {
+      // The P2025 Prisma error shape is duck-typed (no Prisma runtime import).
+      const p2025Error = Object.assign(new Error("Record not found"), { code: "P2025" });
+      const p2025Delegate: ModelDelegate<User> = {
+        async findUnique() {
+          return null;
+        },
+        async findMany() {
+          return [];
+        },
+        async create(args) {
+          return args.data;
+        },
+        async update() {
+          throw p2025Error;
+        },
+        async delete() {
+          throw p2025Error;
+        },
+      };
+      const repo = new UserRepository(p2025Delegate);
+      await expect(repo.update("missing", { email: "b@x.com" })).rejects.toThrow(
+        RepositoryNotFoundError,
+      );
+      await expect(repo.hardDelete("missing")).rejects.toThrow(RepositoryNotFoundError);
     });
   });
 });

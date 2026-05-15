@@ -1,6 +1,21 @@
 import { type PowerSyncConflictOutcome, resolvePowerSyncConflict } from "./powersync-conflict.js";
 
 /**
+ * Minimal Prisma error shape used for P2025 detection.
+ * Avoids importing the heavy `@prisma/client` engine at this layer —
+ * pattern-match on the duck-typed error shape instead. Keeps tests
+ * free of the Prisma runtime while still correctly distinguishing
+ * "record not found" (P2025) from network / constraint / RLS errors.
+ */
+function isPrismaNotFoundError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const e = err as { code?: unknown; name?: unknown };
+  // Prisma: P2025 = "An operation failed because it depends on one or
+  // more records that were required but not found."
+  return e.code === "P2025";
+}
+
+/**
  * BaseRepository.
  *
  * Wraps a Prisma-shaped `ModelDelegate<T>` and centralizes:
@@ -77,10 +92,17 @@ export abstract class BaseRepository<T extends { id: string } & Partial<SoftDele
   constructor(protected readonly delegate: ModelDelegate<T>) {}
 
   async findById(id: string, options: FindByIdOptions = {}): Promise<T | null> {
-    const row = await this.delegate.findUnique({ where: { id } });
-    if (!row) return null;
-    if (!options.includeDeleted && this.isDeleted(row)) return null;
-    return row;
+    // NIT-1: filter `deletedAt: null` through the delegate when not
+    // including deleted rows, so the predicate runs in the DB rather
+    // than in-process. The `where: { id, deletedAt: null }` lookup is a
+    // single indexed round-trip. We use `findMany` (take: 1) instead of
+    // a hypothetical `findFirst` because the `ModelDelegate` interface
+    // (and its in-memory fake) already implements `findMany`.
+    if (!options.includeDeleted) {
+      const rows = await this.delegate.findMany({ where: { id, deletedAt: null }, take: 1 });
+      return rows[0] ?? null;
+    }
+    return this.delegate.findUnique({ where: { id } });
   }
 
   async list(options: ListOptions = {}): Promise<T[]> {
@@ -101,8 +123,15 @@ export abstract class BaseRepository<T extends { id: string } & Partial<SoftDele
   async update(id: string, patch: Partial<T>): Promise<T> {
     try {
       return await this.delegate.update({ where: { id }, data: patch });
-    } catch {
-      throw new RepositoryNotFoundError(id);
+    } catch (err) {
+      // Only wrap P2025 (record not found) as RepositoryNotFoundError.
+      // All other errors (network, constraint violation, RLS policy
+      // rejection, etc.) propagate as-is so callers can distinguish
+      // "row missing" from "DB unavailable" or "constraint violated".
+      if (isPrismaNotFoundError(err)) {
+        throw new RepositoryNotFoundError(id);
+      }
+      throw err;
     }
   }
 
@@ -164,12 +193,11 @@ export abstract class BaseRepository<T extends { id: string } & Partial<SoftDele
   async hardDelete(id: string): Promise<T> {
     try {
       return await this.delegate.delete({ where: { id } });
-    } catch {
-      throw new RepositoryNotFoundError(id);
+    } catch (err) {
+      if (isPrismaNotFoundError(err)) {
+        throw new RepositoryNotFoundError(id);
+      }
+      throw err;
     }
-  }
-
-  private isDeleted(row: T): boolean {
-    return row.deletedAt instanceof Date;
   }
 }

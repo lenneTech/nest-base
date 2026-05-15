@@ -63,6 +63,29 @@ describe("Story · PowerSync conflict resolution", () => {
     expect(decision.outcome).toBe("partial-conflict");
   });
 
+  it("server wins even when the patch touches protected fields (no stale fields applied)", () => {
+    // MAJ-1 fix: server-newer takes full precedence. Previously the code
+    // produced partial-conflict when protected fields were in the patch AND
+    // the server was newer — applying stale non-protected fields silently.
+    const decision = resolvePowerSyncConflict({
+      clientPatch: { name: "stale-name", role: "ADMIN" },
+      clientUpdatedAt: new Date("2026-01-01T00:00:00Z"),
+      serverRow: {
+        id: "a",
+        name: "fresh-name",
+        role: "USER",
+        updatedAt: new Date("2026-01-02T00:00:00Z"),
+      },
+      protectedFields: ["role"],
+    });
+    expect(decision.outcome).toBe("server-wins");
+    // No stale fields are applied — entire patch discarded
+    expect(decision.merged.name).toBe("fresh-name");
+    expect(decision.merged.role).toBe("USER");
+    // rejectedFields still lists which protected fields were in the patch
+    expect(decision.rejectedFields).toContain("role");
+  });
+
   it("returns the unchanged server row when the client patch is empty", () => {
     const decision = resolvePowerSyncConflict({
       clientPatch: {},
