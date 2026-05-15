@@ -84,11 +84,7 @@ describe("Story · System-Setup (Initial-Admin)", () => {
     const storage = makeStorage();
     const create = vi.spyOn(storage, "createAdmin");
     const svc = new SystemSetupService(storage);
-    const result = await svc.provisionInitialAdmin({
-      adminEmail: "admin@example.com",
-      adminPassword: "super-secret-12345",
-      enabled: false,
-    });
+    const result = await svc.provisionInitialAdmin({ enabled: false });
     expect(result).toEqual({ status: "disabled" });
     expect(create).not.toHaveBeenCalled();
   });
