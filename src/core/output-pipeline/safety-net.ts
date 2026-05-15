@@ -15,18 +15,10 @@
  * in logs and tests.
  */
 
-export const DEFAULT_SECRET_FIELD_NAMES = [
-  "password",
-  "passwordHash",
-  "token",
-  "apiKey",
-  "secret",
-  "authToken",
-  "refreshToken",
-  "sessionToken",
-  "pinHash",
-  "mfaSecret",
-] as const;
+import { SECRET_FIELD_NAMES } from "./secret-field-names.js";
+
+// NIT-1: Re-export under the legacy name so existing imports compile.
+export { SECRET_FIELD_NAMES as DEFAULT_SECRET_FIELD_NAMES };
 
 /**
  * Value-shape patterns that catch secrets shoved into normally-safe
@@ -81,7 +73,9 @@ export function containsSecretValue(value: unknown, patterns: readonly RegExp[])
 }
 
 export function applySafetyNet(value: unknown, options: SafetyNetOptions): unknown {
-  const fields = normalize(options.fields ?? DEFAULT_SECRET_FIELD_NAMES);
+  // NIT-1: Use the shared constant directly so the default is always in sync
+  // with `remove-secrets.ts` (Stage 3).
+  const fields = normalize(options.fields ?? SECRET_FIELD_NAMES);
   const patterns = options.valuePatterns ?? [];
 
   if (options.mode === "throw") {

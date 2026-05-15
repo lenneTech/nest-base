@@ -20,6 +20,14 @@ export interface RequestContext {
   traceId: string;
   parentId: string;
   sampled: boolean;
+  /**
+   * Authenticated user id for the current request. Set by
+   * `BetterAuthSessionMiddleware` after the session is resolved.
+   * Undefined for anonymous or unauthenticated requests.
+   * Used by the audit extension to attribute `actorUserId` on every
+   * mutation without threading `userId` through every signature.
+   */
+  userId?: string;
 }
 
 export const requestContextStorage = new AsyncLocalStorage<RequestContext>();

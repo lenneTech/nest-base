@@ -147,4 +147,52 @@ describe("Story · KEK rotation (SC.SUB.12)", () => {
     // is therefore never invoked during the successful decrypt.
     expect(legacyCalled).toBe(0);
   });
+
+  describe("MIN-2 · malformed ciphertext vs wrong-key distinction", () => {
+    it("throws CiphertextMalformedError immediately for structurally invalid ciphertext", async () => {
+      const { MultiKekFieldEncryption, CiphertextMalformedError } =
+        await import("../../src/core/encryption/multi-kek.service.js");
+
+      let legacyCalled = 0;
+      const multi = new MultiKekFieldEncryption({
+        primary: { getKek: () => KEK_A },
+        legacy: [
+          {
+            getKek: () => {
+              legacyCalled++;
+              return KEK_B;
+            },
+          },
+        ],
+      });
+
+      // Structurally invalid: no v1: prefix.
+      expect(() => multi.decrypt("not-a-ciphertext")).toThrow(CiphertextMalformedError);
+      // Legacy KEKs must NOT be tried for malformed ciphertext.
+      expect(legacyCalled).toBe(0);
+    });
+
+    it("throws CiphertextMalformedError for a wrong version prefix", async () => {
+      const { MultiKekFieldEncryption, CiphertextMalformedError } =
+        await import("../../src/core/encryption/multi-kek.service.js");
+      const multi = new MultiKekFieldEncryption({ primary: { getKek: () => KEK_A }, legacy: [] });
+      expect(() => multi.decrypt("v9:somebase64payload")).toThrow(CiphertextMalformedError);
+    });
+
+    it("throws MultiKekDecryptError (not CiphertextMalformedError) for a valid format but wrong key", async () => {
+      const { MultiKekFieldEncryption, MultiKekDecryptError, CiphertextMalformedError } =
+        await import("../../src/core/encryption/multi-kek.service.js");
+      const { FieldEncryptionService } =
+        await import("../../src/core/encryption/field-encryption.service.js");
+
+      // Encrypt under an unknown key.
+      const stranger = new FieldEncryptionService({ getKek: () => Buffer.alloc(32, 0xdd) });
+      const ct = stranger.encrypt("secret");
+
+      const multi = new MultiKekFieldEncryption({ primary: { getKek: () => KEK_A }, legacy: [] });
+      // Well-formed ciphertext but wrong key → MultiKekDecryptError, not CiphertextMalformedError.
+      expect(() => multi.decrypt(ct)).toThrow(MultiKekDecryptError);
+      expect(() => multi.decrypt(ct)).not.toThrow(CiphertextMalformedError);
+    });
+  });
 });

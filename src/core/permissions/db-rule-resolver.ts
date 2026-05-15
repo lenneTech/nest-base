@@ -115,11 +115,21 @@ function resolveFieldFilter(raw: unknown, ctx: ResolveContext): unknown {
 function substituteValue(value: unknown, ctx: ResolveContext): unknown {
   if (Array.isArray(value)) return value.map((item) => substituteValue(item, ctx));
   if (value === VAR_CURRENT_USER) return ctx.userId;
-  // `$CURRENT_TENANT` only substitutes when a tenant id is present in
-  // the context. Legacy callers (no tenantId) get the literal back —
-  // CASL will compare it to the row's `tenantId` and naturally fail,
-  // which is a safe failure mode rather than a silent grant.
-  if (value === VAR_CURRENT_TENANT && ctx.tenantId !== undefined) return ctx.tenantId;
+  if (value === VAR_CURRENT_TENANT) {
+    // NIT-3: A rule that references `$CURRENT_TENANT` but is resolved
+    // without a tenant id in context is almost certainly a misconfigured
+    // caller — the rule would silently become a "deny-all" (CASL
+    // compares the literal string `"$CURRENT_TENANT"` against the row's
+    // `tenantId` UUID and never matches). Throwing here surfaces the bug
+    // at the call-site rather than producing hard-to-diagnose empty
+    // permission sets.
+    if (ctx.tenantId === undefined) {
+      throw new Error(
+        "db-rule-resolver: rule references $CURRENT_TENANT but no tenantId in context — misconfigured caller",
+      );
+    }
+    return ctx.tenantId;
+  }
   if (value === VAR_NOW) return ctx.now.toISOString();
   return value;
 }

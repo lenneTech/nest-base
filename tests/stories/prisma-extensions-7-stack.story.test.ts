@@ -252,6 +252,96 @@ describe("Story · Prisma extension 7-stack", () => {
           { id: "p2", name: "beta" },
         ]);
       });
+
+      it("CRIT-2 · create() does not mutate the original args.data object", async () => {
+        // If the extension mutates args.data in-place, a Prisma-internal
+        // retry passing the same args reference would double-encrypt.
+        const cbs = makeExt();
+        const originalData = { email: "alice@example.com", phone: "+49123" };
+        const argsSentToQuery: Record<string, unknown>[] = [];
+        await cbs.create({
+          args: { data: originalData },
+          model: "User",
+          query: async (a) => {
+            const d = (a as { data?: Record<string, unknown> }).data;
+            argsSentToQuery.push(d ? { ...d } : {});
+            return { id: "u1" };
+          },
+        });
+        // The original object must be unchanged.
+        expect(originalData.email).toBe("alice@example.com");
+        expect(originalData.phone).toBe("+49123");
+        // The query must have received the encrypted copy.
+        expect(argsSentToQuery[0]?.["email"]).toBe("enc:alice@example.com");
+      });
+
+      it("CRIT-2 · update() does not mutate the original args.data object", async () => {
+        const cbs = makeExt();
+        const originalData = { phone: "+49999" };
+        const argsSentToQuery: Record<string, unknown>[] = [];
+        await cbs.update({
+          args: { data: originalData },
+          model: "User",
+          query: async (a) => {
+            const d = (a as { data?: Record<string, unknown> }).data;
+            argsSentToQuery.push(d ? { ...d } : {});
+            return { id: "u1" };
+          },
+        });
+        expect(originalData.phone).toBe("+49999");
+        expect(argsSentToQuery[0]?.["phone"]).toBe("enc:+49999");
+      });
+
+      it("MAJ-1 · upsert() encrypts both create and update branches", async () => {
+        const cbs = makeExt();
+        let capturedArgs: {
+          create?: Record<string, unknown>;
+          update?: Record<string, unknown>;
+        } | null = null;
+        await cbs.upsert({
+          args: {
+            create: { email: "alice@example.com", phone: "+49123" },
+            update: { email: "alice@new.com" },
+          },
+          model: "User",
+          query: async (a) => {
+            capturedArgs = a as typeof capturedArgs;
+            return { id: "u1", email: "alice@new.com", phone: "+49123" };
+          },
+        });
+        expect(capturedArgs).not.toBeNull();
+        expect(capturedArgs!.create?.["email"]).toBe("enc:alice@example.com");
+        expect(capturedArgs!.create?.["phone"]).toBe("enc:+49123");
+        expect(capturedArgs!.update?.["email"]).toBe("enc:alice@new.com");
+      });
+
+      it("MAJ-1 · upsert() decrypts the result on the way back", async () => {
+        const cbs = makeExt();
+        const result = await cbs.upsert({
+          args: {
+            create: { email: "alice@example.com" },
+            update: { email: "alice@example.com" },
+          },
+          model: "User",
+          query: async () => ({ id: "u1", email: "enc:alice@example.com", role: "member" }),
+        });
+        expect((result as Record<string, unknown>)["email"]).toBe("alice@example.com");
+        expect((result as Record<string, unknown>)["role"]).toBe("member");
+      });
+
+      it("MAJ-1 · upsert() on an unconfigured model is a pass-through", async () => {
+        const cbs = makeExt();
+        let called = false;
+        await cbs.upsert({
+          args: { create: { name: "X" }, update: { name: "X" } },
+          model: "Project",
+          query: async (a) => {
+            called = true;
+            return a as Record<string, unknown>;
+          },
+        });
+        expect(called).toBe(true);
+      });
     });
   });
 });

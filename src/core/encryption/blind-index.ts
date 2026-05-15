@@ -130,14 +130,64 @@ export const BLIND_INDEX = Symbol.for("lt:BlindIndex");
  * value into (a) accepted (returns a `BlindIndex` instance), (b)
  * rejected (returns the reason). Keeps the `EncryptionModule`
  * factory testable without mounting Nest.
+ *
+ * Supported formats (MIN-5 — prefix-first to avoid hex/base64 ambiguity):
+ *   `hex:<hexString>`   — explicit hexadecimal encoding
+ *   `b64:<b64String>`   — explicit base64 / base64url encoding
+ *   <bare value>        — legacy auto-detect (hex if all hex chars + even
+ *                         length, base64 otherwise). An all-hex base64
+ *                         value with even length will be incorrectly
+ *                         parsed as hex under auto-detect — use the `hex:`
+ *                         or `b64:` prefix to avoid ambiguity.
  */
 export function planBlindIndexFromEnv(envValue: string | undefined): BlindIndexPlan {
   if (envValue === undefined || envValue.trim().length === 0) {
     return { kind: "absent" };
   }
-  // Accept either base64url (44 chars for 32 bytes) or hex (64 chars
-  // for 32 bytes). Anything else is rejected with a descriptive
-  // reason so the env-prerequisite banner can route the user.
+
+  // MIN-5: Explicit prefix format — unambiguous and forward-compatible.
+  if (envValue.startsWith("hex:")) {
+    const raw = envValue.slice(4);
+    if (raw.length === 0 || raw.length % 2 !== 0 || !/^[0-9a-fA-F]+$/.test(raw)) {
+      return {
+        kind: "rejected",
+        reason: "BLIND_INDEX_KEY hex: prefix provided but value is not a valid hex string",
+      };
+    }
+    const buf = Buffer.from(raw, "hex");
+    if (buf.length < MIN_KEY_BYTES) {
+      return {
+        kind: "rejected",
+        reason: `BLIND_INDEX_KEY hex value must decode to at least ${MIN_KEY_BYTES} bytes (got ${buf.length})`,
+      };
+    }
+    return { kind: "accepted", key: new Uint8Array(buf) };
+  }
+
+  if (envValue.startsWith("b64:")) {
+    const raw = envValue.slice(4);
+    try {
+      const buf = Buffer.from(raw, "base64");
+      if (buf.length < MIN_KEY_BYTES) {
+        return {
+          kind: "rejected",
+          reason: `BLIND_INDEX_KEY b64 value must decode to at least ${MIN_KEY_BYTES} bytes (got ${buf.length})`,
+        };
+      }
+      return { kind: "accepted", key: new Uint8Array(buf) };
+    } catch {
+      return {
+        kind: "rejected",
+        reason: "BLIND_INDEX_KEY b64: prefix provided but value is not valid base64",
+      };
+    }
+  }
+
+  // Legacy bare-value auto-detect path. Accept either base64url
+  // (44 chars for 32 bytes) or hex (64 chars for 32 bytes).
+  // Warning: a base64 value whose characters all fall in [0-9a-fA-F]
+  // with an even length will be silently mis-parsed as hex. Use the
+  // `hex:` / `b64:` prefix to prevent this.
   const hexMatch = /^[0-9a-fA-F]+$/.test(envValue);
   if (hexMatch && envValue.length % 2 === 0) {
     const buf = Buffer.from(envValue, "hex");

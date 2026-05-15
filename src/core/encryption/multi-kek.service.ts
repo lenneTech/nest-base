@@ -63,16 +63,31 @@ export class MultiKekFieldEncryption {
    * tracked by the project, or that the ciphertext is malformed.
    */
   decrypt(ciphertext: string): string {
+    // MIN-2: Detect malformed ciphertext early — before exhausting all
+    // KEKs — by validating the `v1:` prefix and minimum payload length.
+    // `FieldEncryptionService.decrypt()` already checks these and throws
+    // with a message that does NOT indicate key failure. Re-check at the
+    // multi-KEK layer so a structurally corrupt value is rejected
+    // immediately rather than silently tried against every KEK.
+    if (!isWellFormedCiphertext(ciphertext)) {
+      throw new CiphertextMalformedError(
+        `multi-kek: ciphertext does not match expected v1:<base64url> format`,
+      );
+    }
     try {
       return this.primaryService.decrypt(ciphertext);
-    } catch {
-      // primary failed — fall through to legacy iteration
+    } catch (err) {
+      // Re-throw malformed-ciphertext errors immediately — there is no
+      // point trying legacy KEKs when the ciphertext itself is invalid.
+      if (err instanceof CiphertextMalformedError) throw err;
+      // Auth-tag mismatch (wrong key) — fall through to legacy iteration.
     }
     for (const provider of this.legacyProviders) {
       const service = new FieldEncryptionService(provider);
       try {
         return service.decrypt(ciphertext);
-      } catch {
+      } catch (err) {
+        if (err instanceof CiphertextMalformedError) throw err;
         // try next legacy slot
       }
     }
@@ -85,4 +100,40 @@ export class MultiKekDecryptError extends Error {
     super(message);
     this.name = "MultiKekDecryptError";
   }
+}
+
+/**
+ * Thrown when a ciphertext is structurally invalid — wrong prefix,
+ * missing colon, payload too short for the IV + auth-tag envelope.
+ * Distinct from `MultiKekDecryptError` (no matching KEK) so callers
+ * can distinguish corrupt data from a key-rotation gap.
+ */
+export class CiphertextMalformedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "CiphertextMalformedError";
+  }
+}
+
+/**
+ * MIN-2: Validate ciphertext structure before attempting decryption.
+ * Expected format: `v1:<base64url>` where the decoded payload is
+ * at least IV_BYTES(12) + TAG_BYTES(16) = 28 bytes — any shorter
+ * payload cannot contain a valid IV+tag+ciphertext triple.
+ *
+ * base64url encodes 3 bytes as 4 chars, so 28 bytes → ceil(28/3)*4 = 40
+ * chars minimum. We use a conservative lower bound (> 20) to avoid
+ * duplicating the exact constant and to handle padding edge cases.
+ */
+function isWellFormedCiphertext(value: string): boolean {
+  if (typeof value !== "string") return false;
+  const colon = value.indexOf(":");
+  if (colon < 0) return false;
+  const version = value.slice(0, colon);
+  if (version !== "v1") return false;
+  const payload = value.slice(colon + 1);
+  // Minimum base64url length for a 28-byte payload (IV + tag, no ciphertext)
+  // is ceil(28 * 4 / 3) = 38 chars (without padding). Accept > 20 as a
+  // conservative lower bound.
+  return payload.length > 20;
 }

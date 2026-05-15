@@ -269,6 +269,16 @@ export const uuidV7Extension = Prisma.defineExtension({
         }
         return query(args);
       },
+      // MIN-4: Cover `createMany` so batch inserts also receive UUID v7
+      // ids when the caller omits them — mirrors the `create` handler.
+      async createMany({ args, query }) {
+        const rawData = (args as { data?: unknown }).data;
+        if (!Array.isArray(rawData)) return query(args);
+        const data = (rawData as Record<string, unknown>[]).map((item) =>
+          item.id != null ? item : { ...item, id: uuidV7() },
+        );
+        return query(bridgeQueryArgs<Parameters<typeof query>[0]>({ ...args, data }));
+      },
     },
   },
 });
@@ -610,14 +620,18 @@ export function buildFieldEncryptionCallbacks(input: FieldEncryptionExtensionInp
     }) {
       const fields = fieldsByModel.get(model);
       if (!fields || fields.length === 0) return query(args);
-      const data = args.data;
-      if (data && typeof data === "object") {
+      const rawData = args.data;
+      if (rawData && typeof rawData === "object") {
+        // CRIT-2: Shallow-copy `data` before mutation so Prisma-internal
+        // retries don't see an already-encrypted object and double-encrypt.
+        const data = { ...rawData };
         for (const f of fields) {
           const v = data[f];
           if (typeof v === "string") {
             data[f] = input.encrypt(v);
           }
         }
+        return query({ ...args, data });
       }
       return query(args);
     },
@@ -632,16 +646,52 @@ export function buildFieldEncryptionCallbacks(input: FieldEncryptionExtensionInp
     }) {
       const fields = fieldsByModel.get(model);
       if (!fields || fields.length === 0) return query(args);
-      const data = args.data;
-      if (data && typeof data === "object") {
+      const rawData = args.data;
+      if (rawData && typeof rawData === "object") {
+        // CRIT-2: Shallow-copy `data` before mutation so Prisma-internal
+        // retries don't see an already-encrypted object and double-encrypt.
+        const data = { ...rawData };
         for (const f of fields) {
           const v = data[f];
           if (typeof v === "string") {
             data[f] = input.encrypt(v);
           }
         }
+        return query({ ...args, data });
       }
       return query(args);
+    },
+    async upsert({
+      args,
+      model,
+      query,
+    }: {
+      args: { create?: Record<string, unknown>; update?: Record<string, unknown> };
+      model: string;
+      query: (args: {
+        create?: Record<string, unknown>;
+        update?: Record<string, unknown>;
+      }) => Promise<Record<string, unknown>>;
+    }) {
+      // MAJ-1: cover upsert so plaintext never lands in DB for
+      // models with encrypted fields.
+      const fields = fieldsByModel.get(model);
+      if (!fields || fields.length === 0) return query(args);
+      // CRIT-2: Shallow-copy both branches before mutation.
+      const create = args.create ? { ...args.create } : args.create;
+      const update = args.update ? { ...args.update } : args.update;
+      for (const f of fields) {
+        if (create != null) {
+          const v = create[f];
+          if (typeof v === "string") create[f] = input.encrypt(v);
+        }
+        if (update != null) {
+          const v = update[f];
+          if (typeof v === "string") update[f] = input.encrypt(v);
+        }
+      }
+      const result = await query({ ...args, create, update });
+      return decryptFields(result, fields, input.decrypt) as typeof result;
     },
     async findUnique({
       args,

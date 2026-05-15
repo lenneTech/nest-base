@@ -175,14 +175,18 @@ describe("Problem-Details exception filter", () => {
   });
 
   it("TenantIsolationError becomes 400 + CORE_VALIDATION (not 500)", async () => {
+    // MIN-1: The detail must be the static redacted message, NOT the
+    // internal exception.message — which may contain implementation details.
     const response = await request(app.getHttpServer()).get("/boom/tenant-missing");
     expect(response.status).toBe(400);
     expect(response.body).toMatchObject({
       code: "CORE_VALIDATION",
       title: "Tenant Header Required",
-      detail: "tenant header is required",
+      detail: "Tenant header could not be resolved for this request",
       status: 400,
     });
+    // The internal message must NOT leak into the response body.
+    expect(JSON.stringify(response.body)).not.toContain("tenant header is required");
   });
 
   it("Successful responses are not touched", async () => {

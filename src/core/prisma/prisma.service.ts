@@ -198,14 +198,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   buildExtendedClient() {
     const auditStampExtension = buildAuditStampExtension({
       resolveTenantId: () => getCurrentTenantId() ?? null,
-      // `RequestContext` doesn't currently carry a user id (the
-      // Better-Auth session middleware attaches `req.user` directly
-      // to the Express request rather than the AsyncLocalStorage
-      // context). Until the request-context surface is extended,
-      // `auditStamp` only fills `tenantId` automatically; project
-      // code passes `createdBy` / `updatedBy` explicitly when it
-      // wants them stamped.
-      resolveUserId: () => null,
+      // CRIT-1: Read the authenticated user id from the AsyncLocalStorage
+      // request context. `BetterAuthSessionMiddleware` sets `ctx.userId`
+      // after resolving the session, so the audit extension can attribute
+      // `createdBy` / `updatedBy` on every mutation automatically.
+      resolveUserId: () => getRequestContext()?.userId ?? null,
     });
 
     // Audit extension — only kicks in when `features.audit.enabled`
@@ -218,7 +215,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     const bareSelf = this;
     const auditExtension = buildAuditExtension({
       resolveTenantId: () => getCurrentTenantId() ?? null,
-      resolveUserId: () => null,
+      // CRIT-1: Read the authenticated user id from the AsyncLocalStorage
+      // request context so audit rows carry the correct `actorUserId`.
+      resolveUserId: () => getRequestContext()?.userId ?? null,
       resolveRequestId: () => getRequestContext()?.requestId ?? null,
       writeAuditLog: async (row: AuditLogWriteInput) => {
         if (!features.audit.enabled) return;
@@ -263,11 +262,23 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       readBeforeImage: async (model, where) => {
         const tableName = MODEL_TABLE_MAP[model];
         if (!tableName) return null;
+        // MAJ-3: Validate table name format at read-time to prevent SQL
+        // injection if MODEL_TABLE_MAP is extended with untrusted values.
+        // PostgreSQL table names are double-quoted to handle reserved words;
+        // the validation ensures the name only contains safe characters so
+        // no escape sequences can break out of the quote.
+        if (!/^[a-z_][a-z0-9_]*$/.test(tableName)) {
+          throw new Error(
+            `readBeforeImage: unsafe table name "${tableName}" in MODEL_TABLE_MAP — only lowercase letters, digits, and underscores are allowed`,
+          );
+        }
         const id = (where as { id?: unknown }).id;
         if (typeof id !== "string" || id.length === 0) return null;
         try {
+          // Double-quote the identifier (PostgreSQL standard quoting) so the
+          // table name is always treated as an identifier, not a keyword.
           const rows = (await bareSelf.$queryRawUnsafe(
-            `SELECT * FROM ${tableName} WHERE id = $1`,
+            `SELECT * FROM "${tableName}" WHERE id = $1`,
             id,
           )) as Record<string, unknown>[];
           return rows[0] ?? null;

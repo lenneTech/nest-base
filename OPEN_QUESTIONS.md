@@ -332,6 +332,30 @@ Per entry:
 - **Status:** open — documented as known limitation; safe to defer until large-file upload
   performance becomes a hard requirement.
 
+### 2026-05-15 · Encryption · MIN-5: `BLIND_INDEX_KEY` legacy bare-value format migration
+
+- **Context:** `planBlindIndexFromEnv` now supports explicit `hex:` / `b64:` prefix
+  formats to avoid the Hex-vs-Base64 ambiguity where an all-hex base64 value of
+  even length would be silently mis-parsed as hex. The legacy bare-value auto-detect
+  path is still supported for backward compatibility.
+- **Migration guidance:** existing deployments using a bare hex or base64 value
+  for `BLIND_INDEX_KEY` continue to work unchanged. To eliminate the ambiguity,
+  update the env var to use the explicit prefix format:
+  ```
+  # Before (bare hex — still works, auto-detected as hex)
+  BLIND_INDEX_KEY=<64-hex-chars>
+  # After (explicit — unambiguous)
+  BLIND_INDEX_KEY=hex:<64-hex-chars>
+
+  # Before (bare base64 — still works, auto-detected as base64)
+  BLIND_INDEX_KEY=<44-base64-chars>
+  # After (explicit — unambiguous)
+  BLIND_INDEX_KEY=b64:<44-base64-chars>
+  ```
+  The `.env.example` should be updated when this migration is rolled out.
+- **Status:** open — legacy format still supported; migration is recommended but
+  not required.
+
 ## Answered
 
 ### 2026-04-28 · Permissions · `Permission.fields = []` semantics

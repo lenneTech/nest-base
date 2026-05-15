@@ -97,4 +97,39 @@ describe("Story · Output-Pipeline (4-Stage)", () => {
       expect(out).toEqual({ id: "1" });
     });
   });
+
+  describe("MAJ-2 · deny-rule (inverted) must NOT contribute fields to the allow-union", () => {
+    it("cannot('read', 'User', ['ssn']) does NOT add ssn to the allowed-field set", () => {
+      // Build an ability with a deny-rule for 'ssn'. The deny-rule is inverted.
+      // Prior to the fix, rule.fields was unioned unconditionally, so 'ssn' would
+      // appear in the allow-list and be returned.
+      const ability = buildAbility([
+        { action: "read", subject: "User", fields: ["id", "email"] },
+        { action: "read", subject: "User", fields: ["ssn"], inverted: true },
+      ]);
+      const pipeline = new OutputPipeline({ ability });
+      const out = pipeline.run(
+        { id: "1", email: "a@x.com", ssn: "123-45-6789" },
+        { subject: "User" },
+      );
+      // ssn must NOT appear — the deny-rule should not cause it to be included.
+      expect(out).not.toHaveProperty("ssn");
+      expect(out).toEqual({ id: "1", email: "a@x.com" });
+    });
+
+    it("a subject with only inverted rules returns null allowlist (no field restriction)", () => {
+      // When only deny-rules exist, the allow-union is empty and the pipeline
+      // returns null (no field restriction — the subject is fully readable,
+      // guarded only by Stage 3 secrets strip).
+      const ability = buildAbility([
+        { action: "read", subject: "User" },
+        { action: "read", subject: "User", fields: ["ssn"], inverted: true },
+      ]);
+      const pipeline = new OutputPipeline({ ability });
+      // The can("read", "User") without fields means "all fields allowed".
+      // The inverted rule must not subtract from that.
+      const out = pipeline.run({ id: "1", email: "a@x.com" }, { subject: "User" });
+      expect(out).toEqual({ id: "1", email: "a@x.com" });
+    });
+  });
 });

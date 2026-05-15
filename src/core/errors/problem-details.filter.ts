@@ -63,11 +63,16 @@ export class ProblemDetailsExceptionFilter implements ExceptionFilter {
     }
 
     if (exception instanceof TenantIsolationError) {
+      // MIN-1: Do NOT echo `exception.message` in the response body — it
+      // may contain internal details about the header format or UUID
+      // validation. Log server-side for ops debugging; return a static
+      // message to the client.
+      this.logger.warn(`TenantIsolationError: ${exception.message}`);
       const detail = problemDetails({
         code: CORE_ERROR_CODES.VALIDATION,
         status: HttpStatus.BAD_REQUEST,
         title: "Tenant Header Required",
-        detail: exception.message,
+        detail: "Tenant header could not be resolved for this request",
         instance: req.originalUrl ?? req.url,
       });
       return { ...detail, ...correlation };
@@ -85,7 +90,9 @@ export class ProblemDetailsExceptionFilter implements ExceptionFilter {
         detail: exception.message,
         instance: req.originalUrl ?? req.url,
       });
-      return { ...detail, ...correlation, idempotencyKey: exception.key };
+      // NIT-2: Truncate the idempotency key to 128 chars max so a caller
+      // cannot inject arbitrarily long values into the JSON response body.
+      return { ...detail, ...correlation, idempotencyKey: exception.key?.slice(0, 128) };
     }
 
     if (exception instanceof ETagPreconditionFailedError) {

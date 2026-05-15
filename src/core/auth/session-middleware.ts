@@ -12,6 +12,7 @@ import type { NextFunction, Request, Response } from "express";
 
 import { isPathProtected } from "./jwt-middleware.js";
 import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from "./better-auth.token.js";
+import { getRequestContext } from "../request-context/request-context.js";
 
 /**
  * Session-aware request augmentation.
@@ -134,6 +135,17 @@ export class BetterAuthSessionMiddleware implements NestMiddleware {
         // send `x-tenant-id` on every request (issue #103).
         activeOrganizationId: extractActiveOrganizationId(session),
       };
+      // CRIT-1: Propagate the authenticated user id into the
+      // AsyncLocalStorage request context so the audit extension can
+      // read it via `getRequestContext()?.userId` without threading the
+      // user id through every signature. The context is already live
+      // (set by RequestContextMiddleware); we mutate the same store
+      // object in-place — the ALS stores the object reference, so
+      // mutations on the object are visible to all later continuations.
+      const ctx = getRequestContext();
+      if (ctx) {
+        ctx.userId = session.user.id;
+      }
       next();
       return;
     }

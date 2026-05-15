@@ -1,6 +1,7 @@
 import type { Ability } from "../permissions/casl-ability.js";
 import { removeSecrets } from "./remove-secrets.js";
 import { applySafetyNet, type SafetyNetMode } from "./safety-net.js";
+import { SECRET_FIELD_NAMES } from "./secret-field-names.js";
 
 /**
  * Output-Pipeline.
@@ -39,6 +40,15 @@ export class OutputPipeline {
     this.safetyNetExtraFields = options.safetyNetExtraFields ?? [];
   }
 
+  /**
+   * Run the output pipeline over `value` for the given `subject`.
+   *
+   * Stage 1 (record-level access): caller's responsibility — use
+   * `prisma.model.findMany({ where: accessibleBy(ability) })` before
+   * calling run(). This method does NOT perform record-level filtering.
+   *
+   * Stages 2–4 are applied here in order.
+   */
   run(value: unknown, runOptions: RunOptions): unknown {
     // Stage 2 — field allowlist
     const stage2 = this.applyFieldAllowlist(value, runOptions.subject);
@@ -69,34 +79,33 @@ export class OutputPipeline {
     // "no field-level constraint".
     type RulesForArgs = Parameters<typeof this.ability.rulesFor>;
     const raw = this.ability.rulesFor("read", subject as RulesForArgs[1]);
-    let union: string[] | null = null;
+    let union: Set<string> | null = null;
     let sawWithoutFields = false;
     for (const rule of raw) {
+      // MAJ-2: Deny-rules (inverted) must NOT contribute to the allow-union.
+      // `cannot("read", "User", ["ssn"])` sets `rule.inverted = true`.
+      // Including its fields here would mistakenly expose them as allowed.
+      if (rule.inverted) continue;
       if (!rule.fields || rule.fields.length === 0) {
         sawWithoutFields = true;
         continue;
       }
-      union = union ? Array.from(new Set([...union, ...rule.fields])) : [...rule.fields];
+      if (!union) {
+        union = new Set(rule.fields);
+      } else {
+        for (const f of rule.fields) union.add(f);
+      }
     }
-    // If any rule grants the subject without a field constraint, no
-    // allowlist applies.
+    // If any allow-rule grants the subject without a field constraint, no
+    // allowlist applies — the subject is fully readable.
     if (sawWithoutFields) return null;
-    return union;
+    return union ? Array.from(union) : null;
   }
 }
 
-const DEFAULTS_FOR_SAFETY_NET = [
-  "password",
-  "passwordHash",
-  "token",
-  "apiKey",
-  "secret",
-  "authToken",
-  "refreshToken",
-  "sessionToken",
-  "pinHash",
-  "mfaSecret",
-];
+// NIT-1: Use the shared constant — single source of truth for all three
+// output-pipeline stages.
+const DEFAULTS_FOR_SAFETY_NET = SECRET_FIELD_NAMES;
 
 function walk(
   value: unknown,

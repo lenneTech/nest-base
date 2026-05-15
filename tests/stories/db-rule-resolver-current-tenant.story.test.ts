@@ -50,10 +50,11 @@ describe("Story · DB-Rule resolver · $CURRENT_TENANT", () => {
     expect(rules[0]!.conditions).toEqual({ tenantId: { $in: ["tenant-42", "shared"] } });
   });
 
-  it("falls through to the literal when ctx.tenantId is undefined", () => {
-    // Defense: legacy callers that build a context without a tenantId
-    // get a deterministic literal back instead of `undefined`. The
-    // resulting condition will not match any real row → safe failure.
+  it("throws when ctx.tenantId is undefined but a rule references $CURRENT_TENANT (NIT-3)", () => {
+    // NIT-3: A $CURRENT_TENANT reference without a tenantId in context
+    // is a misconfigured caller. The previous behaviour (pass the literal
+    // through) caused silent deny-all. Now we throw to surface the bug
+    // early at the call-site.
     const rows: DbPermissionRow[] = [
       {
         resource: "Example",
@@ -63,10 +64,22 @@ describe("Story · DB-Rule resolver · $CURRENT_TENANT", () => {
       },
     ];
     const noTenantCtx: ResolveContext = { userId: "user-1", now: ctx.now };
+    expect(() => resolveDbRules(rows, noTenantCtx)).toThrow(/\$CURRENT_TENANT.*no tenantId/i);
+  });
+
+  it("does NOT throw for rules without $CURRENT_TENANT when ctx.tenantId is undefined", () => {
+    const rows: DbPermissionRow[] = [
+      {
+        resource: "Example",
+        action: "READ",
+        itemFilter: { ownerId: { _eq: "$CURRENT_USER" } },
+        fields: [],
+      },
+    ];
+    const noTenantCtx: ResolveContext = { userId: "user-1", now: ctx.now };
+    // Must not throw — tenantId is not referenced in this rule.
     const rules = resolveDbRules(rows, noTenantCtx);
-    // The literal `$CURRENT_TENANT` survives the substitution pass —
-    // CASL will compare it to row.tenantId and naturally deny.
-    expect(rules[0]!.conditions).toEqual({ tenantId: "$CURRENT_TENANT" });
+    expect(rules[0]!.conditions).toEqual({ ownerId: "user-1" });
   });
 
   it("$CURRENT_USER and $CURRENT_TENANT can co-exist", () => {

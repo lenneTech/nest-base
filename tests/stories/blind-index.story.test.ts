@@ -156,6 +156,61 @@ describe("Story · BlindIndex", () => {
         expect(plan.reason).toContain("at least 32 bytes");
       }
     });
+
+    describe("MIN-5 · explicit prefix format (hex: / b64:)", () => {
+      it("accepts a hex: prefixed value", () => {
+        const hex = randomBytes(32).toString("hex");
+        const plan = planBlindIndexFromEnv(`hex:${hex}`);
+        expect(plan.kind).toBe("accepted");
+        if (plan.kind === "accepted") {
+          expect(plan.key).toHaveLength(32);
+        }
+      });
+
+      it("accepts a b64: prefixed value", () => {
+        const b64 = randomBytes(32).toString("base64");
+        const plan = planBlindIndexFromEnv(`b64:${b64}`);
+        expect(plan.kind).toBe("accepted");
+        if (plan.kind === "accepted") {
+          expect(plan.key).toHaveLength(32);
+        }
+      });
+
+      it("rejects a hex: prefix with a non-hex body", () => {
+        const plan = planBlindIndexFromEnv("hex:notahexstring!!");
+        expect(plan.kind).toBe("rejected");
+      });
+
+      it("rejects a hex: value that is too short", () => {
+        const short = randomBytes(8).toString("hex");
+        const plan = planBlindIndexFromEnv(`hex:${short}`);
+        expect(plan.kind).toBe("rejected");
+        if (plan.kind === "rejected") {
+          expect(plan.reason).toContain("at least 32 bytes");
+        }
+      });
+
+      it("rejects a b64: value that is too short", () => {
+        const short = randomBytes(4).toString("base64");
+        const plan = planBlindIndexFromEnv(`b64:${short}`);
+        expect(plan.kind).toBe("rejected");
+        if (plan.kind === "rejected") {
+          expect(plan.reason).toContain("at least 32 bytes");
+        }
+      });
+
+      it("hex: prefix takes priority over auto-detect and parses correctly", () => {
+        // A key that is ALL hex chars but was generated as base64url
+        // should decode correctly when the explicit prefix is used.
+        const rawBytes = randomBytes(32);
+        const hexStr = rawBytes.toString("hex");
+        const plan = planBlindIndexFromEnv(`hex:${hexStr}`);
+        expect(plan.kind).toBe("accepted");
+        if (plan.kind === "accepted") {
+          expect(Buffer.from(plan.key).equals(rawBytes)).toBe(true);
+        }
+      });
+    });
   });
 
   describe("BLIND_INDEX DI token", () => {

@@ -52,10 +52,14 @@ export class CanGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const meta = this.reflector.get<CanMetadata | undefined>(
-      CAN_METADATA_KEY,
+    // MAJ-4: `getAllAndOverride` checks the method handler first, then the
+    // controller class. This ensures class-level `@Can()` decorators are
+    // also honoured. Method-level metadata takes precedence when both are
+    // present (standard NestJS reflection override semantics).
+    const meta = this.reflector.getAllAndOverride<CanMetadata | undefined>(CAN_METADATA_KEY, [
       context.getHandler(),
-    );
+      context.getClass(),
+    ]);
     if (!meta) return true;
 
     const req = context.switchToHttp().getRequest<RequestWithAbility>();
