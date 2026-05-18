@@ -8,6 +8,7 @@ import {
   type StoragePutInput,
   StorageObjectNotFoundError,
 } from "./storage-adapter.js";
+import { resolveSignSecret, signUrlToken } from "./signed-url-token.js";
 
 /**
  * Local Storage Adapter.
@@ -86,7 +87,12 @@ export class LocalStorageAdapter implements StorageAdapter {
     const filePath = this.resolveSafe(key);
     if (!existsSync(filePath)) throw new StorageObjectNotFoundError(key);
     const expires = Math.floor(Date.now() / 1000) + ttlSeconds;
-    return `${this.baseUrl}/${encodePathKey(key)}?expires=${expires}`;
+    // CRIT-2: append an HMAC-SHA256 signature so the expiry timestamp cannot
+    // be tampered with. When no secret is configured (dev-mode) the sig
+    // parameter is omitted and the controller skips verification.
+    const secret = resolveSignSecret();
+    const sigParam = secret ? `&sig=${signUrlToken(key, expires, secret)}` : "";
+    return `${this.baseUrl}/${encodePathKey(key)}?expires=${expires}${sigParam}`;
   }
 
   async list(prefix: string): Promise<string[]> {

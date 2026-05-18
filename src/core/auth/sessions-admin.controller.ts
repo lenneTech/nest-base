@@ -8,15 +8,19 @@ import {
   Header,
   Inject,
   NotFoundException,
+  Optional,
   Param,
   Post,
   Req,
+  UnauthorizedException,
 } from "@nestjs/common";
+import { fromNodeHeaders } from "better-auth/node";
 import type { Request } from "express";
 
 import { buildDevPortalShellInput, renderDevPortalShell } from "../dx/dev-portal-shell.js";
 import { Can } from "../permissions/can.guard.js";
 import { Public } from "../permissions/public.decorator.js";
+import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from "./better-auth.token.js";
 import {
   planSessionRevoke,
   type SessionRecord,
@@ -97,6 +101,9 @@ export class SessionsAdminController {
   constructor(
     @Inject(SESSION_REVOKE_STORAGE) private readonly storage: SessionRevokeStorage,
     @Inject(SESSION_REVOKE_AUDIT_SINK) private readonly audit: SessionRevokeAuditSink,
+    @Optional()
+    @Inject(BETTER_AUTH_INSTANCE)
+    private readonly auth: BetterAuthInstance | null = null,
   ) {}
 
   /**
@@ -174,8 +181,14 @@ export class SessionsAdminController {
   /**
    * `POST /admin/sessions/revoke-others` — current-user "log out
    * all other devices" flow (a self-service action, not an admin
-   * action). The current session id is read from the
-   * `x-session-id` request header.
+   * action).
+   *
+   * MAJ-4 fix: the current session id is resolved from the verified
+   * Better-Auth session rather than a client-supplied `x-session-id`
+   * header. A client-supplied header could reference any session id —
+   * including one belonging to another user — which would exempt
+   * that other session from revocation. The server-side lookup pins
+   * the exempted session to the actual authenticated session.
    */
   @Can("delete", "Session")
   @Post("revoke-others")
@@ -183,10 +196,23 @@ export class SessionsAdminController {
     @Req() req: AuthedRequest,
   ): Promise<{ revoked: number; sessionIds: readonly string[] }> {
     if (!req.user) throw new ForbiddenException("authentication required");
-    const currentSessionId = req.headers["x-session-id"];
-    if (!currentSessionId || currentSessionId.length === 0) {
-      throw new BadRequestException("x-session-id header is required");
+
+    // Resolve the current session id from the verified Better-Auth session.
+    // Falls back to a 401 when the auth subsystem is not wired so we never
+    // accidentally trust a client-supplied value.
+    if (!this.auth) {
+      throw new UnauthorizedException(
+        "auth subsystem not configured — cannot determine current session",
+      );
     }
+    const sessionLookup = await this.auth.api.getSession({
+      headers: fromNodeHeaders(req.headers),
+    });
+    const currentSessionId = (sessionLookup as { session?: { id?: string } } | null)?.session?.id;
+    if (!currentSessionId) {
+      throw new UnauthorizedException("could not resolve current session id");
+    }
+
     return this.executeRevoke(req, {
       kind: "bulk-by-user-except-current",
       userId: req.user.id,

@@ -4,8 +4,10 @@ import { describe, expect, it } from "vitest";
 import {
   McpServerModule,
   McpToolAlreadyRegisteredError,
+  McpForbiddenError,
   McpResourceAlreadyRegisteredError,
   type McpContext,
+  type McpPermissionChecker,
   type McpToolDefinition,
 } from "../../src/core/mcp/mcp-server.js";
 
@@ -162,6 +164,75 @@ describe("Story · MCP-Server-Modul", () => {
       const mod = newModule();
       expect(mod.server).toBeDefined();
       expect(typeof mod.server.connect).toBe("function");
+    });
+  });
+
+  /**
+   * CRIT-1: permission check must be fail-closed.
+   *
+   * When a tool declares a `permission` but no `permissionChecker` is
+   * wired, invokeTool MUST throw McpForbiddenError rather than silently
+   * allowing the call. A missing checker is an operator-configuration
+   * error — fail-closed is the only safe default.
+   */
+  describe("permission enforcement (CRIT-1 — fail-closed)", () => {
+    function permTool(overrides: Partial<McpToolDefinition> = {}): McpToolDefinition {
+      return {
+        name: "admin-tool",
+        description: "Requires admin permission",
+        handler: async () => ({ ok: true }),
+        permission: { action: "manage", resource: "User" },
+        ...overrides,
+      };
+    }
+
+    it("throws McpForbiddenError when tool has permission but no permissionChecker is wired", async () => {
+      // No permissionChecker in options → fail-closed
+      const mod = new McpServerModule({ info: { name: "test", version: "1" } });
+      mod.registerTool(permTool());
+      await expect(mod.invokeTool("admin-tool", {}, {})).rejects.toThrow(McpForbiddenError);
+    });
+
+    it("throws McpForbiddenError when tool has permission but no permissionChecker and ctx has user", async () => {
+      const mod = new McpServerModule({ info: { name: "test", version: "1" } });
+      mod.registerTool(permTool());
+      const ctx: McpContext = { user: { id: "u1", tenantId: "t1" } };
+      await expect(mod.invokeTool("admin-tool", {}, ctx)).rejects.toThrow(McpForbiddenError);
+    });
+
+    it("throws McpForbiddenError when the permissionChecker denies the call", async () => {
+      const denyAll: McpPermissionChecker = {
+        can: async () => false,
+      };
+      const mod = new McpServerModule({
+        info: { name: "test", version: "1" },
+        permissionChecker: denyAll,
+      });
+      mod.registerTool(permTool());
+      const ctx: McpContext = { user: { id: "u1", tenantId: "t1" } };
+      await expect(mod.invokeTool("admin-tool", {}, ctx)).rejects.toThrow(McpForbiddenError);
+    });
+
+    it("invokes the handler when the permissionChecker grants the call", async () => {
+      const allowAll: McpPermissionChecker = {
+        can: async () => true,
+      };
+      const mod = new McpServerModule({
+        info: { name: "test", version: "1" },
+        permissionChecker: allowAll,
+      });
+      mod.registerTool(permTool());
+      const ctx: McpContext = { user: { id: "u1", tenantId: "t1" } };
+      const result = await mod.invokeTool("admin-tool", {}, ctx);
+      expect(result).toEqual({ ok: true });
+    });
+
+    it("invokes the handler for a tool without a permission (no auth required)", async () => {
+      // Tool with no permission field: checker not consulted, always executes.
+      const mod = new McpServerModule({ info: { name: "test", version: "1" } });
+      mod.registerTool(tool({ name: "open-tool", permission: undefined }));
+      const result = await mod.invokeTool("open-tool", { message: "hi" }, {});
+      expect(result).toEqual({ echoed: "hi" });
     });
   });
 });

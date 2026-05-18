@@ -39,7 +39,9 @@ import type { NewDeviceThrottle } from "../devices/new-device-throttle.js";
 // Better-Auth recommendation: ≥ 64 chars ensures sufficient entropy for
 // HMAC-SHA256 session signing. 32-char secrets are technically valid but
 // leave less headroom against brute-force on short inputs.
-const MIN_SECRET_LEN = 64;
+// Exported so BetterAuthModule can import the same constant — one source
+// of truth prevents the module-guard and the factory from diverging again.
+export const MIN_SECRET_LEN = 64;
 
 export interface TwoFactorOptions {
   /** Issuer label embedded in the TOTP URI shown in authenticator apps. */

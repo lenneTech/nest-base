@@ -166,17 +166,23 @@ export class McpServerModule {
     const tool = this.tools.get(name);
     if (!tool) throw new Error(`mcp: unknown tool "${name}"`);
 
-    // MAJ-1: enforce the permission declared on the @McpTool decorator.
-    // When a checker is wired and the tool declares a required permission,
-    // verify the authenticated user has the ability before invoking the handler.
-    if (tool.permission && ctx.user && this.permissionChecker) {
-      const allowed = await this.permissionChecker.can(
-        ctx.user.id,
-        ctx.user.tenantId,
-        tool.permission.action,
-        tool.permission.resource,
-      );
-      if (!allowed) {
+    // CRIT-1: fail-closed permission check.
+    // When a tool declares a required permission we MUST verify it. If no
+    // permissionChecker is wired, the server has no way to enforce the
+    // permission — deny the call rather than silently allow it (fail-closed).
+    if (tool.permission) {
+      if (!this.permissionChecker) {
+        throw new McpForbiddenError(tool.permission.action, tool.permission.resource);
+      }
+      if (
+        ctx.user &&
+        !(await this.permissionChecker.can(
+          ctx.user.id,
+          ctx.user.tenantId,
+          tool.permission.action,
+          tool.permission.resource,
+        ))
+      ) {
         throw new McpForbiddenError(tool.permission.action, tool.permission.resource);
       }
     }

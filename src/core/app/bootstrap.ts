@@ -543,15 +543,66 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
       handle: (req: unknown, res: unknown, next?: (err?: unknown) => void) => void;
     } | null;
     if (ipxServer) {
-      // Same permissive-interface story as the TUS mount above —
-      // ipxServer.handle takes `(unknown, unknown, unknown)` so the
-      // Express middleware args ride through without a cast.
+      // MAJ-3: add an auth-gate wrapper so /_ipx/* requires a valid
+      // Better-Auth session. The IPX middleware runs outside the NestJS
+      // request lifecycle (it's a raw Express handler mounted before
+      // `app.init()`), so `BetterAuthSessionMiddleware` has not run yet
+      // and `req.user` is always undefined here. We resolve the session
+      // inline via the same `auth.api.getSession()` call the middleware
+      // uses.
+      //
+      // When Better-Auth is not configured (BETTER_AUTH_SECRET unset) the
+      // instance token resolves to `null` and we fall through without
+      // auth — this preserves backward-compat for unauthenticated dev
+      // environments. The OPEN_QUESTIONS.md entry tracks the CASL-level
+      // resource check as a follow-up.
+      const betterAuthInstance = app.get(
+        (await import("../auth/better-auth.token.js")).BETTER_AUTH_INSTANCE,
+        { strict: false },
+      ) as { api: { getSession(opts: { headers: unknown }): Promise<unknown> } } | null;
+
+      const { fromNodeHeaders } = await import("better-auth/node");
+
       expressApp.use("/_ipx", (req: unknown, res: unknown, next: unknown) => {
-        ipxServer.handle(
-          req,
-          res,
-          typeof next === "function" ? (next as (err?: unknown) => void) : undefined,
-        );
+        const typedReq = req as { headers: Record<string, string | string[] | undefined> };
+        const typedRes = res as {
+          status(code: number): { json(body: unknown): void };
+          statusCode: number;
+          setHeader(name: string, value: string): void;
+          end(body: string): void;
+        };
+        const typedNext = typeof next === "function" ? (next as (err?: unknown) => void) : null;
+
+        if (!betterAuthInstance) {
+          // Auth not configured — allow through (dev / no-auth mode).
+          typedNext?.();
+          return;
+        }
+
+        betterAuthInstance.api
+          .getSession({ headers: fromNodeHeaders(typedReq.headers) })
+          .then((session) => {
+            const hasSession =
+              session !== null &&
+              typeof session === "object" &&
+              "user" in (session as Record<string, unknown>) &&
+              (session as Record<string, unknown>)["user"] !== null;
+            if (!hasSession) {
+              typedRes.setHeader("content-type", "application/json");
+              typedRes.statusCode = 401;
+              typedRes.end(JSON.stringify({ error: "Unauthorized" }));
+              return;
+            }
+            // TODO (OPEN_QUESTIONS.md): add CASL read:Asset check here
+            // once the ability resolver is available in the Express
+            // middleware layer.
+            ipxServer.handle(req, res, typedNext ?? undefined);
+          })
+          .catch(() => {
+            typedRes.setHeader("content-type", "application/json");
+            typedRes.statusCode = 401;
+            typedRes.end(JSON.stringify({ error: "Unauthorized" }));
+          });
       });
     }
   } catch {

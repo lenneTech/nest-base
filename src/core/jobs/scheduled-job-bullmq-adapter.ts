@@ -78,14 +78,17 @@ export class ScheduledJobBullMQAdapter implements OnApplicationBootstrap, OnModu
       });
 
       const parsedIntervalMs = parseCronToIntervalMs(entry.cron);
+      // MIN-4: unrecognised cron expression is now a hard error at module init
+      // rather than a silent 24h fallback. A misconfigured job that silently
+      // defaulted to daily would run far more / less often than intended.
       if (parsedIntervalMs === null) {
-        // Unrecognised cron — fall back to daily so the job still runs but
-        // the warning from parseCronToIntervalMs already surfaced the issue.
-        this.log.warn(
-          `unrecognised cron "${entry.cron}" for job "${entry.name}"; defaulting to 24h interval`,
+        throw new Error(
+          `ScheduledJobAdapter: unsupported cron expression "${entry.cron}" for job "${entry.name}" — ` +
+            `only hourly ("0 * * * *") and daily ("M H * * *") patterns are supported. ` +
+            `Use BullMQ native repeat jobs for other schedules.`,
         );
       }
-      const intervalMs = parsedIntervalMs ?? 24 * 60 * 60 * 1000;
+      const intervalMs = parsedIntervalMs;
       this.log.log(
         `wiring "${entry.name}" (${entry.source}) cron="${entry.cron}" → interval=${intervalMs}ms`,
       );

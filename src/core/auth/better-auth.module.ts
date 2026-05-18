@@ -27,11 +27,9 @@ import {
 } from "./better-auth-email-hooks.runner.js";
 import { resolveAppName } from "./better-auth-email-hooks.js";
 import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from "./better-auth.token.js";
-import { type SocialProviderConfig, buildBetterAuth } from "./better-auth.js";
+import { MIN_SECRET_LEN, type SocialProviderConfig, buildBetterAuth } from "./better-auth.js";
 import { defaultAuthRateLimits } from "./rate-limit.js";
 import { isBetterAuthRateLimitEnabled } from "./rate-limit-flag.js";
-
-const MIN_SECRET_LEN = 32;
 
 /**
  * BetterAuthModule — wires a Better-Auth instance based on the active

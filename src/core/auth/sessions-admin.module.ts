@@ -15,6 +15,7 @@ import {
   type SessionRevokeStorage,
   SessionsAdminController,
 } from "./sessions-admin.controller.js";
+import { BetterAuthModule } from "./better-auth.module.js";
 
 /**
  * SessionsAdminModule — wires the `/admin/sessions/*` and
@@ -49,6 +50,9 @@ const noopImpersonationTeardown: ImpersonationSessionTeardown = {
 };
 
 @Module({
+  // BetterAuthModule exports BETTER_AUTH_INSTANCE so SessionsAdminController
+  // can look up the verified session id for the revokeOthers endpoint (MAJ-4).
+  imports: [BetterAuthModule],
   controllers: [SessionsAdminController, ImpersonationController],
   providers: [
     { provide: SESSION_REVOKE_STORAGE, useValue: noopRevokeStorage },

@@ -97,6 +97,18 @@ function productionCorsConfig(envVars?: Record<string, string | undefined>): Cor
         .map((o) => o.trim())
         .filter(Boolean)
     : [];
+
+  // MIN-1: validate each origin so misconfigured wildcards or typos fail
+  // loudly at startup rather than silently allowing unexpected origins.
+  for (const origin of allowedOrigins) {
+    if (!/^https?:\/\/[^,*\s]+$/.test(origin)) {
+      throw new Error(
+        `CORS_ALLOWED_ORIGINS: invalid origin "${origin}" — ` +
+          `wildcards and spaces are not allowed. Use a full URL like "https://app.example.com".`,
+      );
+    }
+  }
+
   return {
     allowedOrigins,
     credentials: allowedOrigins.length > 0,

@@ -356,6 +356,46 @@ Per entry:
 - **Status:** open — legacy format still supported; migration is recommended but
   not required.
 
+### 2026-05-18 · Files · MAJ-3: `/_ipx/*` endpoint CASL read:Asset check missing
+
+- **Context:** The IPX endpoint now requires a valid Better-Auth session (401 for
+  unauthenticated requests, bootstrap.ts). However the full CASL `read:Asset`
+  permission check is not yet wired at this layer because the `PermissionService`
+  / `AbilityMiddleware` runs in the NestJS request chain, which fires AFTER the
+  raw Express IPX handler.
+- **Why acceptable now:** requiring auth (a valid session) already blocks
+  unauthenticated access. Any user with a valid session can load any asset via
+  `/_ipx/*`. For multi-tenant deployments this is too permissive (tenant A can
+  load tenant B's assets if they know the key). The broader `@Can("read", "Asset")`
+  gate on the `/assets/:key` controller and S3 pre-signed URLs are the tenanted
+  fallback.
+- **Correct fix:** Extract the Better-Auth session lookup + ability resolution
+  into a shared Express middleware that runs before both TUS and IPX mounts.
+  Wire `PermissionService.abilityFor(userId, tenantId).can("read", "Asset")` in
+  that middleware and 403 when the user cannot read the requested key. This
+  requires the IPX middleware to have access to the tenant-scoped key it is
+  serving (currently opaque within the IPX request path).
+- **Status:** partial fix shipped (2026-05-18) — auth required; CASL field/tenant
+  check is deferred.
+
+### 2026-05-18 · Jobs · MAJ-6: Cron scheduler skips executions after server restart
+
+- **Context:** `ScheduledJobBullMQAdapter` uses `setInterval(intervalMs)` which
+  always waits a full period from server boot before the first execution. A
+  server that restarts at 23:59 with a `"0 0 * * *"` (midnight) cron will skip
+  that midnight execution and only fire 24 hours later.
+- **Why acceptable now:** The scheduled jobs (GDPR erasure, API-key expiry,
+  verification cleanup) are idempotent — a missed execution is caught on the
+  next tick. A 24h gap in cleanup runs has no user-visible effect.
+- **Correct fix:** Replace `setInterval` with BullMQ native repeatable jobs
+  (`repeat: { pattern: cronExpression }` with a stable `jobId`). BullMQ
+  respects the cron pattern and fires at the next wall-clock occurrence of the
+  expression regardless of when the process started. This also resolves the
+  multi-pod duplicate execution issue (see above). The `bullmq-cleanup-job-planner.ts`
+  contains the design sketch.
+- **Status:** open — `setInterval` is the current implementation; safe to defer
+  until missed executions become observable.
+
 ## Answered
 
 ### 2026-04-28 · Permissions · `Permission.fields = []` semantics

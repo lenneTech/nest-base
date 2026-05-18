@@ -727,6 +727,13 @@ export class BullMQJobQueue {
     // dashboard. This is a safety cap; the Hub's own pagination layer
     // applies on top for display purposes.
     const jobs = await queue.getJobs(BULLMQ_JOB_STATES, 0, 200);
+    // NIT-3: warn when the result is exactly at the cap so operators know
+    // they are seeing a truncated view and can implement pagination.
+    if (jobs.length === 200) {
+      this.bullmqLogger.warn(
+        `bullmq: listJobs result capped at 200 for queue "${queueName}" — older jobs not shown`,
+      );
+    }
     return Promise.all(jobs.map((j) => toJobRecord(j, queueName)));
   }
 

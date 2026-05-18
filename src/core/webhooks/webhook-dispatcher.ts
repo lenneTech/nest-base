@@ -1,6 +1,7 @@
 import { buildHmacSignatureHeader } from "./hmac-signature.js";
 import { type RetryConfig, WEBHOOK_RETRY_DEFAULTS, shouldAutoDisable } from "./retry-policy.js";
 import { getRegisteredWebhookEvents } from "./webhook-event.decorator.js";
+import { InvalidWebhookUrlError, validateWebhookUrl } from "./webhook-url-validator.js";
 
 /**
  * Webhook Dispatcher.
@@ -72,6 +73,8 @@ export interface WebhookDispatcherOptions {
   /** Returns the current unix-second timestamp (override for tests). */
   now: () => number;
   retry?: RetryConfig;
+  /** Optional logger for surfacing HTTP dispatch errors (MAJ-5). */
+  logger?: { error(obj: Record<string, unknown>, msg: string): void };
 }
 
 export class WebhookEndpointNotFoundError extends Error {
@@ -131,6 +134,30 @@ export class WebhookDispatcher {
     if (!endpoint) throw new WebhookEndpointNotFoundError(input.endpointId);
     if (endpoint.status === "DISABLED") return;
 
+    // CRIT-3: block SSRF by validating the endpoint URL before the HTTP call.
+    // An invalid URL marks the delivery as FAILED and disables the endpoint so
+    // the misconfiguration surfaces in the admin UI without repeated attempts.
+    try {
+      validateWebhookUrl(endpoint.url);
+    } catch (err) {
+      if (err instanceof InvalidWebhookUrlError) {
+        const nextFailures = endpoint.consecutiveFailures + 1;
+        await this.options.endpointStore.setFailureCount(endpoint.id, nextFailures);
+        if (shouldAutoDisable(nextFailures, this.retry)) {
+          await this.options.endpointStore.disable(endpoint.id);
+        }
+        await this.options.deliveryStore.record({
+          id: deliveryId(input),
+          endpointId: endpoint.id,
+          eventId: input.eventId,
+          status: "FAILED",
+          attemptCount: 1,
+        });
+        return;
+      }
+      throw err;
+    }
+
     const ts = String(this.options.now());
     const headers: Record<string, string> = {
       "content-type": "application/json",
@@ -180,9 +207,17 @@ export class WebhookDispatcher {
       ...(response ? { statusCode: response.status } : {}),
       attemptCount: 1,
     });
-    if (httpError && process.env.NODE_ENV !== "test") {
-      // Log path: real binding hands httpError to the logger; tests
-      // don't need observable side-effects for the throw case.
+    // MAJ-5: log HTTP dispatch errors so on-call alerts can fire.
+    // The empty block was a silent failure — every network error was swallowed.
+    if (httpError) {
+      this.options.logger?.error(
+        {
+          endpointId: endpoint.id,
+          url: endpoint.url,
+          error: httpError.message,
+        },
+        "webhook: HTTP dispatch failed",
+      );
     }
   }
 }
