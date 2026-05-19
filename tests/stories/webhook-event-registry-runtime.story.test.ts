@@ -1,5 +1,4 @@
 import type { INestApplication } from "@nestjs/common";
-import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
@@ -15,6 +14,7 @@ import {
   WebhookDispatcher,
   WebhookEventTypeNotRegisteredError,
 } from "../../src/core/webhooks/webhook-dispatcher.js";
+import { hubReq } from "../helpers/hub-request.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 
@@ -167,7 +167,7 @@ describe("Story · @WebhookEvent registry hooked into runtime", () => {
     });
 
     it("returns the @WebhookEvent registry as a JSON array", async () => {
-      const res = await request(app.getHttpServer()).get("/hub/webhook-events.json");
+      const res = await hubReq(app).get("/hub/webhook-events.json");
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body.events)).toBe(true);
       const names = (res.body.events as Array<{ name: string }>).map((e) => e.name);
@@ -176,7 +176,7 @@ describe("Story · @WebhookEvent registry hooked into runtime", () => {
     });
 
     it("each entry carries name + description + version", async () => {
-      const res = await request(app.getHttpServer()).get("/hub/webhook-events.json");
+      const res = await hubReq(app).get("/hub/webhook-events.json");
       const entry = (
         res.body.events as Array<{ name: string; description?: string; version: number }>
       ).find((e) => e.name === "test.user.created");

@@ -3,10 +3,10 @@ import { rm } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import type { INestApplication } from "@nestjs/common";
-import request from "supertest";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { bootstrap } from "../src/core/app/bootstrap.js";
+import { hubReq } from "./helpers/hub-request.js";
 import { __clearBrandCache } from "../src/core/branding/brand-loader.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
@@ -38,7 +38,7 @@ describe("Brand-Config · runtime surfaces", () => {
 
   describe("/dev/brand.json", () => {
     it("returns the effective brand config", async () => {
-      const res = await request(app.getHttpServer()).get("/hub/brand.json");
+      const res = await hubReq(app).get("/hub/brand.json");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
       expect(res.body.name).toBeTruthy();
@@ -52,7 +52,7 @@ describe("Brand-Config · runtime surfaces", () => {
 
   describe("Dev-portal shell", () => {
     it("inlines the brand as window.__BRAND__", async () => {
-      const res = await request(app.getHttpServer()).get("/hub");
+      const res = await hubReq(app).get("/hub");
       expect(res.status).toBe(200);
       expect(res.text).toContain("window.__BRAND__=");
       // The brand name lands in the title suffix too — the SPA reads
@@ -61,7 +61,7 @@ describe("Brand-Config · runtime surfaces", () => {
     });
 
     it("emits a brand-derived :root override block", async () => {
-      const res = await request(app.getHttpServer()).get("/hub");
+      const res = await hubReq(app).get("/hub");
       // The brand CSS lands AFTER the static tokens.css link, before
       // the boot-style block, so the runtime brand wins the cascade.
       expect(res.text).toContain("--accent: #c5fb45");
@@ -71,7 +71,7 @@ describe("Brand-Config · runtime surfaces", () => {
 
   describe("OpenAPI title", () => {
     it("uses the brand name as the document title", async () => {
-      const res = await request(app.getHttpServer()).get("/api/openapi.json");
+      const res = await hubReq(app).get("/api/openapi.json");
       expect(res.status).toBe(200);
       expect(res.body.info?.title).toBe("nest-server");
     });
@@ -91,14 +91,14 @@ describe("Brand-Config · runtime surfaces", () => {
     });
 
     it("rejects an invalid payload with HTTP 400", async () => {
-      const res = await request(app.getHttpServer())
+      const res = await hubReq(app)
         .post("/hub/brand")
         .send({ name: "", primaryColor: "not-a-color" });
       expect(res.status).toBe(400);
     });
 
     it("writes the overlay and returns the parsed brand", async () => {
-      const res = await request(app.getHttpServer())
+      const res = await hubReq(app)
         .post("/hub/brand")
         .send({ name: "Acme", primaryColor: "#ff00aa" });
       expect(res.status).toBe(200);
@@ -109,23 +109,21 @@ describe("Brand-Config · runtime surfaces", () => {
     });
 
     it("subsequent /dev/brand.json reads return the new value", async () => {
-      await request(app.getHttpServer())
-        .post("/hub/brand")
-        .send({ name: "Acme", primaryColor: "#ff00aa" });
-      const after = await request(app.getHttpServer()).get("/hub/brand.json");
+      await hubReq(app).post("/hub/brand").send({ name: "Acme", primaryColor: "#ff00aa" });
+      const after = await hubReq(app).get("/hub/brand.json");
       expect(after.body.name).toBe("Acme");
       expect(after.body.primaryColor).toBe("#ff00aa");
     });
 
     it("POST /dev/brand/reset removes the overlay (idempotent)", async () => {
-      await request(app.getHttpServer()).post("/hub/brand").send({ name: "Acme" });
-      const reset1 = await request(app.getHttpServer()).post("/hub/brand/reset");
+      await hubReq(app).post("/hub/brand").send({ name: "Acme" });
+      const reset1 = await hubReq(app).post("/hub/brand/reset");
       expect(reset1.status).toBe(200);
       expect(reset1.body.ok).toBe(true);
       expect(existsSync(overlayPath)).toBe(false);
 
       // Idempotent — second reset is a no-op but still HTTP 200.
-      const reset2 = await request(app.getHttpServer()).post("/hub/brand/reset");
+      const reset2 = await hubReq(app).post("/hub/brand/reset");
       expect(reset2.status).toBe(200);
       expect(reset2.body.ok).toBe(true);
     });

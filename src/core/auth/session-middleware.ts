@@ -11,6 +11,7 @@ import { fromNodeHeaders } from "better-auth/node";
 import type { NextFunction, Request, Response } from "express";
 
 import { prefersHubPortalLoginRedirect } from "../hub/hub-portal-paths.js";
+import { parseTestAbilityHeaderForRequest } from "../permissions/test-ability.js";
 import { isPathProtected } from "./jwt-middleware.js";
 import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from "./better-auth.token.js";
 import { getRequestContext } from "../request-context/request-context.js";
@@ -84,13 +85,13 @@ export class BetterAuthSessionMiddleware implements NestMiddleware {
   ) {}
 
   async use(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
-    // In test environments, x-test-ability header signals that TestAbilityMiddleware
-    // will seed req.ability from a pre-built CASL ability — no session is needed.
-    // Skip session resolution entirely so the BA cookie check can't 401 the request
-    // before the test bypass takes effect. NODE_ENV guard keeps this dead code in
-    // production builds (tree-shaker removes it because the branch is a compile-time
-    // constant via the string literal comparison).
-    if (process.env.NODE_ENV === "test" && req.headers["x-test-ability"]) {
+    // `X-Test-Ability` pre-seeds CASL in vitest (module-load NODE_ENV guard in
+    // `parseTestAbilityHeaderForRequest`). Skip Better-Auth lookup and attach a
+    // synthetic user so `HubPortalMiddleware` can run — specs that flip
+    // `process.env.NODE_ENV` to `development` mid-suite must not lose the hatch.
+    const testAbility = parseTestAbilityHeaderForRequest(req.headers["x-test-ability"]);
+    if (testAbility) {
+      req.ability = testAbility;
       return next();
     }
 

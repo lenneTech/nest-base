@@ -1,8 +1,8 @@
 import type { INestApplication } from "@nestjs/common";
-import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { bootstrap } from "../src/core/app/bootstrap.js";
+import { hubReq } from "./helpers/hub-request.js";
 import { PrismaService } from "../src/core/prisma/prisma.service.js";
 import { uuidV7 } from "../src/core/uuid/uuid-v7.js";
 
@@ -65,16 +65,14 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
     });
 
     it("GET /dev/files returns the SPA shell HTML", async () => {
-      const res = await request(app.getHttpServer()).get("/hub/files");
+      const res = await hubReq(app).get("/hub/files");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/text\/html/);
       expect(res.text).toContain('<div id="root"></div>');
     });
 
     it("GET /dev/files/tree.json returns an empty tree for an empty tenant", async () => {
-      const res = await request(app.getHttpServer())
-        .get("/hub/files/tree.json")
-        .set("x-tenant-id", tenantId);
+      const res = await hubReq(app).get("/hub/files/tree.json").set("x-tenant-id", tenantId);
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
       expect(Array.isArray(res.body.tree)).toBe(true);
@@ -89,9 +87,7 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
         data: { tenantId, parentId: root.id, name: "Acme" },
       });
       try {
-        const res = await request(app.getHttpServer())
-          .get("/hub/files/tree.json")
-          .set("x-tenant-id", tenantId);
+        const res = await hubReq(app).get("/hub/files/tree.json").set("x-tenant-id", tenantId);
         expect(res.status).toBe(200);
         expect(res.body.tree).toHaveLength(1);
         expect(res.body.tree[0].name).toBe("Customers");
@@ -121,7 +117,7 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
         },
       });
       try {
-        const res = await request(app.getHttpServer())
+        const res = await hubReq(app)
           .get(`/hub/files/list.json?folderId=${folder.id}`)
           .set("x-tenant-id", tenantId);
         expect(res.status).toBe(200);
@@ -169,7 +165,7 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
         },
       });
       try {
-        const res = await request(app.getHttpServer())
+        const res = await hubReq(app)
           .get(`/hub/files/list.json?folderId=${folder.id}&search=invoice`)
           .set("x-tenant-id", tenantId);
         expect(res.status).toBe(200);
@@ -198,9 +194,7 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
         },
       });
       try {
-        const res = await request(app.getHttpServer())
-          .get("/hub/files/list.json")
-          .set("x-tenant-id", tenantId);
+        const res = await hubReq(app).get("/hub/files/list.json").set("x-tenant-id", tenantId);
         expect(res.status).toBe(200);
         const matched = (
           res.body.files as Array<{ id: string; thumbnailUrl?: string; mimeType: string }>
@@ -217,9 +211,7 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
     });
 
     it("GET /dev/files/breadcrumb.json returns Root for activeId=null", async () => {
-      const res = await request(app.getHttpServer())
-        .get("/hub/files/breadcrumb.json")
-        .set("x-tenant-id", tenantId);
+      const res = await hubReq(app).get("/hub/files/breadcrumb.json").set("x-tenant-id", tenantId);
       expect(res.status).toBe(200);
       expect(res.body.segments).toEqual([{ id: null, name: "Root" }]);
     });
@@ -232,7 +224,7 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
         data: { tenantId, parentId: root.id, name: "Acme" },
       });
       try {
-        const res = await request(app.getHttpServer())
+        const res = await hubReq(app)
           .get(`/hub/files/breadcrumb.json?folderId=${child.id}`)
           .set("x-tenant-id", tenantId);
         expect(res.status).toBe(200);
@@ -265,21 +257,21 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
     });
 
     it("GET /dev/files/tree.json 404s in production", async () => {
-      const res = await request(app.getHttpServer())
+      const res = await hubReq(app)
         .get("/hub/files/tree.json")
         .set("x-tenant-id", "00000000-0000-0000-0000-000000000001");
       expect(res.status).toBe(404);
     });
 
     it("GET /dev/files/list.json 404s in production", async () => {
-      const res = await request(app.getHttpServer())
+      const res = await hubReq(app)
         .get("/hub/files/list.json")
         .set("x-tenant-id", "00000000-0000-0000-0000-000000000001");
       expect(res.status).toBe(404);
     });
 
     it("GET /dev/files/breadcrumb.json 404s in production", async () => {
-      const res = await request(app.getHttpServer())
+      const res = await hubReq(app)
         .get("/hub/files/breadcrumb.json")
         .set("x-tenant-id", "00000000-0000-0000-0000-000000000001");
       expect(res.status).toBe(404);

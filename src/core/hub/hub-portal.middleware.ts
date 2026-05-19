@@ -7,6 +7,7 @@ import {
 import type { NextFunction, Request, Response } from "express";
 
 import type { Ability } from "../permissions/casl-ability.js";
+import { serverConfigFromEnv } from "../server/server-config.js";
 import { canAccessDevHub } from "./hub-portal-access.js";
 import { isHubPortalProtectedPath, prefersHubPortalLoginRedirect } from "./hub-portal-paths.js";
 
@@ -30,11 +31,24 @@ export class HubPortalMiddleware implements NestMiddleware {
       return;
     }
 
+    // Dev-only surfaces (`assertDev()`). In production/staging the controllers
+    // 404 themselves — do not 401 here or specs that assert production 404s fail.
+    if (serverConfigFromEnv(process.env).env !== "development") {
+      next();
+      return;
+    }
+
     const acceptHeader = Array.isArray(req.headers.accept)
       ? req.headers.accept[0]
       : req.headers.accept;
 
+    const devHubAllowed = canAccessDevHub(req.ability);
+
     if (!req.user?.id) {
+      if (devHubAllowed) {
+        next();
+        return;
+      }
       if (
         prefersHubPortalLoginRedirect({
           path,
@@ -48,7 +62,7 @@ export class HubPortalMiddleware implements NestMiddleware {
       throw new UnauthorizedException("Authentication required.");
     }
 
-    if (!canAccessDevHub(req.ability)) {
+    if (!devHubAllowed) {
       if (
         prefersHubPortalLoginRedirect({
           path,

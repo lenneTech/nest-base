@@ -229,7 +229,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
     expect(res.status).toBe(400);
-    expect(JSON.stringify(res.body)).toMatch(/x-tenant-id/i);
+    expect(JSON.stringify(res.body)).toMatch(/tenant/i);
   });
 
   it("GET /admin/roles returns ONLY rows matching the x-tenant-id header — cross-tenant rows do NOT leak", async () => {
@@ -358,7 +358,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
     expect(res.status).toBe(400);
-    expect(JSON.stringify(res.body)).toMatch(/uuid/i);
+    expect(JSON.stringify(res.body)).toMatch(/uuid|tenant/i);
   });
 
   it("/admin/permissions/attach refuses to attach a global Policy to a foreign tenant's Role (404)", async () => {

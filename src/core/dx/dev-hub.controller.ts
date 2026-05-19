@@ -212,7 +212,9 @@ export class DevHubController {
    */
   @Get("portal-access.json")
   @Can("read", "DevHub")
-  portalAccessJson(@Req() req: { ability?: Ability }): ReturnType<typeof buildHubPortalAccessSnapshot> {
+  portalAccessJson(
+    @Req() req: { ability?: Ability },
+  ): ReturnType<typeof buildHubPortalAccessSnapshot> {
     this.assertDev();
     return buildHubPortalAccessSnapshot(req.ability);
   }

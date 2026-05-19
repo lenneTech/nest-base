@@ -66,11 +66,7 @@ export const DEFAULT_PUBLIC_PREFIXES: readonly string[] = [
   "/openapi",
 ];
 
-export const DEFAULT_PUBLIC_EXACT: readonly string[] = [
-  "/",
-  "/errors",
-  "/openapi",
-];
+export const DEFAULT_PUBLIC_EXACT: readonly string[] = ["/", "/errors", "/openapi"];
 
 export type RouteClassification = "gated" | "public-by-design" | "ungated-bug";
 

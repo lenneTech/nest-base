@@ -77,7 +77,9 @@ describe("Dev-Hub · GET /dev/tunnel.json — production gate", () => {
       "utf8",
     );
     try {
-      const res = await request(app.getHttpServer()).get("/hub/tunnel.json");
+      const res = await request(app.getHttpServer())
+        .get("/hub/tunnel.json")
+        .set("x-test-ability", "full");
       expect(res.status).toBe(404);
     } finally {
       rmSync(path, { force: true });

@@ -111,6 +111,27 @@ describe("Story · AbilityMiddleware", () => {
     expect(next.calls).toBe(1);
   });
 
+  it("builds ability on tenant-exempt /hub/* paths using the operator's default org", async () => {
+    const ability = buildAbility([{ action: "read", subject: "DevHub" }]);
+    const service = makeService(ability);
+    const findFirst = vi.fn(async () => ({ organizationId: "t1" }));
+    const prisma = { member: { findFirst } } as unknown as PrismaService;
+    const mw = new AbilityMiddleware(service, prisma);
+    const req: {
+      user?: { id: string; activeOrganizationId: string | null };
+      ability?: Ability;
+      originalUrl?: string;
+    } = {
+      user: { id: "u1", activeOrganizationId: null },
+      originalUrl: "/hub/portal-access.json",
+    };
+    const next = nextFn();
+    await mw.use(req as never, res, next);
+    expect(req.ability).toBe(ability);
+    expect(service.abilityFor).toHaveBeenCalledWith("u1", "t1", { scopes: undefined });
+    expect(next.calls).toBe(1);
+  });
+
   it("falls back to an empty ability when the storage layer throws (fail-closed)", async () => {
     const service = {
       abilityFor: vi.fn(async () => {

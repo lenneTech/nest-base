@@ -16,6 +16,7 @@ import {
 import { Input } from "../components/ui/input.js";
 import { Label } from "../components/ui/label.js";
 import { SignInError, signInWithEmail } from "../lib/api.js";
+import { bootstrapHubOperatorSession } from "../lib/hub-session-bootstrap.js";
 
 declare global {
   interface Window {
@@ -73,6 +74,7 @@ export function HubLoginPage(): ReactNode {
     setSubmitting(true);
     try {
       await signInWithEmail(email.trim(), password);
+      await bootstrapHubOperatorSession();
       toast.success("Angemeldet.");
       const from =
         typeof location.state === "object" &&

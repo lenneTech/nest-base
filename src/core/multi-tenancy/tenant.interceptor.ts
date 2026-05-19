@@ -9,6 +9,11 @@ import type { Request } from "express";
 import { Observable, defer, from, switchMap } from "rxjs";
 
 import { PrismaService } from "../prisma/prisma.service.js";
+import {
+  isHubPortalProtectedPath,
+  prefersHubPortalHtmlResponse,
+} from "../hub/hub-portal-paths.js";
+import { resolveHubOperatorTenantId } from "../hub/hub-operator-tenant.js";
 import { resolveRequestTenantId } from "./resolve-request-tenant.js";
 import { getCurrentTenantId, runWithTenant } from "./tenant-context.js";
 import { isTenantExempt } from "./tenant-guard.js";
@@ -94,7 +99,18 @@ export class TenantInterceptor implements NestInterceptor {
       // its own resolver call) and `runWithRlsTenant` see the same
       // value. RLS + CASL can no longer disagree.
       if (req.user && this.prisma) {
-        const tenantId = await resolveRequestTenantId(req, this.prisma);
+        const purePath = stripQuery(path);
+        const acceptHeader = Array.isArray(req.headers.accept)
+          ? req.headers.accept[0]
+          : req.headers.accept;
+        let tenantId = await resolveRequestTenantId(req, this.prisma);
+        if (
+          !tenantId &&
+          isHubPortalProtectedPath(purePath) &&
+          prefersHubPortalHtmlResponse({ method: req.method, acceptHeader })
+        ) {
+          tenantId = await resolveHubOperatorTenantId(req.user, this.prisma);
+        }
         if (!tenantId) {
           // No header AND no session tenant on a non-exempt route is
           // exactly what `parseTenantHeader` used to throw on. Mirror
@@ -136,4 +152,11 @@ function streamToPromise(observable: Observable<unknown>): Promise<unknown> {
 
 function unwrap(value: unknown): Promise<unknown> {
   return Promise.resolve(value);
+}
+
+function stripQuery(path: string): string {
+  const queryAt = path.indexOf("?");
+  const hashAt = path.indexOf("#");
+  const cut = Math.min(...[queryAt, hashAt].filter((i) => i >= 0), path.length);
+  return path.slice(0, cut);
 }

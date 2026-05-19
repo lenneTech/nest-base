@@ -11,8 +11,9 @@ import { bootstrap } from "../src/core/app/bootstrap.js";
  * endpoint, and shuts down cleanly. This is the smoke-test that proves
  * the project skeleton (Bun + NestJS + Prisma + Postgres) is wired.
  *
- * Issue #83: `GET /` now serves the Hub SPA shell (HTML). The API
- * identity endpoint moved to `GET /api/`.
+ * Issue #83: `GET /api/` is the API identity JSON. Unauthenticated
+ * `GET /` serves the Hub login SPA shell; authenticated DevHub users
+ * are redirected to `/hub`.
  *
  * Health-check endpoints (`/health/live`, `/health/ready`) are a separate
  * Phase 1 slice and live in a different test file.
@@ -28,9 +29,10 @@ describe("Server boot smoke", () => {
     await app?.close();
   });
 
-  it("GET / redirects to /hub (SPA entry point)", async () => {
-    const response = await request(app.getHttpServer()).get("/").expect(302);
-    expect(response.headers["location"]).toBe("/hub");
+  it("GET / serves the Hub login SPA shell when unauthenticated", async () => {
+    const response = await request(app.getHttpServer()).get("/").expect(200);
+    expect(response.headers["content-type"]).toMatch(/text\/html/);
+    expect(response.text).toContain('id="root"');
   });
 
   it("GET /api/ returns 200 with the server metadata JSON", async () => {

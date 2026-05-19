@@ -28,7 +28,7 @@ describe("RequestContext · middleware wiring", () => {
 
   it("GET / sets an x-request-id response header", async () => {
     const res = await request(app.getHttpServer()).get("/");
-    expect(res.status).toBe(302);
+    expect(res.status).toBe(200);
     expect(res.headers["x-request-id"]).toMatch(/^[0-9a-f-]{8,}$/i);
   });
 
@@ -41,7 +41,7 @@ describe("RequestContext · middleware wiring", () => {
   it("echoes an upstream traceparent (continues distributed trace)", async () => {
     const upstream = "00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01";
     const res = await request(app.getHttpServer()).get("/").set("traceparent", upstream);
-    expect(res.status).toBe(302);
+    expect(res.status).toBe(200);
     // Trace id must match the upstream value (parent id may change).
     expect(res.headers["traceparent"]).toMatch(/^00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-/);
   });

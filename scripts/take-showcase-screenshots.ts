@@ -93,6 +93,7 @@ interface PageSpec {
 // 1:1 correspondence so a new route can't ship without a screenshot
 // entry.
 const PAGES: PageSpec[] = [
+  { slug: "hub-login", path: "/", waitFor: ["Sign in", "Dev Portal"] },
   // Dev portal
   { slug: "hub-landing", path: "/hub", waitFor: ["Hub", "Cockpit"] },
   { slug: "hub-components", path: "/hub/components", waitFor: ["Components", "shadcn"] },
@@ -106,6 +107,7 @@ const PAGES: PageSpec[] = [
   { slug: "hub-queries", path: "/hub/queries", waitFor: ["Queries"] },
   { slug: "hub-migrations", path: "/hub/migrations", waitFor: ["Migrations", "Status"] },
   { slug: "hub-jobs", path: "/hub/jobs", waitFor: ["Jobs", "Queues"] },
+  { slug: "admin-jobs-redirect", path: "/admin/jobs", waitFor: ["Jobs", "Queues"] },
   { slug: "hub-routes", path: "/hub/routes", waitFor: ["Routes"] },
   { slug: "hub-erd", path: "/hub/erd", waitFor: ["ERD"] },
   {

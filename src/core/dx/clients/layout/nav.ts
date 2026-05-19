@@ -138,9 +138,7 @@ export const SPA_ROUTES = new Set<string>([
 
 /** Hide Admin nav when the signed-in operator lacks tenant-admin CASL subjects. */
 export function navSectionsForPortalAccess(tenantAdmin: boolean): readonly AdminNavSection[] {
-  return NAV_SECTIONS.filter(
-    (section) => section.title !== ADMIN_NAV_SECTION_TITLE || tenantAdmin,
-  );
+  return NAV_SECTIONS.filter((section) => section.title !== ADMIN_NAV_SECTION_TITLE || tenantAdmin);
 }
 
 export function isSpaRoute(href: string): boolean {

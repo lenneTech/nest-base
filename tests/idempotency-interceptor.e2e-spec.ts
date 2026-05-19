@@ -1,9 +1,9 @@
 import { Body, Controller, type INestApplication, Post } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
-import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { Public } from "../src/core/permissions/public.decorator.js";
+import { hubReq } from "./helpers/hub-request.js";
 
 /**
  * E2E · Idempotency-Key interceptor end-to-end (CF.STORAGE.01 — iter-180).
@@ -84,7 +84,7 @@ describe("E2E · Idempotency-Key interceptor through HTTP layer", () => {
   it("first POST with Idempotency-Key runs the handler (no replay header)", async () => {
     invocations = 0;
     const key = `e2e-${crypto.randomUUID()}`;
-    const res = await request(app.getHttpServer())
+    const res = await hubReq(app)
       .post("/hub/idempotency-probe")
       .set("Idempotency-Key", key)
       .set("Content-Type", "application/json")
@@ -101,7 +101,7 @@ describe("E2E · Idempotency-Key interceptor through HTTP layer", () => {
     const key = `e2e-${crypto.randomUUID()}`;
     const body = { value: "replayable", nested: { x: 1, y: ["a", "b"] } };
 
-    const first = await request(app.getHttpServer())
+    const first = await hubReq(app)
       .post("/hub/idempotency-probe")
       .set("Idempotency-Key", key)
       .set("Content-Type", "application/json")
@@ -110,7 +110,7 @@ describe("E2E · Idempotency-Key interceptor through HTTP layer", () => {
     expect(first.body.invocation).toBe(1);
     expect(invocations).toBe(1);
 
-    const second = await request(app.getHttpServer())
+    const second = await hubReq(app)
       .post("/hub/idempotency-probe")
       .set("Idempotency-Key", key)
       .set("Content-Type", "application/json")
@@ -128,7 +128,7 @@ describe("E2E · Idempotency-Key interceptor through HTTP layer", () => {
     invocations = 0;
     const key = `e2e-${crypto.randomUUID()}`;
 
-    const first = await request(app.getHttpServer())
+    const first = await hubReq(app)
       .post("/hub/idempotency-probe")
       .set("Idempotency-Key", key)
       .set("Content-Type", "application/json")
@@ -136,7 +136,7 @@ describe("E2E · Idempotency-Key interceptor through HTTP layer", () => {
     expect(first.status).toBe(201);
     expect(invocations).toBe(1);
 
-    const conflict = await request(app.getHttpServer())
+    const conflict = await hubReq(app)
       .post("/hub/idempotency-probe")
       .set("Idempotency-Key", key)
       .set("Content-Type", "application/json")
@@ -155,11 +155,11 @@ describe("E2E · Idempotency-Key interceptor through HTTP layer", () => {
 
   it("requests without Idempotency-Key bypass the interceptor (every call runs the handler)", async () => {
     invocations = 0;
-    const a = await request(app.getHttpServer())
+    const a = await hubReq(app)
       .post("/hub/idempotency-probe")
       .set("Content-Type", "application/json")
       .send({ value: "no-key-1" });
-    const b = await request(app.getHttpServer())
+    const b = await hubReq(app)
       .post("/hub/idempotency-probe")
       .set("Content-Type", "application/json")
       .send({ value: "no-key-2" });
@@ -176,12 +176,12 @@ describe("E2E · Idempotency-Key interceptor through HTTP layer", () => {
     const k2 = `e2e-${crypto.randomUUID()}`;
     const body = { value: "shared-body" };
 
-    const r1 = await request(app.getHttpServer())
+    const r1 = await hubReq(app)
       .post("/hub/idempotency-probe")
       .set("Idempotency-Key", k1)
       .set("Content-Type", "application/json")
       .send(body);
-    const r2 = await request(app.getHttpServer())
+    const r2 = await hubReq(app)
       .post("/hub/idempotency-probe")
       .set("Idempotency-Key", k2)
       .set("Content-Type", "application/json")

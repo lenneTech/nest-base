@@ -1,10 +1,10 @@
 import { Controller, Get, type INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
-import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { z } from "zod";
 
 import { Public } from "../src/core/permissions/public.decorator.js";
+import { hubReq } from "./helpers/hub-request.js";
 
 /**
  * E2E · `Test.createTestingModule({ imports: [AppModule] })` inherits
@@ -95,7 +95,7 @@ describe("E2E · APP_FILTER inheritance via Test.createTestingModule({ imports: 
   });
 
   it("returns 400 + CORE_VALIDATION + problem+json content-type for an in-handler ZodError", async () => {
-    const res = await request(app.getHttpServer()).get("/hub/filter-inheritance-probe/zod");
+    const res = await hubReq(app).get("/hub/filter-inheritance-probe/zod");
     // Was 500 + plain JSON before the AppModule APP_FILTER edit.
     expect(res.status).toBe(400);
     expect(res.headers["content-type"]).toMatch(/application\/problem\+json/);

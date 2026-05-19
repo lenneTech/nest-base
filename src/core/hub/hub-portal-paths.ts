@@ -26,19 +26,27 @@ export function isHubPortalProtectedPath(path: string): boolean {
   return false;
 }
 
-/** True when an unauthenticated browser should be sent to `/` instead of 401 JSON. */
-export function prefersHubPortalLoginRedirect(input: {
-  path: string;
+/** Browser navigation / SPA shell requests (HTML-first Accept). */
+export function prefersHubPortalHtmlResponse(input: {
   method: string | undefined;
   acceptHeader: string | undefined;
 }): boolean {
   if (input.method !== undefined && input.method !== "GET" && input.method !== "HEAD") {
     return false;
   }
-  if (!isHubPortalProtectedPath(input.path)) return false;
   const accept = input.acceptHeader ?? "";
   if (accept.includes("text/html")) return true;
   // Browser navigation often sends */* — treat SPA paths as HTML-first.
   if (accept.includes("*/*") && !accept.includes("application/json")) return true;
   return false;
+}
+
+/** True when an unauthenticated browser should be sent to `/` instead of 401 JSON. */
+export function prefersHubPortalLoginRedirect(input: {
+  path: string;
+  method: string | undefined;
+  acceptHeader: string | undefined;
+}): boolean {
+  if (!isHubPortalProtectedPath(input.path)) return false;
+  return prefersHubPortalHtmlResponse(input);
 }

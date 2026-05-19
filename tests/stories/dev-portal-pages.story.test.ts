@@ -59,7 +59,7 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
   describe("Hub login page", () => {
     it("HubLoginPage signs in via Better-Auth and navigates to /hub", () => {
       expect(HUB_LOGIN_PAGE).toContain("signInWithEmail");
-      expect(HUB_LOGIN_PAGE).toContain('navigate(from');
+      expect(HUB_LOGIN_PAGE).toContain("navigate(from");
       expect(HUB_LOGIN_PAGE).toContain("/hub/portal-access.json");
     });
 

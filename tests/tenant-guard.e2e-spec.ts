@@ -46,9 +46,12 @@ describe("Tenant Guard", () => {
   });
 
   // Hub paths are exempt (no tenant needed for the Hub SPA).
-  it.each(["/hub/portal-access.json"])("treats %s as tenant-exempt (Hub SPA JSON)", (path) => {
-    expect(isTenantExempt(path)).toBe(true);
-  });
+  it.each(["/hub/portal-access.json", "/hub/scheduled-jobs.json", "/hub/feature-catalog.json"])(
+    "treats %s as tenant-exempt (Hub SPA JSON)",
+    (path) => {
+      expect(isTenantExempt(path)).toBe(true);
+    },
+  );
 
   it("rejects empty input defensively", () => {
     expect(() => requiresTenant("")).toThrow();

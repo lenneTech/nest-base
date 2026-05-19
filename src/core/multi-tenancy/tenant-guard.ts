@@ -54,8 +54,9 @@ const EXEMPT_EXACT = new Set([
 const STATIC_EXEMPT_PREFIXES = [
   "/health/",
   "/docs/",
-  // Hub static assets only — SPA HTML/JSON resolve tenant via session.
-  "/hub/static/",
+  // Dev-Hub operator surface — cockpit JSON + SPA HTML are not scoped to a
+  // tenant (contrast `/admin/*`, which is tenant-admin CRUD).
+  "/hub/",
   "/errors/",
   "/api/me/",
   "/api/tenants/",

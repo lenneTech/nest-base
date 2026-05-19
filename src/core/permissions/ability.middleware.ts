@@ -1,6 +1,8 @@
 import { Injectable, type NestMiddleware } from "@nestjs/common";
 import type { NextFunction, Request, Response } from "express";
 
+import { resolveHubOperatorTenantId } from "../hub/hub-operator-tenant.js";
+import { isHubPortalProtectedPath, isHubPortalStaticAsset } from "../hub/hub-portal-paths.js";
 import { resolveRequestTenantId } from "../multi-tenancy/resolve-request-tenant.js";
 import { isTenantExempt } from "../multi-tenancy/tenant-guard.js";
 import { PrismaService } from "../prisma/prisma.service.js";
@@ -99,7 +101,13 @@ export class AbilityMiddleware implements NestMiddleware {
     // originalUrl/url and want the resolver to run unconditionally.
     const path = (req.originalUrl ?? req.url) as string | undefined;
     if (path && isTenantExempt(path)) {
-      req.ability = buildAbility([]);
+      if (req.user && isHubOperatorAbilityPath(path)) {
+        await this.attachAbilityForUser(req, () =>
+          resolveHubOperatorTenantId(req.user!, this.prisma),
+        );
+      } else {
+        req.ability = buildAbility([]);
+      }
       next();
       return;
     }
@@ -125,26 +133,56 @@ export class AbilityMiddleware implements NestMiddleware {
       return;
     }
 
-    if (!tenantId) {
-      // No identity / no tenant scope — empty ability. Routes
-      // without `@Can()` still pass; routes with it 403 (matches the
-      // previous interceptor-only behaviour for anonymous-but-routed
-      // requests).
+    await this.attachAbilityForUser(req, async () => {
+      if (tenantId) return tenantId;
+      const purePath = stripQuery(path);
+      if (req.user && isHubPortalProtectedPath(purePath)) {
+        return resolveHubOperatorTenantId(req.user, this.prisma);
+      }
+      return null;
+    });
+    next();
+  }
+
+  private async attachAbilityForUser(
+    req: AuthenticatedRequest,
+    resolveTenantId: () => Promise<string | null>,
+  ): Promise<void> {
+    if (!req.user) {
       req.ability = buildAbility([]);
-      next();
       return;
     }
-
+    let tenantId: string | null;
+    try {
+      tenantId = await resolveTenantId();
+    } catch {
+      req.ability = buildAbility([]);
+      return;
+    }
+    if (!tenantId) {
+      req.ability = buildAbility([]);
+      return;
+    }
     try {
       req.ability = await this.permissions.abilityFor(req.user.id, tenantId, {
         scopes: req.user.scopes,
       });
     } catch {
-      // Storage failure must not 500 the request — fall back to an
-      // empty ability so the request fails closed (403) rather than
-      // open (500 → noise in error budgets).
       req.ability = buildAbility([]);
     }
-    next();
   }
+}
+
+/** `/hub/*` JSON/HTML uses `@Can(DevHub)` but is exempt from `x-tenant-id`. */
+function isHubOperatorAbilityPath(path: string): boolean {
+  const pure = stripQuery(path);
+  if (isHubPortalStaticAsset(pure)) return false;
+  return pure === "/hub" || pure.startsWith("/hub/");
+}
+
+function stripQuery(path: string): string {
+  const queryAt = path.indexOf("?");
+  const hashAt = path.indexOf("#");
+  const cut = Math.min(...[queryAt, hashAt].filter((i) => i >= 0), path.length);
+  return path.slice(0, cut);
 }
