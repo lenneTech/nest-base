@@ -1,0 +1,29 @@
+# PowerSync Service config for local docker-compose.
+# PS_* env vars are substituted at startup (!env requires PS_ prefix).
+# See https://docs.powersync.com/configuration/powersync-service/self-hosted-instances
+
+replication:
+  connections:
+    - type: postgresql
+      uri: !env PS_PG_URI
+      sslmode: disable
+
+# Bucket storage on the same Postgres 18 instance (supported since PG 14+).
+storage:
+  type: postgresql
+  uri: !env PS_STORAGE_URI
+  sslmode: disable
+
+port: !env PS_PORT
+
+sync_config:
+  path: sync-rules.yaml
+
+client_auth:
+  # host.docker.internal JWKS from bun dev on the host.
+  allow_local_jwks: true
+  jwks_uri: !env PS_JWKS_URL
+  audience: ['powersync']
+
+telemetry:
+  disable_telemetry_sharing: true

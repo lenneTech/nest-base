@@ -64,15 +64,14 @@ describe("Story · PowerSync service in docker-compose", () => {
     expect(ports.some((p) => p.includes("8080"))).toBe(true);
   });
 
-  it("mounts sync-rules.yaml read-only", () => {
+  it("mounts the PowerSync config directory read-only", () => {
     const c = readCompose();
     const volumes = c.services.powersync?.volumes ?? [];
-    expect(volumes.some((v) => v.includes("sync-rules.yaml"))).toBe(true);
-    // Read-only suffix is required so the container can't mutate the rules.
-    expect(volumes.some((v) => v.includes("sync-rules.yaml") && v.endsWith(":ro"))).toBe(true);
+    expect(volumes.some((v) => v.includes("docker/powersync"))).toBe(true);
+    expect(volumes.some((v) => v.includes("docker/powersync") && v.endsWith(":ro"))).toBe(true);
   });
 
-  it("passes the powersync database connection via env (DSN with the dedicated role)", () => {
+  it("points the service at powersync.yaml and supplies Postgres + JWKS via PS_* env", () => {
     const c = readCompose();
     const env = c.services.powersync?.environment;
     const flat = Array.isArray(env)
@@ -80,17 +79,8 @@ describe("Story · PowerSync service in docker-compose", () => {
       : Object.entries(env ?? {})
           .map(([k, v]) => `${k}=${v}`)
           .join(" ");
-    expect(flat).toMatch(/POWERSYNC_DATABASE_URI|POWERSYNC_DATABASE_URL|PG.+CONNECTION/i);
-  });
-
-  it("passes the JWKS issuer URL for the Better-Auth JWT plugin", () => {
-    const c = readCompose();
-    const env = c.services.powersync?.environment;
-    const flat = Array.isArray(env)
-      ? env.join(" ")
-      : Object.entries(env ?? {})
-          .map(([k, v]) => `${k}=${v}`)
-          .join(" ");
-    expect(flat).toMatch(/POWERSYNC_JWKS_URL|POWERSYNC_JWT|JWKS/i);
+    expect(flat).toMatch(/POWERSYNC_CONFIG_PATH/);
+    expect(flat).toMatch(/PS_PG_URI/);
+    expect(flat).toMatch(/PS_JWKS_URL|JWKS/i);
   });
 });

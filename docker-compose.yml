@@ -52,12 +52,13 @@ services:
       retries: 5
 
   powersync:
-    # PowerSync sync engine. Pulls the WAL from
-    # Postgres, applies sync-rules.yaml, exposes WebSocket+HTTP for clients.
+    # PowerSync sync engine. Pulls the WAL from Postgres, applies sync-rules.yaml,
+    # exposes WebSocket+HTTP for clients. v1.x needs powersync.yaml (see docker/powersync/).
     # Pin to a specific release to avoid unexpected breaking changes on `docker compose pull`.
     # Check https://github.com/powersync-ja/powersync-service/releases for the latest tag.
-    image: journeyapps/powersync-service:0.9.5
+    image: journeyapps/powersync-service:1.21.0
     restart: unless-stopped
+    command: ['start', '-r', 'unified']
     depends_on:
       postgres:
         condition: service_healthy
@@ -65,17 +66,19 @@ services:
     env_file:
       - .env
     environment:
-      POWERSYNC_DATABASE_URI: postgresql://powersync:$${POWERSYNC_DB_PASSWORD}@postgres:5432/$${POSTGRES_DB}
-      POWERSYNC_PORT: '8080'
+      POWERSYNC_CONFIG_PATH: /config/powersync.yaml
+      # Templated into powersync.yaml via !env (PS_ prefix required by PowerSync).
+      PS_PG_URI: postgresql://powersync:${POWERSYNC_DB_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      # Dev-only: superuser creates the powersync bucket-storage schema on first boot.
+      PS_STORAGE_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      PS_PORT: '8080'
       # Better-Auth exposes JWKS at /.well-known/jwks (see Phase 5b-5).
-      # The host.docker.internal host lets the container reach the bun-watched
-      # API running on the docker host (not inside compose).
-      POWERSYNC_JWKS_URL: ${POWERSYNC_JWKS_URL:-http://host.docker.internal:3000/.well-known/jwks}
-      POWERSYNC_JWT_AUDIENCE: powersync
+      # host.docker.internal lets the container reach bun dev on the docker host.
+      PS_JWKS_URL: ${POWERSYNC_JWKS_URL:-http://host.docker.internal:3000/.well-known/jwks}
     ports:
       - '8080:8080'
     volumes:
-      - ./docker/powersync/sync-rules.yaml:/config/sync-rules.yaml:ro
+      - ./docker/powersync:/config:ro
 
   rustfs:
     image: rustfs/rustfs:latest
