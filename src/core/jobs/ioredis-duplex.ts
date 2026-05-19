@@ -4,14 +4,21 @@ import type { RedisDuplex } from "./bullmq-job-queue.js";
 
 const redisDuplexLogger = new Logger("RedisDuplex");
 
+/** Attached by `toRedisDuplex()` so BullMQ receives a real ioredis connection. */
+export const IOREDIS_RAW = Symbol.for("lt:ioredisRaw");
+
 /** Minimal ioredis surface used to build a `RedisDuplex` bridge. */
-interface IoredisDuplexSource {
+export interface IoredisDuplexSource {
   duplicate(): IoredisDuplexSource;
   disconnect(): void;
   status: string;
   quit(): Promise<string>;
   on?(event: string, listener: (...args: unknown[]) => void): unknown;
 }
+
+export type RedisDuplexWithRaw = RedisDuplex & {
+  [IOREDIS_RAW]: IoredisDuplexSource;
+};
 
 function attachErrorHandler(client: IoredisDuplexSource): void {
   if (typeof client.on !== "function") return;
@@ -24,13 +31,25 @@ function attachErrorHandler(client: IoredisDuplexSource): void {
 
 /**
  * Wrap a live ioredis client as `RedisDuplex` without escape-hatch casts.
+ * The raw client is preserved under `IOREDIS_RAW` for BullMQ / Socket.IO.
  */
-export function toRedisDuplex(client: IoredisDuplexSource): RedisDuplex {
+export function toRedisDuplex(client: IoredisDuplexSource): RedisDuplexWithRaw {
   attachErrorHandler(client);
-  return {
+  const wrapped: RedisDuplexWithRaw = {
     duplicate: () => toRedisDuplex(client.duplicate()),
     disconnect: () => client.disconnect(),
     status: client.status,
     quit: () => client.quit(),
+    [IOREDIS_RAW]: client,
   };
+  return wrapped;
+}
+
+/** Unwrap the backing ioredis instance for libraries that need the full client. */
+export function unwrapIoredisRaw(redis: RedisDuplex): IoredisDuplexSource {
+  const raw = (redis as RedisDuplexWithRaw)[IOREDIS_RAW];
+  if (!raw) {
+    throw new Error("RedisDuplex is missing IOREDIS_RAW — expected a toRedisDuplex() wrapper");
+  }
+  return raw;
 }

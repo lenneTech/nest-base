@@ -20,7 +20,6 @@ import {
   REALTIME_TRANSPORT,
   RealtimeServiceLifecycle,
 } from "./realtime-service.lifecycle.js";
-import { toRedisAdapterClient, type RedisAdapterClient } from "./socket-io-redis-bridge.js";
 import {
   InMemoryRealtimeTransport,
   RealtimeService,
@@ -452,6 +451,12 @@ export class RealtimeOutboxDispatcherLifecycle implements OnModuleInit {
 
 const SOCKET_IO_REDIS_ADAPTER = Symbol.for("lt:SocketIoRedisAdapter");
 
+/** Full ioredis client — @socket.io/redis-adapter needs psubscribe and friends. */
+interface SocketIoRedisClients {
+  quit(): Promise<string>;
+  on(event: string, listener: (...args: unknown[]) => void): void;
+}
+
 /**
  * Lifecycle hook that installs the Socket.IO Redis adapter when
  * `REDIS_URL` is set. Runs after the gateway server is available
@@ -465,7 +470,7 @@ export class SocketIoRedisAdapterLifecycle implements OnModuleInit, OnModuleDest
   constructor(
     private readonly gateway: RealtimeGateway,
     @Inject(SOCKET_IO_REDIS_ADAPTER)
-    private readonly adapterPair: { pub: RedisAdapterClient; sub: RedisAdapterClient } | null,
+    private readonly adapterPair: { pub: SocketIoRedisClients; sub: SocketIoRedisClients } | null,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -473,12 +478,7 @@ export class SocketIoRedisAdapterLifecycle implements OnModuleInit, OnModuleDest
     try {
       const { createAdapter } = await import("@socket.io/redis-adapter");
       if (this.gateway.server) {
-        this.gateway.server.adapter(
-          // createAdapter is typed with `any` parameters in @socket.io/redis-adapter;
-          // casting through unknown satisfies TS without suppressing type checking on
-          // the RedisAdapterClient interface we use throughout this class.
-          createAdapter(this.adapterPair.pub, this.adapterPair.sub),
-        );
+        this.gateway.server.adapter(createAdapter(this.adapterPair.pub, this.adapterPair.sub));
         this.log.log("Socket.IO Redis adapter installed (cross-pod broadcasts enabled)");
       }
     } catch (err) {
@@ -505,14 +505,14 @@ export class SocketIoRedisAdapterLifecycle implements OnModuleInit, OnModuleDest
  * connection-free.
  */
 async function resolveSocketIoRedisPair(): Promise<{
-  pub: RedisAdapterClient;
-  sub: RedisAdapterClient;
+  pub: SocketIoRedisClients;
+  sub: SocketIoRedisClients;
 } | null> {
   const url = process.env.REDIS_URL;
   if (!url) return null;
   try {
     const { default: Redis } = await import("ioredis");
-    const pub = toRedisAdapterClient(new Redis(url));
+    const pub = new Redis(url);
     const sub = pub.duplicate();
     // Prevent unhandled 'error' event crash on auth failures, network drops,
     // or TLS rejections. ioredis surfaces these via its internal retry logic;
