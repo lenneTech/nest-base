@@ -9,6 +9,7 @@ import {
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 
+import { abilityAllows } from "./ability-subject-access.js";
 import type { Ability, AbilityAction, AbilitySubjectType } from "./casl-ability.js";
 
 /**
@@ -72,7 +73,7 @@ export class CanGuard implements CanActivate {
       this.logger.warn(`forbidden: no ability for ${meta.action}:${String(meta.subject)}`);
       throw new ForbiddenException("forbidden");
     }
-    if (!ability.can(meta.action, meta.subject)) {
+    if (!abilityAllows(ability, meta.action, meta.subject)) {
       this.logger.warn(`forbidden: ${meta.action}:${String(meta.subject)} denied`);
       throw new ForbiddenException("forbidden");
     }

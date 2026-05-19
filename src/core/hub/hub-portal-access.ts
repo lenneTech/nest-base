@@ -2,22 +2,12 @@
  * CASL helpers for Hub vs Admin operator surfaces (pure functions).
  */
 import type { Ability } from "../permissions/casl-ability.js";
+import { canManageSubject } from "../permissions/ability-subject-access.js";
 
 /** Cockpit + diagnostics + feature toggles (`/hub/*`). */
 export function canAccessDevHub(ability: Ability | undefined): boolean {
   if (!ability) return false;
-  return ability.can("manage", "all") || ability.can("read", "DevHub");
-}
-
-/** True when the ability grants full CRUD on a subject (DB stores MANAGE expanded). */
-function canManageSubject(ability: Ability, subject: string): boolean {
-  if (ability.can("manage", subject)) return true;
-  return (
-    ability.can("create", subject) &&
-    ability.can("read", subject) &&
-    ability.can("update", subject) &&
-    ability.can("delete", subject)
-  );
+  return canManageSubject(ability, "all") || ability.can("read", "DevHub");
 }
 
 /** Tenant admin CRUD + inspectors (`/admin/*` JSON + pages). */

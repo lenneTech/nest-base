@@ -278,6 +278,15 @@ export function buildSeedPlan(input: SeedPlanInput = {}): SeedPlan {
       fields: [],
       createdAt: now,
     },
+    {
+      id: seededUuidV7(`perm:admin:manage:EmailOutboxAdmin`, now),
+      policyId: adminPolicy.id,
+      resource: "EmailOutboxAdmin",
+      action: "MANAGE",
+      itemFilter: { tenantId: { _eq: "$CURRENT_TENANT" } },
+      fields: [],
+      createdAt: now,
+    },
   ];
 
   // User: READ on each project resource (tenant-scoped)
