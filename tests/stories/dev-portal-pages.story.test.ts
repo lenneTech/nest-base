@@ -155,13 +155,11 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
     });
 
     it("admin-spa.controller.ts requires x-tenant-id on auditBrowserJson", () => {
-      expect(ADMIN_SPA_CONTROLLER).toContain('x-tenant-id header is required');
+      expect(ADMIN_SPA_CONTROLLER).toContain("x-tenant-id header is required");
     });
 
     it("AdminSpaController is @Public dev-hub surface with assertDev()", () => {
-      expect(ADMIN_SPA_CONTROLLER).toMatch(
-        /@Public\([^)]*assertDev\(\)[^)]*local development/,
-      );
+      expect(ADMIN_SPA_CONTROLLER).toMatch(/@Public\([^)]*assertDev\(\)[^)]*local development/);
       expect(ADMIN_SPA_CONTROLLER).toContain("private assertDev()");
     });
   });

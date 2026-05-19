@@ -214,7 +214,11 @@ export class SessionsAdminController {
     });
   }
 
-  private resolveActor(req: AuthedRequest): { id: string; tenantId?: string; fromSession: boolean } {
+  private resolveActor(req: AuthedRequest): {
+    id: string;
+    tenantId?: string;
+    fromSession: boolean;
+  } {
     if (!req.user) {
       throw new UnauthorizedException("authentication required");
     }

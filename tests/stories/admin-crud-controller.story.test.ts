@@ -14,10 +14,7 @@ const ROOT = resolve(__dirname, "..", "..");
 
 describe("Story · AdminCrudModule dev gating", () => {
   it("admin-crud controllers use @Public and assertDevPortalOnly on every handler", () => {
-    const src = readFileSync(
-      resolve(ROOT, "src/core/permissions/admin-crud.module.ts"),
-      "utf8",
-    );
+    const src = readFileSync(resolve(ROOT, "src/core/permissions/admin-crud.module.ts"), "utf8");
     expect(src).toContain('@Controller("admin/roles")');
     expect(src).toContain('@Controller("admin/policies")');
     expect(src).toContain('@Controller("admin/permissions")');
@@ -30,10 +27,7 @@ describe("Story · AdminCrudModule dev gating", () => {
   });
 
   it("RolesAdminPage sends x-tenant-id when loading roles", () => {
-    const src = readFileSync(
-      resolve(ROOT, "src/core/dx/clients/pages/RolesAdminPage.tsx"),
-      "utf8",
-    );
+    const src = readFileSync(resolve(ROOT, "src/core/dx/clients/pages/RolesAdminPage.tsx"), "utf8");
     expect(src).toContain("fetchJsonWithTenant");
     expect(src).toContain('"/admin/roles"');
     expect(src).toContain("readTenantIdFromCookie");

@@ -73,9 +73,7 @@ export function AuditBrowserPage(): ReactNode {
         } catch {
           /* status alone is enough */
         }
-        throw new Error(
-          `${url} → ${res.status}${detail ? `: ${detail.slice(0, 200)}` : ""}`,
-        );
+        throw new Error(`${url} → ${res.status}${detail ? `: ${detail.slice(0, 200)}` : ""}`);
       }
       return (await res.json()) as AuditBrowserResponse;
     },

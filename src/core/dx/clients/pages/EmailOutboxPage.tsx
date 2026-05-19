@@ -156,7 +156,9 @@ function DetailPanel({ id, onClose }: { id: string; onClose: () => void }): Reac
   if (detail.isPending) return <PageLoading>Loading record…</PageLoading>;
   if (detail.isError) {
     return (
-      <PageError showAuthHint={needsAdminAuthHint(detail.error)}>Failed to load record detail.</PageError>
+      <PageError showAuthHint={needsAdminAuthHint(detail.error)}>
+        Failed to load record detail.
+      </PageError>
     );
   }
 
