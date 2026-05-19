@@ -7,7 +7,7 @@ import {
 import { EMAIL_OUTBOX_STORAGE } from "../email/email-outbox.module.js";
 import type { EmailOutboxStorage } from "../email/email-outbox.js";
 import { PrismaService } from "../prisma/prisma.service.js";
-import type { BullMQJobQueue } from "../jobs/bullmq-job-queue.js";
+import { BullMQJobQueue } from "../jobs/bullmq-job-queue.js";
 
 export interface CheckResult {
   status: "ok" | "fail";
@@ -47,9 +47,8 @@ export class HealthService {
   constructor(
     private readonly prisma: PrismaService,
     @Optional() @Inject(EMAIL_OUTBOX_STORAGE) private readonly emailOutbox?: EmailOutboxStorage,
-    // BullMQJobQueue is exported under the class token in JobsModule.
-    // @Optional() so HealthModule does not need to import JobsModule —
-    // it receives null when the job queue is not loaded (test bootstraps).
+    // BullMQJobQueue token is re-exported by JobsModule (HealthModule imports it).
+    // @Optional() for test bootstraps that omit JobsModule.
     @Optional() private readonly jobQueue?: BullMQJobQueue,
   ) {}
 

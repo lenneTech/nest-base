@@ -54,6 +54,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
+      # Pull every declared image before `up` so a removed tag (e.g. an
+      # obsolete powersync pin) fails here instead of on a dev laptop.
+      - name: Pull docker-compose images
+        run: |
+          set -a; . ./.env; set +a
+          # Postgres is `nest-base-postgres:local` (built below) — skip it.
+          docker compose pull --ignore-buildable
+
       - name: Boot Postgres + Redis (custom image / redis service)
         run: |
           # Source the wizard-generated POSTGRES_* so docker-compose
@@ -118,9 +126,23 @@ jobs:
             fi
             sleep 1
           done
-          # Final readiness check (fail loud if still not up).
-          curl -fsS "http://127.0.0.1:${PORT:-3000}/health/ready" | head -c 200
+          # Final readiness check (fail loud if still not up). Allow a short
+          # settle window so async BullMQ worker registration finishes.
+          sleep 3
+          ready_json=$(curl -fsS "http://127.0.0.1:${PORT:-3000}/health/ready")
+          echo "$ready_json" | head -c 400
           echo
+          jobs_status=$(echo "$ready_json" | jq -r '.checks.jobs.status // empty')
+          if [ "$jobs_status" != "ok" ]; then
+            echo "::error::/health/ready jobs check is not ok (got: ${jobs_status:-missing})"
+            grep -E 'BullMQ Worker registration|Fatal startup' /tmp/server.log || true
+            exit 1
+          fi
+          if grep -qE 'BullMQ Worker registration for .* failed:' /tmp/server.log; then
+            echo "::error::BullMQ worker registration failed during boot (see /tmp/server.log)"
+            grep 'BullMQ Worker registration' /tmp/server.log || true
+            exit 1
+          fi
           # OpenAPI spec must be valid JSON with an info.title.
           title=$(curl -fsS "http://127.0.0.1:${PORT:-3000}/api/openapi.json" | jq -r .info.title)
           if [ -z "$title" ] || [ "$title" = "null" ]; then
