@@ -13,13 +13,16 @@
  * nothing).
  */
 import type { ReactNode } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useOutletContext } from "react-router-dom";
+import { toast } from "sonner";
 
+import type { HubPortalAccess } from "../components/HubPortalGate.js";
+import { signOut } from "../lib/api.js";
 import { cn } from "../lib/utils.js";
 
 import { CommandPalette, pushRecentItem } from "../components/CommandPalette.js";
 import { BRAND_LOGO, ICONS } from "./icons.js";
-import { isSpaRoute, NAV_SECTIONS } from "./nav.js";
+import { isSpaRoute, navSectionsForPortalAccess } from "./nav.js";
 
 /**
  * Brand snapshot inlined by the server shell into `window.__BRAND__`.
@@ -104,11 +107,23 @@ interface SidebarProps {
 
 function Sidebar({ currentNav }: SidebarProps): ReactNode {
   const location = useLocation();
+  const portalAccess = useOutletContext<HubPortalAccess | undefined>();
+  const sections = navSectionsForPortalAccess(portalAccess?.tenantAdmin ?? false);
+
+  async function onSignOut(): Promise<void> {
+    try {
+      await signOut();
+      window.location.assign("/");
+    } catch {
+      toast.error("Abmelden fehlgeschlagen.");
+    }
+  }
+
   return (
     <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r border-line bg-surface-1">
       <NavItemBrand />
       <nav className="flex-1 overflow-y-auto px-3 py-4">
-        {NAV_SECTIONS.map((section) => (
+        {sections.map((section) => (
           <div key={section.title} className="mb-5 last:mb-0">
             <h3 className="mb-2 px-3 text-[0.65rem] font-semibold uppercase tracking-widest text-fg-faint">
               {section.title}
@@ -165,6 +180,13 @@ function Sidebar({ currentNav }: SidebarProps): ReactNode {
         ))}
       </nav>
       <div className="border-t border-line px-4 py-3 space-y-1">
+        <button
+          type="button"
+          onClick={() => void onSignOut()}
+          className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs text-fg-muted hover:bg-surface-hover hover:text-fg transition-colors"
+        >
+          Abmelden
+        </button>
         {/* Cmd+K palette hint — clicking it opens the palette for mouse users */}
         <PaletteHint />
         <a

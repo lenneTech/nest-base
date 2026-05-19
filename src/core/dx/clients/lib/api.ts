@@ -71,6 +71,45 @@ async function readAdminFetchError(url: string, res: Response): Promise<AdminFet
   return new AdminFetchError(url, res.status, detail);
 }
 
+export class SignInError extends Error {
+  constructor(readonly status: number) {
+    super(
+      status === 401 || status === 403
+        ? "E-Mail oder Passwort ungültig."
+        : `Anmeldung fehlgeschlagen (${status}).`,
+    );
+    this.name = "SignInError";
+  }
+}
+
+/** Better-Auth sign-out — clears the session cookie for Hub + admin. */
+export async function signOut(): Promise<void> {
+  const res = await fetch("/api/auth/sign-out", {
+    method: "POST",
+    credentials: "include",
+    headers: { accept: "application/json" },
+  });
+  if (!res.ok) {
+    throw new SignInError(res.status);
+  }
+}
+
+/** Better-Auth email/password sign-in for Hub + admin operator surfaces. */
+export async function signInWithEmail(email: string, password: string): Promise<void> {
+  const res = await fetch("/api/auth/sign-in/email", {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      accept: "application/json",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    throw new SignInError(res.status);
+  }
+}
+
 export async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url, {
     ...ADMIN_FETCH_INIT,

@@ -1,27 +1,44 @@
 #!/usr/bin/env bun
 /**
- * `bun run setup` — generate a `.env` from `.env.example`, substituting
- * placeholders with cryptographically random secrets. Idempotent: if
- * `.env` already exists the runner refuses to overwrite it.
+ * `bun run setup` — generate `.env`, optional full dev bootstrap.
  *
- * Pure logic lives in src/core/setup/setup-wizard-runner.ts; this file
- * is just the thin CLI surface (cwd + stdout logging + exit code).
+ * Fresh checkout (default):
+ *   1. Write `.env` from `.env.example` with random secrets
+ *   2. Start Postgres (+ Redis), prepare schema, migrate, seed
+ *   3. Print `bun run dev`
+ *
+ * Flags:
+ *   --bootstrap     Run DB bring-up even when `.env` already exists
+ *   --skip-bootstrap  Only write `.env` / env-bridge (no docker/prisma/seed)
+ *   --skip-docker   Skip `docker compose up` (CI / manual stack)
+ *   --no-seed       Migrate only — no demo data
  */
 
-import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { spawnSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
-import { computeComposeProjectName } from '../src/core/setup/compose-project-name.js';
-import { findFreePort } from '../src/core/setup/find-free-port.js';
-import { runSetupWizard } from '../src/core/setup/setup-wizard-runner.js';
-import { planVolumeCollisionCheck } from '../src/core/setup/volume-collision-check.js';
+import { config as loadEnv } from "dotenv";
 
-// Pick a free Postgres host-port at setup time so two `--next`
-// workspaces on the same machine never collide on `5432:5432`. The
-// wizard bakes the chosen port into both `POSTGRES_HOST_PORT` and
-// `DATABASE_URL` so the dev server, the Compose stack, and Prisma all
-// see the same number.
+import { computeComposeProjectName } from "../src/core/setup/compose-project-name.js";
+import { findFreePort } from "../src/core/setup/find-free-port.js";
+import { executeSetupBootstrap } from "../src/core/setup/setup-bootstrap-runner.js";
+import { planSetupBootstrap } from "../src/core/setup/setup-bootstrap.js";
+import { runSetupWizard } from "../src/core/setup/setup-wizard-runner.js";
+import { planVolumeCollisionCheck } from "../src/core/setup/volume-collision-check.js";
+
+const argv = process.argv.slice(2);
+const bootstrapFlag = argv.includes("--bootstrap");
+const skipBootstrap = argv.includes("--skip-bootstrap");
+const skipDocker = argv.includes("--skip-docker") || process.env.SKIP_DB_BOOT === "1";
+const skipSeed = argv.includes("--no-seed");
+
+const projectRoot = process.cwd();
+const logger = {
+  info: (msg: string) => console.log(`[setup] ${msg}`),
+  warn: (msg: string) => console.warn(`[setup] ${msg}`),
+};
+
 const postgresHostPort = await findFreePort(5432);
 if (postgresHostPort !== 5432) {
   console.log(
@@ -30,95 +47,109 @@ if (postgresHostPort !== 5432) {
 }
 
 const result = runSetupWizard({
-  projectRoot: process.cwd(),
-  logger: {
-    info: (msg) => console.log(`[setup] ${msg}`),
-    warn: (msg) => console.warn(`[setup] ${msg}`),
-  },
+  projectRoot,
+  logger,
   postgresHostPort,
 });
 
-// `.env` already on disk (typical after `lt fullstack init --next`,
-// where the CLI ships the API `.env` from the template). We still
-// reach this branch AFTER `runSetupWizard()` ran — which means the
-// frontend env-bridge has already fired and `projects/app/.env`
-// (when present) is now retargeted away from the upstream
-// `localhost:3000` literal. Surface that to the operator so a
-// re-run of `bun run setup` looks like progress, not a failure.
-if (!result.created) {
+const shouldBootstrap = (result.created || bootstrapFlag) && !skipBootstrap;
+
+if (!result.created && !bootstrapFlag) {
   console.log("");
   console.log(
     "[setup] `.env` already exists — leaving it untouched. " +
-      "If `projects/app/` was added later, re-run `bun run setup` to fire the frontend env-bridge.",
+      "Run `bun run setup --bootstrap` to start Postgres, migrate, and seed.",
   );
   process.exit(1);
 }
 
-// Probe for a stale docker volume from a same-named older workspace.
-// The friction is that `${COMPOSE_PROJECT_NAME}_postgres_data` keeps
-// the *old* POSTGRES_PASSWORD; the freshly written `.env` carries a
-// new one, so `bun run prisma:migrate` fails with P1000 and the
-// operator chases an opaque auth error. Fail-fast here with the
-// recovery commands instead of letting them rediscover the trap.
-const composeProjectName = readComposeProjectName(process.cwd()) ?? 'nest-base';
-const volumeName = `${composeProjectName}_postgres_data`;
-const volumeProbe = spawnSync('docker', ['volume', 'inspect', volumeName], {
-  stdio: 'pipe',
-  encoding: 'utf8',
-});
-// `docker volume inspect` exits 0 when the volume exists, non-zero
-// otherwise. We treat any non-zero (including "docker not installed"
-// → ENOENT) as "no collision", because a host without Docker can't
-// have the legacy volume. The runner stays planner-driven so the
-// operator-visible message is built from a single source of truth.
-//
-// Pass `expectedComposeProjectName` so the planner can short-circuit a
-// false-positive when the active `COMPOSE_PROJECT_NAME` was set by a
-// *different* workspace path (legacy non-hashed name in this `.env`
-// pointing at someone else's volume).
-const expectedComposeProjectName = readPackageJsonName(process.cwd())
-  ? computeComposeProjectName({
-      projectName: readPackageJsonName(process.cwd())!,
-      workspacePath: process.cwd(),
-    })
-  : undefined;
-const collisionPlan = planVolumeCollisionCheck({
-  composeProjectName,
-  volumeExists: volumeProbe.status === 0,
-  expectedComposeProjectName,
-});
+if (result.created) {
+  const composeProjectName = readComposeProjectName(projectRoot) ?? "nest-base";
+  const volumeName = `${composeProjectName}_postgres_data`;
+  const volumeProbe = spawnSync("docker", ["volume", "inspect", volumeName], {
+    stdio: "pipe",
+    encoding: "utf8",
+  });
+  const expectedComposeProjectName = readPackageJsonName(projectRoot)
+    ? computeComposeProjectName({
+        projectName: readPackageJsonName(projectRoot)!,
+        workspacePath: projectRoot,
+      })
+    : undefined;
+  const collisionPlan = planVolumeCollisionCheck({
+    composeProjectName,
+    volumeExists: volumeProbe.status === 0,
+    expectedComposeProjectName,
+  });
 
-if (!collisionPlan.ok) {
-  console.error('');
-  console.error(collisionPlan.message);
-  console.error('');
-  console.error('Aborting before `prisma:migrate` would fail with P1000.');
-  process.exit(2);
+  if (!collisionPlan.ok) {
+    console.error("");
+    console.error(collisionPlan.message);
+    console.error("");
+    console.error("Aborting before bootstrap would fail with P1000.");
+    process.exit(2);
+  }
 }
 
-console.log('');
-console.log('Next steps:');
-console.log('  1. Review and adjust values in .env');
-console.log('  2. Start dependencies: docker compose up -d');
-console.log('  3. Run migrations:     bun run prisma:migrate');
-console.log('  4. Boot the server:    bun run dev');
-console.log(
-  '     (frontend env-bridge has retargeted projects/app/.env to follow the API automatically)',
-);
+if (!shouldBootstrap) {
+  console.log("");
+  console.log("Next steps:");
+  console.log("  1. Review values in .env");
+  console.log("  2. Run: bun run setup --bootstrap");
+  console.log("  3. Or manually: docker compose up -d && bun run prepare:schema");
+  console.log("     && bun run prisma:generate && bun run prisma:migrate && bun run seed");
+  console.log("  4. Start: bun run dev");
+  process.exit(0);
+}
+
+loadEnv({ path: join(projectRoot, ".env") });
+
+const bootstrapPlan = planSetupBootstrap({
+  env: { DATABASE_URL: process.env.DATABASE_URL },
+  nodeEnv: process.env.NODE_ENV ?? "development",
+  hasFeatureSchemas: existsSync(join(projectRoot, "prisma/features")),
+  hasSeedScript: existsSync(join(projectRoot, "scripts/seed.ts")),
+  hasDockerCompose: existsSync(join(projectRoot, "docker-compose.yml")),
+  skipDocker,
+  skipSeed,
+});
+
+if (!bootstrapPlan.allowed) {
+  console.error(`[setup] bootstrap refused: ${bootstrapPlan.refusalReason}`);
+  process.exit(3);
+}
+
+console.log("");
+console.log("[setup] bootstrapping database (docker → schema → migrate → seed)…");
+const bootstrapResult = await executeSetupBootstrap({ plan: bootstrapPlan, logger });
+
+if (!bootstrapResult.ok) {
+  console.error("");
+  console.error(
+    `[setup] bootstrap failed${bootstrapResult.failedStep ? ` at "${bootstrapResult.failedStep.verb}"` : ""}.`,
+  );
+  console.error("Fix the issue above, then re-run: bun run setup --bootstrap");
+  process.exit(4);
+}
+
+console.log("");
+console.log("[setup] ready.");
+console.log("  Start the dev server:  bun run dev");
+console.log("  Hub login (after seed):  system-admin@lenne.tech / system-admin");
+console.log("                         admin@lenne.tech / admin");
+console.log("  Sanity check:          bun run onboard");
 
 function readComposeProjectName(cwd: string): string | undefined {
-  // The wizard just wrote `.env`; read the value back rather than
-  // re-parsing `.env.example` so any operator override is honoured.
-  const envPath = join(cwd, '.env');
+  const envPath = join(cwd, ".env");
   if (!existsSync(envPath)) return undefined;
-  const text = readFileSync(envPath, 'utf8');
+  const text = readFileSync(envPath, "utf8");
   const match = /^COMPOSE_PROJECT_NAME=(.*)$/m.exec(text);
   return match?.[1]?.trim() || undefined;
 }
 
 function readPackageJsonName(cwd: string): string | undefined {
-  const pkgPath = join(cwd, 'package.json');
+  const pkgPath = join(cwd, "package.json");
   if (!existsSync(pkgPath)) return undefined;
-  const match = /"name"\s*:\s*"([^"]+)"/.exec(readFileSync(pkgPath, 'utf8'));
+  const match = /"name"\s*:\s*"([^"]+)"/.exec(readFileSync(pkgPath, "utf8"));
   return match?.[1];
 }

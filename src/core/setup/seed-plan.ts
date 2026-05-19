@@ -214,15 +214,71 @@ export function buildSeedPlan(input: SeedPlanInput = {}): SeedPlan {
   ];
 
   // Admin: manage on each project resource, scoped to $CURRENT_TENANT
-  const adminPermissions: SeedPermission[] = PROJECT_RESOURCES.map((resource) => ({
-    id: seededUuidV7(`perm:admin:manage:${resource}`, now),
-    policyId: adminPolicy.id,
-    resource,
-    action: "MANAGE" as SeedPermissionAction,
-    itemFilter: { tenantId: { _eq: "$CURRENT_TENANT" } },
-    fields: [],
-    createdAt: now,
-  }));
+  const adminPermissions: SeedPermission[] = [
+    ...PROJECT_RESOURCES.map((resource) => ({
+      id: seededUuidV7(`perm:admin:manage:${resource}`, now),
+      policyId: adminPolicy.id,
+      resource,
+      action: "MANAGE" as SeedPermissionAction,
+      itemFilter: { tenantId: { _eq: "$CURRENT_TENANT" } },
+      fields: [],
+      createdAt: now,
+    })),
+    {
+      id: seededUuidV7(`perm:admin:read:DevHub`, now),
+      policyId: adminPolicy.id,
+      resource: "DevHub",
+      action: "READ",
+      itemFilter: { tenantId: { _eq: "$CURRENT_TENANT" } },
+      fields: [],
+      createdAt: now,
+    },
+    {
+      id: seededUuidV7(`perm:admin:manage:User`, now),
+      policyId: adminPolicy.id,
+      resource: "User",
+      action: "MANAGE",
+      itemFilter: { tenantId: { _eq: "$CURRENT_TENANT" } },
+      fields: [],
+      createdAt: now,
+    },
+    {
+      id: seededUuidV7(`perm:admin:manage:TenantAdmin`, now),
+      policyId: adminPolicy.id,
+      resource: "TenantAdmin",
+      action: "MANAGE",
+      itemFilter: { tenantId: { _eq: "$CURRENT_TENANT" } },
+      fields: [],
+      createdAt: now,
+    },
+    {
+      id: seededUuidV7(`perm:admin:manage:Role`, now),
+      policyId: adminPolicy.id,
+      resource: "Role",
+      action: "MANAGE",
+      itemFilter: { tenantId: { _eq: "$CURRENT_TENANT" } },
+      fields: [],
+      createdAt: now,
+    },
+    {
+      id: seededUuidV7(`perm:admin:manage:Policy`, now),
+      policyId: adminPolicy.id,
+      resource: "Policy",
+      action: "MANAGE",
+      itemFilter: { tenantId: { _eq: "$CURRENT_TENANT" } },
+      fields: [],
+      createdAt: now,
+    },
+    {
+      id: seededUuidV7(`perm:admin:manage:Permission`, now),
+      policyId: adminPolicy.id,
+      resource: "Permission",
+      action: "MANAGE",
+      itemFilter: { tenantId: { _eq: "$CURRENT_TENANT" } },
+      fields: [],
+      createdAt: now,
+    },
+  ];
 
   // User: READ on each project resource (tenant-scoped)
   //       + UPDATE on User / UserProfile (user-scoped)

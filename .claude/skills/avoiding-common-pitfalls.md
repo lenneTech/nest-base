@@ -174,6 +174,20 @@ bun run prepare:schema && bun run prisma:generate
 Symptom in CI: `Module '"@prisma/client"' has no exported member
 'PrismaClient'`. Fix: add the generate step.
 
+### Local first run — use `bun run setup`
+
+Contributors should not hand-assemble `docker compose` + four Prisma
+commands on day one:
+
+```bash
+bun install
+bun run setup              # .env + docker + schema + migrate + seed
+bun run dev
+```
+
+Re-bootstrap an existing `.env` after permission/seed changes:
+`bun run setup --bootstrap`. Hub operators: `docs/hub/login.md`.
+
 ### Migrations are forward-only
 
 Per `docs/api-stability-promise.md`, never rewrite an already-shipped

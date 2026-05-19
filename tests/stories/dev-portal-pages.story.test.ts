@@ -41,6 +41,7 @@ const PERMISSION_TESTER_PAGE = read("src/core/dx/clients/pages/PermissionTesterP
 const FEATURES_PAGE = read("src/core/dx/clients/pages/FeaturesPage.tsx");
 const AUDIT_BROWSER_PAGE = read("src/core/dx/clients/pages/AuditBrowserPage.tsx");
 const API_TS = read("src/core/dx/clients/lib/api.ts");
+const HUB_LOGIN_PAGE = read("src/core/dx/clients/pages/HubLoginPage.tsx");
 
 describe("Story · Dev-Portal SPA route + nav contract", () => {
   describe("admin fetch sends session cookies", () => {
@@ -48,19 +49,39 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       expect(API_TS).toContain('credentials: "include"');
       expect(API_TS).toContain("adminFetch");
     });
+
+    it("signInWithEmail posts to Better-Auth with credentials include", () => {
+      expect(API_TS).toContain('fetch("/api/auth/sign-in/email"');
+      expect(API_TS).toContain("signInWithEmail");
+    });
+  });
+
+  describe("Hub login page", () => {
+    it("HubLoginPage signs in via Better-Auth and navigates to /hub", () => {
+      expect(HUB_LOGIN_PAGE).toContain("signInWithEmail");
+      expect(HUB_LOGIN_PAGE).toContain('navigate(from');
+      expect(HUB_LOGIN_PAGE).toContain("/hub/portal-access.json");
+    });
+
+    it("App.tsx wraps hub/admin routes in HubPortalGate", () => {
+      expect(APP_TSX).toContain("HubPortalGate");
+    });
   });
 
   describe("React route table covers every SPA-owned page", () => {
     const expectedRoutes = [
+      "/",
       "/hub",
       "/hub/components",
       "/hub/features",
+      "/hub/brand",
       "/hub/coverage",
       "/hub/tests",
       "/hub/diagnostics",
       "/hub/logs",
       "/hub/traces",
       "/hub/queries",
+      "/hub/migrations",
       "/hub/jobs",
       "/hub/routes",
       "/hub/erd",
@@ -73,6 +94,9 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       "/admin/permissions/test",
       "/admin/sessions",
       "/admin/jobs",
+      "/admin/users",
+      "/admin/tenants",
+      "/admin/rate-limits",
       "/admin/roles",
       "/admin/policies",
       "/admin/permissions",
@@ -97,11 +121,13 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       "/hub",
       "/hub/diagnostics",
       "/hub/features",
+      "/hub/brand",
       "/hub/coverage",
       "/hub/tests",
       "/hub/logs",
       "/hub/traces",
       "/hub/queries",
+      "/hub/migrations",
       "/hub/jobs",
       "/hub/routes",
       "/hub/erd",
@@ -114,7 +140,9 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       "/hub/email-outbox",
       "/admin/permissions/test",
       "/admin/sessions",
-      "/admin/jobs",
+      "/admin/users",
+      "/admin/tenants",
+      "/admin/rate-limits",
       "/admin/roles",
       "/admin/policies",
       "/admin/permissions",
@@ -177,6 +205,7 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
 
   describe("Server controller exposes every JSON endpoint the React pages consume", () => {
     const jsonEndpoints = [
+      "portal-access.json",
       "dashboard.json",
       "status.json",
       "feature-catalog.json",
@@ -305,12 +334,16 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       "dev-hub",
       "diagnostics",
       "features",
+      "brand",
       "coverage",
       "tests",
       "logs",
       "traces",
       "queries",
+      "migrations",
       "jobs",
+      "cron",
+      "email-outbox",
       "scalar",
       "openapi",
       "routes",
@@ -319,7 +352,14 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       "email-preview",
       "email-builder",
       "prisma-studio",
+      "users",
+      "tenants",
+      "sessions",
+      "roles",
+      "policies",
+      "permissions-crud",
       "permissions",
+      "rate-limits",
       "webhooks",
       "realtime",
       "audit",

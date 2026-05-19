@@ -50,7 +50,7 @@ describe("E2E · /me/tenants + POST /tenants self-service", () => {
     // routes (e.g. /api/auth/sign-up/email) are reachable without
     // bootstrap(). Hub + health paths stay at root.
     app.setGlobalPrefix("api", {
-      exclude: ["/", "hub/login", "hub/logout", "health", "health/(.*)"],
+      exclude: ["/", "health", "health/(.*)"],
     });
     Object.assign(SILENT_LOGGER, {});
     await app.init();

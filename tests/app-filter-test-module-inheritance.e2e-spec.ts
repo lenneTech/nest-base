@@ -79,8 +79,6 @@ describe("E2E · APP_FILTER inheritance via Test.createTestingModule({ imports: 
         "errors",
         "errors/(.*)",
         "openapi",
-        "hub/login",
-        "hub/logout",
         "health",
         "health/(.*)",
       ],

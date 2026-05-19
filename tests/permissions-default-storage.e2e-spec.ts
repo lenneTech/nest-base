@@ -51,7 +51,7 @@ describe("Permissions · default Prisma storage end-to-end", () => {
     // Mirror bootstrap.ts: set the global /api/ prefix so BetterAuth
     // routes and probe controllers register under /api/... .
     app.setGlobalPrefix("api", {
-      exclude: ["/", "hub/login", "hub/logout", "health", "health/(.*)"],
+      exclude: ["/", "health", "health/(.*)"],
     });
     await app.init();
     prisma = app.get(PrismaService);

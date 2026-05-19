@@ -222,6 +222,20 @@ See skill `working-with-prisma` for the full migration + concat workflow.
 
 ---
 
+## First-time bring-up
+
+```bash
+bun install
+bun run setup    # .env + docker (postgres/redis) + prepare:schema + migrate + seed
+bun run dev      # sign in at / → /hub (see docs/hub/login.md)
+```
+
+Flags: `--bootstrap` (DB only), `--skip-bootstrap`, `--skip-docker`,
+`--no-seed`. After toggling features in `/hub/features`, re-run
+`bun run prepare:schema` (then migrate if new SQL shipped).
+
+---
+
 ## Dev-runner specifics
 
 `scripts/dev.ts` is the dev launcher. It:

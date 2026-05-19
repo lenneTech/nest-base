@@ -160,7 +160,8 @@ If your module needs persistent storage (default is in-memory):
    }
    ```
 
-2. Generate + migrate:
+2. Generate + migrate (skip if `bun run setup` / `setup --bootstrap`
+   already ran on this machine and schema is current):
 
    ```bash
    bun run prepare:schema

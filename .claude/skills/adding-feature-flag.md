@@ -186,21 +186,19 @@ const TOGGLEABLE_FEATURES: ToggleableFeatureKey[] = [
 
 Then add `prisma/features/notifications.prisma` with the model.
 
-### 9. Setup wizard (optional) — `src/core/setup/setup-wizard.ts`
+### 9. Feature toggle surface — `src/config/features.ts`
 
-If `bun run setup` should ask about your feature:
+`bun run setup` writes `.env` and bootstraps the DB; it does **not** run an
+interactive feature questionnaire. Enable the flag in
+`src/config/features.ts` (or flip it in `/hub/features`), then
+`bun run prepare:schema` so `prisma/features/<feature>.prisma` is included.
+
+If the feature needs new env vars, add them to `buildDefaultEnvExample()` in
+`src/core/setup/setup-wizard.ts` so fresh `bun run setup` runs include them:
 
 ```typescript
-export interface WizardAnswers {
-  // ... existing
-  notifications: boolean;
-}
-
-// in planSetup():
-features.notifications = { enabled: answers.notifications };
-
-// in renderEnvExample() — if your feature requires runtime config:
-if (answers.notifications) {
+// in buildDefaultEnvExample() / env example — when your feature needs runtime config:
+if (features.notifications.enabled) {
   lines.push("NOTIFICATIONS_WEBHOOK_URL=");
 }
 ```

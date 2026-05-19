@@ -25,6 +25,24 @@ The user gives you:
 If any of those are missing, ask before scaffolding. Don't guess —
 domain shape is project-specific.
 
+# Environment (before you touch Prisma)
+
+Fresh checkout or no running Postgres:
+
+```bash
+bun install
+bun run setup              # .env + docker + prepare:schema + migrate + seed
+```
+
+Existing `.env` but DB not migrated / stale volume:
+
+```bash
+bun run setup --bootstrap  # docker + schema + migrate + seed (env untouched)
+```
+
+Hub login for manual checks: `system-admin@lenne.tech` / `system-admin` or
+`admin@lenne.tech` / `admin` — see `docs/hub/login.md`.
+
 # Output
 
 The **slim 5-file default** subtree (the standard for ~95 % of

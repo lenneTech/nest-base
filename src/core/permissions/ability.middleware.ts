@@ -87,7 +87,7 @@ export class AbilityMiddleware implements NestMiddleware {
     }
 
     // Tenant-exempt paths (`/`, `/health/*`, `/api/auth/*`, `/me/*`,
-    // `/admin/*`, `/dev/*`, `/docs/*`, `/tenants/*`) DO NOT take a
+    // `/docs/*`, `/hub/static/*`, …) DO NOT take a
     // tenant header — they scope by `req.user.id` (or are public). The
     // resolver MUST NOT raise on them just because the client happens
     // to send a header (e.g. a frontend that forwards x-tenant-id on

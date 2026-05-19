@@ -66,8 +66,6 @@ describe("E2E · Idempotency-Key interceptor through HTTP layer", () => {
         "errors",
         "errors/(.*)",
         "openapi",
-        "hub/login",
-        "hub/logout",
         "health",
         "health/(.*)",
       ],

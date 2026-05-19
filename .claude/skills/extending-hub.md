@@ -220,12 +220,11 @@ the JSON sidecar consume the planner.
   through the SPA shell + a `*.json` sidecar.
 - **Don't hard-code colours.** Use the CSS variables.
 - **Don't use emojis as icons** — SVG only (see `clients/layout/icons.tsx`).
-- **Don't pull external CSS frameworks.** The dev-portal is intentionally
-  zero-build (~25KB tokens + admin-layout CSS), no Tailwind, no CSS-in-JS.
+- **Don't pull ad-hoc CSS frameworks beside the stack.** Use Tailwind 4 +
+  shadcn/ui tokens from `clients/styles/` — no extra Bootstrap/MUI layers.
 - **Don't skip the story test.** Even when the React page is mostly
   glue, the route ↔ sidebar ↔ JSON-endpoint contract must be pinned in
   `tests/stories/dev-portal-pages.story.test.ts`.
-- **Don't add Hub pages under `/hub/*` or `/admin/*` without
-  authentication.** Hub operator pages at `/hub/*` require a login
-  session; admin CRUD pages at `/admin/*` require
-  `@Can('manage', 'Subject')`.
+- **Don't add Hub pages without Better-Auth + `read DevHub`.** `/hub/*` and
+  `/admin/*` require a session; seed operators need the `DevHub` permission.
+  Admin JSON still uses `@Can()` on each controller. See `docs/hub/login.md`.

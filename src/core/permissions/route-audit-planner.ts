@@ -70,8 +70,6 @@ export const DEFAULT_PUBLIC_EXACT: readonly string[] = [
   "/",
   "/errors",
   "/openapi",
-  "/hub/login",
-  "/hub/logout",
 ];
 
 export type RouteClassification = "gated" | "public-by-design" | "ungated-bug";

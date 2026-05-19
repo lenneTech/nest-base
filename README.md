@@ -41,28 +41,26 @@ bun install
 # 2. (optional, if you forked the template) Rename to your project name
 bun run rename my-app
 
-# 3. Generate .env with strong random secrets (creates .env.example too if missing)
+# 3. Generate .env, start Postgres + Redis, migrate, and seed demo data
 bun run setup
-
-# 4. Generate Prisma client + run migrations
-bun run prisma:generate
-bun run prisma:migrate
-
-# 5. (optional) Insert demo data — 1 tenant, 3 roles, 3 users
-bun run seed
-# Demo credentials:
+# Demo credentials (written by seed):
 #   system-admin@lenne.tech / system-admin  (System Admin — full bypass)
-#   admin@lenne.tech        / admin         (Admin — manage all tenant resources)
-#   user@lenne.tech         / user          (User — read tenant, update own profile)
+#   admin@lenne.tech        / admin         (Admin — Hub + tenant admin)
+#   user@lenne.tech         / user          (User — no Hub access)
 
-# 6. (optional) Verify everything is wired correctly
+# Flags: --skip-bootstrap (env only), --skip-docker, --no-seed
+# Re-run DB steps on an existing .env: bun run setup --bootstrap
+
+# 4. (optional) Verify everything is wired correctly
 bun run onboard          # quick sanity check (Bun / .env / Postgres / Prisma)
 bun run doctor           # deep health check (containers, services, secrets, disk)
 
-# 7. Start the dev server — boots Postgres if needed, opens the Hub
+# 5. Start the dev server — opens the Hub (Postgres already running from setup)
 bun run dev
 ```
 
+> Re-run **`bun run prepare:schema`** (then `prisma:migrate` if migrations changed) after toggling feature flags in `/hub/features` — the concat step picks up which `prisma/features/*.prisma` files are active.
+>
 > **`bun run rename <name>`** patches `package.json`, `README.md`, `portless.yml`, and `docker-compose.yml` in one shot. Idempotent — safe to run repeatedly.
 >
 > **`bun run reset`** wipes the DB, replays every migration, and re-seeds — one command for "give me a clean slate". Refuses on production and non-local DATABASE_URL hosts as defense-in-depth.
@@ -72,6 +70,7 @@ bun run dev
 > ```bash
 > docker compose down -v
 > docker compose up -d postgres
+> bun run prepare:schema
 > bun run prisma:migrate
 > ```
 >
@@ -91,9 +90,22 @@ The Hub opens automatically at the URL the dev runner prints — `https://api.<p
 
 ## 🎯 The Hub
 
-A black + lime operator console powered by a React 19 SPA (`src/core/dx/clients/`) built on **shadcn/ui (Radix) + Tailwind CSS 4 + lucide-react + sonner + TanStack Query**. Hub pages (`/hub`, `/hub/features`, `/hub/diagnostics`, `/hub/logs`, `/hub/jobs`, …), `/admin/*` CRUD surfaces, `/errors`, and `/openapi` are all rendered by the same SPA shell; the Nest controllers return JSON sidecars + the SPA shell, the SPA decides which page to mount. Every page is reachable from the sidebar.
+A black + lime operator console powered by a React 19 SPA (`src/core/dx/clients/`) built on **shadcn/ui (Radix) + Tailwind CSS 4 + lucide-react + sonner + TanStack Query**. Hub pages (`/hub`, `/hub/features`, `/hub/diagnostics`, `/hub/logs`, `/hub/jobs`, …), `/admin/*` CRUD surfaces, `/errors`, and `/openapi` are all rendered by the same SPA shell; the Nest controllers return JSON sidecars + the SPA shell, the SPA decides which page to mount. The sidebar groups pages into **Übersicht**, **Laufzeit**, **API & Docs**, and **Admin**.
 
 > Full screenshot gallery: [`docs/showcase/`](docs/showcase/README.md).
+
+### Sign-in
+
+`/hub/*` and `/admin/*` require a **Better-Auth** session (same as the API). Open `/`,
+sign in after `bun run seed` — e.g. `system-admin@lenne.tech` / `system-admin` (full
+operator access) or `admin@lenne.tech` / `admin`. The demo `user@` account has no
+`DevHub` permission and cannot use the cockpit.
+
+**After pulling Hub-auth changes:** re-run `bun run seed` (idempotent) so the Admin
+role receives `read DevHub` and tenant-admin CASL subjects — existing databases keep
+old permission rows until you seed again.
+
+Details: [`docs/hub/login.md`](docs/hub/login.md).
 
 ### Cockpit Dashboard — `/hub`
 
@@ -343,10 +355,11 @@ bun run prisma:generate       # Generate Prisma client (also wires the pnpm-hois
 bun run prisma:migrate        # Apply migrations
 
 # Project lifecycle
-bun run setup                 # Generate .env with strong random secrets (idempotent).
+bun run setup                 # .env + docker + prepare:schema + migrate + seed
+                              # (idempotent env; use --bootstrap to re-run DB steps).
                               # Also writes API port + portless URL into
-                              # projects/app/.env (when present) so the frontend
-                              # follows the API. Custom values are never clobbered.
+                              # projects/app/.env when present. Custom values are
+                              # never clobbered.
 bun run onboard               # First-run sanity check (Bun / .env / Postgres-TCP / Prisma)
 bun run doctor                # Comprehensive health check (containers, services, secrets,
                               # disk space, env strength) — JSON output for CI via --json

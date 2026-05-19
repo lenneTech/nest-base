@@ -15,6 +15,19 @@ new Postgres feature.
 
 ---
 
+## Fresh checkout (before you edit models)
+
+```bash
+bun install
+bun run setup              # concat + generate + migrate + seed in one go
+```
+
+On an existing `.env` after pulling template changes:
+`bun run setup --bootstrap` or, if only schema concat changed,
+`bun run prepare:schema && bun run prisma:migrate`.
+
+---
+
 ## File map
 
 ```

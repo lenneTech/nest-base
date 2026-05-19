@@ -20,6 +20,7 @@ import {
   Param,
   Post,
   Query,
+  Req,
   Res,
 } from "@nestjs/common";
 import type { Response } from "express";
@@ -102,6 +103,9 @@ import {
   type PalettePageEntry,
   type PaletteSearchResult,
 } from "./palette-search-planner.js";
+import { Can } from "../permissions/can.guard.js";
+import type { Ability } from "../permissions/casl-ability.js";
+import { buildHubPortalAccessSnapshot } from "../hub/hub-portal-access.js";
 import { Public } from "../permissions/public.decorator.js";
 
 /**
@@ -202,6 +206,17 @@ export class DevHubController {
    * preview / feature overview need, so the SPA never fans out into
    * 8 sibling fetches on the first paint.
    */
+  /**
+   * `/hub/portal-access.json` — which SPA sections the signed-in operator
+   * may use (`DevHub` vs tenant-admin surfaces).
+   */
+  @Get("portal-access.json")
+  @Can("read", "DevHub")
+  portalAccessJson(@Req() req: { ability?: Ability }): ReturnType<typeof buildHubPortalAccessSnapshot> {
+    this.assertDev();
+    return buildHubPortalAccessSnapshot(req.ability);
+  }
+
   @Get("dashboard.json")
   async dashboardJson(): Promise<unknown> {
     this.assertDev();
@@ -1654,56 +1669,56 @@ function buildHubPageCatalog(): readonly PalettePageEntry[] {
       title: "Logs",
       href: "/hub/logs",
       aliases: ["Protokolle", "logging", "log-buffer"],
-      category: "Übersicht",
+      category: "Laufzeit",
     },
     {
       id: "traces",
       title: "Traces",
       href: "/hub/traces",
       aliases: ["tracing", "spans", "opentelemetry"],
-      category: "Übersicht",
+      category: "Laufzeit",
     },
     {
       id: "queries",
       title: "Queries",
       href: "/hub/queries",
       aliases: ["sql", "prisma-queries", "database-queries"],
-      category: "Übersicht",
+      category: "Laufzeit",
     },
     {
       id: "migrations",
       title: "Migrations",
       href: "/hub/migrations",
       aliases: ["schema", "migrate", "database-migrations"],
-      category: "Übersicht",
+      category: "Laufzeit",
     },
     {
       id: "jobs",
       title: "Jobs",
       href: "/hub/jobs",
-      aliases: ["queue", "workers", "background-jobs"],
-      category: "Übersicht",
+      aliases: ["queue", "workers", "background-jobs", "admin-jobs", "admin-queue"],
+      category: "Laufzeit",
     },
     {
       id: "cron",
       title: "Cron",
       href: "/hub/cron",
       aliases: ["scheduled-jobs", "schedule", "cron-jobs"],
-      category: "Übersicht",
+      category: "Laufzeit",
     },
     {
       id: "email-outbox",
       title: "Email Outbox",
       href: "/hub/email-outbox",
       aliases: ["outbox", "email-queue"],
-      category: "Übersicht",
+      category: "Laufzeit",
     },
     {
       id: "files",
       title: "File Manager",
       href: "/hub/files",
       aliases: ["uploads", "assets", "tus"],
-      category: "Übersicht",
+      category: "Admin",
     },
     {
       id: "scalar",
@@ -1808,13 +1823,6 @@ function buildHubPageCatalog(): readonly PalettePageEntry[] {
       title: "Sessions",
       href: "/admin/sessions",
       aliases: ["active-sessions", "user-sessions"],
-      category: "Admin",
-    },
-    {
-      id: "admin-jobs",
-      title: "Jobs (Admin)",
-      href: "/admin/jobs",
-      aliases: ["admin-queue", "admin-jobs"],
       category: "Admin",
     },
     {

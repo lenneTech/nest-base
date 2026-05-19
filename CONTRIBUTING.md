@@ -50,10 +50,8 @@ For deeper context:
 git clone git@github.com:lenneTech/nest-base.git
 cd nest-base
 bun install
-bun run setup            # generates .env with strong random secrets
-docker compose up -d postgres
-bun run prisma:generate
-bun run dev              # opens the Hub at /hub
+bun run setup            # .env + docker + schema + migrate + seed
+bun run dev              # Hub at / (sign in) → /hub
 ```
 
 ## The TDD cycle

@@ -10,6 +10,7 @@ import {
 import { fromNodeHeaders } from "better-auth/node";
 import type { NextFunction, Request, Response } from "express";
 
+import { prefersHubPortalLoginRedirect } from "../hub/hub-portal-paths.js";
 import { isPathProtected } from "./jwt-middleware.js";
 import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from "./better-auth.token.js";
 import { getRequestContext } from "../request-context/request-context.js";
@@ -82,7 +83,7 @@ export class BetterAuthSessionMiddleware implements NestMiddleware {
     private readonly auth: BetterAuthInstance | null = null,
   ) {}
 
-  async use(req: AuthenticatedRequest, _res: Response, next: NextFunction): Promise<void> {
+  async use(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     // In test environments, x-test-ability header signals that TestAbilityMiddleware
     // will seed req.ability from a pre-built CASL ability — no session is needed.
     // Skip session resolution entirely so the BA cookie check can't 401 the request
@@ -149,6 +150,19 @@ export class BetterAuthSessionMiddleware implements NestMiddleware {
     }
 
     if (protectedPath) {
+      const acceptHeader = Array.isArray(req.headers.accept)
+        ? req.headers.accept[0]
+        : req.headers.accept;
+      if (
+        prefersHubPortalLoginRedirect({
+          path: stripQuery(path),
+          method: req.method,
+          acceptHeader,
+        })
+      ) {
+        res.redirect(302, "/");
+        return;
+      }
       throw new UnauthorizedException("Authentication required.");
     }
     next();

@@ -146,7 +146,7 @@ const PAGES: PageSpec[] = [
     requiresAuth: true,
   },
   { slug: "admin-sessions", path: "/admin/sessions", waitFor: ["Sessions"], requiresAuth: true },
-  { slug: "admin-jobs", path: "/admin/jobs", waitFor: ["Jobs"], requiresAuth: true },
+  { slug: "jobs", path: "/hub/jobs", waitFor: ["Jobs"], requiresAuth: true },
   {
     slug: "admin-webhooks",
     path: "/admin/webhooks",

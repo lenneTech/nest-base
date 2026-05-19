@@ -13,8 +13,13 @@
  * land as on-demand chunks).
  */
 import { lazy, Suspense, type ReactNode } from "react";
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 
+import { HubPortalGate } from "./components/HubPortalGate.js";
+
+const HubLoginPage = lazy(() =>
+  import("./pages/HubLoginPage.js").then((m) => ({ default: m.HubLoginPage })),
+);
 const DevHubLandingPage = lazy(() =>
   import("./pages/DevHubLandingPage.js").then((m) => ({ default: m.DevHubLandingPage })),
 );
@@ -100,9 +105,6 @@ const UsersAdminPage = lazy(() =>
 const TenantsAdminPage = lazy(() =>
   import("./pages/TenantsAdminPage.js").then((m) => ({ default: m.TenantsAdminPage })),
 );
-const AdminJobsPage = lazy(() =>
-  import("./pages/AdminJobsPage.js").then((m) => ({ default: m.AdminJobsPage })),
-);
 const RolesAdminPage = lazy(() =>
   import("./pages/RolesAdminPage.js").then((m) => ({ default: m.RolesAdminPage })),
 );
@@ -128,40 +130,43 @@ export function App(): ReactNode {
   return (
     <Suspense fallback={<PageFallback />}>
       <Routes>
-        <Route path="/hub" element={<DevHubLandingPage />} />
-        <Route path="/hub/components" element={<ComponentShowcasePage />} />
-        <Route path="/hub/features" element={<FeaturesPage />} />
-        <Route path="/hub/brand" element={<BrandPage />} />
-        <Route path="/hub/coverage" element={<CoveragePage />} />
-        <Route path="/hub/tests" element={<TestsPage />} />
-        <Route path="/hub/diagnostics" element={<DiagnosticsPage />} />
-        <Route path="/hub/logs" element={<LogsPage />} />
-        <Route path="/hub/traces" element={<TracesPage />} />
-        <Route path="/hub/queries" element={<QueriesPage />} />
-        <Route path="/hub/migrations" element={<MigrationsPage />} />
-        <Route path="/hub/jobs" element={<JobsPage />} />
-        <Route path="/hub/routes" element={<RoutesPage />} />
-        <Route path="/hub/erd" element={<ErdPage />} />
-        <Route path="/hub/email-preview" element={<EmailPreviewPage />} />
-        <Route path="/hub/email-builder" element={<EmailBuilderPage />} />
-        <Route path="/hub/postgrest-parse" element={<PostgrestParsePage />} />
-        <Route path="/hub/json" element={<JsonViewerPage />} />
-        <Route path="/hub/files" element={<FileManagerPage />} />
-        <Route path="/hub/email-outbox" element={<EmailOutboxPage />} />
-        <Route path="/hub/cron" element={<CronPage />} />
-        <Route path="/admin/users" element={<UsersAdminPage />} />
-        <Route path="/admin/tenants" element={<TenantsAdminPage />} />
-        <Route path="/admin/sessions" element={<SessionsAdminPage />} />
-        <Route path="/admin/jobs" element={<AdminJobsPage />} />
-        <Route path="/admin/roles" element={<RolesAdminPage />} />
-        <Route path="/admin/policies" element={<PoliciesAdminPage />} />
-        <Route path="/admin/permissions" element={<PermissionsAdminPage />} />
-        <Route path="/admin/permissions/test" element={<PermissionTesterPage />} />
-        <Route path="/admin/webhooks" element={<WebhookInspectorPage />} />
-        <Route path="/admin/realtime" element={<RealtimeInspectorPage />} />
-        <Route path="/admin/audit" element={<AuditBrowserPage />} />
-        <Route path="/admin/search" element={<SearchTesterPage />} />
-        <Route path="/admin/rate-limits" element={<RateLimitsAdminPage />} />
+        <Route path="/" element={<HubLoginPage />} />
+        <Route element={<HubPortalGate />}>
+          <Route path="/hub" element={<DevHubLandingPage />} />
+          <Route path="/hub/components" element={<ComponentShowcasePage />} />
+          <Route path="/hub/features" element={<FeaturesPage />} />
+          <Route path="/hub/brand" element={<BrandPage />} />
+          <Route path="/hub/coverage" element={<CoveragePage />} />
+          <Route path="/hub/tests" element={<TestsPage />} />
+          <Route path="/hub/diagnostics" element={<DiagnosticsPage />} />
+          <Route path="/hub/logs" element={<LogsPage />} />
+          <Route path="/hub/traces" element={<TracesPage />} />
+          <Route path="/hub/queries" element={<QueriesPage />} />
+          <Route path="/hub/migrations" element={<MigrationsPage />} />
+          <Route path="/hub/jobs" element={<JobsPage />} />
+          <Route path="/hub/routes" element={<RoutesPage />} />
+          <Route path="/hub/erd" element={<ErdPage />} />
+          <Route path="/hub/email-preview" element={<EmailPreviewPage />} />
+          <Route path="/hub/email-builder" element={<EmailBuilderPage />} />
+          <Route path="/hub/postgrest-parse" element={<PostgrestParsePage />} />
+          <Route path="/hub/json" element={<JsonViewerPage />} />
+          <Route path="/hub/files" element={<FileManagerPage />} />
+          <Route path="/hub/email-outbox" element={<EmailOutboxPage />} />
+          <Route path="/hub/cron" element={<CronPage />} />
+          <Route path="/admin/users" element={<UsersAdminPage />} />
+          <Route path="/admin/tenants" element={<TenantsAdminPage />} />
+          <Route path="/admin/sessions" element={<SessionsAdminPage />} />
+          <Route path="/admin/jobs" element={<Navigate to="/hub/jobs" replace />} />
+          <Route path="/admin/roles" element={<RolesAdminPage />} />
+          <Route path="/admin/policies" element={<PoliciesAdminPage />} />
+          <Route path="/admin/permissions" element={<PermissionsAdminPage />} />
+          <Route path="/admin/permissions/test" element={<PermissionTesterPage />} />
+          <Route path="/admin/webhooks" element={<WebhookInspectorPage />} />
+          <Route path="/admin/realtime" element={<RealtimeInspectorPage />} />
+          <Route path="/admin/audit" element={<AuditBrowserPage />} />
+          <Route path="/admin/search" element={<SearchTesterPage />} />
+          <Route path="/admin/rate-limits" element={<RateLimitsAdminPage />} />
+        </Route>
         <Route path="/errors" element={<ErrorsPage />} />
         <Route path="/openapi" element={<OpenApiPage />} />
       </Routes>

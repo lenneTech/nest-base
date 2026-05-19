@@ -14,6 +14,17 @@ If the capability is generic enough to benefit every project on the
 template → skip this skill, send a PR upstream via
 `bun run sync:to-template`.
 
+## Prerequisites (environment)
+
+| Situation | Command |
+| --- | --- |
+| Fresh clone, no `.env` / DB | `bun install && bun run setup` |
+| `.env` exists, need migrate/seed | `bun run setup --bootstrap` |
+| Schema-only change in this session | `prepare:schema` → `prisma:generate` → `migrate dev` (below) |
+
+`bun run setup` does **not** ask interactive feature questions — edit
+`src/config/features.ts` or use `/hub/features`, then `prepare:schema`.
+
 ## Reference modules to copy from
 
 Two reference implementations live in `src/modules/`. Pick the one

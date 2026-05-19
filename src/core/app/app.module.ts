@@ -20,6 +20,7 @@ import { DeviceModule } from "../devices/device.module.js";
 import { DevHubModule } from "../dx/dev-hub.module.js";
 import { UserAdminModule } from "../dx/user-admin.module.js";
 import { HubModule } from "../hub/hub.module.js";
+import { HubPortalMiddleware } from "../hub/hub-portal.middleware.js";
 import { EmailModule } from "../email/email.module.js";
 import { EmailOutboxModule } from "../email/email-outbox.module.js";
 import { EmailOutboxAdminModule } from "../email/email-outbox-admin.module.js";
@@ -155,8 +156,7 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     // every module can inject it without importing RedisModule individually.
     RedisModule,
     HealthModule,
-    // HubModule mounts the Hub SPA at `/` with stage-aware auth (issue #83).
-    // Loaded before DevHubModule so the `/` route registration wins.
+    // HubModule — CASL gate for `/hub/*` + `/admin/*` (Better-Auth session).
     HubModule,
     DevHubModule,
     BetterAuthModule,
@@ -291,5 +291,6 @@ export class AppModule implements NestModule {
     consumer.apply(BetterAuthSessionMiddleware).forRoutes("*");
     consumer.apply(ApiKeySessionMiddleware).forRoutes("*");
     consumer.apply(AbilityMiddleware).forRoutes("*");
+    consumer.apply(HubPortalMiddleware).forRoutes("*");
   }
 }

@@ -38,7 +38,6 @@
     "add:module": "bun run scripts/add-module.ts",
     "rename": "bun run scripts/rename-project.ts",
     "reset": "bun run scripts/reset.ts",
-    "hub:reset-password": "bun run scripts/hub-reset-password.ts",
     "seed": "bun run scripts/seed.ts",
     "setup": "bun run scripts/setup-wizard.ts",
     "sync:from-template": "bun run scripts/sync-from-template.ts",

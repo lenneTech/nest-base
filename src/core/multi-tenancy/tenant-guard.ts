@@ -44,8 +44,6 @@ const EXEMPT_EXACT = new Set([
   "/api/tenants",
   "/api-docs-json",
   "/api/metrics",
-  // Hub SPA root.
-  "/hub",
   // OpenAPI SPA page (no /api prefix after fix).
   "/openapi",
 ]);
@@ -56,9 +54,8 @@ const EXEMPT_EXACT = new Set([
 const STATIC_EXEMPT_PREFIXES = [
   "/health/",
   "/docs/",
-  // Hub and admin SPA pages now live at /hub/* and /admin/* (no /api prefix).
-  "/hub/",
-  "/admin/",
+  // Hub static assets only — SPA HTML/JSON resolve tenant via session.
+  "/hub/static/",
   "/errors/",
   "/api/me/",
   "/api/tenants/",

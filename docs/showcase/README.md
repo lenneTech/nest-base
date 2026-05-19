@@ -48,11 +48,10 @@ binary blobs that don't belong in every PR. Re-run only when the UI
 has visibly moved.
 
 ```bash
-# 1. boot Postgres (once per machine)
-docker compose up -d postgres
+# 1. first-time (or re-bootstrap DB)
+bun run setup --bootstrap
 
-# 2. run migrations + start the dev server in another shell
-bun run prisma:migrate
+# 2. start the dev server
 bun run dev
 
 # 3. one-time Playwright install (Chromium ~150 MB)

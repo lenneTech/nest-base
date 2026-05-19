@@ -191,7 +191,11 @@ Coverage threshold for `src/modules/` is **≥ 75 %** (vs `src/core/`'s
 
 ## Adding a new resource — outline
 
-The full step-by-step is in `.claude/skills/adding-feature-module.md`:
+The full step-by-step is in `.claude/skills/adding-feature-module.md`.
+
+**Environment:** fresh clone → `bun install && bun run setup`; existing
+`.env` → `bun run setup --bootstrap` when Postgres/migrations/seed are
+missing or stale.
 
 1. **`prepare:schema && prisma:generate` FIRST** — without this,
    `tx.<resource>.*` isn't typed and you'll waste time fighting the

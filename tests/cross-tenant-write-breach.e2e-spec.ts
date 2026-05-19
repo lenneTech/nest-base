@@ -57,7 +57,7 @@ describe("E2E · Cross-tenant write breach", () => {
     // routes (e.g. /api/auth/sign-up/email) are reachable without
     // bootstrap(). Hub + health paths stay at root.
     app.setGlobalPrefix("api", {
-      exclude: ["/", "hub/login", "hub/logout", "health", "health/(.*)"],
+      exclude: ["/", "health", "health/(.*)"],
     });
     await app.init();
     prisma = app.get(PrismaService);

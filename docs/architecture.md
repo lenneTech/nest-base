@@ -360,7 +360,8 @@ in any environment because frontends + SDK generators read them.
 | Shell renderer (planner) | `src/core/dx/dev-portal-shell.ts` | Pure function: title + script URL + token CSS URL → static HTML5 skeleton with `<div id="root">` |
 | SPA source tree | `src/core/dx/clients/` | Browser-only: `main.tsx` (entry), `App.tsx` (router), `layout/`, `pages/`, `components/`, `lib/`, `styles/` |
 | Layout shell | `src/core/dx/clients/layout/AdminShell.tsx` + `nav.ts` + `icons.tsx` | Sidebar + header + SVG icons + active-state highlight |
-| Pages | `src/core/dx/clients/pages/` | One component per route: `DevHubLandingPage` (`/`), `FeaturesPage`, `CoveragePage`, `TestsPage`, `DiagnosticsPage`, `LogsPage`, `TracesPage`, `QueriesPage`, `RoutesPage`, `ErdPage`, `EmailPreviewPage`, `PostgrestParsePage`, `ComponentShowcasePage`, `PermissionTesterPage`, `WebhookInspectorPage`, `RealtimeInspectorPage`, `AuditBrowserPage`, `SearchTesterPage`, `ErrorsPage`, `OpenApiPage`, `UsersAdminPage`, `TenantsAdminPage`, `PermissionsAdminPage`, `EmailOutboxPage` — each lazy-loaded via `React.lazy` |
+| Pages | `src/core/dx/clients/pages/` | One component per route: `HubLoginPage` (`/`, Better-Auth email/password), `DevHubLandingPage` (`/hub`), `FeaturesPage`, … — each lazy-loaded via `React.lazy` |
+| Hub portal auth | `src/core/hub/hub-portal-paths.ts`, `hub-portal.middleware.ts`, `hub-portal-access.ts`, `bootstrap.ts` `GET /` | Better-Auth session required for `/hub/*` and `/admin/*` (except `/hub/static/*`); `read DevHub` CASL subject; login at `/` via `HubLoginPage` |
 | UI primitives | `src/core/dx/clients/components/ui/` | **shadcn/ui** components vendored under this tree (badge, button, card, checkbox, dialog, dropdown-menu, input, label, progress, radio-group, select, separator, sheet, sonner, switch, table, tabs, textarea, tooltip), built on **Radix UI**. To add a primitive: copy the canonical source from <https://ui.shadcn.com/docs/components>, retarget imports to `../../lib/utils.js`, append the `.js` suffix to every relative import. |
 | Custom components | `src/core/dx/clients/components/` | `JsonViewer` (reused by `/errors`, `/openapi`, `/hub/postgrest-parse`), `PageState` (Loading / Error / Empty / StatTile helpers), `Sparkline` (Webhook-Inspector trends) |
 | Icons | `src/core/dx/clients/layout/icons.tsx` | Sidebar + page icons via **lucide-react** — single import, tree-shaken to ~3 KB gzipped, consistent stroke-width 1.75 |
@@ -392,8 +393,9 @@ in any environment because frontends + SDK generators read them.
   incremental rebuilds (~80 ms warm). This eliminates the startup
   race where a request to `/hub/static/main.js` could hit a missing
   bundle.
-- `bun run setup` builds the SPA once after `bun install` so
-  `/hub/static/main.js` exists before the first dev start.
+- `bun run setup` writes `.env`, optionally bootstraps Postgres/Redis +
+  schema/migrations/seed (`--skip-bootstrap` to opt out), and builds the
+  SPA once so `/hub/static/main.js` exists before the first dev start.
 
 ### Coverage
 

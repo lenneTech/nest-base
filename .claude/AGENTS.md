@@ -28,7 +28,7 @@ spelunking through the directory tree.
 
 | User intent                                                | Primitive                                                                            |
 | ---------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| "I just opened the repo, where do I start?"                | [`QUICKSTART.md`](QUICKSTART.md)                                                     |
+| "I just opened the repo, where do I start?"                | [`QUICKSTART.md`](QUICKSTART.md) — `bun install && bun run setup && bun run dev`     |
 | "Why is X structured this way?"                            | skill: `understanding-the-architecture.md`                                           |
 | "I keep hitting a weird error"                             | skill: `avoiding-common-pitfalls.md`                                                 |
 | "How do I write a story test?"                             | skill: `writing-story-tests.md`                                                      |

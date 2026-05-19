@@ -39,8 +39,7 @@ import { serverConfigFromEnv } from "../server/server-config.js";
 import { planAutoMigration } from "../setup/auto-migrate.js";
 import { runAutoMigrate } from "../setup/auto-migrate-runner.js";
 import { checkEnvPrerequisites, renderEnvBanner } from "../setup/env-prerequisites.js";
-import { buildHubAuthConfig } from "../hub/hub-auth-planner.js";
-import { HubSessionService } from "../hub/hub-session.service.js";
+import { resolveHubRootRedirectTarget } from "../hub/hub-root-redirect.js";
 import { ConfigService } from "../config/config.service.js";
 import { generateRequestId } from "../request-context/request-context.js";
 import {
@@ -51,8 +50,6 @@ import {
 } from "../request-context/traceparent.js";
 import { AppModule } from "./app.module.js";
 import { isShareLinkSecretValid } from "../files/share-link-secret.js";
-import { isSecureCookieEnv } from "../http/cookie-security.js";
-
 export interface BootstrapOptions {
   /** When false, the app is created but `listen()` is skipped (used in tests). */
   listen?: boolean;
@@ -221,8 +218,6 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   //   - `admin`, `admin/(.*)` — Admin SPA pages (no /api prefix)
   //   - `errors`, `errors/(.*)` — Error catalog page (no /api prefix)
   //   - `openapi`             — OpenAPI SPA viewer page (no /api prefix)
-  //   - `hub/login`    — Hub password login (no API prefix needed)
-  //   - `hub/logout`   — Hub logout (no API prefix needed)
   //   - `health/(.*)`  — k8s liveness/readiness probes
   //
   // NOTE: `GET /` is NOT in this list. The Hub SPA at root is handled
@@ -241,8 +236,6 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
       "errors",
       "errors/(.*)",
       "openapi",
-      "hub/login",
-      "hub/logout",
       "health",
       "health/(.*)",
       // IPX cache-busting DELETE sits under /_ipx/ (root-level namespace
@@ -274,7 +267,6 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   // global-prefix exclude list. Using an Express handler removes the
   // ambiguity: AppController (at GET /api/) is unaffected.
   {
-    const HUB_COOKIE_NAME = "hub.session";
     const expressApp = app.getHttpAdapter().getInstance() as Express;
     expressApp.get("/", (req: Request, res: Response): void => {
       // Mirror RequestContextMiddleware: set x-request-id + traceparent on
@@ -295,25 +287,12 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
         res.setHeader("traceparent", formatTraceparent({ traceId, parentId, sampled }));
       }
 
-      // AppEnv is "development" | "staging" | "production"; the Hub stage
-      // includes "local" and "test" as additional values for test tooling.
-      // Use the outer `cfg` captured by closure rather than re-parsing env
-      // on every request (Fix #17: duplicate serverConfigFromEnv() call removed).
-      const stage = (
-        cfg.env === "development" ? "local" : cfg.env === "production" ? "production" : "staging"
-      ) as "local" | "production" | "test" | "staging";
-      const authCfg = buildHubAuthConfig({ stage });
-
-      if (authCfg.requireAuth) {
-        // Parse cookie header manually — cookie-parser is not a dependency.
-        // The hub.session value is a plain signed token (no URL encoding needed).
-        const rawCookieHeader = (req.headers as Record<string, string | undefined>)["cookie"] ?? "";
-        const cookie = rawCookieHeader
-          .split(";")
-          .map((c: string) => c.trim())
-          .find((c: string) => c.startsWith(`${HUB_COOKIE_NAME}=`))
-          ?.slice(HUB_COOKIE_NAME.length + 1);
-        if (!cookie) {
+      void resolveHubRootRedirectTarget(app, req)
+        .then((target) => {
+          if (target) {
+            res.redirect(302, target);
+            return;
+          }
           res
             .status(200)
             .type("text/html; charset=utf-8")
@@ -322,42 +301,10 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
                 buildDevPortalShellInput({ title: "Hub Login", brand: "central" }),
               ),
             );
-          return;
-        }
-
-        const sessions = app.get(HubSessionService);
-        const result = sessions.verifyAndRefresh(cookie);
-        if (!result.valid) {
-          res.clearCookie(HUB_COOKIE_NAME);
-          res
-            .status(200)
-            .type("text/html; charset=utf-8")
-            .send(
-              renderDevPortalShell(
-                buildDevPortalShellInput({ title: "Hub Login", brand: "central" }),
-              ),
-            );
-          return;
-        }
-
-        if (result.refreshedToken) {
-          // Mirror hub.controller.ts: HUB_COOKIE_SECURE=false takes precedence
-          // over the env-based check so local HTTP testing works without
-          // changing NODE_ENV (Finding 2 fix — keeps login and refresh in sync).
-          const isSecure = process.env.HUB_COOKIE_SECURE !== "false" && isSecureCookieEnv();
-          res.cookie(HUB_COOKIE_NAME, result.refreshedToken, {
-            httpOnly: true,
-            secure: isSecure,
-            sameSite: "lax",
-            maxAge: authCfg.cookie.maxAgeMs,
-            path: "/",
-          });
-        }
-      }
-
-      // Redirect to /hub — the SPA entry point. BrowserRouter no longer
-      // uses a basename, so /hub is the canonical root route.
-      res.redirect(302, "/hub");
+        })
+        .catch(() => {
+          res.status(500).type("text/plain").send("Hub login unavailable.");
+        });
     });
   }
 

@@ -43,34 +43,6 @@
         ]
       }
     },
-    "/hub/login": {
-      "post": {
-        "operationId": "HubController_login",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Hub"
-        ]
-      }
-    },
-    "/hub/logout": {
-      "post": {
-        "operationId": "HubController_logout",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Hub"
-        ]
-      }
-    },
     "/hub/files": {
       "get": {
         "operationId": "DevFilesController_page",
@@ -505,6 +477,20 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DevHub"
+        ]
+      }
+    },
+    "/hub/portal-access.json": {
+      "get": {
+        "operationId": "DevHubController_portalAccessJson",
+        "parameters": [],
         "responses": {
           "200": {
             "description": ""
