@@ -9,16 +9,27 @@ export function canAccessDevHub(ability: Ability | undefined): boolean {
   return ability.can("manage", "all") || ability.can("read", "DevHub");
 }
 
+/** True when the ability grants full CRUD on a subject (DB stores MANAGE expanded). */
+function canManageSubject(ability: Ability, subject: string): boolean {
+  if (ability.can("manage", subject)) return true;
+  return (
+    ability.can("create", subject) &&
+    ability.can("read", subject) &&
+    ability.can("update", subject) &&
+    ability.can("delete", subject)
+  );
+}
+
 /** Tenant admin CRUD + inspectors (`/admin/*` JSON + pages). */
 export function canAccessTenantAdmin(ability: Ability | undefined): boolean {
   if (!ability) return false;
-  if (ability.can("manage", "all")) return true;
+  if (canManageSubject(ability, "all")) return true;
   return (
-    ability.can("manage", "User") ||
-    ability.can("manage", "TenantAdmin") ||
-    ability.can("manage", "Role") ||
-    ability.can("manage", "Policy") ||
-    ability.can("manage", "Permission")
+    canManageSubject(ability, "User") ||
+    canManageSubject(ability, "TenantAdmin") ||
+    canManageSubject(ability, "Role") ||
+    canManageSubject(ability, "Policy") ||
+    canManageSubject(ability, "Permission")
   );
 }
 

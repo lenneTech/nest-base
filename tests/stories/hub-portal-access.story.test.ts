@@ -26,4 +26,26 @@ describe("Story · Hub portal CASL access", () => {
     expect(canAccessTenantAdmin(ability)).toBe(true);
     expect(canAccessDevHub(ability)).toBe(false);
   });
+
+  it("expanded MANAGE rows (CREATE+READ+UPDATE+DELETE) count as tenant admin", () => {
+    const ability = buildAbility([
+      { action: "create", subject: "User" },
+      { action: "read", subject: "User" },
+      { action: "update", subject: "User" },
+      { action: "delete", subject: "User" },
+      { action: "read", subject: "DevHub" },
+    ]);
+    expect(canAccessTenantAdmin(ability)).toBe(true);
+    expect(buildHubPortalAccessSnapshot(ability)).toEqual({ devHub: true, tenantAdmin: true });
+  });
+
+  it("expanded manage:all bypass grants DevHub and tenant admin", () => {
+    const ability = buildAbility([
+      { action: "create", subject: "all" },
+      { action: "read", subject: "all" },
+      { action: "update", subject: "all" },
+      { action: "delete", subject: "all" },
+    ]);
+    expect(buildHubPortalAccessSnapshot(ability)).toEqual({ devHub: true, tenantAdmin: true });
+  });
 });
