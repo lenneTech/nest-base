@@ -137,6 +137,10 @@ export function isJsonShapedResponse(input: PathAwareCspInput): boolean {
   // `/api/*` paths are exclusively JSON API surface and always carry
   // the strict CSP.
   if (path.startsWith("/api/")) {
+    // Scalar API reference is HTML + CDN assets; strict CSP blocks its bundle.
+    if (path === "/api/docs" || path.startsWith("/api/docs/")) {
+      return false;
+    }
     return true;
   }
   // `/hub/*` and `/admin/*` paths are HTML pages in the dev-hub SPA

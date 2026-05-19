@@ -39,6 +39,7 @@ import {
   type WebhookRedeliverResponse,
   type WebhookTestEventResponse,
 } from "./webhook-inspector-types.js";
+import { Public } from "../permissions/public.decorator.js";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { RealtimeGateway } from "../realtime/realtime.module.js";
 import { SearchService } from "../search/search.service.js";
@@ -163,6 +164,9 @@ function parseIsoQuery(value: string | undefined): Date | null {
   return d;
 }
 
+@Public(
+  "Dev-Hub admin SPA JSON sidecars — assertDev() guards production; no CASL login required in local development.",
+)
 @Controller("admin")
 export class AdminSpaController {
   constructor(

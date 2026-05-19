@@ -3,7 +3,7 @@
  * with before / after diffs.
  */
 import { useQuery } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 
 import { Badge } from "../components/ui/badge.js";
@@ -21,7 +21,6 @@ import {
 } from "../components/ui/table.js";
 import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
-import { fetchJson } from "../lib/api.js";
 
 interface AuditLogEntry {
   id: string;
@@ -57,10 +56,30 @@ export function AuditBrowserPage(): ReactNode {
     if (v) filter[key] = v;
   }
 
+  const [tenantId, setTenantId] = useState(readDefaultTenantId);
+
   const url = `/admin/audit.json?${params.toString()}`;
   const data = useQuery({
-    queryKey: ["admin", "audit", url],
-    queryFn: () => fetchJson<AuditBrowserResponse>(url),
+    queryKey: ["admin", "audit", url, tenantId],
+    queryFn: async () => {
+      const res = await fetch(url, {
+        headers: { accept: "application/json", "x-tenant-id": tenantId },
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        let detail = "";
+        try {
+          detail = await res.text();
+        } catch {
+          /* status alone is enough */
+        }
+        throw new Error(
+          `${url} → ${res.status}${detail ? `: ${detail.slice(0, 200)}` : ""}`,
+        );
+      }
+      return (await res.json()) as AuditBrowserResponse;
+    },
+    enabled: tenantId.trim().length > 0,
   });
 
   return (
@@ -100,6 +119,16 @@ export function AuditBrowserPage(): ReactNode {
               />
               <FilterField label="From" name="from" type="date" defaultValue={filter.from ?? ""} />
               <FilterField label="To" name="to" type="date" defaultValue={filter.to ?? ""} />
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="tenantId">Tenant ID</Label>
+                <Input
+                  id="tenantId"
+                  name="tenantId"
+                  placeholder="uuid (required)"
+                  value={tenantId}
+                  onChange={(e) => setTenantId(e.target.value)}
+                />
+              </div>
               <Button type="submit" className="self-end">
                 Filter
               </Button>
@@ -111,7 +140,11 @@ export function AuditBrowserPage(): ReactNode {
             <CardTitle>Entries</CardTitle>
           </CardHeader>
           <CardContent>
-            <EntriesTable entries={data.data?.entries} isError={data.isError} />
+            <EntriesTable
+              entries={data.data?.entries}
+              isError={data.isError}
+              tenantMissing={tenantId.trim().length === 0}
+            />
           </CardContent>
         </Card>
       </div>
@@ -140,13 +173,28 @@ function FilterField({
   );
 }
 
+function readDefaultTenantId(): string {
+  if (typeof document === "undefined") return "";
+  const match = /(?:^|; )x-tenant-id=([^;]+)/.exec(document.cookie);
+  return match?.[1] ? decodeURIComponent(match[1]) : "";
+}
+
 function EntriesTable({
   entries,
   isError,
+  tenantMissing,
 }: {
   entries: AuditLogEntry[] | undefined;
   isError: boolean;
+  tenantMissing: boolean;
 }): ReactNode {
+  if (tenantMissing) {
+    return (
+      <PageError>
+        Tenant ID is required. Enter a UUID above or set the x-tenant-id cookie.
+      </PageError>
+    );
+  }
   if (isError) return <PageError>Failed to load audit entries.</PageError>;
   if (!entries) return <PageLoading>Loading…</PageLoading>;
   if (entries.length === 0)

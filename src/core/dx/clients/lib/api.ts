@@ -2,23 +2,94 @@
  * Tiny `fetch` wrapper used by every page's react-query loader.
  *
  * Centralises the Accept header (forces server-side `*.json`
- * branches when a controller checks for it) and the error message
+ * branches when a controller checks for it), session cookies
+ * (`credentials: 'include'` for Better-Auth), and the error message
  * shape so an offline endpoint surfaces the same way across pages.
  */
 
+/** Default tenant scope from the `x-tenant-id` cookie set by the hub shell. */
+export function readTenantIdFromCookie(): string {
+  if (typeof document === "undefined") return "";
+  const match = /(?:^|; )x-tenant-id=([^;]+)/.exec(document.cookie);
+  if (!match?.[1]) return "";
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return "";
+  }
+}
+
+/** True when the server rejected the call for missing/insufficient auth. */
+export function isAdminAuthStatus(status: number): boolean {
+  return status === 401 || status === 403;
+}
+
+const ADMIN_FETCH_INIT: RequestInit = {
+  credentials: "include",
+  cache: "no-store",
+};
+
+/** Shared fetch for admin SPA mutations (POST/PUT/DELETE). */
+export async function adminFetch(url: string, init?: RequestInit): Promise<Response> {
+  return fetch(url, {
+    ...ADMIN_FETCH_INIT,
+    ...init,
+    headers: {
+      accept: "application/json",
+      ...(init?.headers ?? {}),
+    },
+  });
+}
+
+export class AdminFetchError extends Error {
+  constructor(
+    readonly url: string,
+    readonly status: number,
+    detail = "",
+  ) {
+    super(`${url} → ${status}${detail ? `: ${detail.slice(0, 200)}` : ""}`);
+    this.name = "AdminFetchError";
+  }
+
+  get needsSignIn(): boolean {
+    return isAdminAuthStatus(this.status);
+  }
+}
+
+/** Use with `<PageError showAuthHint={needsAdminAuthHint(query.error)} />`. */
+export function needsAdminAuthHint(error: unknown): boolean {
+  return error instanceof AdminFetchError && error.needsSignIn;
+}
+
+async function readAdminFetchError(url: string, res: Response): Promise<AdminFetchError> {
+  let detail = "";
+  try {
+    detail = await res.text();
+  } catch {
+    /* swallow — the status alone is sufficient signal */
+  }
+  return new AdminFetchError(url, res.status, detail);
+}
+
 export async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url, {
+    ...ADMIN_FETCH_INIT,
     headers: { accept: "application/json" },
-    cache: "no-store",
   });
   if (!res.ok) {
-    let detail = "";
-    try {
-      detail = await res.text();
-    } catch {
-      /* swallow — the status alone is sufficient signal */
-    }
-    throw new Error(`${url} → ${res.status}${detail ? `: ${detail.slice(0, 200)}` : ""}`);
+    throw await readAdminFetchError(url, res);
+  }
+  return (await res.json()) as T;
+}
+
+/** `fetchJson` with a required `x-tenant-id` header (roles / permissions CRUD). */
+export async function fetchJsonWithTenant<T>(url: string, tenantId: string): Promise<T> {
+  const res = await fetch(url, {
+    ...ADMIN_FETCH_INIT,
+    headers: { accept: "application/json", "x-tenant-id": tenantId },
+  });
+  if (!res.ok) {
+    throw await readAdminFetchError(url, res);
   }
   return (await res.json()) as T;
 }

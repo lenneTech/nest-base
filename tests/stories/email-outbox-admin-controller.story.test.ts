@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
  *
  * Verifies the structural contract of the admin controller:
  *  - Routes exist at the expected paths.
- *  - All routes are gated by `@Can('manage', 'EmailOutboxAdmin')`.
+ *  - JSON routes are `@Can('manage', 'EmailOutboxAdmin')` (production RBAC).
  *  - The planner is used (not inlined logic).
  *  - The module is registered in AppModule.
  *  - DI tokens are exported from the module.
@@ -65,14 +65,15 @@ describe("Story · Email-Outbox Admin Controller", () => {
       expect(src).toMatch(/@Post\([^)]*test-send[^)]*\)/);
     });
 
-    it("all routes are gated by @Can('manage', 'EmailOutboxAdmin')", () => {
+    it("JSON routes use @Can(manage, EmailOutboxAdmin) — not @Public", () => {
       const src = readFileSync(
         resolve(ROOT, "src/core/email/email-outbox-admin.controller.ts"),
         "utf8",
       );
-      const matches = src.match(/@Can\(["']manage["'],\s*["']EmailOutboxAdmin["']\)/g) ?? [];
-      // list.json, detail, retry, cancel, test-send = 5 routes
-      expect(matches.length).toBeGreaterThanOrEqual(5);
+      const canMatches = src.match(/@Can\(["']manage["'],\s*["']EmailOutboxAdmin["']\)/g) ?? [];
+      expect(canMatches.length).toBeGreaterThanOrEqual(5);
+      expect(src).not.toContain("private assertDev()");
+      expect(src).not.toMatch(/@Public\(/);
     });
 
     it("uses planOutboxAdminAction from the action planner (not inlined)", () => {

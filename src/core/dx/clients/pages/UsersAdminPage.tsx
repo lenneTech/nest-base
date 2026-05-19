@@ -6,8 +6,8 @@
  * tabs, and action buttons for ban / unban / revoke-sessions.
  *
  * All write actions go through the `/admin/users/:id/*` controller
- * endpoints which are gated by `@Can("manage", "User")` and proxy
- * to the Better-Auth admin API.
+ * endpoints (`@Can(manage, User)`) and proxy to the
+ * Better-Auth admin API.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
@@ -43,7 +43,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs.js";
 import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
-import { fetchJson } from "../lib/api.js";
+import { adminFetch, fetchJson, needsAdminAuthHint } from "../lib/api.js";
 
 // ── Types (mirrors user-admin.controller.ts) ──────────────────────
 
@@ -91,7 +91,7 @@ function buildListUrl(q: string): string {
 }
 
 async function postAction(path: string, body?: Record<string, string>): Promise<void> {
-  const res = await fetch(path, {
+  const res = await adminFetch(path, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: body ? JSON.stringify(body) : undefined,
@@ -189,7 +189,11 @@ function UserDetailSheet({
     <Sheet open={userId !== null} onOpenChange={(o) => !o && onClose()}>
       <SheetContent side="right" className="w-[480px] sm:w-[560px] overflow-y-auto">
         {query.isPending && <PageLoading>Lade Benutzerdetails…</PageLoading>}
-        {query.isError && <PageError>Details konnten nicht geladen werden.</PageError>}
+        {query.isError && (
+          <PageError showAuthHint={needsAdminAuthHint(query.error)}>
+            Details konnten nicht geladen werden.
+          </PageError>
+        )}
         {user && (
           <>
             <SheetHeader className="mb-4">
@@ -455,7 +459,9 @@ export function UsersAdminPage(): ReactNode {
         {listQuery.isPending ? (
           <PageLoading>Lade Benutzer…</PageLoading>
         ) : listQuery.isError ? (
-          <PageError>Benutzer konnten nicht geladen werden.</PageError>
+          <PageError showAuthHint={needsAdminAuthHint(query.error)}>
+            Benutzer konnten nicht geladen werden.
+          </PageError>
         ) : users.length === 0 ? (
           <PageEmpty>Keine Benutzer gefunden.</PageEmpty>
         ) : (

@@ -39,7 +39,7 @@ import {
 } from "../components/ui/table.js";
 import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
-import { fetchJson } from "../lib/api.js";
+import { fetchJsonWithTenant, readTenantIdFromCookie } from "../lib/api.js";
 import { cn } from "../lib/utils.js";
 
 interface RoleRecord {
@@ -74,14 +74,15 @@ interface RolePolicyLink {
 export function RolesAdminPage(): ReactNode {
   const qc = useQueryClient();
   const [name, setName] = useState("");
-  const [tenantId, setTenantId] = useState("");
+  const [tenantId, setTenantId] = useState(() => readTenantIdFromCookie());
   const [description, setDescription] = useState("");
   const [search, setSearch] = useState("");
   const [selectedRole, setSelectedRole] = useState<RoleRecord | null>(null);
 
   const list = useQuery({
-    queryKey: ["admin", "roles"],
-    queryFn: () => fetchJson<RoleRecord[]>("/admin/roles"),
+    queryKey: ["admin", "roles", tenantId],
+    queryFn: () => fetchJsonWithTenant<RoleRecord[]>("/admin/roles", tenantId),
+    enabled: tenantId.trim().length > 0,
   });
 
   const create = useMutation({
@@ -195,6 +196,10 @@ export function RolesAdminPage(): ReactNode {
             <CardContent>
               {list.isPending ? (
                 <PageLoading>Lade Rollen…</PageLoading>
+              ) : tenantId.trim() === "" ? (
+                <PageEmpty>
+                  Tenant-UUID eingeben oder Cookie <code>x-tenant-id</code> setzen.
+                </PageEmpty>
               ) : list.isError ? (
                 <PageError>Konnte /admin/roles nicht laden.</PageError>
               ) : filtered.length === 0 ? (

@@ -2,8 +2,9 @@
  * UserAdminController — `/admin/users/*` (issue #86).
  *
  * Server-side wrappers around Prisma reads + Better-Auth admin
- * write operations. All routes are gated by `@Can("manage", "User")`
- * so only the Administrator CASL role can reach them.
+ * write operations. JSON / action routes are gated by
+ * `@Can("manage", "User")`; the HTML shell is `@Public()` so the React
+ * bundle loads. Operators sign in via Better-Auth (session cookie).
  *
  * Design:
  *   - READ operations (list, detail) query Prisma directly for
@@ -93,7 +94,6 @@ export class UserAdminController {
   @Get()
   @Header("content-type", "text/html; charset=utf-8")
   usersAdminPage(): string {
-    this.assertDev();
     return renderDevPortalShell(
       buildDevPortalShellInput({ title: "Benutzerverwaltung", brand: "central" }),
     );
@@ -110,8 +110,6 @@ export class UserAdminController {
     @Query("limit") limitRaw: string | undefined,
     @Query("offset") offsetRaw: string | undefined,
   ): Promise<{ users: UserListEntry[]; total: number }> {
-    this.assertDev();
-
     const limit = clampLimit(limitRaw);
     const offset = parseOffset(offsetRaw);
 
@@ -164,8 +162,6 @@ export class UserAdminController {
   @Can("manage", "User")
   @Get(":id.json")
   async userDetailJson(@Param("id") id: string): Promise<UserDetailResponse> {
-    this.assertDev();
-
     const row = await this.prisma.user.findUnique({
       where: { id },
       include: {
@@ -215,7 +211,6 @@ export class UserAdminController {
     @Param("id") id: string,
     @Body() body: { reason?: string } | undefined,
   ): Promise<{ banned: true }> {
-    this.assertDev();
     await this.callBaAdmin("ban-user", {
       userId: id,
       ...(body?.reason ? { banReason: body.reason } : {}),
@@ -230,7 +225,6 @@ export class UserAdminController {
   @Can("manage", "User")
   @Post(":id/unban")
   async unbanUser(@Param("id") id: string): Promise<{ banned: false }> {
-    this.assertDev();
     await this.callBaAdmin("unban-user", { userId: id });
     return { banned: false };
   }
@@ -242,7 +236,6 @@ export class UserAdminController {
   @Can("manage", "User")
   @Post(":id/revoke-sessions")
   async revokeUserSessions(@Param("id") id: string): Promise<{ revoked: true }> {
-    this.assertDev();
     await this.callBaAdmin("revoke-user-sessions", { userId: id });
     return { revoked: true };
   }
@@ -281,8 +274,7 @@ export class UserAdminController {
     //      token. The token must belong to an admin-role BA session created via
     //      POST /api/auth/sign-in/email for a user with the admin role.
     //
-    //   2. No token — the caller (the dev-hub running in the same process) is
-    //      already gated by `@Can("manage", "User")` at the NestJS layer, but
+    //   2. No token — the NestJS route is CASL-gated (`@Can(manage, User)`), but
     //      the BA admin plugin still validates the session on its own endpoint.
     //      Without a valid admin session token the call will fail; operators
     //      MUST set BETTER_AUTH_ADMIN_TOKEN for ban/unban/revoke to work.
@@ -311,12 +303,6 @@ export class UserAdminController {
       throw new BadRequestException(
         `BA admin /${action} failed (${res.status})${text ? `: ${text.slice(0, 200)}` : ""}`,
       );
-    }
-  }
-
-  private assertDev(): void {
-    if (this.config.server.env !== "development") {
-      throw new NotFoundException();
     }
   }
 }

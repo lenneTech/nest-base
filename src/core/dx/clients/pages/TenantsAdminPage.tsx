@@ -38,7 +38,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs.js";
 import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
-import { fetchJson } from "../lib/api.js";
+import { adminFetch, fetchJson, needsAdminAuthHint } from "../lib/api.js";
 
 // ── Types (mirrors tenant-admin.controller.ts) ────────────────────────
 
@@ -105,7 +105,7 @@ function buildListUrl(q: string, filter: string): string {
 }
 
 async function postAction(path: string, body?: Record<string, string | number>): Promise<unknown> {
-  const res = await fetch(path, {
+  const res = await adminFetch(path, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: body ? JSON.stringify(body) : undefined,
@@ -118,7 +118,7 @@ async function postAction(path: string, body?: Record<string, string | number>):
 }
 
 async function deleteAction(path: string): Promise<unknown> {
-  const res = await fetch(path, { method: "DELETE" });
+  const res = await adminFetch(path, { method: "DELETE" });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`${path} → ${res.status}${text ? `: ${text.slice(0, 200)}` : ""}`);
@@ -380,7 +380,11 @@ function TenantDetailSheet({
     <Sheet open={tenantId !== null} onOpenChange={(o) => !o && onClose()}>
       <SheetContent side="right" className="w-[520px] sm:w-[600px] overflow-y-auto">
         {query.isPending && <PageLoading>Lade Mandantendetails…</PageLoading>}
-        {query.isError && <PageError>Details konnten nicht geladen werden.</PageError>}
+        {query.isError && (
+          <PageError showAuthHint={needsAdminAuthHint(query.error)}>
+            Details konnten nicht geladen werden.
+          </PageError>
+        )}
         {tenant && (
           <>
             <SheetHeader className="mb-4">
@@ -666,7 +670,9 @@ export function TenantsAdminPage(): ReactNode {
         {listQuery.isPending ? (
           <PageLoading>Lade Mandanten…</PageLoading>
         ) : listQuery.isError ? (
-          <PageError>Mandanten konnten nicht geladen werden.</PageError>
+          <PageError showAuthHint={needsAdminAuthHint(query.error)}>
+            Mandanten konnten nicht geladen werden.
+          </PageError>
         ) : tenants.length === 0 ? (
           <PageEmpty>Keine Mandanten gefunden.</PageEmpty>
         ) : (

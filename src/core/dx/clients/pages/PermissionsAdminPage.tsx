@@ -31,7 +31,7 @@ import {
 } from "../components/ui/table.js";
 import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
-import { fetchJson } from "../lib/api.js";
+import { fetchJson, fetchJsonWithTenant, readTenantIdFromCookie } from "../lib/api.js";
 
 interface PermissionRecord {
   id: string;
@@ -64,7 +64,7 @@ export function PermissionsAdminPage(): ReactNode {
   const [resource, setResource] = useState("");
   const [action, setAction] = useState<(typeof ALLOWED_ACTIONS)[number]>("READ");
   const [fields, setFields] = useState("");
-  const [tenantId, setTenantId] = useState("");
+  const [tenantId, setTenantId] = useState(() => readTenantIdFromCookie());
   const [matrixOpen, setMatrixOpen] = useState(true);
 
   const list = useQuery({
@@ -87,8 +87,9 @@ export function PermissionsAdminPage(): ReactNode {
   });
 
   const roles = useQuery({
-    queryKey: ["admin", "roles"],
-    queryFn: () => fetchJson<RoleRecord[]>("/admin/roles"),
+    queryKey: ["admin", "roles", tenantId],
+    queryFn: () => fetchJsonWithTenant<RoleRecord[]>("/admin/roles", tenantId),
+    enabled: tenantId.trim().length > 0,
   });
 
   const create = useMutation({

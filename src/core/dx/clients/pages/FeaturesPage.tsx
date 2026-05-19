@@ -1,7 +1,7 @@
 /**
- * `/dev/features` — feature-flag dashboard. Three-tile summary +
+ * `/hub/features` — feature-flag dashboard. Three-tile summary +
  * per-category card grid with switches; flipping a switch POSTs to
- * `/dev/features/:key/toggle`, then polls `/health/live` until the
+ * `/hub/features/:key/toggle`, then polls `/health/live` until the
  * dev-server restart completes and reloads the page.
  */
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -147,7 +147,7 @@ function FeatureCard({ meta, active }: FeatureCardProps): ReactNode {
   const mutation = useMutation({
     mutationFn: async (enabled: boolean) => {
       setOptimistic(enabled);
-      const res = await fetch(`/dev/features/${encodeURIComponent(meta.key)}/toggle`, {
+      const res = await fetch(`/hub/features/${encodeURIComponent(meta.key)}/toggle`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ enabled }),

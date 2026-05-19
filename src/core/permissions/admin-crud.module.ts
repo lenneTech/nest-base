@@ -18,8 +18,11 @@ import {
 import type { Response } from "express";
 
 import { buildDevPortalShellInput, renderDevPortalShell } from "../dx/dev-portal-shell.js";
+import { ConfigModule } from "../config/config.module.js";
+import { ConfigService } from "../config/config.service.js";
 
 import { PrismaService } from "../prisma/prisma.service.js";
+import { Public } from "./public.decorator.js";
 import { buildPermissionMatrix } from "./admin-permissions-planner.js";
 import {
   buildPermissionReport,
@@ -350,41 +353,59 @@ function requireTenantHeader(tenantHeader: string | undefined): string {
   return tenantId;
 }
 
+const DEV_ADMIN_CRUD_PUBLIC_REASON =
+  "Dev-Hub permission CRUD operator API — assertDev() guards production; no CASL login required in local development.";
+
+function assertDevPortalOnly(config: ConfigService): void {
+  if (config.server.env !== "development") {
+    throw new NotFoundException();
+  }
+}
+
 @Controller("admin/roles")
 class RoleAdminController {
   constructor(
     private readonly service: RoleAdminService,
+    private readonly config: ConfigService,
     @Optional() @Inject(PermissionService) private readonly permissions?: PermissionService,
   ) {}
 
+  @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Get()
   async list(
     @Headers("x-tenant-id") tenantHeader: string | undefined,
     @Headers("accept") accept: string | undefined,
     @Res() res: Response,
   ): Promise<void> {
+    assertDevPortalOnly(this.config);
     const tenantId = requireTenantHeader(tenantHeader);
     await negotiate(accept, res, "Roles", () => this.service.list(tenantId));
   }
+  @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Post()
   async create(
     @Headers("x-tenant-id") tenantHeader: string | undefined,
     @Body() body: RoleCreateBody,
   ) {
+    assertDevPortalOnly(this.config);
     const tenantId = requireTenantHeader(tenantHeader);
     const created = await this.service.create(body, tenantId);
     this.permissions?.invalidateAll();
     return created;
   }
+  @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Get(":id")
   async get(@Headers("x-tenant-id") tenantHeader: string | undefined, @Param("id") id: string) {
+    assertDevPortalOnly(this.config);
     const tenantId = requireTenantHeader(tenantHeader);
     const record = await this.service.get(id, tenantId);
     if (!record) throw new NotFoundException("role not found");
     return record;
   }
+  @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Delete(":id")
   async remove(@Headers("x-tenant-id") tenantHeader: string | undefined, @Param("id") id: string) {
+    assertDevPortalOnly(this.config);
     const tenantId = requireTenantHeader(tenantHeader);
     try {
       await this.service.delete(id, tenantId);
@@ -395,22 +416,26 @@ class RoleAdminController {
     this.permissions?.invalidateAll();
     return { removed: true };
   }
+  @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Patch(":id")
   async update(
     @Headers("x-tenant-id") tenantHeader: string | undefined,
     @Param("id") id: string,
     @Body() body: RolePatchBody,
   ) {
+    assertDevPortalOnly(this.config);
     const tenantId = requireTenantHeader(tenantHeader);
     const updated = await this.service.update(id, tenantId, body);
     this.permissions?.invalidateAll();
     return updated;
   }
+  @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Get(":id/policies")
   async listPolicies(
     @Headers("x-tenant-id") tenantHeader: string | undefined,
     @Param("id") id: string,
   ) {
+    assertDevPortalOnly(this.config);
     const tenantId = requireTenantHeader(tenantHeader);
     // Verify the role belongs to the operator's tenant before exposing data.
     const role = await this.service.get(id, tenantId);
@@ -423,27 +448,36 @@ class RoleAdminController {
 class PolicyAdminController {
   constructor(
     private readonly service: PolicyAdminService,
+    private readonly config: ConfigService,
     @Optional() @Inject(PermissionService) private readonly permissions?: PermissionService,
   ) {}
 
+  @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Get()
   async list(@Headers("accept") accept: string | undefined, @Res() res: Response): Promise<void> {
+    assertDevPortalOnly(this.config);
     await negotiate(accept, res, "Policies", () => this.service.list());
   }
+  @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Post()
   async create(@Body() body: PolicyCreateBody) {
+    assertDevPortalOnly(this.config);
     const created = await this.service.create(body);
     this.permissions?.invalidateAll();
     return created;
   }
+  @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Get(":id")
   async get(@Param("id") id: string) {
+    assertDevPortalOnly(this.config);
     const record = await this.service.get(id);
     if (!record) throw new NotFoundException("policy not found");
     return record;
   }
+  @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Delete(":id")
   async remove(@Param("id") id: string) {
+    assertDevPortalOnly(this.config);
     try {
       await this.service.delete(id);
     } catch {
@@ -452,8 +486,10 @@ class PolicyAdminController {
     this.permissions?.invalidateAll();
     return { removed: true };
   }
+  @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Get(":id/roles")
   async listRoles(@Param("id") id: string) {
+    assertDevPortalOnly(this.config);
     const policy = await this.service.get(id);
     if (!policy) throw new NotFoundException("policy not found");
     return this.service.listRoles(id);
@@ -464,27 +500,36 @@ class PolicyAdminController {
 class PermissionAdminController {
   constructor(
     private readonly service: PermissionAdminService,
+    private readonly config: ConfigService,
     @Optional() @Inject(PermissionService) private readonly permissions?: PermissionService,
   ) {}
 
+  @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Get()
   async list(@Headers("accept") accept: string | undefined, @Res() res: Response): Promise<void> {
+    assertDevPortalOnly(this.config);
     await negotiate(accept, res, "Permissions", () => this.service.list());
   }
+  @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Post()
   async create(@Body() body: PermissionCreateBody) {
+    assertDevPortalOnly(this.config);
     const created = await this.service.create(body);
     this.permissions?.invalidateAll();
     return created;
   }
+  @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Get(":id")
   async get(@Param("id") id: string) {
+    assertDevPortalOnly(this.config);
     const record = await this.service.get(id);
     if (!record) throw new NotFoundException("permission not found");
     return record;
   }
+  @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Delete(":id")
   async remove(@Param("id") id: string) {
+    assertDevPortalOnly(this.config);
     try {
       await this.service.delete(id);
     } catch {
@@ -494,29 +539,35 @@ class PermissionAdminController {
     return { removed: true };
   }
 
+  @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Get("matrix.json")
   async matrix(@Headers("x-tenant-id") tenantHeader: string | undefined) {
+    assertDevPortalOnly(this.config);
     const tenantId = requireTenantHeader(tenantHeader);
     return this.service.buildMatrix(tenantId);
   }
 
+  @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Post("attach")
   async attach(
     @Headers("x-tenant-id") tenantHeader: string | undefined,
     @Body() body: RolePolicyAttachBody,
   ) {
+    assertDevPortalOnly(this.config);
     const tenantId = requireTenantHeader(tenantHeader);
     const link = await this.service.attachToRole(body, tenantId);
     this.permissions?.invalidateAll();
     return link;
   }
 
+  @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Delete("attach/:roleId/:policyId")
   async detach(
     @Headers("x-tenant-id") tenantHeader: string | undefined,
     @Param("roleId") roleId: string,
     @Param("policyId") policyId: string,
   ) {
+    assertDevPortalOnly(this.config);
     const tenantId = requireTenantHeader(tenantHeader);
     try {
       await this.service.detachFromRole(roleId, policyId, tenantId);
@@ -536,6 +587,7 @@ class PermissionAdminController {
    * effective ability evaluation (allow/deny) so admins can see
    * exactly which rule was responsible.
    */
+  @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Post("test")
   async test(
     @Headers("x-tenant-id") tenantHeader: string | undefined,
@@ -546,6 +598,7 @@ class PermissionAdminController {
     report: PermissionReport;
     can: boolean;
   }> {
+    assertDevPortalOnly(this.config);
     // Iter-202 reviewer-flagged: previously the handler resolved an
     // ability for any `body.tenantId` an operator supplied — they
     // could probe permissions for tenants outside their scope. Now
@@ -576,6 +629,7 @@ class PermissionAdminController {
 }
 
 @Module({
+  imports: [ConfigModule.forRoot()],
   controllers: [RoleAdminController, PolicyAdminController, PermissionAdminController],
   providers: [RoleAdminService, PolicyAdminService, PermissionAdminService],
 })

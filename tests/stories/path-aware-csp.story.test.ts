@@ -2,6 +2,8 @@ import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { isJsonShapedResponse } from "../../src/core/http/security-headers.js";
+
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 
 /**
@@ -20,6 +22,18 @@ const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {
  * every route, so the override is a no-op.
  */
 describe("Story · path-aware CSP (no unsafe-inline on JSON APIs)", () => {
+  describe("isJsonShapedResponse planner", () => {
+    it("treats /api/docs as HTML (Scalar UI), not JSON API", () => {
+      expect(
+        isJsonShapedResponse({
+          path: "/api/docs",
+          acceptHeader: "text/html",
+          responseContentType: "text/html; charset=utf-8",
+        }),
+      ).toBe(false);
+    });
+  });
+
   let app: INestApplication;
   let previousNodeEnv: string | undefined;
 
@@ -78,5 +92,14 @@ describe("Story · path-aware CSP (no unsafe-inline on JSON APIs)", () => {
     const csp = res.headers["content-security-policy"];
     expect(csp).toBeDefined();
     expect(csp).not.toContain("'unsafe-inline'");
+  });
+
+  it("Scalar UI (/api/docs) carries the lenient DEV CSP so CDN bundles load", async () => {
+    const res = await request(app.getHttpServer()).get("/api/docs").set("Accept", "text/html");
+    expect(res.status).toBe(200);
+    const csp = res.headers["content-security-policy"];
+    expect(csp).toBeDefined();
+    expect(csp).toContain("'unsafe-inline'");
+    expect(csp).toContain("cdn.jsdelivr.net");
   });
 });

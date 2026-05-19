@@ -1,9 +1,8 @@
 /**
  * `/admin/sessions` — Sessions admin (CF.AUTH.SESSIONS). Lists every
  * session known to the wired storage adapter with single-revoke and
- * bulk-by-user actions. The interactive payloads route through the
- * existing DELETE / POST endpoints, so the page never bypasses the
- * `delete:Session` CASL gate.
+ * bulk-by-user actions via `/admin/sessions/*` dev-operator endpoints
+ * (CASL `delete:Session` — sign in via Better-Auth first).
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
@@ -23,7 +22,7 @@ import {
 } from "../components/ui/table.js";
 import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
-import { fetchJson } from "../lib/api.js";
+import { adminFetch, fetchJson, needsAdminAuthHint } from "../lib/api.js";
 
 interface SessionRecord {
   id: string;
@@ -32,18 +31,18 @@ interface SessionRecord {
 }
 
 async function deleteSession(id: string): Promise<void> {
-  const res = await fetch(`/admin/sessions/${encodeURIComponent(id)}`, { method: "DELETE" });
+  const res = await adminFetch(`/admin/sessions/${encodeURIComponent(id)}`, { method: "DELETE" });
   if (!res.ok) throw new Error(`revoke failed with status ${res.status}`);
 }
 
 async function bulkRevokeByUser(userId: string): Promise<{ revoked: number }> {
-  const res = await fetch("/admin/sessions/revoke-bulk-by-user", {
+  const res = await adminFetch("/admin/sessions/revoke-bulk-by-user", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ userId }),
   });
   if (!res.ok) throw new Error(`bulk-revoke failed with status ${res.status}`);
-  return res.json();
+  return res.json() as Promise<{ revoked: number }>;
 }
 
 export function SessionsAdminPage(): ReactNode {
@@ -108,7 +107,9 @@ export function SessionsAdminPage(): ReactNode {
         {query.isPending ? (
           <PageLoading>Loading sessions…</PageLoading>
         ) : query.isError ? (
-          <PageError>Failed to load /admin/sessions/list.json</PageError>
+          <PageError showAuthHint={needsAdminAuthHint(query.error)}>
+            Failed to load /admin/sessions/list.json
+          </PageError>
         ) : (query.data?.sessions ?? []).length === 0 ? (
           <PageEmpty>No active sessions returned by the storage adapter.</PageEmpty>
         ) : (

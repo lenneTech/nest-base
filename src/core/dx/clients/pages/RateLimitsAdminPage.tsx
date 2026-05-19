@@ -37,7 +37,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs.js";
 import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
-import { fetchJson } from "../lib/api.js";
+import { adminFetch, fetchJson, needsAdminAuthHint } from "../lib/api.js";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -128,7 +128,7 @@ function InspectorTab(): ReactNode {
 
   const resetKey = useMutation({
     mutationFn: async (key: string) => {
-      const res = await fetch(`/admin/rate-limits/keys/${encodeURIComponent(key)}/reset`, {
+      const res = await adminFetch(`/admin/rate-limits/keys/${encodeURIComponent(key)}/reset`, {
         method: "POST",
       });
       if (!res.ok) throw new Error(`reset failed (${res.status})`);
@@ -188,7 +188,9 @@ function InspectorTab(): ReactNode {
       {query.isPending ? (
         <PageLoading>Lade Throttle-Einträge…</PageLoading>
       ) : query.isError ? (
-        <PageError>Fehler beim Laden von /admin/rate-limits/inspector.json</PageError>
+        <PageError showAuthHint={needsAdminAuthHint(query.error)}>
+          Fehler beim Laden von /admin/rate-limits/inspector.json
+        </PageError>
       ) : visible.length === 0 ? (
         <PageEmpty>Keine aktiven Throttle-Einträge gefunden.</PageEmpty>
       ) : (
@@ -271,7 +273,9 @@ function ConfigTab(): ReactNode {
       {query.isPending ? (
         <PageLoading>Lade Konfiguration…</PageLoading>
       ) : query.isError ? (
-        <PageError>Fehler beim Laden von /admin/rate-limits/config.json</PageError>
+        <PageError showAuthHint={needsAdminAuthHint(query.error)}>
+          Fehler beim Laden von /admin/rate-limits/config.json
+        </PageError>
       ) : (
         <>
           <ConfigSection
@@ -340,7 +344,7 @@ function ConfigRow({ scope, onChanged }: ConfigRowProps): ReactNode {
 
   const save = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/admin/rate-limits/config/${encodeURIComponent(scope.scope)}`, {
+      const res = await adminFetch(`/admin/rate-limits/config/${encodeURIComponent(scope.scope)}`, {
         method: "PUT",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -363,7 +367,7 @@ function ConfigRow({ scope, onChanged }: ConfigRowProps): ReactNode {
 
   const reset = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/admin/rate-limits/config/${encodeURIComponent(scope.scope)}`, {
+      const res = await adminFetch(`/admin/rate-limits/config/${encodeURIComponent(scope.scope)}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error(`Zurücksetzen fehlgeschlagen (${res.status})`);
@@ -493,7 +497,9 @@ function DecisionsTab(): ReactNode {
       {query.isPending ? (
         <PageLoading>Lade Entscheidungen…</PageLoading>
       ) : query.isError ? (
-        <PageError>Fehler beim Laden von /admin/rate-limits/decisions.json</PageError>
+        <PageError showAuthHint={needsAdminAuthHint(query.error)}>
+          Fehler beim Laden von /admin/rate-limits/decisions.json
+        </PageError>
       ) : (query.data?.items ?? []).length === 0 ? (
         <PageEmpty>Keine Entscheidungen gefunden.</PageEmpty>
       ) : (
@@ -567,7 +573,7 @@ function AllowlistTab(): ReactNode {
 
   const add = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/admin/rate-limits/allowlist", {
+      const res = await adminFetch("/admin/rate-limits/allowlist", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ userId: userId.trim(), reason: reason.trim() }),
@@ -590,7 +596,7 @@ function AllowlistTab(): ReactNode {
 
   const remove = useMutation({
     mutationFn: async (uid: string) => {
-      const res = await fetch(`/admin/rate-limits/allowlist/${encodeURIComponent(uid)}`, {
+      const res = await adminFetch(`/admin/rate-limits/allowlist/${encodeURIComponent(uid)}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error(`Entfernen fehlgeschlagen (${res.status})`);
@@ -650,7 +656,9 @@ function AllowlistTab(): ReactNode {
       {query.isPending ? (
         <PageLoading>Lade Allowlist…</PageLoading>
       ) : query.isError ? (
-        <PageError>Fehler beim Laden von /admin/rate-limits/allowlist.json</PageError>
+        <PageError showAuthHint={needsAdminAuthHint(query.error)}>
+          Fehler beim Laden von /admin/rate-limits/allowlist.json
+        </PageError>
       ) : (query.data?.items ?? []).length === 0 ? (
         <PageEmpty>Keine Einträge in der Allowlist.</PageEmpty>
       ) : (

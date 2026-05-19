@@ -2,8 +2,9 @@
  * TenantAdminController — `/admin/tenants/*` (issue #87).
  *
  * Server-side wrappers around Prisma reads + Better-Auth organization
- * write operations. All routes are gated by `@Can("manage", "TenantAdmin")`
- * so only the Administrator CASL role can reach them.
+ * write operations. JSON / action routes are gated by
+ * `@Can("manage", "TenantAdmin")`; the HTML shell is `@Public()` so the
+ * React bundle loads. Operators sign in via Better-Auth (session cookie).
  *
  * Design mirrors user-admin.controller.ts:
  *   - READ operations (list, detail) query Prisma directly.
@@ -22,7 +23,6 @@ import {
   Header,
   Inject,
   Logger,
-  NotFoundException,
   Optional,
   Param,
   Patch,
@@ -115,7 +115,6 @@ export class TenantAdminController {
   @Get()
   @Header("content-type", "text/html; charset=utf-8")
   tenantsAdminPage(): string {
-    this.assertDev();
     return renderDevPortalShell(
       buildDevPortalShellInput({ title: "Mandantenverwaltung", brand: "central" }),
     );
@@ -134,8 +133,6 @@ export class TenantAdminController {
     @Query("offset") offsetRaw: string | undefined,
     @Query("filter") filterRaw: string | undefined,
   ): Promise<{ tenants: TenantListEntry[]; total: number }> {
-    this.assertDev();
-
     const limit = clampLimit(limitRaw);
     const offset = parseOffset(offsetRaw);
 
@@ -193,8 +190,6 @@ export class TenantAdminController {
   @Can("manage", "TenantAdmin")
   @Get(":id.json")
   async tenantDetailJson(@Param("id") id: string): Promise<TenantDetailResponse> {
-    this.assertDev();
-
     const row = await this.prisma.organization.findUnique({
       where: { id },
       include: {
@@ -282,8 +277,6 @@ export class TenantAdminController {
       contactEmail?: string;
     },
   ): Promise<{ id: string; name: string }> {
-    this.assertDev();
-
     if (!body.name?.trim()) {
       throw new BadRequestException({ message: "name is required", code: "CORE_VALIDATION" });
     }
@@ -339,8 +332,6 @@ export class TenantAdminController {
       contactEmail?: string;
     },
   ): Promise<{ id: string }> {
-    this.assertDev();
-
     // Verify org exists before mutating settings.
     const org = await this.prisma.organization.findUnique({ where: { id } });
     if (!org) throw new ResourceNotFoundError("Tenant", id);
@@ -381,8 +372,6 @@ export class TenantAdminController {
   @Can("manage", "TenantAdmin")
   @Delete(":id/soft-delete")
   async softDeleteTenant(@Param("id") id: string): Promise<{ softDeleted: true }> {
-    this.assertDev();
-
     const org = await this.prisma.organization.findUnique({ where: { id } });
     if (!org) throw new ResourceNotFoundError("Tenant", id);
 
@@ -401,8 +390,6 @@ export class TenantAdminController {
   @Can("manage", "TenantAdmin")
   @Post(":id/restore")
   async restoreTenant(@Param("id") id: string): Promise<{ softDeleted: false }> {
-    this.assertDev();
-
     const org = await this.prisma.organization.findUnique({ where: { id } });
     if (!org) throw new ResourceNotFoundError("Tenant", id);
 
@@ -424,8 +411,6 @@ export class TenantAdminController {
     @Param("id") id: string,
     @Body() body: { email: string; role?: string },
   ): Promise<{ invited: true }> {
-    this.assertDev();
-
     if (!body.email?.trim()) {
       throw new BadRequestException({ message: "email is required", code: "CORE_VALIDATION" });
     }
@@ -448,8 +433,6 @@ export class TenantAdminController {
     @Param("id") _id: string,
     @Param("memberId") memberId: string,
   ): Promise<{ removed: true }> {
-    this.assertDev();
-
     await this.callBaOrgAdmin("remove-member", { memberId });
 
     return { removed: true };
@@ -465,8 +448,6 @@ export class TenantAdminController {
     @Param("memberId") memberId: string,
     @Body() body: { role: string },
   ): Promise<{ updated: true }> {
-    this.assertDev();
-
     if (!body.role?.trim()) {
       throw new BadRequestException({ message: "role is required", code: "CORE_VALIDATION" });
     }
@@ -521,13 +502,6 @@ export class TenantAdminController {
     }
 
     return res.json() as Promise<T>;
-  }
-
-  private assertDev(): void {
-    if (this.config.server.env !== "development") {
-      // Return 404 in non-dev environments to avoid leaking admin surface.
-      throw new NotFoundException();
-    }
   }
 }
 

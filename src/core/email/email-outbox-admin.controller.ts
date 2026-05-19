@@ -27,7 +27,10 @@ import { PLAN_OK } from "../result/plan-ok.js";
  * EmailOutboxAdminController — `/admin/email-outbox` (issue #91).
  *
  * Operator surface for inspecting and acting on email-outbox rows.
- * All routes are gated by `@Can('manage', 'EmailOutboxAdmin')`.
+ * All JSON / action routes are gated by `@Can('manage', 'EmailOutboxAdmin')`.
+ * The React SPA shell is served separately (public under `/admin/` prefix);
+ * operators sign in via Better-Auth and need `manage:EmailOutboxAdmin` (or
+ * `manage:all` on the system-admin role from seed).
  *
  * Routes:
  *   GET  /admin/email-outbox/list.json          — paginated list with filters
