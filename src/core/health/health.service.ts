@@ -7,7 +7,7 @@ import {
 import { EMAIL_OUTBOX_STORAGE } from "../email/email-outbox.module.js";
 import type { EmailOutboxStorage } from "../email/email-outbox.js";
 import { PrismaService } from "../prisma/prisma.service.js";
-import type { BullMQJobQueue } from "../jobs/bullmq-job-queue.js";
+import { BullMQJobQueue } from "../jobs/bullmq-job-queue.js";
 
 export interface CheckResult {
   status: "ok" | "fail";

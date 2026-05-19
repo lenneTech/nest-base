@@ -24,6 +24,12 @@ describe("Story · Health readiness includes BullMQ worker health", () => {
     expect(src).toMatch(/exports:\s*\[[^\]]*BullMQJobQueue/s);
   });
 
+  it("HealthService value-imports BullMQJobQueue so Nest DI emits the class token", () => {
+    const src = readFileSync(resolve(ROOT, "src/core/health/health.service.ts"), "utf8");
+    expect(src).toMatch(/import \{ BullMQJobQueue \} from/);
+    expect(src).not.toMatch(/import type \{ BullMQJobQueue \}/);
+  });
+
   it("HealthService readiness() consults jobQueue.isReady() when the queue is wired", () => {
     const src = readFileSync(resolve(ROOT, "src/core/health/health.service.ts"), "utf8");
     expect(src).toMatch(/isReady\(\)/);
