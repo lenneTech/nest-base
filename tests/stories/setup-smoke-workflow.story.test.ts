@@ -12,8 +12,8 @@ const WORKFLOW = resolve(ROOT, ".github/workflows/setup-smoke.yml");
 describe("Story · setup-smoke.yml consumer bring-up guards", () => {
   const yaml = readFileSync(WORKFLOW, "utf8");
 
-  it("pulls docker-compose images before starting services", () => {
-    expect(yaml).toMatch(/docker compose pull/);
+  it("pulls remote compose images before starting services (skips local postgres build)", () => {
+    expect(yaml).toMatch(/docker compose pull --ignore-buildable/);
   });
 
   it("asserts BullMQ worker health via /health/ready and boot log", () => {

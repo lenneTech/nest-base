@@ -59,7 +59,8 @@ jobs:
       - name: Pull docker-compose images
         run: |
           set -a; . ./.env; set +a
-          docker compose pull
+          # Postgres is `nest-base-postgres:local` (built below) — skip it.
+          docker compose pull --ignore-buildable
 
       - name: Boot Postgres + Redis (custom image / redis service)
         run: |
