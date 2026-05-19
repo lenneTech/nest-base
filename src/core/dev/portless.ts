@@ -80,6 +80,46 @@ export interface BuildPortlessRunCommandInput {
  * just `<projectName>`. Worktree branch prefixes are added by portless
  * itself if the repo is on a non-default branch.
  */
+/** Public HTTPS URL for `portless run --name <app>.<projectName>`. */
+export function buildPortlessAppBaseUrl(projectName: string, app = "api"): string {
+  if (!projectName) {
+    throw new Error("buildPortlessAppBaseUrl: projectName must not be empty");
+  }
+  const fullName = app ? `${app}.${projectName}` : projectName;
+  return `https://${fullName}.localhost`;
+}
+
+export interface PlanDevChildEnvInput {
+  baseEnv: NodeJS.ProcessEnv;
+  projectName: string;
+  mode: "portless" | "direct";
+  /** Required when `mode` is `direct` — concrete port the API child binds. */
+  port?: number;
+  app?: string;
+}
+
+/**
+ * Env overrides injected by `scripts/dev.ts` so `APP_BASE_URL` matches how
+ * the API is actually reached. `.env` may still say `http://localhost:3000`
+ * from an old wizard run; without these overrides the startup banner, Better
+ * Auth issuer, and OpenAPI links would point at the wrong host.
+ */
+export function planDevChildEnv(input: PlanDevChildEnvInput): NodeJS.ProcessEnv {
+  if (input.mode === "portless") {
+    return {
+      ...input.baseEnv,
+      PORTLESS_ACTIVE: "1",
+      APP_BASE_URL: buildPortlessAppBaseUrl(input.projectName, input.app),
+    };
+  }
+  const port = input.port ?? 3000;
+  return {
+    ...input.baseEnv,
+    PORT: String(port),
+    APP_BASE_URL: `http://localhost:${port}`,
+  };
+}
+
 export function buildPortlessRunCommand(input: BuildPortlessRunCommandInput): string[] {
   if (!input.projectName) {
     throw new Error("buildPortlessRunCommand: projectName must not be empty");

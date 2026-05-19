@@ -4,7 +4,9 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  buildPortlessAppBaseUrl,
   buildPortlessRunCommand,
+  planDevChildEnv,
   resolveDevPort,
   shouldUsePortless,
 } from "../../src/core/dev/portless.js";
@@ -74,6 +76,38 @@ describe("dev runner", () => {
 
     it("throws when PORT is set but not numeric", () => {
       expect(() => resolveDevPort({ env: { PORT: "abc" }, portlessAvailable: true })).toThrow();
+    });
+  });
+
+  describe("buildPortlessAppBaseUrl()", () => {
+    it("returns https://api.<project>.localhost when app is api", () => {
+      expect(buildPortlessAppBaseUrl("nest-base")).toBe("https://api.nest-base.localhost");
+    });
+  });
+
+  describe("planDevChildEnv()", () => {
+    it("sets PORTLESS_ACTIVE and portless APP_BASE_URL in portless mode", () => {
+      const env = planDevChildEnv({
+        baseEnv: { APP_BASE_URL: "http://localhost:3000", FOO: "bar" },
+        projectName: "my-app",
+        mode: "portless",
+        app: "api",
+      });
+      expect(env.PORTLESS_ACTIVE).toBe("1");
+      expect(env.APP_BASE_URL).toBe("https://api.my-app.localhost");
+      expect(env.FOO).toBe("bar");
+    });
+
+    it("sets PORT and loopback APP_BASE_URL in direct mode", () => {
+      const env = planDevChildEnv({
+        baseEnv: { APP_BASE_URL: "https://api.old.localhost" },
+        projectName: "my-app",
+        mode: "direct",
+        port: 4266,
+      });
+      expect(env.PORT).toBe("4266");
+      expect(env.APP_BASE_URL).toBe("http://localhost:4266");
+      expect(env.PORTLESS_ACTIVE).toBeUndefined();
     });
   });
 

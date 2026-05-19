@@ -45,6 +45,7 @@ import {
   buildPortlessRunCommand,
   decideRegistrationAction,
   isPortlessProxyRunning,
+  planDevChildEnv,
   resolveDevPort,
   shouldUsePortless,
 } from '../src/core/dev/portless.js';
@@ -118,6 +119,14 @@ function which(bin: string): string | undefined {
   return out === '' ? undefined : out;
 }
 
+/** Prefer PATH, then the workspace-local devDependency binary. */
+function resolvePortlessBinary(): string | undefined {
+  const fromPath = which('portless');
+  if (fromPath) return fromPath;
+  const local = resolve(process.cwd(), 'node_modules/.bin/portless');
+  return existsSync(local) ? local : undefined;
+}
+
 function readProjectName(): string {
   const pkgPath = resolve(process.cwd(), 'package.json');
   if (!existsSync(pkgPath)) return 'app';
@@ -125,7 +134,7 @@ function readProjectName(): string {
   return match?.[1] ?? 'app';
 }
 
-const portlessPath = which('portless');
+const portlessPath = resolvePortlessBinary();
 const useDisable = process.env.DISABLE_PORTLESS === '1';
 const usePortless = shouldUsePortless({ portlessPath, disable: useDisable });
 const projectName = readProjectName();
@@ -322,7 +331,12 @@ async function buildSpawnPlan(): Promise<SpawnPlan> {
     return {
       command: portlessPath!,
       args,
-      env: { ...process.env, PORTLESS_ACTIVE: '1' },
+      env: planDevChildEnv({
+        baseEnv: process.env,
+        projectName,
+        mode: 'portless',
+        app: 'api',
+      }),
     };
   }
   const requestedPort = resolveDevPort({
@@ -400,7 +414,12 @@ async function buildSpawnPlan(): Promise<SpawnPlan> {
   return {
     command: 'bun',
     args: ['--watch', 'src/main.ts'],
-    env: { ...process.env, PORT: String(port) },
+    env: planDevChildEnv({
+      baseEnv: process.env,
+      projectName,
+      mode: 'direct',
+      port,
+    }),
   };
 }
 
