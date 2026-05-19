@@ -43,6 +43,12 @@ describe("Story · Outbox", () => {
         rows[idx] = { ...rows[idx]!, processedAt };
         return true;
       },
+      async incrementDispatchAttemptCount(id) {
+        const row = rows.find((r) => r.id === id);
+        if (!row) return 0;
+        row.dispatchAttemptCount = (row.dispatchAttemptCount ?? 0) + 1;
+        return row.dispatchAttemptCount;
+      },
     };
   }
 

@@ -18,6 +18,8 @@ interface AuthenticatedRequest extends Request {
      * when no `x-tenant-id` header is present.
      */
     activeOrganizationId?: string | null;
+    /** Present when the request is authenticated via a scoped API key. */
+    scopes?: string[];
   };
   ability?: Ability;
 }
@@ -134,7 +136,9 @@ export class AbilityMiddleware implements NestMiddleware {
     }
 
     try {
-      req.ability = await this.permissions.abilityFor(req.user.id, tenantId);
+      req.ability = await this.permissions.abilityFor(req.user.id, tenantId, {
+        scopes: req.user.scopes,
+      });
     } catch {
       // Storage failure must not 500 the request — fall back to an
       // empty ability so the request fails closed (403) rather than

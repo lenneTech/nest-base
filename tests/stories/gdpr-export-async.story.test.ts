@@ -9,23 +9,11 @@ import {
 /**
  * Story · GDPR /me/export async export jobs (CF.GDPR.* — iter-96
  * review Finding 12).
- *
- * The PRD pins "/me/export async export jobs" — the synchronous
- * inline payload is replaced with an enqueue-and-poll surface:
- *   - POST  /me/export             → enqueue, returns {jobId}
- *   - GET   /me/export/:jobId      → status + payload (when ready)
- *
- * Iter-106 ships the `GdprExportJobRegistry` core: pure tracker for
- * async export jobs (PENDING / RUNNING / COMPLETED / FAILED). The
- * registry is in-memory by default; project bootstraps replace it
- * with a Prisma-backed adapter that persists artefacts under a
- * separate `gdpr_exports` table when long-lived job retention is
- * needed.
  */
 describe("Story · GdprExportJobRegistry", () => {
-  it("enqueue() returns a fresh job in status PENDING", () => {
+  it("enqueue() returns a fresh job in status PENDING", async () => {
     const registry = new GdprExportJobRegistry();
-    const job = registry.enqueue({ userId: "u-1", tenantId: "t-1" });
+    const job = await registry.enqueue({ userId: "u-1", tenantId: "t-1" });
     expect(job.id).toMatch(/^[a-f0-9-]{36}$/);
     expect(job.status).toBe("PENDING");
     expect(job.userId).toBe("u-1");
@@ -35,64 +23,64 @@ describe("Story · GdprExportJobRegistry", () => {
     expect(job.payload).toBeNull();
   });
 
-  it("get() returns the same job object for an enqueued id", () => {
+  it("get() returns the same job object for an enqueued id", async () => {
     const registry = new GdprExportJobRegistry();
-    const job = registry.enqueue({ userId: "u-1", tenantId: null });
-    const fetched = registry.get(job.id);
+    const job = await registry.enqueue({ userId: "u-1", tenantId: null });
+    const fetched = await registry.get(job.id);
     expect(fetched?.id).toBe(job.id);
     expect(fetched?.status).toBe("PENDING");
   });
 
-  it("get() returns null for unknown ids", () => {
+  it("get() returns null for unknown ids", async () => {
     const registry = new GdprExportJobRegistry();
-    expect(registry.get("00000000-0000-0000-0000-000000000000")).toBeNull();
+    expect(await registry.get("00000000-0000-0000-0000-000000000000")).toBeNull();
   });
 
-  it("complete() transitions PENDING → COMPLETED with payload", () => {
+  it("complete() transitions PENDING → COMPLETED with payload", async () => {
     const registry = new GdprExportJobRegistry();
-    const job = registry.enqueue({ userId: "u-1", tenantId: null });
+    const job = await registry.enqueue({ userId: "u-1", tenantId: null });
     const payload = { user: { id: "u-1" }, exportedAt: new Date().toISOString() };
-    registry.complete(job.id, payload);
-    const fetched = registry.get(job.id);
+    await registry.complete(job.id, payload);
+    const fetched = await registry.get(job.id);
     expect(fetched?.status).toBe("COMPLETED");
     expect(fetched?.completedAt).toBeInstanceOf(Date);
     expect(fetched?.payload).toEqual(payload);
   });
 
-  it("fail() transitions to FAILED with an error message", () => {
+  it("fail() transitions to FAILED with an error message", async () => {
     const registry = new GdprExportJobRegistry();
-    const job = registry.enqueue({ userId: "u-1", tenantId: null });
-    registry.fail(job.id, new Error("kaboom"));
-    const fetched = registry.get(job.id);
+    const job = await registry.enqueue({ userId: "u-1", tenantId: null });
+    await registry.fail(job.id, new Error("kaboom"));
+    const fetched = await registry.get(job.id);
     expect(fetched?.status).toBe("FAILED");
     expect(fetched?.error).toBe("kaboom");
   });
 
-  it("complete() / fail() throw on unknown ids", () => {
+  it("complete() / fail() throw on unknown ids", async () => {
     const registry = new GdprExportJobRegistry();
-    expect(() => registry.complete("00000000-0000-0000-0000-000000000000", {})).toThrow(
-      GdprExportJobNotFoundError,
-    );
-    expect(() => registry.fail("00000000-0000-0000-0000-000000000000", new Error())).toThrow(
-      GdprExportJobNotFoundError,
-    );
+    await expect(
+      registry.complete("00000000-0000-0000-0000-000000000000", {}),
+    ).rejects.toThrow(GdprExportJobNotFoundError);
+    await expect(
+      registry.fail("00000000-0000-0000-0000-000000000000", new Error()),
+    ).rejects.toThrow(GdprExportJobNotFoundError);
   });
 
-  it("complete() is idempotent — second call on an already-completed job is a no-op", () => {
+  it("complete() is idempotent — second call on an already-completed job is a no-op", async () => {
     const registry = new GdprExportJobRegistry();
-    const job = registry.enqueue({ userId: "u-1", tenantId: null });
-    registry.complete(job.id, { first: true });
-    registry.complete(job.id, { second: true }); // ignored
-    const fetched = registry.get(job.id);
+    const job = await registry.enqueue({ userId: "u-1", tenantId: null });
+    await registry.complete(job.id, { first: true });
+    await registry.complete(job.id, { second: true });
+    const fetched = await registry.get(job.id);
     expect(fetched?.payload).toEqual({ first: true });
   });
 
-  it("isolates per-user jobs (listForUser)", () => {
+  it("isolates per-user jobs (listForUser)", async () => {
     const registry = new GdprExportJobRegistry();
-    registry.enqueue({ userId: "u-1", tenantId: null });
-    registry.enqueue({ userId: "u-1", tenantId: null });
-    registry.enqueue({ userId: "u-2", tenantId: null });
-    const u1Jobs: readonly GdprExportJob[] = registry.listForUser("u-1");
+    await registry.enqueue({ userId: "u-1", tenantId: null });
+    await registry.enqueue({ userId: "u-1", tenantId: null });
+    await registry.enqueue({ userId: "u-2", tenantId: null });
+    const u1Jobs: readonly GdprExportJob[] = await registry.listForUser("u-1");
     expect(u1Jobs).toHaveLength(2);
     expect(u1Jobs.every((j) => j.userId === "u-1")).toBe(true);
   });

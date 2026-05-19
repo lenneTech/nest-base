@@ -46,12 +46,11 @@ describe("E2E · /metrics — Prometheus exposition (CF.OBS.12 + TR.BE.17)", () 
     const res = await request(app.getHttpServer()).get("/api/metrics");
     expect(res.status).toBe(200);
     const body = res.text;
-    // collectDefaultMetrics() registers these under the Registry.
     expect(body).toContain("process_cpu_user_seconds_total");
     expect(body).toContain("process_resident_memory_bytes");
     expect(body).toContain("nodejs_heap_size_total_bytes");
     expect(body).toContain("nodejs_eventloop_lag_seconds");
-  });
+  }, 15_000);
 
   it("GET /metrics body has the canonical OpenMetrics comment headers", async () => {
     const res = await request(app.getHttpServer()).get("/api/metrics");

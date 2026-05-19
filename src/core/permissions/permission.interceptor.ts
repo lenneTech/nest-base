@@ -10,7 +10,7 @@ import { buildAbility } from "./casl-ability.js";
 import { PermissionService } from "./permission.service.js";
 
 interface AuthenticatedRequest {
-  user?: { id: string; tenantId: string };
+  user?: { id: string; tenantId: string; scopes?: string[] };
   ability?: import("./casl-ability.js").Ability;
 }
 
@@ -40,6 +40,8 @@ export class PermissionInterceptor implements NestInterceptor {
       req.ability = buildAbility([]);
       return;
     }
-    req.ability = await this.permissions.abilityFor(req.user.id, req.user.tenantId);
+    req.ability = await this.permissions.abilityFor(req.user.id, req.user.tenantId, {
+      scopes: req.user.scopes,
+    });
   }
 }

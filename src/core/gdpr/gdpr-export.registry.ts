@@ -1,6 +1,14 @@
 import { randomUUID } from "node:crypto";
 
-import { Injectable, Logger, type OnModuleInit, type OnModuleDestroy } from "@nestjs/common";
+import {
+  Injectable,
+  Logger,
+  Optional,
+  type OnModuleInit,
+  type OnModuleDestroy,
+} from "@nestjs/common";
+
+import { PrismaService } from "../prisma/prisma.service.js";
 
 /**
  * GDPR export-job registry (CF.GDPR.* — iter-106).
@@ -66,6 +74,11 @@ export class GdprExportJobRegistry implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(GdprExportJobRegistry.name);
   private readonly jobs = new Map<string, MutableGdprExportJob>();
   private staleSweepTimer?: ReturnType<typeof setInterval>;
+  private readonly usePrisma: boolean;
+
+  constructor(@Optional() private readonly prisma?: PrismaService) {
+    this.usePrisma = Boolean(process.env.DATABASE_URL && this.prisma);
+  }
 
   /**
    * Start the periodic stale-job sweep. Jobs stuck in PENDING or RUNNING
@@ -121,7 +134,17 @@ export class GdprExportJobRegistry implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  enqueue(input: EnqueueGdprExportInput): GdprExportJob {
+  async enqueue(input: EnqueueGdprExportInput): Promise<GdprExportJob> {
+    if (this.usePrisma && this.prisma) {
+      const row = await this.prisma.gdprExportJob.create({
+        data: {
+          userId: input.userId,
+          tenantId: input.tenantId,
+          status: "PENDING",
+        },
+      });
+      return prismaRowToJob(row);
+    }
     const job: MutableGdprExportJob = {
       id: randomUUID(),
       userId: input.userId,
@@ -133,7 +156,7 @@ export class GdprExportJobRegistry implements OnModuleInit, OnModuleDestroy {
       error: null,
     };
     this.jobs.set(job.id, job);
-    return { ...job };
+    return Promise.resolve({ ...job });
   }
 
   /**
@@ -142,14 +165,39 @@ export class GdprExportJobRegistry implements OnModuleInit, OnModuleDestroy {
    * tests + admin tooling can detect "stuck" jobs by reading the
    * RUNNING state with a stale timestamp.
    */
-  start(jobId: string): void {
+  async start(jobId: string): Promise<void> {
+    if (this.usePrisma && this.prisma) {
+      const row = await this.prisma.gdprExportJob.findUnique({ where: { id: jobId } });
+      if (!row) throw new GdprExportJobNotFoundError(jobId);
+      if (row.status !== "PENDING") return;
+      await this.prisma.gdprExportJob.update({
+        where: { id: jobId },
+        data: { status: "RUNNING" },
+      });
+      return;
+    }
     const job = this.jobs.get(jobId);
     if (!job) throw new GdprExportJobNotFoundError(jobId);
     if (job.status !== "PENDING") return;
     job.status = "RUNNING";
   }
 
-  complete(jobId: string, payload: unknown): void {
+  async complete(jobId: string, payload: unknown): Promise<void> {
+    if (this.usePrisma && this.prisma) {
+      const row = await this.prisma.gdprExportJob.findUnique({ where: { id: jobId } });
+      if (!row) throw new GdprExportJobNotFoundError(jobId);
+      if (row.status === "COMPLETED" || row.status === "FAILED") return;
+      await this.prisma.gdprExportJob.update({
+        where: { id: jobId },
+        data: {
+          status: "COMPLETED",
+          completedAt: new Date(),
+          payload: payload as object,
+          error: null,
+        },
+      });
+      return;
+    }
     const job = this.jobs.get(jobId);
     if (!job) throw new GdprExportJobNotFoundError(jobId);
     if (job.status === "COMPLETED" || job.status === "FAILED") return;
@@ -163,7 +211,21 @@ export class GdprExportJobRegistry implements OnModuleInit, OnModuleDestroy {
     job.evictionTimer = setTimeout(() => this.jobs.delete(jobId), 24 * 60 * 60 * 1000);
   }
 
-  fail(jobId: string, err: Error): void {
+  async fail(jobId: string, err: Error): Promise<void> {
+    if (this.usePrisma && this.prisma) {
+      const row = await this.prisma.gdprExportJob.findUnique({ where: { id: jobId } });
+      if (!row) throw new GdprExportJobNotFoundError(jobId);
+      if (row.status === "COMPLETED" || row.status === "FAILED") return;
+      await this.prisma.gdprExportJob.update({
+        where: { id: jobId },
+        data: {
+          status: "FAILED",
+          completedAt: new Date(),
+          error: err.message,
+        },
+      });
+      return;
+    }
     const job = this.jobs.get(jobId);
     if (!job) throw new GdprExportJobNotFoundError(jobId);
     if (job.status === "COMPLETED" || job.status === "FAILED") return;
@@ -175,12 +237,45 @@ export class GdprExportJobRegistry implements OnModuleInit, OnModuleDestroy {
     job.evictionTimer = setTimeout(() => this.jobs.delete(jobId), 24 * 60 * 60 * 1000);
   }
 
-  get(jobId: string): GdprExportJob | null {
+  async get(jobId: string): Promise<GdprExportJob | null> {
+    if (this.usePrisma && this.prisma) {
+      const row = await this.prisma.gdprExportJob.findUnique({ where: { id: jobId } });
+      return row ? prismaRowToJob(row) : null;
+    }
     const job = this.jobs.get(jobId);
     return job ? { ...job } : null;
   }
 
-  listForUser(userId: string): readonly GdprExportJob[] {
+  async listForUser(userId: string): Promise<readonly GdprExportJob[]> {
+    if (this.usePrisma && this.prisma) {
+      const rows = await this.prisma.gdprExportJob.findMany({
+        where: { userId },
+        orderBy: { requestedAt: "desc" },
+      });
+      return rows.map(prismaRowToJob);
+    }
     return [...this.jobs.values()].filter((j) => j.userId === userId).map((j) => ({ ...j }));
   }
+}
+
+function prismaRowToJob(row: {
+  id: string;
+  userId: string;
+  tenantId: string | null;
+  status: string;
+  requestedAt: Date;
+  completedAt: Date | null;
+  payload: unknown;
+  error: string | null;
+}): GdprExportJob {
+  return {
+    id: row.id,
+    userId: row.userId,
+    tenantId: row.tenantId,
+    status: row.status as GdprExportStatus,
+    requestedAt: row.requestedAt,
+    completedAt: row.completedAt,
+    payload: row.payload,
+    error: row.error,
+  };
 }

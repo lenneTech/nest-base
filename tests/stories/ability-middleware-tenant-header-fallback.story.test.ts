@@ -95,7 +95,7 @@ describe("Story · AbilityMiddleware x-tenant-id resolution", () => {
     await mw.use(req as never, res, next);
 
     expect(req.ability).toBe(ability);
-    expect(service.abilityFor).toHaveBeenCalledWith("u1", VALID_TENANT);
+    expect(service.abilityFor).toHaveBeenCalledWith("u1", VALID_TENANT, { scopes: undefined });
     expect(next.calls).toBe(1);
   });
 
@@ -180,7 +180,7 @@ describe("Story · AbilityMiddleware x-tenant-id resolution", () => {
 
     expect(req.ability).toBe(ability);
     // Build the ability for the HEADER tenant, not the session tenant.
-    expect(service.abilityFor).toHaveBeenCalledWith("u1", OTHER_TENANT);
+    expect(service.abilityFor).toHaveBeenCalledWith("u1", OTHER_TENANT, { scopes: undefined });
     expect(next.calls).toBe(1);
     expect(next.lastError).toBeUndefined();
   });
@@ -204,7 +204,7 @@ describe("Story · AbilityMiddleware x-tenant-id resolution", () => {
     await mw.use(req as never, res, next);
 
     expect(req.ability).toBe(ability);
-    expect(service.abilityFor).toHaveBeenCalledWith("u1", VALID_TENANT);
+    expect(service.abilityFor).toHaveBeenCalledWith("u1", VALID_TENANT, { scopes: undefined });
     expect(findFirst).not.toHaveBeenCalled();
     expect(next.calls).toBe(1);
   });

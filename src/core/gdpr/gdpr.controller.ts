@@ -68,7 +68,7 @@ export class GdprController {
     if (!req.user) {
       throw new ForbiddenException("authentication required");
     }
-    const job = this.exportJobs.enqueue({
+    const job = await this.exportJobs.enqueue({
       userId: req.user.id,
       tenantId: req.user.tenantId ?? null,
     });
@@ -113,7 +113,7 @@ export class GdprController {
     if (!req.user) {
       throw new ForbiddenException("authentication required");
     }
-    const job = this.exportJobs.get(jobId);
+    const job = await this.exportJobs.get(jobId);
     if (!job) {
       throw new NotFoundException("export job not found");
     }
@@ -132,15 +132,15 @@ export class GdprController {
 
   private async runExport(jobId: string, userId: string, tenantId: string | null): Promise<void> {
     try {
-      this.exportJobs.start(jobId);
+      await this.exportJobs.start(jobId);
       const payload = buildGdprExport({
         user: { id: userId, tenantId },
         relatedResources: {},
         now: () => Date.now(),
       });
-      this.exportJobs.complete(jobId, payload);
+      await this.exportJobs.complete(jobId, payload);
     } catch (err) {
-      this.exportJobs.fail(jobId, err instanceof Error ? err : new Error(String(err)));
+      await this.exportJobs.fail(jobId, err instanceof Error ? err : new Error(String(err)));
     }
   }
 

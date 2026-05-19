@@ -7,8 +7,10 @@ import { ProblemDetailsExceptionFilter } from "../errors/problem-details.filter.
 import { createLogger } from "../observability/logger.js";
 import { serverConfigFromEnv } from "../server/server-config.js";
 import type { AuthenticatedRequest } from "../auth/session-middleware.js";
+import { getRequestContext } from "../request-context/request-context.js";
 
 import { ApiKeyModule } from "../auth/api-keys/api-key.module.js";
+import { ApiKeySessionMiddleware } from "../auth/api-keys/api-key-session.middleware.js";
 import { BetterAuthModule } from "../auth/better-auth.module.js";
 import { PowerSyncModule } from "../auth/powersync.module.js";
 import { SessionsAdminModule } from "../auth/sessions-admin.module.js";
@@ -125,11 +127,14 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
             // req via the X-Request-Id echo header).
             customProps: (req) => {
               const user = (req as AuthenticatedRequest).user;
-              // requestId is stamped onto the request object by
-              // RequestContextMiddleware — access via unknown cast since
-              // Express's IncomingMessage type doesn't declare it.
+              const headerRequestId = req.headers["x-request-id"];
               const requestId =
-                (req as unknown as { requestId?: string }).requestId ?? req.headers["x-request-id"];
+                getRequestContext()?.requestId ??
+                (typeof headerRequestId === "string"
+                  ? headerRequestId
+                  : Array.isArray(headerRequestId)
+                    ? headerRequestId[0]
+                    : undefined);
               return {
                 ...(requestId ? { requestId } : {}),
                 ...(user?.id ? { userId: user.id } : {}),
@@ -284,6 +289,7 @@ export class AppModule implements NestModule {
     //                        set.
     consumer.apply(RequestContextMiddleware).forRoutes("*");
     consumer.apply(BetterAuthSessionMiddleware).forRoutes("*");
+    consumer.apply(ApiKeySessionMiddleware).forRoutes("*");
     consumer.apply(AbilityMiddleware).forRoutes("*");
   }
 }

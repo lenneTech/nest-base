@@ -18,8 +18,10 @@ import type {
   EmailOutboxRecord,
   EmailOutboxStorage,
 } from "./email-outbox.js";
+import { outboxPayloadSummary } from "./email-outbox-dto.js";
 import { EMAIL_OUTBOX_STORAGE } from "./email-outbox.module.js";
 import { EmailService } from "./email.service.js";
+import { PLAN_OK } from "../result/plan-ok.js";
 
 /**
  * EmailOutboxAdminController — `/admin/email-outbox` (issue #91).
@@ -58,15 +60,13 @@ export interface OutboxRecordDto {
 }
 
 function toDto(r: EmailOutboxRecord): OutboxRecordDto {
-  // Cast through unknown — payload is a union type that lacks an index
-  // signature; we only read known keys (to, template) so this is safe.
-  const payload = (r.payload ?? {}) as unknown as Record<string, unknown>;
+  const { recipient, template } = outboxPayloadSummary(r.payload);
   return {
     id: r.id,
     kind: r.kind,
     status: r.status,
-    recipient: typeof payload.to === "string" ? payload.to : null,
-    template: typeof payload.template === "string" ? payload.template : null,
+    recipient,
+    template,
     attemptCount: r.attemptCount,
     nextAttemptAt: r.nextAttemptAt?.toISOString() ?? null,
     claimedAt: r.claimedAt?.toISOString() ?? null,
@@ -144,7 +144,7 @@ export class EmailOutboxAdminController {
     if (!decision.allowed) throw new ForbiddenException(decision.reason);
 
     await this.storage.markRetry(id, new Date());
-    return { ok: true };
+    return PLAN_OK;
   }
 
   /**
@@ -161,7 +161,7 @@ export class EmailOutboxAdminController {
     if (!decision.allowed) throw new ForbiddenException(decision.reason);
 
     await this.storage.markCancelled(id, new Date());
-    return { ok: true };
+    return PLAN_OK;
   }
 
   /**

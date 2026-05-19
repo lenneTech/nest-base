@@ -4,6 +4,7 @@ import { resolve as resolvePath } from "node:path";
 import { Logger, Module } from "@nestjs/common";
 
 import { loadFeatures } from "../features/features.js";
+import { JobQueueService, JobsModule } from "../jobs/jobs.module.js";
 import { GeoIpRefreshCron } from "./geoip-refresh-cron.js";
 import { GeoIpService, type MmdbCityReader } from "./geoip.service.js";
 
@@ -23,6 +24,7 @@ import { GeoIpService, type MmdbCityReader } from "./geoip.service.js";
  * at every call-site.
  */
 @Module({
+  imports: [JobsModule],
   providers: [
     {
       provide: GeoIpService,
@@ -37,15 +39,19 @@ import { GeoIpService, type MmdbCityReader } from "./geoip.service.js";
     },
     {
       provide: GeoIpRefreshCron,
-      useFactory: (): GeoIpRefreshCron => {
+      inject: [JobQueueService],
+      useFactory: (jobQueue: JobQueueService): GeoIpRefreshCron => {
         const features = loadFeatures(process.env as Record<string, string | undefined>);
         const cfg = features.geoIp;
-        return new GeoIpRefreshCron({
-          enabled: cfg.enabled,
-          provider: cfg.provider,
-          dbPath: cfg.dbPath,
-          licenseKey: cfg.licenseKey,
-        });
+        return new GeoIpRefreshCron(
+          {
+            enabled: cfg.enabled,
+            provider: cfg.provider,
+            dbPath: cfg.dbPath,
+            licenseKey: cfg.licenseKey,
+          },
+          jobQueue,
+        );
       },
     },
   ],

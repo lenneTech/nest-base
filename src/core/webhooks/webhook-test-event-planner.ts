@@ -1,3 +1,5 @@
+import { PLAN_OK, type PlanOk } from "../result/plan-ok.js";
+
 /**
  * Pure planner for the "Send test event" action on the webhook inspector.
  *
@@ -16,7 +18,7 @@ export interface WebhookTestEventInput {
 }
 
 export type WebhookTestEventResult =
-  | { ok: true }
+  | PlanOk
   | { ok: false; errorCode: "UNKNOWN_EVENT_TYPE" | "ENDPOINT_DISABLED" | "INVALID_PAYLOAD" };
 
 /**
@@ -38,5 +40,5 @@ export function planWebhookTestEvent(input: WebhookTestEventInput): WebhookTestE
     return { ok: false, errorCode: "UNKNOWN_EVENT_TYPE" };
   }
 
-  return { ok: true };
+  return PLAN_OK;
 }

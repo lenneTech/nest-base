@@ -12,6 +12,8 @@
 
 import { Logger } from "@nestjs/common";
 
+import { toRedisClientLike } from "./ioredis-client-bridge.js";
+
 const redisClientLogger = new Logger("RedisClient");
 
 /**
@@ -39,6 +41,14 @@ export interface RedisClientLike {
   disconnect(): void;
   status: string;
   quit(): Promise<string>;
+  scan(
+    cursor: string,
+    matchFlag: "MATCH",
+    pattern: string,
+    countFlag: "COUNT",
+    count: number,
+  ): Promise<[string, string[]]>;
+  scanStream(opts: { match: string; count: number }): AsyncIterable<string[]>;
 }
 
 /**
@@ -64,7 +74,7 @@ export async function resolveRedisClient(
     client.on("error", (err: Error) => {
       redisClientLogger.error(`ioredis connection error: ${err.message}`);
     });
-    return client as unknown as RedisClientLike;
+    return toRedisClientLike(client);
   } catch (err) {
     // ioredis not available or URL is malformed — log the error so
     // operators know why Redis is disabled rather than silently degrading

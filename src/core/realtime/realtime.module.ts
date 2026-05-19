@@ -21,6 +21,10 @@ import {
   RealtimeServiceLifecycle,
 } from "./realtime-service.lifecycle.js";
 import {
+  toRedisAdapterClient,
+  type RedisAdapterClient,
+} from "./socket-io-redis-bridge.js";
+import {
   InMemoryRealtimeTransport,
   RealtimeService,
   type RealtimeTransport,
@@ -452,18 +456,6 @@ export class RealtimeOutboxDispatcherLifecycle implements OnModuleInit {
 const SOCKET_IO_REDIS_ADAPTER = Symbol.for("lt:SocketIoRedisAdapter");
 
 /**
- * Minimal subset of the ioredis client surface that @socket.io/redis-adapter
- * requires. Avoids importing ioredis types directly — the adapter itself types
- * its parameters as `any`, so we only need enough to remove the `as never` cast
- * and keep TypeScript checking the properties we actually call (quit, duplicate).
- */
-interface RedisAdapterClient {
-  duplicate(): RedisAdapterClient;
-  quit(): Promise<string>;
-  on(event: string, listener: (...args: unknown[]) => void): this;
-}
-
-/**
  * Lifecycle hook that installs the Socket.IO Redis adapter when
  * `REDIS_URL` is set. Runs after the gateway server is available
  * (`OnModuleInit`). When `adapterPair` is null, the default
@@ -488,7 +480,7 @@ export class SocketIoRedisAdapterLifecycle implements OnModuleInit, OnModuleDest
           // createAdapter is typed with `any` parameters in @socket.io/redis-adapter;
           // casting through unknown satisfies TS without suppressing type checking on
           // the RedisAdapterClient interface we use throughout this class.
-          createAdapter(this.adapterPair.pub as unknown, this.adapterPair.sub as unknown),
+          createAdapter(this.adapterPair.pub, this.adapterPair.sub),
         );
         this.log.log("Socket.IO Redis adapter installed (cross-pod broadcasts enabled)");
       }
@@ -523,7 +515,7 @@ async function resolveSocketIoRedisPair(): Promise<{
   if (!url) return null;
   try {
     const { default: Redis } = await import("ioredis");
-    const pub = new Redis(url) as unknown as RedisAdapterClient;
+    const pub = toRedisAdapterClient(new Redis(url));
     const sub = pub.duplicate();
     // Prevent unhandled 'error' event crash on auth failures, network drops,
     // or TLS rejections. ioredis surfaces these via its internal retry logic;

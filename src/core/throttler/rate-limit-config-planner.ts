@@ -1,3 +1,5 @@
+import { PLAN_OK, type PlanOk } from "../result/plan-ok.js";
+
 /**
  * Pure planners for rate-limit configuration (issue #94).
  *
@@ -11,7 +13,7 @@ export interface ValidateRateLimitConfigInput {
   windowSeconds: number;
 }
 
-export type ValidateRateLimitConfigResult = { ok: true } | { ok: false; error: string };
+export type ValidateRateLimitConfigResult = PlanOk | { ok: false; error: string };
 
 /**
  * Validate an operator-supplied rate-limit window before persisting it.
@@ -35,7 +37,7 @@ export function validateRateLimitConfig(
   if (input.windowSeconds > 86_400) {
     return { ok: false, error: "windowSeconds must not exceed 86,400 (one day)" };
   }
-  return { ok: true };
+  return PLAN_OK;
 }
 
 export interface ScopeWindow {

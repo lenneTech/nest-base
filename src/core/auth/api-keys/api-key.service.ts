@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { hash as argon2Hash, verify as argon2Verify } from "@node-rs/argon2";
 
 import { uuidV7 } from "../../uuid/uuid-v7.js";
+import { ApiKeyScopeError, validateApiKeyScopes } from "./api-key-scope-planner.js";
 
 /**
  * Scoped API-Keys.
@@ -94,8 +95,11 @@ export class ApiKeyService {
   constructor(private readonly storage: ApiKeyStorage) {}
 
   async createKey(input: CreateKeyInput): Promise<CreateKeyResult> {
-    if (input.scopes.length === 0) {
-      throw new Error("api key requires at least one scope");
+    try {
+      validateApiKeyScopes(input.scopes);
+    } catch (err) {
+      if (err instanceof ApiKeyScopeError) throw err;
+      throw err;
     }
     const lookupId = uuidV7();
     const secret = randomBytes(SECRET_BYTES).toString("hex");

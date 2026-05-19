@@ -2,7 +2,19 @@ import { existsSync, statSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve as resolvePath } from "node:path";
 
-import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from "@nestjs/common";
+import {
+  Injectable,
+  Logger,
+  Optional,
+  type OnModuleDestroy,
+  type OnModuleInit,
+} from "@nestjs/common";
+
+import { JobQueueService } from "../jobs/jobs.module.js";
+import {
+  wireBullMQCleanupRepeat,
+  type WireCleanupRepeatResult,
+} from "../jobs/wire-bullmq-cleanup-repeat.js";
 
 import { GeoIpLicenseKeyMissingError, planGeoIpDownload } from "./download-planner.js";
 import type { GeoIpProvider } from "./download-planner.js";
@@ -37,10 +49,12 @@ export interface GeoIpRefreshCronOptions {
 @Injectable()
 export class GeoIpRefreshCron implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger("GeoIpRefreshCron");
-  private timer?: ReturnType<typeof setInterval>;
+  private wire?: WireCleanupRepeatResult;
   private lastRunMs: number | null = null;
-
-  constructor(private readonly options: GeoIpRefreshCronOptions) {}
+  constructor(
+    private readonly options: GeoIpRefreshCronOptions,
+    @Optional() private readonly jobQueue?: JobQueueService,
+  ) {}
 
   async onModuleInit(): Promise<void> {
     const { enabled, provider, dbPath, licenseKey } = this.options;
@@ -62,19 +76,23 @@ export class GeoIpRefreshCron implements OnModuleInit, OnModuleDestroy {
       `GeoIP refresh scheduled: cadence=${schedule.cadence}, tick=${schedule.tickMs}ms`,
     );
 
-    // Single-process path: bare setInterval. The timer is unref'd so it
-    // doesn't keep the event loop alive in tests / CLI tools.
-    this.timer = setInterval(() => {
-      void this.maybeRun(provider, licenseKey, dbPath, schedule).catch((err) =>
-        this.logger.warn(`GeoIP refresh tick failed: ${err}`),
-      );
-    }, schedule.tickMs);
-    this.timer.unref?.();
+    const tick = (): Promise<void> =>
+      this.maybeRun(provider, licenseKey, dbPath, schedule).catch((err) => {
+        this.logger.warn(`GeoIP refresh tick failed: ${err}`);
+      });
+
+    void tick();
+    this.wire = await wireBullMQCleanupRepeat(
+      this.jobQueue,
+      "geoip",
+      () => tick(),
+      schedule.tickMs,
+    );
   }
 
   async onModuleDestroy(): Promise<void> {
-    if (this.timer) clearInterval(this.timer);
-    this.timer = undefined;
+    this.wire?.stop?.();
+    this.wire = undefined;
   }
 
   async maybeRun(

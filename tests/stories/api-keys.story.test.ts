@@ -95,16 +95,16 @@ describe("Story · Scoped API-Keys", () => {
     it("accepts the plaintext returned from createKey()", async () => {
       const storage = makeStorage();
       const svc = new ApiKeyService(storage);
-      const { plaintext } = await svc.createKey({ userId: "u1", name: "k", scopes: ["x"] });
+      const { plaintext } = await svc.createKey({ userId: "u1", name: "k", scopes: ["files:read"] });
       const verified = await svc.verifyKey(plaintext);
       expect(verified.userId).toBe("u1");
-      expect(verified.scopes).toEqual(["x"]);
+      expect(verified.scopes).toEqual(["files:read"]);
     });
 
     it("rejects a tampered secret with ApiKeyInvalidError", async () => {
       const storage = makeStorage();
       const svc = new ApiKeyService(storage);
-      const { plaintext } = await svc.createKey({ userId: "u1", name: "k", scopes: ["x"] });
+      const { plaintext } = await svc.createKey({ userId: "u1", name: "k", scopes: ["files:read"] });
       // Flip the last hex char to something guaranteed different from the
       // original so the tamper is never a no-op regardless of the random secret.
       const lastChar = plaintext[plaintext.length - 1]!;
@@ -131,7 +131,7 @@ describe("Story · Scoped API-Keys", () => {
       const { plaintext } = await svc.createKey({
         userId: "u1",
         name: "k",
-        scopes: ["x"],
+        scopes: ["files:read"],
         expiresAt: new Date(Date.now() - 1_000),
       });
       await expect(svc.verifyKey(plaintext)).rejects.toThrow(ApiKeyExpiredError);
@@ -140,7 +140,7 @@ describe("Story · Scoped API-Keys", () => {
     it("updates lastUsedAt on a successful verify", async () => {
       const storage = makeStorage();
       const svc = new ApiKeyService(storage);
-      const { plaintext, record } = await svc.createKey({ userId: "u1", name: "k", scopes: ["x"] });
+      const { plaintext, record } = await svc.createKey({ userId: "u1", name: "k", scopes: ["files:read"] });
       expect(record.lastUsedAt).toBeUndefined();
       await svc.verifyKey(plaintext);
       const stored = storage.records.find((r) => r.id === record.id)!;
@@ -152,7 +152,7 @@ describe("Story · Scoped API-Keys", () => {
       // deleted before updateLastUsed runs — updateLastUsed returns false.
       const storage = makeStorage();
       const svc = new ApiKeyService(storage);
-      const { plaintext } = await svc.createKey({ userId: "u1", name: "k", scopes: ["x"] });
+      const { plaintext } = await svc.createKey({ userId: "u1", name: "k", scopes: ["files:read"] });
 
       // Inject a storage shim where updateLastUsed simulates the row disappearing.
       const original = storage.updateLastUsed.bind(storage);
@@ -170,19 +170,19 @@ describe("Story · Scoped API-Keys", () => {
     it("returns a new plaintext, replaces the hash, keeps name + scopes", async () => {
       const storage = makeStorage();
       const svc = new ApiKeyService(storage);
-      const { record } = await svc.createKey({ userId: "u1", name: "k", scopes: ["x", "y"] });
+      const { record } = await svc.createKey({ userId: "u1", name: "k", scopes: ["files:read", "files:write"] });
       const rotated = await svc.rotateKey(record.id);
       expect(rotated.plaintext).not.toBe("");
       expect(rotated.record.id).toBe(record.id);
       expect(rotated.record.name).toBe("k");
-      expect(rotated.record.scopes).toEqual(["x", "y"]);
+      expect(rotated.record.scopes).toEqual(["files:read", "files:write"]);
       expect(rotated.record.hash).not.toBe(record.hash);
     });
 
     it("the old plaintext is rejected after rotation", async () => {
       const storage = makeStorage();
       const svc = new ApiKeyService(storage);
-      const { plaintext, record } = await svc.createKey({ userId: "u1", name: "k", scopes: ["x"] });
+      const { plaintext, record } = await svc.createKey({ userId: "u1", name: "k", scopes: ["files:read"] });
       await svc.rotateKey(record.id);
       await expect(svc.verifyKey(plaintext)).rejects.toThrow(ApiKeyInvalidError);
     });
@@ -192,8 +192,8 @@ describe("Story · Scoped API-Keys", () => {
     it("returns only the requested user’s keys, never including hash material", async () => {
       const storage = makeStorage();
       const svc = new ApiKeyService(storage);
-      await svc.createKey({ userId: "u1", name: "a", scopes: ["x"] });
-      await svc.createKey({ userId: "u2", name: "b", scopes: ["x"] });
+      await svc.createKey({ userId: "u1", name: "a", scopes: ["files:read"] });
+      await svc.createKey({ userId: "u2", name: "b", scopes: ["files:read"] });
       const keys = await svc.listByUser("u1");
       expect(keys.map((k) => k.userId)).toEqual(["u1"]);
     });
@@ -201,7 +201,7 @@ describe("Story · Scoped API-Keys", () => {
     it("revoke() deletes the key by id", async () => {
       const storage = makeStorage();
       const svc = new ApiKeyService(storage);
-      const { record } = await svc.createKey({ userId: "u1", name: "k", scopes: ["x"] });
+      const { record } = await svc.createKey({ userId: "u1", name: "k", scopes: ["files:read"] });
       await svc.revoke(record.id);
       expect(storage.records).toHaveLength(0);
     });
