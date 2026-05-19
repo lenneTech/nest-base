@@ -12,6 +12,7 @@ const bullmqRedisLogger = new Logger("BullMQRedis");
 import { DiscoveryModule } from "@nestjs/core";
 
 import { BullMQJobQueue, type RedisDuplex } from "./bullmq-job-queue.js";
+import { BULLMQ_IORedis_OPTIONS } from "./bullmq-redis-connection.js";
 import { toRedisDuplex } from "./ioredis-duplex.js";
 import { DiscoveryScheduledJobRegistry, SCHEDULED_JOB_REGISTRY } from "./scheduled-job.registry.js";
 import { ScheduledJobBullMQAdapter } from "./scheduled-job-bullmq-adapter.js";
@@ -41,7 +42,7 @@ async function resolveBullMQRedis(): Promise<RedisDuplex | null> {
   }
   try {
     const { default: Redis } = await import("ioredis");
-    const client = new Redis(url);
+    const client = new Redis(url, BULLMQ_IORedis_OPTIONS);
     // Prevent unhandled 'error' event crash on auth failures, network drops,
     // or TLS rejections. ioredis surfaces these via its internal retry logic;
     // commands reject individually instead of crashing the process.

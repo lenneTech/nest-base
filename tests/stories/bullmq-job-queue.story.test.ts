@@ -154,6 +154,14 @@ describe("Story · BullMQ-only — REDIS_URL required at startup in non-test env
 // 6. BullMQ cleanup planner still works (regression guard)
 // ---------------------------------------------------------------------------
 
+describe("Story · BullMQ ioredis connection options", () => {
+  it("BULLMQ_IORedis_OPTIONS sets maxRetriesPerRequest to null for blocking workers", async () => {
+    const { BULLMQ_IORedis_OPTIONS } =
+      await import("../../src/core/jobs/bullmq-redis-connection.js");
+    expect(BULLMQ_IORedis_OPTIONS.maxRetriesPerRequest).toBeNull();
+  });
+});
+
 describe("Story · BullMQ cron-repeat plan", () => {
   it("buildBullMQCleanupJobPlan() returns a repeat config with cron + jobId", async () => {
     const { buildBullMQCleanupJobPlan } =
