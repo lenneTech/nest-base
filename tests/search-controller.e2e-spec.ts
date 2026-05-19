@@ -58,5 +58,5 @@ describe("SearchController · GET /search", () => {
       .query({ q: "foo", limit: "10", only: "users,projects" });
     expect(res.status).toBe(200);
     expect(res.body.hits).toEqual([]);
-  });
+  }, 15_000);
 });

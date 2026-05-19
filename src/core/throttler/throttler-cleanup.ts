@@ -1,5 +1,16 @@
-import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from "@nestjs/common";
+import {
+  Injectable,
+  Logger,
+  Optional,
+  type OnModuleDestroy,
+  type OnModuleInit,
+} from "@nestjs/common";
 
+import { JobQueueService } from "../jobs/jobs.module.js";
+import {
+  wireBullMQCleanupRepeat,
+  type WireCleanupRepeatResult,
+} from "../jobs/wire-bullmq-cleanup-repeat.js";
 import { PrismaService } from "../prisma/prisma.service.js";
 
 /**
@@ -38,13 +49,23 @@ export const DEFAULT_THROTTLER_RETENTION_DAYS = 1;
 @Injectable()
 export class ThrottlerCleanupCron implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger("ThrottlerCleanup");
-  private timer?: ReturnType<typeof setInterval>;
+  private wire?: WireCleanupRepeatResult;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly jobQueue?: JobQueueService,
+  ) {}
 
   async onModuleInit(): Promise<void> {
     void this.runOnce();
-    this.timer = setInterval(() => void this.runOnce(), THROTTLER_CLEANUP_INTERVAL_MS);
+    this.wire = await wireBullMQCleanupRepeat(
+      this.jobQueue,
+      "throttler",
+      () => {
+        void this.runOnce();
+      },
+      THROTTLER_CLEANUP_INTERVAL_MS,
+    );
   }
 
   /** Public so tests can call it deterministically. */
@@ -69,7 +90,7 @@ export class ThrottlerCleanupCron implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleDestroy(): void {
-    if (this.timer) clearInterval(this.timer);
-    this.timer = undefined;
+    this.wire?.stop?.();
+    this.wire = undefined;
   }
 }

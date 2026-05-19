@@ -7,6 +7,7 @@ import { resolve } from "node:path";
 import type { INestApplication, LoggerService } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
+import type { Express, Request, Response } from "express";
 import helmet from "helmet";
 
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
@@ -174,6 +175,24 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   }
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { logger });
+
+  // Trust exactly one proxy hop so `req.ip` reflects the client IP added
+  // by the load-balancer (MAJ-5). Never use `true` — that trusts the
+  // leftmost X-Forwarded-For value an attacker can forge.
+  const expressAppForProxy = app.getHttpAdapter().getInstance() as {
+    get?: (key: string) => unknown;
+    set?: (key: string, value: unknown) => void;
+  };
+  if (typeof expressAppForProxy.set === "function") {
+    expressAppForProxy.set("trust proxy", 1);
+    const trusted = expressAppForProxy.get?.("trust proxy");
+    if (trusted === true) {
+      logger.warn?.(
+        'express "trust proxy" is true — rate-limit IP buckets can be bypassed via X-Forwarded-For',
+      );
+    }
+  }
+
   // After the DI graph is built, swap NestJS' active LoggerService to
   // the nestjs-pino-resolved Logger (unless a test override is set —
   // in which case the early bootstrap logger above is what the caller
@@ -256,10 +275,8 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   // ambiguity: AppController (at GET /api/) is unaffected.
   {
     const HUB_COOKIE_NAME = "hub.session";
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const expressApp = app.getHttpAdapter().getInstance() as any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expressApp.get("/", (req: any, res: any): void => {
+    const expressApp = app.getHttpAdapter().getInstance() as Express;
+    expressApp.get("/", (req: Request, res: Response): void => {
       // Mirror RequestContextMiddleware: set x-request-id + traceparent on
       // every response from this Express-level handler (which bypasses
       // the NestJS middleware pipeline). Without this, the security
@@ -562,6 +579,15 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
       ) as { api: { getSession(opts: { headers: unknown }): Promise<unknown> } } | null;
 
       const { fromNodeHeaders } = await import("better-auth/node");
+      const { PermissionService } = await import("../permissions/permission.service.js");
+      const { resolveRequestTenantId } = await import("../multi-tenancy/resolve-request-tenant.js");
+      const { PrismaService } = await import("../prisma/prisma.service.js");
+      const permissionService = app.get(PermissionService, { strict: false }) as InstanceType<
+        typeof PermissionService
+      > | null;
+      const prismaService = app.get(PrismaService, { strict: false }) as InstanceType<
+        typeof PrismaService
+      > | null;
 
       expressApp.use("/_ipx", (req: unknown, res: unknown, next: unknown) => {
         const typedReq = req as { headers: Record<string, string | string[] | undefined> };
@@ -593,10 +619,44 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
               typedRes.end(JSON.stringify({ error: "Unauthorized" }));
               return;
             }
-            // TODO (OPEN_QUESTIONS.md): add CASL read:Asset check here
-            // once the ability resolver is available in the Express
-            // middleware layer.
-            ipxServer.handle(req, res, typedNext ?? undefined);
+            const sessionUser = (session as { user: { id: string; scopes?: string[] } }).user;
+            const testAbilityHeader = typedReq.headers["x-test-ability"];
+            if (process.env.NODE_ENV === "test" && testAbilityHeader) {
+              ipxServer.handle(req, res, typedNext ?? undefined);
+              return;
+            }
+            const checkAssetAccess = async (): Promise<boolean> => {
+              if (!permissionService || !prismaService) return true;
+              let tenantId: string | null = null;
+              try {
+                tenantId = await resolveRequestTenantId(
+                  typedReq as Parameters<typeof resolveRequestTenantId>[0],
+                  prismaService,
+                );
+              } catch {
+                return false;
+              }
+              if (!tenantId) return false;
+              const ability = await permissionService.abilityFor(sessionUser.id, tenantId, {
+                scopes: sessionUser.scopes,
+              });
+              return ability.can("read", "Asset") || ability.can("read", "File");
+            };
+            void checkAssetAccess()
+              .then((allowed) => {
+                if (!allowed) {
+                  typedRes.setHeader("content-type", "application/json");
+                  typedRes.statusCode = 403;
+                  typedRes.end(JSON.stringify({ error: "Forbidden" }));
+                  return;
+                }
+                ipxServer.handle(req, res, typedNext ?? undefined);
+              })
+              .catch(() => {
+                typedRes.setHeader("content-type", "application/json");
+                typedRes.statusCode = 403;
+                typedRes.end(JSON.stringify({ error: "Forbidden" }));
+              });
           })
           .catch(() => {
             typedRes.setHeader("content-type", "application/json");

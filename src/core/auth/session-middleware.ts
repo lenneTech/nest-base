@@ -44,10 +44,8 @@ export interface AuthenticatedRequest extends Request {
      * the user's full permission set with the allowed actions implied by
      * these scopes.
      *
-     * NOTE: scope intersection is not yet implemented in the CASL ability
-     * builder. See OPEN_QUESTIONS.md MAJ-1 for the enforcement plan.
-     * Until that slice lands, scopes are propagated here as an audit trail
-     * but do NOT restrict the effective CASL ability.
+     * When present, `AbilityMiddleware` intersects the user's full ability
+     * with the actions implied by these scopes (see `api-key-scope-planner.ts`).
      */
     scopes?: string[];
   };

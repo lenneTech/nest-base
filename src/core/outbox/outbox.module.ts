@@ -55,6 +55,13 @@ export class InMemoryOutboxStorage implements OutboxStorage {
     this.processed.add(id);
     return true;
   }
+
+  async incrementDispatchAttemptCount(id: string): Promise<number> {
+    const entry = this.entries.find((e) => e.id === id);
+    if (!entry) return 0;
+    entry.dispatchAttemptCount = (entry.dispatchAttemptCount ?? 0) + 1;
+    return entry.dispatchAttemptCount;
+  }
 }
 
 @Injectable()

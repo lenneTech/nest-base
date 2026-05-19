@@ -117,7 +117,7 @@ describe("Story · IdempotencyCleanupCron prunes expired idempotency records (it
   it("onModuleInit schedules a 24h interval; onModuleDestroy clears it (no leaked timers at the test boundary)", async () => {
     const store = new InMemoryIdempotencyStoreWithCleanup();
     const cron = new IdempotencyCleanupCron(store);
-    cron.onModuleInit();
+    await cron.onModuleInit();
     // Single immediate runOnce + interval scheduled for 24h.
     expect(vi.getTimerCount()).toBe(1);
     cron.onModuleDestroy();
@@ -129,7 +129,7 @@ describe("Story · IdempotencyCleanupCron prunes expired idempotency records (it
     await store.put(record("from-prior-process", Date.now() - 1_000));
     const cron = new IdempotencyCleanupCron(store);
 
-    cron.onModuleInit();
+    await cron.onModuleInit();
     // The immediate runOnce is fire-and-forget (returns a Promise);
     // flush microtasks so the in-memory deletion completes before
     // we assert.

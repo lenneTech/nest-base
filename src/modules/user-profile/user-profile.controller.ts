@@ -6,7 +6,9 @@
  * identified by the authenticated session.
  */
 
-import { Body, Controller, Get, Patch, Req } from "@nestjs/common";
+import { Body, Controller, ForbiddenException, Get, Patch, Req } from "@nestjs/common";
+
+import type { AuthenticatedRequest } from "../../core/auth/session-middleware.js";
 
 import { ApiZodBody, ApiZodOkResponse } from "../../core/openapi/zod-api-decorators.js";
 import { registerZodSchema } from "../../core/openapi/zod-to-openapi.js";
@@ -26,10 +28,6 @@ import { UserProfileService } from "./user-profile.service.js";
 registerZodSchema("UserProfile", UserProfileResponseSchema);
 registerZodSchema("UpdateUserProfile", UpdateUserProfileSchema);
 
-interface AuthedRequest {
-  user?: { id?: string; tenantId?: string };
-}
-
 @Controller("me/profile")
 export class UserProfileController {
   constructor(private readonly service: UserProfileService) {}
@@ -37,7 +35,7 @@ export class UserProfileController {
   @Can("read", "UserProfile")
   @Get()
   @ApiZodOkResponse({ schema: UserProfileResponseSchema })
-  async getMine(@Req() req: AuthedRequest): Promise<UserProfileResponse> {
+  async getMine(@Req() req: AuthenticatedRequest): Promise<UserProfileResponse> {
     const { id, tenantId } = requireCurrentUser(req);
     return this.service.getOrCreate(tenantId, id);
   }
@@ -47,7 +45,7 @@ export class UserProfileController {
   @ApiZodBody(UpdateUserProfileSchema)
   @ApiZodOkResponse({ schema: UserProfileResponseSchema })
   async updateMine(
-    @Req() req: AuthedRequest,
+    @Req() req: AuthenticatedRequest,
     @Body(new ZodValidationPipe(UpdateUserProfileSchema)) dto: UpdateUserProfileDto,
   ): Promise<UserProfileResponse> {
     const { id, tenantId } = requireCurrentUser(req);
@@ -55,11 +53,11 @@ export class UserProfileController {
   }
 }
 
-function requireCurrentUser(req: AuthedRequest): { id: string; tenantId: string } {
+function requireCurrentUser(req: AuthenticatedRequest): { id: string; tenantId: string } {
   const id = req.user?.id;
   const tenantId = req.user?.tenantId;
   if (!id || !tenantId) {
-    throw new Error("user-profile: no authenticated user on request");
+    throw new ForbiddenException("user-profile: no authenticated user on request");
   }
   return { id, tenantId };
 }

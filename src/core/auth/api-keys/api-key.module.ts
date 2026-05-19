@@ -27,6 +27,8 @@ import {
   ApiKeyNotFoundError,
   ApiKeyService,
 } from "./api-key.service.js";
+import { ApiKeySessionMiddleware } from "./api-key-session.middleware.js";
+import { ApiKeyScopeError } from "./api-key-scope-planner.js";
 
 const API_KEY_STORAGE = Symbol.for("lt:ApiKeyStorage");
 
@@ -90,7 +92,14 @@ class ApiKeyController {
     if (!body?.userId || !body?.name || !Array.isArray(body?.scopes)) {
       throw new BadRequestException("userId, name, scopes[] are required");
     }
-    return this.service.createKey(body);
+    try {
+      return await this.service.createKey(body);
+    } catch (err) {
+      if (err instanceof ApiKeyScopeError) {
+        throw new BadRequestException(err.message);
+      }
+      throw err;
+    }
   }
 
   @Can("update", "ApiKey")
@@ -137,6 +146,7 @@ class ApiKeyController {
   imports: [EmailModule],
   controllers: [ApiKeyController],
   providers: [
+    ApiKeySessionMiddleware,
     {
       provide: API_KEY_STORAGE,
       useFactory: (prisma: PrismaService) => {
@@ -167,6 +177,6 @@ class ApiKeyController {
       inject: [PrismaService, EmailService, ConfigService],
     },
   ],
-  exports: [ApiKeyService, API_KEY_STORAGE, ApiKeyExpiryRunner],
+  exports: [ApiKeyService, API_KEY_STORAGE, ApiKeyExpiryRunner, ApiKeySessionMiddleware],
 })
 export class ApiKeyModule {}

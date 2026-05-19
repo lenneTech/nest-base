@@ -2,10 +2,16 @@ import {
   Inject,
   Injectable,
   Logger,
+  Optional,
   type OnModuleDestroy,
   type OnModuleInit,
 } from "@nestjs/common";
 
+import { JobQueueService } from "../jobs/jobs.module.js";
+import {
+  wireBullMQCleanupRepeat,
+  type WireCleanupRepeatResult,
+} from "../jobs/wire-bullmq-cleanup-repeat.js";
 import { PrismaService } from "../prisma/prisma.service.js";
 
 /**
@@ -141,13 +147,23 @@ export class PrismaVerificationStore implements VerificationStore {
 @Injectable()
 export class VerificationCleanupCron implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger("VerificationCleanup");
-  private timer?: ReturnType<typeof setInterval>;
+  private wire?: WireCleanupRepeatResult;
 
-  constructor(@Inject(VERIFICATION_STORE) private readonly store: VerificationStore) {}
+  constructor(
+    @Inject(VERIFICATION_STORE) private readonly store: VerificationStore,
+    @Optional() private readonly jobQueue?: JobQueueService,
+  ) {}
 
   async onModuleInit(): Promise<void> {
     void this.runOnce();
-    this.timer = setInterval(() => void this.runOnce(), VERIFICATION_CLEANUP_INTERVAL_MS);
+    this.wire = await wireBullMQCleanupRepeat(
+      this.jobQueue,
+      "verification",
+      () => {
+        void this.runOnce();
+      },
+      VERIFICATION_CLEANUP_INTERVAL_MS,
+    );
   }
 
   /** Public so tests can call it deterministically. */
@@ -171,7 +187,7 @@ export class VerificationCleanupCron implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleDestroy(): void {
-    if (this.timer) clearInterval(this.timer);
-    this.timer = undefined;
+    this.wire?.stop?.();
+    this.wire = undefined;
   }
 }

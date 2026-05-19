@@ -28,12 +28,16 @@ export interface OutboxEntry {
    * `undefined` on rows not yet claimed (appended but not picked up).
    */
   claimedAt?: Date;
+  /** Persisted worker dispatch attempts (survives process restart). */
+  dispatchAttemptCount?: number;
 }
 
 export interface OutboxStorage {
   append(entry: OutboxEntry): Promise<void>;
   claimBatch(limit: number): Promise<OutboxEntry[]>;
   markProcessed(id: string, processedAt: Date): Promise<boolean>;
+  /** Atomically increment and return the new dispatch-attempt count. */
+  incrementDispatchAttemptCount(id: string): Promise<number>;
 }
 
 export interface RecordInput {

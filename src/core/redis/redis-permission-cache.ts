@@ -108,14 +108,8 @@ export function createRedisPermissionCache(
         // batch. SCAN is non-blocking (cursor-based), COUNT 100 is a hint to
         // Redis about batch size — it does not cap the result strictly.
         // DO NOT use FLUSHDB — it would wipe unrelated Redis data.
-        const scanStream = (
-          redis as unknown as {
-            scanStream?: (opts: { match: string; count: number }) => AsyncIterable<string[]>;
-          }
-        ).scanStream;
-        if (typeof scanStream === "function") {
-          // ioredis exposes scanStream() as a convenience over the SCAN cursor.
-          const stream = scanStream.call(redis, { match: `${KEY_PREFIX}*`, count: 100 });
+        if (typeof redis.scanStream === "function") {
+          const stream = redis.scanStream({ match: `${KEY_PREFIX}*`, count: 100 });
           const keys: string[] = [];
           for await (const batch of stream) {
             keys.push(...batch);
@@ -128,17 +122,7 @@ export function createRedisPermissionCache(
           let cursor = "0";
           const keys: string[] = [];
           do {
-            const result = await (
-              redis as unknown as {
-                scan: (
-                  cursor: string,
-                  matchFlag: string,
-                  pattern: string,
-                  countFlag: string,
-                  count: number,
-                ) => Promise<[string, string[]]>;
-              }
-            ).scan(cursor, "MATCH", `${KEY_PREFIX}*`, "COUNT", 100);
+            const result = await redis.scan(cursor, "MATCH", `${KEY_PREFIX}*`, "COUNT", 100);
             cursor = result[0];
             keys.push(...result[1]);
           } while (cursor !== "0");

@@ -597,9 +597,27 @@ model OutboxEntry {
   /// so backlog events with old enqueue timestamps are not prematurely reset
   /// while a worker is still dispatching them (Finding 1 fix).
   claimedAt   DateTime? @map("claimed_at")
+  /// Persisted dispatch attempts — survives pod restarts (OPEN_QUESTIONS MAJ-3).
+  dispatchAttemptCount Int @default(0) @map("dispatch_attempt_count")
 
   @@index([processedAt, seq])
   @@map("outbox_entries")
+}
+
+// ---------- GdprExportJob (CF.GDPR.* — async export job state) ----------
+
+model GdprExportJob {
+  id          String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  tenantId    String?   @map("tenant_id") @db.Uuid
+  status      String
+  requestedAt DateTime  @default(now()) @map("requested_at")
+  completedAt DateTime? @map("completed_at")
+  payload     Json?
+  error       String?
+
+  @@index([userId])
+  @@map("gdpr_export_jobs")
 }
 
 // ---------- PendingErasure (CF.GDPR.04 — 30-day grace) ----------

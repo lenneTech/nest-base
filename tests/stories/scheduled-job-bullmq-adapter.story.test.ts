@@ -94,6 +94,8 @@ describe("Story · ScheduledJobBullMQAdapter.onApplicationBootstrap wires every 
         registeredNames.push(name);
       },
       enqueue: vi.fn().mockResolvedValue("fake-id"),
+      isRedisBacked: () => false,
+      scheduleRepeat: vi.fn().mockResolvedValue(undefined),
       start: vi.fn(),
       stop: vi.fn(),
       drain: vi.fn(),
@@ -142,6 +144,8 @@ describe("Story · ScheduledJobBullMQAdapter.onApplicationBootstrap wires every 
         capturedHandler = handler;
       },
       enqueue: vi.fn().mockResolvedValue("fake-id"),
+      isRedisBacked: () => false,
+      scheduleRepeat: vi.fn().mockResolvedValue(undefined),
     };
 
     // @ts-expect-error — partial fake
@@ -169,6 +173,8 @@ describe("Story · ScheduledJobBullMQAdapter.onApplicationBootstrap wires every 
     const fakeQueue = {
       register: (name: string) => registerCalls.push(name),
       enqueue: vi.fn(),
+      isRedisBacked: () => false,
+      scheduleRepeat: vi.fn(),
     };
 
     // @ts-expect-error — partial fake
@@ -198,6 +204,8 @@ describe("Story · ScheduledJobBullMQAdapter.onApplicationBootstrap wires every 
     const fakeQueue = {
       register: () => {},
       enqueue: vi.fn().mockResolvedValue("fake-id"),
+      isRedisBacked: () => false,
+      scheduleRepeat: vi.fn(),
     };
 
     // @ts-expect-error — partial fake
@@ -235,6 +243,8 @@ describe("Story · ScheduledJobBullMQAdapter.onApplicationBootstrap wires every 
       const fakeQueue = {
         register: () => {},
         enqueue: vi.fn().mockResolvedValue("fake-id"),
+        isRedisBacked: () => false,
+        scheduleRepeat: vi.fn(),
       };
 
       // @ts-expect-error — partial fake
@@ -254,6 +264,42 @@ describe("Story · ScheduledJobBullMQAdapter.onApplicationBootstrap wires every 
 // Fix #4: Daily cron semantics — document that parseCronToIntervalMs tracks
 // the 24h period, NOT the wall-clock next-fire time.
 // ---------------------------------------------------------------------------
+
+describe("Story · ScheduledJobBullMQAdapter uses BullMQ repeat when Redis-backed", () => {
+  it("calls scheduleRepeat() instead of setInterval when isRedisBacked() is true", async () => {
+    const { ScheduledJobBullMQAdapter } =
+      await import("../../src/core/jobs/scheduled-job-bullmq-adapter.js");
+
+    const scheduleRepeat = vi.fn().mockResolvedValue(undefined);
+    const fakeRegistry = {
+      list: () => [
+        {
+          name: "redisJob",
+          cron: "0 8 * * *",
+          source: "Fake.tick",
+          run: async () => {},
+        },
+      ],
+      has: () => false,
+      runOnce: async () => {},
+    };
+    const fakeQueue = {
+      register: () => {},
+      enqueue: vi.fn(),
+      isRedisBacked: () => true,
+      scheduleRepeat,
+    };
+
+    // @ts-expect-error — partial fake
+    const adapter = new ScheduledJobBullMQAdapter(fakeQueue, fakeRegistry);
+    adapter.onApplicationBootstrap();
+
+    expect(scheduleRepeat).toHaveBeenCalledWith("redisJob", "0 8 * * *", {
+      jobId: "scheduled:redisJob",
+    });
+    adapter.clearAll();
+  });
+});
 
 describe("Story · Daily-cron semantics: parseCronToIntervalMs tracks period, not next-fire (Fix #4)", () => {
   it("all daily-at-HH:MM crons return a 24h interval (wall-clock time ignored — tracks period, not next-fire)", async () => {

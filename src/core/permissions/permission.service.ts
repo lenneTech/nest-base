@@ -1,5 +1,6 @@
 import { Inject, Injectable, Optional } from "@nestjs/common";
 
+import { restrictAbilityByScopes } from "../auth/api-keys/api-key-scope-planner.js";
 import { type Ability, buildAbility } from "./casl-ability.js";
 import { type DbPermissionRow, resolveDbRules } from "./db-rule-resolver.js";
 import { PERMISSION_STORAGE } from "./permission-storage.token.js";
@@ -27,6 +28,11 @@ export interface PermissionServiceOptions {
   maxEntries?: number;
 }
 
+export interface AbilityForOptions {
+  /** When set, intersect the user's ability with these API-key scopes. */
+  scopes?: readonly string[];
+}
+
 interface CacheEntry {
   ability: Ability;
   expiresAt: number;
@@ -49,7 +55,19 @@ export class PermissionService {
     this.maxEntries = options.maxEntries ?? DEFAULT_MAX_ENTRIES;
   }
 
-  async abilityFor(userId: string, tenantId: string): Promise<Ability> {
+  async abilityFor(
+    userId: string,
+    tenantId: string,
+    options: AbilityForOptions = {},
+  ): Promise<Ability> {
+    const full = await this.abilityForCached(userId, tenantId);
+    if (!options.scopes || options.scopes.length === 0) {
+      return full;
+    }
+    return restrictAbilityByScopes(full, options.scopes);
+  }
+
+  private async abilityForCached(userId: string, tenantId: string): Promise<Ability> {
     const key = this.cacheKey(userId, tenantId);
     const cached = this.cache.get(key);
     if (cached && cached.expiresAt > Date.now()) {

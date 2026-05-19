@@ -2,10 +2,16 @@ import {
   Inject,
   Injectable,
   Logger,
+  Optional,
   type OnModuleDestroy,
   type OnModuleInit,
 } from "@nestjs/common";
 
+import { JobQueueService } from "../jobs/jobs.module.js";
+import {
+  wireBullMQCleanupRepeat,
+  type WireCleanupRepeatResult,
+} from "../jobs/wire-bullmq-cleanup-repeat.js";
 import type { IdempotencyRecord, IdempotencyStore } from "./idempotency.service.js";
 
 /**
@@ -93,15 +99,23 @@ export class InMemoryIdempotencyStoreWithCleanup implements IdempotencyStore, Cl
 @Injectable()
 export class IdempotencyCleanupCron implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger("IdempotencyCleanup");
-  private timer?: ReturnType<typeof setInterval>;
+  private wire?: WireCleanupRepeatResult;
 
   constructor(
     @Inject(Symbol.for("lt:IdempotencyStore")) private readonly store: IdempotencyStore,
+    @Optional() private readonly jobQueue?: JobQueueService,
   ) {}
 
   async onModuleInit(): Promise<void> {
     void this.runOnce();
-    this.timer = setInterval(() => void this.runOnce(), IDEMPOTENCY_CLEANUP_INTERVAL_MS);
+    this.wire = await wireBullMQCleanupRepeat(
+      this.jobQueue,
+      "idempotency",
+      () => {
+        void this.runOnce();
+      },
+      IDEMPOTENCY_CLEANUP_INTERVAL_MS,
+    );
   }
 
   /** Public so tests can call it deterministically. */
@@ -128,7 +142,7 @@ export class IdempotencyCleanupCron implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleDestroy(): void {
-    if (this.timer) clearInterval(this.timer);
-    this.timer = undefined;
+    this.wire?.stop?.();
+    this.wire = undefined;
   }
 }

@@ -14,11 +14,9 @@ import type { OutboxEntry, OutboxStorage } from "./outbox.js";
  * are responsible for their own idempotency).
  *
  * Retry cap (Fix #9): when `maxAttempts` is set, entries that have
- * been attempted at least that many times are dead-lettered (marked
- * processed so they leave the queue). The attempt counter is tracked
- * in-memory (a `Map<entryId, attemptCount>`) — sufficient for
- * single-process deployments. In multi-replica deployments the
- * counter resets on pod restart; see OPEN_QUESTIONS.md MAJ-3.
+ * been attempted more than that many times are dead-lettered (marked
+ * processed so they leave the queue). Attempt counts are persisted on
+ * the outbox row via `OutboxStorage.incrementDispatchAttemptCount()`.
  */
 
 export interface OutboxDispatcher {
@@ -48,17 +46,6 @@ export interface OutboxWorkerResult {
 }
 
 export class OutboxWorker {
-  /**
-   * In-memory attempt counter. Keyed by entry id. Survives across
-   * `runOnce()` calls within the same process lifetime; reset on
-   * process restart.
-   *
-   * NOTE (MAJ-3): this counter resets on pod restart in multi-replica
-   * deployments, making `maxAttempts` ineffective as a dead-letter
-   * guard after a restart. See OPEN_QUESTIONS.md for the persistence
-   * migration plan.
-   */
-  private readonly attemptCounts = new Map<string, number>();
   private readonly logger = new Logger("OutboxWorker");
 
   constructor(
@@ -85,23 +72,18 @@ export class OutboxWorker {
       // Retry-cap guard: if this entry has already been attempted
       // maxAttempts times, dead-letter it (mark processed so it
       // leaves the queue and operator monitoring can detect the drop).
-      const prevAttempts = this.attemptCounts.get(entry.id) ?? 0;
-      if (this.options.maxAttempts !== undefined && prevAttempts >= this.options.maxAttempts) {
+      const attemptCount = await this.storage.incrementDispatchAttemptCount(entry.id);
+      if (this.options.maxAttempts !== undefined && attemptCount > this.options.maxAttempts) {
         // Log at error level so on-call alerts fire — silent discard
         // was the original Fix #9 behaviour but left no signal (MAJ-4).
         this.logger.error(
-          { entryId: entry.id, type: entry.type, attempts: prevAttempts },
+          { entryId: entry.id, type: entry.type, attempts: attemptCount },
           "outbox: entry exceeded maxAttempts — moved to dead-letter",
         );
         await this.storage.markProcessed(entry.id, processedAt);
-        this.attemptCounts.delete(entry.id);
         deadLetteredCount++;
         continue;
       }
-
-      // Increment attempt counter before dispatch so a crash during
-      // dispatch still counts as an attempt on the next runOnce() call.
-      this.attemptCounts.set(entry.id, prevAttempts + 1);
 
       const results = await Promise.all(
         this.dispatchers.map(async (d) => {
@@ -124,8 +106,6 @@ export class OutboxWorker {
         // records its own processedAt so the timestamp is accurate
         // relative to when the dispatcher finished, not the batch start.
         await this.storage.markProcessed(entry.id, new Date());
-        // Clear the counter on success — no need to keep stale entries.
-        this.attemptCounts.delete(entry.id);
         processedCount++;
       }
     }

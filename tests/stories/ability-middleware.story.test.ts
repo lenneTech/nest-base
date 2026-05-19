@@ -64,7 +64,7 @@ describe("Story · AbilityMiddleware", () => {
     await mw.use(req as never, res, next);
     expect(req.ability).toBe(ability);
     expect(next.calls).toBe(1);
-    expect(service.abilityFor).toHaveBeenCalledWith("u1", "t1");
+    expect(service.abilityFor).toHaveBeenCalledWith("u1", "t1", { scopes: undefined });
   });
 
   it("does not overwrite a pre-seeded ability (TestAbilityMiddleware contract)", async () => {

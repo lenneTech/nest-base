@@ -129,10 +129,10 @@ describe("Story · VerificationCleanupCron prunes stale Better-Auth verification
     expect(result.deleted).toBeNull();
   });
 
-  it("onModuleInit schedules a 24h interval; onModuleDestroy clears it (no leaked timers)", () => {
+  it("onModuleInit schedules a 24h interval; onModuleDestroy clears it (no leaked timers)", async () => {
     const store = new InMemoryVerificationStore();
     const cron = new VerificationCleanupCron(store);
-    cron.onModuleInit();
+    await cron.onModuleInit();
     expect(vi.getTimerCount()).toBe(1);
     cron.onModuleDestroy();
     expect(vi.getTimerCount()).toBe(0);
@@ -146,7 +146,7 @@ describe("Story · VerificationCleanupCron prunes stale Better-Auth verification
       expiresAt: Date.now() - 100 * 24 * 60 * 60 * 1000,
     });
     const cron = new VerificationCleanupCron(store);
-    cron.onModuleInit();
+    await cron.onModuleInit();
     await vi.advanceTimersByTimeAsync(0);
     expect(await store.size()).toBe(0);
     cron.onModuleDestroy();

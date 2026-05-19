@@ -73,7 +73,8 @@ export class PrismaOutboxStorage implements OutboxStorage {
     // `occurred_at` values (Finding 1 fix).
     const rows = await this.prisma.$transaction(async (tx) => {
       const selected = (await tx.$queryRawUnsafe(
-        `SELECT id, seq, tenant_id, type, payload, occurred_at, processed_at, claimed_at
+        `SELECT id, seq, tenant_id, type, payload, occurred_at, processed_at, claimed_at,
+                dispatch_attempt_count
            FROM outbox_entries
           WHERE processed_at IS NULL
           ORDER BY seq ASC
@@ -89,6 +90,7 @@ export class PrismaOutboxStorage implements OutboxStorage {
         occurred_at: Date;
         processed_at: Date | null;
         claimed_at: Date | null;
+        dispatch_attempt_count: number | string;
       }>;
       if (selected.length > 0) {
         const ids = selected.map((r) => r.id);
@@ -120,8 +122,24 @@ export class PrismaOutboxStorage implements OutboxStorage {
         occurredAt: r.occurred_at,
         processedAt: r.processed_at,
         claimedAt: r.claimed_at ?? undefined,
+        dispatchAttemptCount:
+          typeof r.dispatch_attempt_count === "number"
+            ? r.dispatch_attempt_count
+            : Number.parseInt(String(r.dispatch_attempt_count), 10),
       }),
     );
+  }
+
+  async incrementDispatchAttemptCount(id: string): Promise<number> {
+    const rows = (await this.prisma.$queryRawUnsafe(
+      `UPDATE outbox_entries
+          SET dispatch_attempt_count = dispatch_attempt_count + 1
+        WHERE id = $1::uuid
+        RETURNING dispatch_attempt_count`,
+      id,
+    )) as Array<{ dispatch_attempt_count: number | string }>;
+    const raw = rows[0]?.dispatch_attempt_count ?? 0;
+    return typeof raw === "number" ? raw : Number.parseInt(String(raw), 10);
   }
 
   async markProcessed(id: string, processedAt: Date): Promise<boolean> {

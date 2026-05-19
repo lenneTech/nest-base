@@ -1,5 +1,7 @@
 import { Logger } from "@nestjs/common";
 
+import { bullmqRedisConnection } from "./bullmq-redis-connection.js";
+import { parseCronToIntervalMs } from "./cron-interval.js";
 import {
   buildJobAggregates,
   type JobAggregates,
@@ -22,6 +24,8 @@ import {
 export interface RedisDuplex {
   duplicate(): RedisDuplex;
   disconnect(): void;
+  status?: string;
+  quit?(): Promise<string>;
 }
 
 /**
@@ -108,9 +112,15 @@ type BullMQJobShape = {
   getState(): Promise<string>;
 };
 
+type BullMQRepeatAddOptions = {
+  repeat?: { pattern: string };
+  jobId?: string;
+  attemptsMade?: number;
+};
+
 type BullMQQueue = {
   name: string;
-  add(name: string, data: unknown, opts?: unknown): Promise<{ id?: string | null }>;
+  add(name: string, data: unknown, opts?: BullMQRepeatAddOptions): Promise<{ id?: string | null }>;
   getJobs(types: readonly string[], start?: number, end?: number): Promise<Array<BullMQJobShape>>;
   /** O(1) per-state Redis LLEN calls — use for aggregates instead of getJobs(). */
   getJobCounts(...types: string[]): Promise<Record<string, number>>;
@@ -346,8 +356,15 @@ export class BullMQJobQueue {
   // Tracks whether start() has been called so late-registered queues
   // (registered after onModuleInit) are started immediately.
   private started = false;
+  // In-process repeat timers (no Redis).
+  private readonly repeatTimers = new Map<string, ReturnType<typeof setInterval>>();
 
   constructor(protected readonly redis: RedisDuplex | null) {}
+
+  /** True when jobs are stored in Redis via BullMQ (multi-replica safe). */
+  isRedisBacked(): boolean {
+    return this.redis !== null;
+  }
 
   /**
    * Register a handler for a named job type. Creates a BullMQ Worker
@@ -386,6 +403,45 @@ export class BullMQJobQueue {
     const job = await queue.add("run", payload);
     if (!job.id) throw new Error(`BullMQ job enqueue returned no id for queue "${name}"`);
     return job.id;
+  }
+
+  /**
+   * Schedule a recurring job. With Redis, uses BullMQ `repeat.pattern`
+   * (wall-clock cron, single replica executes per slot). Without Redis,
+   * approximates the period via `setInterval` + `enqueue`.
+   */
+  async scheduleRepeat(name: string, cron: string, options?: { jobId?: string }): Promise<void> {
+    const repeatKey = options?.jobId ?? `repeat:${name}`;
+    if (this.repeatTimers.has(repeatKey)) return;
+
+    if (!this.redis) {
+      const intervalMs = parseCronToIntervalMs(cron);
+      if (intervalMs === null) {
+        throw new Error(
+          `BullMQJobQueue.scheduleRepeat: unsupported cron "${cron}" for in-process fallback`,
+        );
+      }
+      const timer = setInterval(() => {
+        void this.enqueue(name, {}).catch((err: unknown) => {
+          this.bullmqLogger.error(
+            `in-process repeat enqueue for "${name}" failed: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        });
+      }, intervalMs);
+      if (typeof timer.unref === "function") timer.unref();
+      this.repeatTimers.set(repeatKey, timer);
+      return;
+    }
+
+    const queue = await this.getOrCreateBullMQQueue(name);
+    await queue.add(
+      "run",
+      {},
+      {
+        repeat: { pattern: cron },
+        jobId: repeatKey,
+      },
+    );
   }
 
   /**
@@ -549,6 +605,10 @@ export class BullMQJobQueue {
    * Stop all queues and workers.
    */
   async stop(): Promise<void> {
+    for (const timer of this.repeatTimers.values()) {
+      clearInterval(timer);
+    }
+    this.repeatTimers.clear();
     for (const q of this.inProcessQueues.values()) {
       q.stop();
     }
@@ -609,12 +669,12 @@ export class BullMQJobQueue {
     // Redis — the `bullmq-cleanup-job-planner.ts` would otherwise need
     // to be wired to a scheduled job to prune them (M4 fix).
     const queue = new Queue(name, {
-      connection: connection as never,
+      connection: bullmqRedisConnection(connection),
       defaultJobOptions: {
         removeOnComplete: { count: 1000 },
         removeOnFail: { count: 500 },
       },
-    }) as unknown as BullMQQueue & {
+    }) as BullMQQueue & {
       on(event: string, handler: (...args: unknown[]) => void): void;
     };
     // Prevent unhandled 'error' event crash on BullMQ Queue-level errors
@@ -646,8 +706,8 @@ export class BullMQJobQueue {
           const payload = job.data as TPayload;
           await handler(payload);
         },
-        { connection: connection as never },
-      ) as unknown as BullMQWorker;
+        { connection: bullmqRedisConnection(connection) },
+      ) as BullMQWorker;
       worker.on("failed", (job, err) => {
         this.bullmqLogger.error(
           `BullMQ worker for ${name} failed job ${(job as { id?: string })?.id}: ${err instanceof Error ? err.message : String(err)}`,

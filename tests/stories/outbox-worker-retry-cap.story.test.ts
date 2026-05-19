@@ -40,11 +40,18 @@ function makeStorage(entries: OutboxEntry[]): FakeStorage {
       // Return up to `limit` unprocessed entries
       return pending.filter((e) => !processed.includes(e.id)).slice(0, limit);
     },
-    async markProcessed(id: string): Promise<boolean> {
+    async markProcessed(id: string, _processedAt?: Date): Promise<boolean> {
+      void _processedAt;
       processed.push(id);
       return true;
     },
     async append(): Promise<void> {},
+    async incrementDispatchAttemptCount(id: string): Promise<number> {
+      const entry = pending.find((e) => e.id === id);
+      if (!entry) return 0;
+      entry.dispatchAttemptCount = (entry.dispatchAttemptCount ?? 0) + 1;
+      return entry.dispatchAttemptCount;
+    },
   };
 }
 

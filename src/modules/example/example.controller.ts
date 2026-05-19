@@ -8,7 +8,18 @@
  * RFC 7807 filter.
  */
 
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  ForbiddenException,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from "@nestjs/common";
 import { z } from "zod";
 
 import { getCurrentTenantId } from "../../core/multi-tenancy/tenant.interceptor.js";
@@ -106,7 +117,7 @@ export class ExampleController {
 function requireTenant(): string {
   const tenantId = getCurrentTenantId();
   if (!tenantId) {
-    throw new Error("example: no tenant id in request context (route is exempt?)");
+    throw new ForbiddenException("example: no tenant id in request context");
   }
   return tenantId;
 }
