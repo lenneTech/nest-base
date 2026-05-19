@@ -147,6 +147,6 @@ export class JobQueueService extends BullMQJobQueue implements OnModuleInit, OnM
     // via setInterval-based scheduling at OnApplicationBootstrap (C1 fix).
     ScheduledJobBullMQAdapter,
   ],
-  exports: [JobQueueService, SCHEDULED_JOB_REGISTRY, ScheduledJobBullMQAdapter],
+  exports: [JobQueueService, BullMQJobQueue, SCHEDULED_JOB_REGISTRY, ScheduledJobBullMQAdapter],
 })
 export class JobsModule {}

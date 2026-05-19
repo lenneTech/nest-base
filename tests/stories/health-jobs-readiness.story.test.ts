@@ -19,6 +19,11 @@ describe("Story · Health readiness includes BullMQ worker health", () => {
     expect(src).toMatch(/imports:\s*\[[^\]]*JobsModule/s);
   });
 
+  it("JobsModule exports the BullMQJobQueue token (not only JobQueueService)", () => {
+    const src = readFileSync(resolve(ROOT, "src/core/jobs/jobs.module.ts"), "utf8");
+    expect(src).toMatch(/exports:\s*\[[^\]]*BullMQJobQueue/s);
+  });
+
   it("HealthService readiness() consults jobQueue.isReady() when the queue is wired", () => {
     const src = readFileSync(resolve(ROOT, "src/core/health/health.service.ts"), "utf8");
     expect(src).toMatch(/isReady\(\)/);
