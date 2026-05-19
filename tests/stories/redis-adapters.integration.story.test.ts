@@ -1,9 +1,11 @@
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 
 const redisUrl = process.env.TEST_REDIS_URL ?? process.env.REDIS_URL;
 
 describe.skipIf(!redisUrl)("Story · Redis adapters (live Redis)", () => {
-  let client: Awaited<ReturnType<typeof import("../../src/core/redis/redis-client.js").resolveRedisClient>>;
+  let client: Awaited<
+    ReturnType<typeof import("../../src/core/redis/redis-client.js").resolveRedisClient>
+  >;
 
   afterAll(async () => {
     if (client) {
@@ -39,18 +41,27 @@ describe.skipIf(!redisUrl)("Story · Redis adapters (live Redis)", () => {
     expect(await cache.get("user-redis", "tenant-redis")).toBeNull();
   });
 
-  it("createRedisNewDeviceThrottle() enforces window in Redis", async () => {
+  it("createRedisNewDeviceThrottle() record() writes NX throttle key in Redis", async () => {
     const { createRedisNewDeviceThrottle } =
       await import("../../src/core/redis/redis-new-device-throttle.js");
     const userId = `user-${crypto.randomUUID()}`;
+    const key = `lt:ndt:${userId}`;
     const throttle = createRedisNewDeviceThrottle({
       redis: client,
       windowMs: 60_000,
     });
 
+    // Redis path keeps check() optimistic; record() is the cross-replica guard.
     expect(throttle.check(userId).allowed).toBe(true);
     throttle.record(userId);
-    expect(throttle.check(userId).allowed).toBe(false);
+
+    await vi.waitFor(async () => {
+      expect(await client!.get(key)).toBe("1");
+    });
+
+    throttle.record(userId);
+    expect(await client!.get(key)).toBe("1");
+    await client!.del(key);
   });
 
   it("createRedisRecipientRateLimiter().consume() enforces limit in Redis", async () => {

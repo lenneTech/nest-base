@@ -54,26 +54,30 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Boot Postgres (custom image)
+      - name: Boot Postgres + Redis (custom image / redis service)
         run: |
           # Source the wizard-generated POSTGRES_* so docker-compose
           # interpolates the same values the runtime uses.
           set -a; . ./.env; set +a
-          docker compose up -d --build postgres
+          docker compose up -d --build postgres redis
 
-      - name: Wait for Postgres healthy
+      - name: Wait for Postgres and Redis healthy
         run: |
+          set -a; . ./.env; set +a
           for i in {1..60}; do
-            status=$(docker inspect --format='{{.State.Health.Status}}' \
+            pg_status=$(docker inspect --format='{{.State.Health.Status}}' \
               "$(docker compose ps -q postgres)" 2>/dev/null || echo "starting")
-            if [ "$status" = "healthy" ]; then
-              echo "Postgres healthy after ${i}s"
+            redis_status=$(docker inspect --format='{{.State.Health.Status}}' \
+              "$(docker compose ps -q redis)" 2>/dev/null || echo "starting")
+            if [ "$pg_status" = "healthy" ] && [ "$redis_status" = "healthy" ]; then
+              echo "Postgres + Redis healthy after ${i}s"
               exit 0
             fi
             sleep 1
           done
-          echo "::error::Postgres did not become healthy within 60s"
+          echo "::error::Postgres or Redis did not become healthy within 60s"
           docker compose logs postgres
+          docker compose logs redis
           exit 1
 
       - name: Generate Prisma client

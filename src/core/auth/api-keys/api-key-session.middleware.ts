@@ -52,10 +52,7 @@ export class ApiKeySessionMiddleware implements NestMiddleware {
     next();
   }
 
-  private async resolveTenantId(
-    userId: string,
-    req: AuthenticatedRequest,
-  ): Promise<string | null> {
+  private async resolveTenantId(userId: string, req: AuthenticatedRequest): Promise<string | null> {
     const header = req.headers["x-tenant-id"];
     if (typeof header === "string" && header.length > 0) {
       return header;

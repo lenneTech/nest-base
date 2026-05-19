@@ -58,9 +58,9 @@ describe("Story · GdprExportJobRegistry", () => {
 
   it("complete() / fail() throw on unknown ids", async () => {
     const registry = new GdprExportJobRegistry();
-    await expect(
-      registry.complete("00000000-0000-0000-0000-000000000000", {}),
-    ).rejects.toThrow(GdprExportJobNotFoundError);
+    await expect(registry.complete("00000000-0000-0000-0000-000000000000", {})).rejects.toThrow(
+      GdprExportJobNotFoundError,
+    );
     await expect(
       registry.fail("00000000-0000-0000-0000-000000000000", new Error()),
     ).rejects.toThrow(GdprExportJobNotFoundError);

@@ -580,16 +580,14 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
 
       const { fromNodeHeaders } = await import("better-auth/node");
       const { PermissionService } = await import("../permissions/permission.service.js");
-      const { resolveRequestTenantId } = await import(
-        "../multi-tenancy/resolve-request-tenant.js"
-      );
+      const { resolveRequestTenantId } = await import("../multi-tenancy/resolve-request-tenant.js");
       const { PrismaService } = await import("../prisma/prisma.service.js");
-      const permissionService = app.get(PermissionService, { strict: false }) as
-        | InstanceType<typeof PermissionService>
-        | null;
-      const prismaService = app.get(PrismaService, { strict: false }) as
-        | InstanceType<typeof PrismaService>
-        | null;
+      const permissionService = app.get(PermissionService, { strict: false }) as InstanceType<
+        typeof PermissionService
+      > | null;
+      const prismaService = app.get(PrismaService, { strict: false }) as InstanceType<
+        typeof PrismaService
+      > | null;
 
       expressApp.use("/_ipx", (req: unknown, res: unknown, next: unknown) => {
         const typedReq = req as { headers: Record<string, string | string[] | undefined> };

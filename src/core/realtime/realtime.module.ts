@@ -20,10 +20,7 @@ import {
   REALTIME_TRANSPORT,
   RealtimeServiceLifecycle,
 } from "./realtime-service.lifecycle.js";
-import {
-  toRedisAdapterClient,
-  type RedisAdapterClient,
-} from "./socket-io-redis-bridge.js";
+import { toRedisAdapterClient, type RedisAdapterClient } from "./socket-io-redis-bridge.js";
 import {
   InMemoryRealtimeTransport,
   RealtimeService,

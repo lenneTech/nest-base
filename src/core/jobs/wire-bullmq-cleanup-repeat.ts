@@ -1,7 +1,4 @@
-import {
-  buildBullMQCleanupJobPlan,
-  type CleanupKind,
-} from "./bullmq-cleanup-job-planner.js";
+import { buildBullMQCleanupJobPlan, type CleanupKind } from "./bullmq-cleanup-job-planner.js";
 import type { BullMQJobQueue } from "./bullmq-job-queue.js";
 
 export interface WireCleanupRepeatResult {

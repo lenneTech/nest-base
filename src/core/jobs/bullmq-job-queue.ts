@@ -120,11 +120,7 @@ type BullMQRepeatAddOptions = {
 
 type BullMQQueue = {
   name: string;
-  add(
-    name: string,
-    data: unknown,
-    opts?: BullMQRepeatAddOptions,
-  ): Promise<{ id?: string | null }>;
+  add(name: string, data: unknown, opts?: BullMQRepeatAddOptions): Promise<{ id?: string | null }>;
   getJobs(types: readonly string[], start?: number, end?: number): Promise<Array<BullMQJobShape>>;
   /** O(1) per-state Redis LLEN calls — use for aggregates instead of getJobs(). */
   getJobCounts(...types: string[]): Promise<Record<string, number>>;
@@ -414,11 +410,7 @@ export class BullMQJobQueue {
    * (wall-clock cron, single replica executes per slot). Without Redis,
    * approximates the period via `setInterval` + `enqueue`.
    */
-  async scheduleRepeat(
-    name: string,
-    cron: string,
-    options?: { jobId?: string },
-  ): Promise<void> {
+  async scheduleRepeat(name: string, cron: string, options?: { jobId?: string }): Promise<void> {
     const repeatKey = options?.jobId ?? `repeat:${name}`;
     if (this.repeatTimers.has(repeatKey)) return;
 
