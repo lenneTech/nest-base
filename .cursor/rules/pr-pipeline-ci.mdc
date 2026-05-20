@@ -1,0 +1,14 @@
+---
+description: After creating a PR, wait for CI and verify all checks pass
+alwaysApply: true
+---
+
+# Pull requests — wait for CI
+
+When you create or update a pull request (`gh pr create`, push to a PR branch):
+
+1. After push, poll CI with `gh pr checks` or `gh run list` / `gh run watch` until workflows finish (do not stop at "PR opened").
+2. If any required check fails, investigate (`gh run view`, logs), fix on the branch, push again, and re-wait until green.
+3. Only report the PR as done when required checks are successful (or clearly explain blockers the user must resolve, e.g. missing secrets).
+
+Do not treat "PR created" as complete while CI is still running or red.
