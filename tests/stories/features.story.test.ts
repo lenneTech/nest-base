@@ -176,6 +176,26 @@ describe("Story · Feature-Flag-System", () => {
       expect(() => validateFeatureDependencies(features)).toThrow(/webhooks.*jobs/i);
     });
 
+    it("allows powerSync without multiTenancy (single-tenant mode, sentinel tenant)", () => {
+      // PowerSync no longer hard-requires multiTenancy: in single-tenant
+      // mode it buckets data under a fixed sentinel tenant id (no FK, no
+      // migration). The `user` sync bucket carries per-user data
+      // tenant-lessly, so single-tenant sync is fully functional.
+      const features = FeaturesSchema.parse({
+        powerSync: { enabled: true },
+        multiTenancy: { enabled: false },
+      });
+      expect(() => validateFeatureDependencies(features)).not.toThrow();
+    });
+
+    it("still allows powerSync WITH multiTenancy (multi-tenant unchanged)", () => {
+      const features = FeaturesSchema.parse({
+        powerSync: { enabled: true },
+        multiTenancy: { enabled: true },
+      });
+      expect(() => validateFeatureDependencies(features)).not.toThrow();
+    });
+
     it("throws when rateLimit is disabled in production", () => {
       // documented invariant: rateLimit cannot be off in production-like config
       const features = FeaturesSchema.parse({ rateLimit: { enabled: false } });
