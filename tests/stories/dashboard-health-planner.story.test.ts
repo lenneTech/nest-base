@@ -126,13 +126,17 @@ describe("buildDashboardStatusGroups", () => {
     expect(async_?.status).toBe("error");
   });
 
-  it("null webhook success rate → async item unknown (no deliveries)", () => {
+  it("null webhook success rate → async item unknown, group stays ok (disabled feature is neutral)", () => {
+    // Regression · a disabled/unknown optional feature (webhooks OFF → null rate)
+    // must NOT drag the whole group to "unknown" when the active items are healthy.
+    // The item itself is honestly "unknown"; the group rollup treats unknown as
+    // neutral and reports "ok" because dead-letter + pending jobs are ok.
     const groups = buildDashboardStatusGroups({ ...healthy, webhookSuccessRate: null });
     const async_ = groups.find((g) => g.id === "async");
     const webhookItem = async_?.items.find((i) => i.label === "Webhook success rate");
     expect(webhookItem?.value).toBe("no deliveries (24 h)");
     expect(webhookItem?.status).toBe("unknown");
-    expect(async_?.status).toBe("unknown");
+    expect(async_?.status).toBe("ok");
   });
 
   it("geoIP disabled → external item unknown", () => {
