@@ -377,11 +377,10 @@ export function validateFeatureDependencies(features: Features, ctx: ValidationC
   if (features.webhooks.enabled && !features.jobs.enabled) {
     throw new Error("feature `webhooks` requires `jobs` (job queue) to be enabled");
   }
-  if (features.powerSync.enabled && !features.multiTenancy.enabled) {
-    throw new Error(
-      "feature `powerSync` currently requires `multiTenancy` to be enabled (sync-rules use tenant buckets)",
-    );
-  }
+  // `powerSync` no longer requires `multiTenancy`: in single-tenant mode
+  // it buckets rows under the `SINGLE_TENANT_ID` sentinel (no FK, no
+  // migration) and the `user` sync bucket carries per-user data
+  // tenant-lessly. See `src/core/auth/powersync-tenant.ts`.
   if (ctx.env === "production" && !features.rateLimit.enabled) {
     throw new Error("feature `rateLimit` must stay enabled in production");
   }
