@@ -1,9 +1,12 @@
 import type { INestApplication } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
 import { existsSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { bootstrap } from "../src/core/app/bootstrap.js";
+import { EMAIL_MODULE_TEMPLATES_DIR_ENV } from "../src/core/email/email-templates-dir.js";
 import { hubReqScoped, pinHubTestAuthEnv } from "./helpers/hub-request.js";
 
 const TENANT = "11111111-1111-1111-1111-111111111111";
@@ -28,7 +31,16 @@ describe("Hub · /hub/email-builder", () => {
     let app: INestApplication;
     let hub: Awaited<ReturnType<typeof hubReqScoped>>;
     let previousNodeEnv: string | undefined;
+    let previousOverlayDir: string | undefined;
     const repoRoot = process.cwd();
+    // This file is the only writer of module email-template overlays.
+    // Under vitest's `pool: 'forks'` its writes into the SHARED
+    // src/modules/email/templates/ dir poisoned concurrent readers in
+    // other forks (hub email-preview saw "Custom welcome" instead of the
+    // core "Welcome to nest-server"). Redirect every write to a private
+    // per-file temp dir via the EMAIL_MODULE_TEMPLATES_DIR override so
+    // nothing leaks into the canonical dir other forks read.
+    const overlayDir = resolve(tmpdir(), `nest-base-email-overlay-${randomUUID()}`);
     // Includes core slugs the override-delete tests recreate so a
     // leftover overlay never poisons later "fetch composition for core
     // template" expectations (the runtime resolver picks module > core
@@ -44,6 +56,11 @@ describe("Hub · /hub/email-builder", () => {
     beforeAll(async () => {
       previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "development";
+      // Set BEFORE bootstrap so the controller resolves this dir on the
+      // first save. The resolver reads process.env per request, so this
+      // ordering is sufficient — no app restart needed.
+      previousOverlayDir = process.env[EMAIL_MODULE_TEMPLATES_DIR_ENV];
+      process.env[EMAIL_MODULE_TEMPLATES_DIR_ENV] = overlayDir;
       pinHubTestAuthEnv();
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
       hub = await hubReqScoped(app, TENANT);
@@ -53,13 +70,18 @@ describe("Hub · /hub/email-builder", () => {
       await app.close();
       if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
       else process.env.NODE_ENV = previousNodeEnv;
+      if (previousOverlayDir === undefined) delete process.env[EMAIL_MODULE_TEMPLATES_DIR_ENV];
+      else process.env[EMAIL_MODULE_TEMPLATES_DIR_ENV] = previousOverlayDir;
+      // Drop the whole isolated overlay dir.
+      if (existsSync(overlayDir)) rmSync(overlayDir, { recursive: true, force: true });
     });
 
     beforeEach(() => {
-      // Wipe any artefacts an earlier run may have left in
-      // src/modules/email/templates/ — keeps the suite hermetic.
+      // Wipe any artefacts an earlier test left in the isolated overlay
+      // dir — keeps the suite hermetic without touching the shared
+      // src/modules/email/templates/ that other forks read.
       for (const slug of cleanupSlugs) {
-        const path = resolve(repoRoot, `src/modules/email/templates/${slug}.tsx`);
+        const path = resolve(overlayDir, `${slug}.tsx`);
         if (existsSync(path)) rmSync(path);
       }
     });
@@ -162,7 +184,7 @@ describe("Hub · /hub/email-builder", () => {
       expect(res.status).toBe(400);
     });
 
-    it("POST /hub/email-builder/save writes a .tsx file under src/modules/email/templates/", async () => {
+    it("POST /hub/email-builder/save writes the .tsx into the isolated overlay dir", async () => {
       const slug = "e2e-builder-test";
       const composition = {
         layout: "Barebone",
@@ -175,14 +197,23 @@ describe("Hub · /hub/email-builder", () => {
       };
       const res = await hub.post("/hub/email-builder/save").send({ slug, composition });
       expect(res.status).toBe(200);
-      expect(res.body.relativePath).toBe(`src/modules/email/templates/${slug}.tsx`);
-      const target = resolve(repoRoot, res.body.relativePath);
+      // relativePath points at the overridden overlay dir, not the
+      // canonical src/modules path.
+      expect(res.body.relativePath.endsWith(`${slug}.tsx`)).toBe(true);
+      const target = resolve(overlayDir, `${slug}.tsx`);
       expect(existsSync(target)).toBe(true);
+      // The write must NOT have leaked into the shared canonical dir
+      // that concurrent forks read — that leak is the bug being fixed.
+      expect(existsSync(resolve(repoRoot, `src/modules/email/templates/${slug}.tsx`))).toBe(false);
       const { readFileSync } = await import("node:fs");
       const source = readFileSync(target, "utf8");
       expect(source).toContain("AUTO-GENERATED");
       expect(source).toContain("export default function E2eBuilderTest");
       expect(source).toContain("Hello ");
+      // The generated overlay sits in a temp dir, so its core import must
+      // be an absolute path (not the canonical `../../../core/email`).
+      expect(source).toContain(resolve(repoRoot, "src/core/email"));
+      expect(source).not.toContain('"../../../core/email');
       // Cleanup
       rmSync(target);
     });
@@ -278,7 +309,7 @@ describe("Hub · /hub/email-builder", () => {
 
     describe("DELETE /hub/email-builder/templates/:name/override", () => {
       const slug = "welcome";
-      const overrideAbs = resolve(repoRoot, `src/modules/email/templates/${slug}.tsx`);
+      const overrideAbs = resolve(overlayDir, `${slug}.tsx`);
 
       beforeEach(() => {
         if (existsSync(overrideAbs)) rmSync(overrideAbs);
@@ -327,7 +358,7 @@ describe("Hub · /hub/email-builder", () => {
     describe("GET /hub/email-builder/templates.json (Issue #49)", () => {
       it("flags core templates with overrides via overrideExists=true", async () => {
         const slug = "welcome";
-        const overrideAbs = resolve(repoRoot, `src/modules/email/templates/${slug}.tsx`);
+        const overrideAbs = resolve(overlayDir, `${slug}.tsx`);
         if (existsSync(overrideAbs)) rmSync(overrideAbs);
 
         const composition = {

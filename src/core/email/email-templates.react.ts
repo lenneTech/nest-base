@@ -6,6 +6,7 @@ import * as React from "react";
 import { render, toPlainText } from "@react-email/render";
 
 import { defaultBrandConfig, type BrandConfig } from "./brand.js";
+import { resolveModuleTemplatesDir } from "./email-templates-dir.js";
 import type { EmailRenderedTemplate, EmailTemplateRenderer } from "./email.service.js";
 
 /**
@@ -80,7 +81,11 @@ export async function discoverReactEmailTemplates(
 ): Promise<DiscoveredTemplate[]> {
   const root = options.projectRoot ?? process.cwd();
   const coreDir = options.coreDir ?? resolve(root, "src/core/email/templates");
-  const moduleDir = options.moduleDir ?? resolve(root, "src/modules/email/templates");
+  // Reader and writer must agree on the overlay dir, so route the
+  // default through the shared resolver (env-overridable for test
+  // isolation). An explicit `moduleDir` still wins for unit tests.
+  const moduleDir =
+    options.moduleDir ?? resolveModuleTemplatesDir({ projectRoot: root, env: process.env });
 
   const out: DiscoveredTemplate[] = [];
   for (const file of listTsxFiles(coreDir)) {
@@ -157,7 +162,11 @@ export class ReactEmailTemplateRenderer implements EmailTemplateRenderer {
     this.brand = options.brand ?? defaultBrandConfig();
     this.projectRoot = options.projectRoot ?? process.cwd();
     this.coreDir = options.coreDir ?? resolve(this.projectRoot, "src/core/email/templates");
-    this.moduleDir = options.moduleDir ?? resolve(this.projectRoot, "src/modules/email/templates");
+    // Mirror the discovery default so a renderer + a discovery call in
+    // the same process resolve the same overlay dir (env-overridable).
+    this.moduleDir =
+      options.moduleDir ??
+      resolveModuleTemplatesDir({ projectRoot: this.projectRoot, env: process.env });
   }
 
   async render(template: string, locale: string, vars: object): Promise<EmailRenderedTemplate> {

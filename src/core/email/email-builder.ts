@@ -92,6 +92,13 @@ export interface ResolveTemplateTargetInput {
   slug: string;
   /** Optional locale suffix (must pass `isValidEmailTemplateLocale`). */
   locale?: string;
+  /**
+   * Absolute module-overlay templates directory. Defaults to
+   * `<projectRoot>/src/modules/email/templates`. Resolve it via
+   * `resolveModuleTemplatesDir()` so reader, writer, and the
+   * defense-in-depth anchor check all agree (test-isolation).
+   */
+  moduleDir?: string;
 }
 
 export type ResolveTemplateTargetResult =
@@ -123,23 +130,50 @@ export function resolveEmailTemplateTarget(
     return { ok: false, error: `invalid locale: ${input.locale}` };
   }
   const filename = input.locale ? `${input.slug}.${input.locale}.tsx` : `${input.slug}.tsx`;
-  const relRoot = "src/modules/email/templates";
-  const relative = `${relRoot}/${filename}`;
-  // Reject roots that look like absolute paths or include traversal —
+  // The overlay root is configurable (test-isolation). When unset it is
+  // the canonical `<projectRoot>/src/modules/email/templates`, keeping
+  // the output byte-identical for the default path.
+  const moduleRoot = stripTrailingSlash(
+    input.moduleDir ?? `${stripTrailingSlash(input.projectRoot)}/src/modules/email/templates`,
+  );
+  const absolute = `${moduleRoot}/${filename}`;
+  // Reject filenames that look like absolute paths or include traversal —
   // the slug regex already rejects `/` and `..` but we double-check the
-  // composed path. Cheap belt-and-braces.
-  if (relative.includes("..") || relative.includes("\\")) {
+  // composed filename. Cheap belt-and-braces.
+  if (filename.includes("..") || filename.includes("\\") || filename.includes("/")) {
     return { ok: false, error: "path traversal detected" };
   }
-  const absolute = `${stripTrailingSlash(input.projectRoot)}/${relative}`;
   // Anchor verification — the absolute path *must* start with the
-  // module-templates prefix relative to the project root. Belt-and-
-  // braces against a trailing backslash or smuggled separator.
-  const expectedPrefix = `${stripTrailingSlash(input.projectRoot)}/${relRoot}/`;
+  // module-templates root. Belt-and-braces against a trailing backslash
+  // or smuggled separator, now anchored on the *configured* dir so the
+  // guard holds whether or not the dir was overridden.
+  const expectedPrefix = `${moduleRoot}/`;
   if (!absolute.startsWith(expectedPrefix)) {
     return { ok: false, error: "resolved path escapes module-templates root" };
   }
+  // `relativePath` stays relative to the project root for UI/display.
+  // For the default dir this is the familiar
+  // `src/modules/email/templates/<file>`; for an overridden temp dir it
+  // is whatever path leads there from the root (may be `..`-prefixed).
+  const relative = posixRelative(stripTrailingSlash(input.projectRoot), absolute);
   return { ok: true, absolutePath: absolute, relativePath: relative };
+}
+
+/**
+ * Compute a POSIX relative path from `from` to `to` using string
+ * arithmetic on `/`-separated segments. We avoid `node:path`'s
+ * `relative()` so the planner stays pure and platform-independent
+ * (the rest of this module composes paths with literal `/`).
+ */
+function posixRelative(from: string, to: string): string {
+  const fromSegs = from.split("/").filter((s) => s.length > 0);
+  const toSegs = to.split("/").filter((s) => s.length > 0);
+  let i = 0;
+  while (i < fromSegs.length && i < toSegs.length && fromSegs[i] === toSegs[i]) i++;
+  const up = fromSegs.slice(i).map(() => "..");
+  const down = toSegs.slice(i);
+  const segs = [...up, ...down];
+  return segs.length > 0 ? segs.join("/") : ".";
 }
 
 function stripTrailingSlash(value: string): string {
@@ -194,6 +228,16 @@ export function validateEmailComposition(
 export interface ComposeEmailTemplateSourceInput {
   slug: string;
   composition: EmailComposition;
+  /**
+   * Import prefix the generated file uses for core imports (`Barebone`,
+   * blocks, `BrandConfig`). Defaults to the relative
+   * `MODULE_TEMPLATE_CORE_IMPORT_PREFIX` which is correct when the file
+   * lands at the canonical `src/modules/email/templates/` depth. When
+   * the overlay dir is overridden (test-isolation) the caller passes an
+   * ABSOLUTE prefix to `src/core/email` so the generated file still
+   * imports core correctly from its relocated location.
+   */
+  coreImportPrefix?: string;
 }
 
 /**
@@ -216,6 +260,7 @@ export interface ComposeEmailTemplateSourceInput {
  */
 export function composeEmailTemplateSource(input: ComposeEmailTemplateSourceInput): string {
   const { slug, composition } = input;
+  const corePrefix = input.coreImportPrefix ?? MODULE_TEMPLATE_CORE_IMPORT_PREFIX;
   const camelName = kebabToCamel(slug);
   const pascalName = kebabToPascal(slug);
   const vars = collectVariables(composition);
@@ -226,7 +271,7 @@ export function composeEmailTemplateSource(input: ComposeEmailTemplateSourceInpu
     .sort();
   const varsInterface = vars.map((v) => `  ${v}: string;`).join("\n");
   const blockImportLine = blockImports.length
-    ? `import { ${blockImports.join(", ")} } from "${MODULE_TEMPLATE_CORE_IMPORT_PREFIX}/blocks/index.js";\n`
+    ? `import { ${blockImports.join(", ")} } from "${corePrefix}/blocks/index.js";\n`
     : "";
 
   const subjectExpression = renderInterpolatedTemplateLiteral(composition.subject, "vars");
@@ -246,13 +291,10 @@ export function composeEmailTemplateSource(input: ComposeEmailTemplateSourceInpu
     " */",
     'import * as React from "react";',
     "",
-    `import { Barebone } from "${MODULE_TEMPLATE_CORE_IMPORT_PREFIX}/layouts/Barebone.js";`,
+    `import { Barebone } from "${corePrefix}/layouts/Barebone.js";`,
   ];
   if (blockImportLine) lines.push(blockImportLine.trimEnd());
-  lines.push(
-    `import type { BrandConfig } from "${MODULE_TEMPLATE_CORE_IMPORT_PREFIX}/brand.js";`,
-    "",
-  );
+  lines.push(`import type { BrandConfig } from "${corePrefix}/brand.js";`, "");
   lines.push(`export interface ${pascalName}Vars {`);
   if (varsInterface) lines.push(varsInterface);
   lines.push("}", "");

@@ -86,6 +86,10 @@ import {
   ReactEmailTemplateRenderer,
   discoverReactEmailTemplates,
 } from "../email/email-templates.react.js";
+import {
+  resolveModuleTemplateCoreImportPrefix,
+  resolveModuleTemplatesDir,
+} from "../email/email-templates-dir.js";
 import { resolveBrandConfig } from "../email/brand.js";
 import { getLogBuffer } from "./log-buffer.js";
 import { RouteInventoryService } from "./route-inventory-runner.js";
@@ -1028,15 +1032,19 @@ export class HubController {
     if (localeArg !== undefined && !isValidEmailTemplateLocale(localeArg)) {
       throw new BadRequestException(`invalid locale: ${localeArg}`);
     }
+    const moduleDir = resolveModuleTemplatesDir({ projectRoot: process.cwd(), env: process.env });
     const target = resolveEmailTemplateTarget({
       projectRoot: process.cwd(),
       slug: name,
+      moduleDir,
       ...(localeArg !== undefined ? { locale: localeArg } : {}),
     });
     if (!target.ok) throw new BadRequestException(target.error);
     // Belt-and-braces — runner-side anchor check, mirrors the save
-    // endpoint. Catches anything that slipped past the planner.
-    const expectedPrefix = resolve(process.cwd(), "src/modules/email/templates") + "/";
+    // endpoint. Catches anything that slipped past the planner. Anchored
+    // on the *configured* overlay dir so the guard holds under the
+    // EMAIL_MODULE_TEMPLATES_DIR override too.
+    const expectedPrefix = moduleDir + "/";
     if (!target.absolutePath.startsWith(expectedPrefix)) {
       throw new BadRequestException("resolved path escapes module-templates root");
     }
@@ -1125,20 +1133,33 @@ export class HubController {
     const composition = pickComposition(body);
     const validation = validateEmailComposition(composition);
     if (!validation.ok) throw new BadRequestException(validation.error);
+    const moduleDir = resolveModuleTemplatesDir({ projectRoot: process.cwd(), env: process.env });
     const target = resolveEmailTemplateTarget({
       projectRoot: process.cwd(),
       slug,
       locale,
+      moduleDir,
     });
     if (!target.ok) throw new BadRequestException(target.error);
     // Belt-and-braces — runner-side anchor check. Catches anything that
     // slipped past the planner (edge case: planner accepted, but the
-    // realpath of `process.cwd()` resolves elsewhere).
-    const expectedPrefix = resolve(process.cwd(), "src/modules/email/templates") + "/";
+    // realpath of `process.cwd()` resolves elsewhere). Anchored on the
+    // *configured* overlay dir so the guard holds under the
+    // EMAIL_MODULE_TEMPLATES_DIR override too.
+    const expectedPrefix = moduleDir + "/";
     if (!target.absolutePath.startsWith(expectedPrefix)) {
       throw new BadRequestException("resolved path escapes module-templates root");
     }
-    const source = composeEmailTemplateSource({ slug, composition });
+    // The generated file imports core (Barebone/blocks/BrandConfig)
+    // relative to its on-disk location. When the overlay dir is the
+    // default the relative prefix is correct; when overridden the
+    // resolver hands back an absolute prefix so the relocated file still
+    // resolves core.
+    const coreImportPrefix = resolveModuleTemplateCoreImportPrefix({
+      projectRoot: process.cwd(),
+      env: process.env,
+    });
+    const source = composeEmailTemplateSource({ slug, composition, coreImportPrefix });
     await mkdir(dirname(target.absolutePath), { recursive: true });
     await writeFile(target.absolutePath, source, "utf8");
     return {
