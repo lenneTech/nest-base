@@ -137,11 +137,11 @@ describe("Story · Sessions admin revoke planner", () => {
   });
 });
 
-// ─── Finding 11: controller passes req.user.tenantId to listAllSessions ───────
+// ─── Finding 11: controller passes session activeOrganizationId to listAllSessions ─
 
 describe("Finding 11 · SessionsAdminController passes tenantId to listAllSessions", () => {
-  it("calls listAllSessions with the requesting user's tenantId", async () => {
-    // Verify the controller forwards req.user.tenantId to listAllSessions
+  it("calls listAllSessions with the requesting user's activeOrganizationId", async () => {
+    // Verify the controller forwards session.activeOrganizationId to listAllSessions
     // so the storage adapter can apply the tenant gate. Without this
     // pass-through, a super-admin would enumerate sessions for all tenants
     // instead of just their own (H3 fix — controller-level coverage).
@@ -170,8 +170,8 @@ describe("Finding 11 · SessionsAdminController passes tenantId to listAllSessio
 
     const controller = moduleRef.get(SessionsAdminController);
 
-    // Simulate a request from a user with tenantId "t1"
-    const fakeReq = { user: { id: "u1", tenantId: "t1" }, headers: {} };
+    // Simulate a request from a user with active org "t1" (session tenant scope)
+    const fakeReq = { user: { id: "u1", activeOrganizationId: "t1" }, headers: {} };
     await controller.sessionsListJson(fakeReq as never);
 
     // The controller must forward "t1" — NOT undefined
