@@ -217,7 +217,7 @@ bun run scripts/regen-env-example.ts   # if that script exists
 | `tests/stories/features.story.test.ts`        | Default value + ENV override case                |
 | `tests/stories/feature-catalog.story.test.ts` | Already covers the envKey roundtrip — just rerun |
 | `tests/stories/diagnostics.story.test.ts`     | New field in the features-section assertion      |
-| `tests/stories/dev-hub.story.test.ts`         | If you added a navigation link                   |
+| `tests/stories/hub.story.test.ts`         | If you added a navigation link                   |
 | `tests/stories/schema-concat.story.test.ts`   | If you added a Prisma model                      |
 
 ### 11. Quality gates
@@ -238,7 +238,7 @@ All six must pass before commit.
 
 ## Verifying live in the dev hub
 
-1. `bun run dev` — Dev Hub opens at `/dev`
+1. `bun run dev` — Hub opens at `/dev`
 2. Sidebar → **Features** → your card should appear under its category
    with the OFF chip, full description, and the `FEATURE_*_ENABLED`
    env-var hint
@@ -277,7 +277,7 @@ A feature toggle that's `enabled: false` produces **no** runtime cost:
 - Module not imported → no DI overhead, no boot time
 - ENV vars not required → setup wizard skips them
 - Schema not concatenated → no Prisma migrations needed
-- Dev-Hub link absent → no UI clutter
+- Hub link absent → no UI clutter
 - Service-status tile absent → no probe traffic
 
 If your feature still costs CPU/memory when off, you've wired it

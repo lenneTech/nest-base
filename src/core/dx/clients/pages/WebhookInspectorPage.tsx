@@ -154,7 +154,7 @@ export function WebhookInspectorPage(): ReactNode {
   return (
     <AdminShell
       title="Webhook Inspector"
-      subtitle="Endpoint health, recent deliveries, and replay actions."
+      subtitle="Endpoint status, deliveries, and replay actions."
       currentNav="webhooks"
     >
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[20rem_minmax(0,1fr)_20rem]">
@@ -351,7 +351,7 @@ function FilterBar({ filter, onChange }: FilterBarProps): ReactNode {
           onChange={(e) => onChange({ ...filter, showTestDeliveries: e.target.checked })}
           className="h-3.5 w-3.5 accent-accent"
         />
-        Testlieferungen anzeigen
+        Show test deliveries
       </label>
       {filter.endpointId ? (
         <Button variant="outline" onClick={() => onChange({ ...filter, endpointId: undefined })}>
@@ -514,8 +514,13 @@ function DetailDrawer({
         <PageEmpty>Select a delivery to view its details.</PageEmpty>
         {endpointId ? (
           <>
-            <Button size="sm" variant="outline" onClick={() => setTestDialogOpen(true)}>
-              Testevent senden
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={eventTypes.length === 0}
+              onClick={() => setTestDialogOpen(true)}
+            >
+              Send test event
             </Button>
             <TestEventDialog
               open={testDialogOpen}
@@ -575,8 +580,13 @@ function DetailDrawer({
           <Button size="sm" variant="outline" onClick={() => copyCurl(curl)}>
             {copied ? "Copied!" : "Copy curl"}
           </Button>
-          <Button size="sm" variant="outline" onClick={() => setTestDialogOpen(true)}>
-            Testevent senden
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={eventTypes.length === 0}
+            onClick={() => setTestDialogOpen(true)}
+          >
+            Send test event
           </Button>
         </div>
         {redeliverMutation.isError ? (
@@ -650,7 +660,7 @@ function TestEventDialog({
       try {
         payload = JSON.parse(payloadText);
       } catch {
-        throw new Error("Payload ist kein gültiges JSON");
+        throw new Error("Payload is not valid JSON");
       }
       const res = await fetch(`/admin/webhooks/${encodeURIComponent(endpointId)}/test`, {
         method: "POST",
@@ -659,7 +669,7 @@ function TestEventDialog({
       });
       if (!res.ok) {
         const text = await res.text().catch(() => String(res.status));
-        throw new Error(`Fehler ${res.status}: ${text}`);
+        throw new Error(`Error ${res.status}: ${text}`);
       }
       return (await res.json()) as { deliveryId: string };
     },
@@ -691,14 +701,14 @@ function TestEventDialog({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Testevent senden</DialogTitle>
+          <DialogTitle>Send test event</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-4 py-2">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="test-event-type">Event-Typ</Label>
+            <Label htmlFor="test-event-type">Event type</Label>
             <Select value={selectedEventType} onValueChange={setSelectedEventType}>
               <SelectTrigger id="test-event-type">
-                <SelectValue placeholder="Event-Typ wählen" />
+                <SelectValue placeholder="Choose event type" />
               </SelectTrigger>
               <SelectContent>
                 {eventTypes.map((et) => (
@@ -730,13 +740,13 @@ function TestEventDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={handleClose}>
-            Schließen
+            Close
           </Button>
           <Button
             disabled={sendMutation.isPending || !selectedEventType}
             onClick={() => sendMutation.mutate()}
           >
-            {sendMutation.isPending ? "Wird gesendet…" : "Senden"}
+            {sendMutation.isPending ? "Sending…" : "Send"}
           </Button>
         </DialogFooter>
       </DialogContent>

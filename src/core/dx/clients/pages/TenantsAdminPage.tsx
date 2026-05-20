@@ -1,9 +1,9 @@
 /**
- * `/admin/tenants` — Mandantenverwaltung (issue #87).
+ * `/admin/tenants` — Tenant management (issue #87).
  *
  * Lists every tenant (BA Organization) with debounced search,
  * active/deleted filter toggle, a sheet side-panel for detail with
- * Tabs (Übersicht | Mitglieder | Einstellungen | Statistiken), and
+ * Tabs (Overview | Members | Settings | Statistics), and
  * dialogs for create, invite, confirm soft-delete, and confirm restore.
  *
  * All write actions go through the `/admin/tenants/:id/*` controller
@@ -26,6 +26,13 @@ import {
 } from "../components/ui/dialog.js";
 import { Input } from "../components/ui/input.js";
 import { Label } from "../components/ui/label.js";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select.js";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../components/ui/sheet.js";
 import {
   Table,
@@ -37,8 +44,11 @@ import {
 } from "../components/ui/table.js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs.js";
 import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
+import { SortableTableHead } from "../components/SortableTableHead.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { adminFetch, fetchJson, needsAdminAuthHint } from "../lib/api.js";
+import { activateHubOrganization } from "../lib/hub-session-bootstrap.js";
+import { useTableSort } from "../lib/use-table-sort.js";
 
 // ── Types (mirrors tenant-admin.controller.ts) ────────────────────────
 
@@ -95,6 +105,11 @@ interface TenantsListResponse {
   total: number;
 }
 
+interface RoleRecord {
+  id: string;
+  name: string;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────
 
 function buildListUrl(q: string, filter: string): string {
@@ -128,7 +143,7 @@ async function deleteAction(path: string): Promise<unknown> {
 
 function formatDate(iso: string): string {
   try {
-    return new Date(iso).toLocaleString("de-DE", {
+    return new Date(iso).toLocaleString("en-US", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -155,6 +170,24 @@ function useDebounce(value: string, delayMs: number): string {
   return debounced;
 }
 
+function useTenantRoleNames(tenantId: string | null): {
+  roleNames: string[];
+  isPending: boolean;
+  isError: boolean;
+} {
+  const query = useQuery({
+    queryKey: ["admin", "roles", tenantId],
+    queryFn: async () => {
+      if (!tenantId) return [];
+      await activateHubOrganization(tenantId);
+      return fetchJson<RoleRecord[]>("/admin/roles");
+    },
+    enabled: tenantId !== null && tenantId.length > 0,
+  });
+  const roleNames = (query.data ?? []).map((r) => r.name).sort((a, b) => a.localeCompare(b));
+  return { roleNames, isPending: query.isPending, isError: query.isError };
+}
+
 // ── Confirm Dialog ────────────────────────────────────────────────────
 
 interface ConfirmDialogProps {
@@ -173,7 +206,7 @@ function ConfirmDialog({
   description,
   onConfirm,
   onCancel,
-  confirmLabel = "Bestätigen",
+  confirmLabel = "Confirm",
   dangerous = false,
 }: ConfirmDialogProps): ReactNode {
   return (
@@ -185,9 +218,9 @@ function ConfirmDialog({
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={onCancel}>
-            Abbrechen
+            Cancel
           </Button>
-          <Button variant={dangerous ? "destructive" : "default"} onClick={onConfirm}>
+          <Button variant={dangerous ? "danger" : "default"} onClick={onConfirm}>
             {confirmLabel}
           </Button>
         </DialogFooter>
@@ -218,7 +251,7 @@ function CreateTenantDialog({ open, onOpenChange, onCreated }: CreateTenantDialo
       } as Record<string, string>);
     },
     onSuccess: () => {
-      toast.success("Mandant erstellt");
+      toast.success("Tenant created");
       setName("");
       setSlug("");
       setContactEmail("");
@@ -232,8 +265,8 @@ function CreateTenantDialog({ open, onOpenChange, onCreated }: CreateTenantDialo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Neuer Mandant</DialogTitle>
-          <DialogDescription>Erstellt eine neue BA-Organisation.</DialogDescription>
+          <DialogTitle>New tenant</DialogTitle>
+          <DialogDescription>Creates a new Better Auth organization.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-1">
@@ -255,7 +288,7 @@ function CreateTenantDialog({ open, onOpenChange, onCreated }: CreateTenantDialo
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="create-email">Kontakt-E-Mail (optional)</Label>
+            <Label htmlFor="create-email">Contact email (optional)</Label>
             <Input
               id="create-email"
               type="email"
@@ -267,10 +300,10 @@ function CreateTenantDialog({ open, onOpenChange, onCreated }: CreateTenantDialo
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Abbrechen
+            Cancel
           </Button>
           <Button disabled={!name.trim() || create.isPending} onClick={() => create.mutate()}>
-            {create.isPending ? "Erstelle…" : "Erstellen"}
+            {create.isPending ? "Creating…" : "Create"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -288,7 +321,13 @@ interface InviteMemberDialogProps {
 
 function InviteMemberDialog({ tenantId, onClose, onInvited }: InviteMemberDialogProps): ReactNode {
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("member");
+  const { roleNames, isPending: rolesPending } = useTenantRoleNames(tenantId);
+  const defaultRole = roleNames.includes("User") ? "User" : (roleNames[0] ?? "member");
+  const [role, setRole] = useState(defaultRole);
+
+  useEffect(() => {
+    if (tenantId !== null) setRole(defaultRole);
+  }, [tenantId, defaultRole]);
 
   const invite = useMutation({
     mutationFn: async () => {
@@ -298,9 +337,9 @@ function InviteMemberDialog({ tenantId, onClose, onInvited }: InviteMemberDialog
       } as Record<string, string>);
     },
     onSuccess: () => {
-      toast.success("Einladung gesendet");
+      toast.success("Invitation sent");
       setEmail("");
-      setRole("member");
+      setRole(defaultRole);
       onClose();
       onInvited();
     },
@@ -311,14 +350,14 @@ function InviteMemberDialog({ tenantId, onClose, onInvited }: InviteMemberDialog
     <Dialog open={tenantId !== null} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Mitglied einladen</DialogTitle>
+          <DialogTitle>Invite member</DialogTitle>
           <DialogDescription>
-            Sendet eine BA-Einladung an die angegebene E-Mail-Adresse.
+            Sends a Better Auth invitation to the given email address.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-1">
-            <Label htmlFor="invite-email">E-Mail *</Label>
+            <Label htmlFor="invite-email">Email *</Label>
             <Input
               id="invite-email"
               type="email"
@@ -328,25 +367,118 @@ function InviteMemberDialog({ tenantId, onClose, onInvited }: InviteMemberDialog
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="invite-role">Rolle</Label>
-            <Input
-              id="invite-role"
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              placeholder="member"
-            />
+            <Label htmlFor="invite-role">Role</Label>
+            {rolesPending ? (
+              <Input id="invite-role" disabled placeholder="Loading roles…" />
+            ) : roleNames.length > 0 ? (
+              <Select value={role} onValueChange={setRole}>
+                <SelectTrigger id="invite-role" className="w-full">
+                  <SelectValue placeholder="Choose role…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roleNames.map((name) => (
+                    <SelectItem key={name} value={name}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                id="invite-role"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                placeholder="member"
+              />
+            )}
+            <p className="text-xs text-fg-muted">
+              Must match a role name from Roles (e.g. User, Admin).
+            </p>
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            Abbrechen
+            Cancel
           </Button>
           <Button disabled={!email.trim() || invite.isPending} onClick={() => invite.mutate()}>
-            {invite.isPending ? "Sendet…" : "Einladen"}
+            {invite.isPending ? "Sending…" : "Invite"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ── Member role editor ────────────────────────────────────────────────
+
+interface MemberRoleEditorProps {
+  tenantId: string;
+  memberId: string;
+  role: string;
+  onUpdated: () => void;
+}
+
+function MemberRoleEditor({
+  tenantId,
+  memberId,
+  role,
+  onUpdated,
+}: MemberRoleEditorProps): ReactNode {
+  const { roleNames, isPending: rolesPending, isError: rolesError } = useTenantRoleNames(tenantId);
+  const options = [...new Set([...roleNames, role])].sort((a, b) => a.localeCompare(b));
+
+  const update = useMutation({
+    mutationFn: async (nextRole: string) => {
+      const path = `/admin/tenants/${encodeURIComponent(tenantId)}/members/${encodeURIComponent(memberId)}/role`;
+      const res = await adminFetch(path, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ role: nextRole }),
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`${path} → ${res.status}${text ? `: ${text.slice(0, 200)}` : ""}`);
+      }
+      return res.json().catch(() => null);
+    },
+    onSuccess: (_data, nextRole) => {
+      toast.success(`Role updated to "${nextRole}".`);
+      onUpdated();
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  if (rolesPending) {
+    return <span className="text-xs text-fg-muted">Loading roles…</span>;
+  }
+
+  if (rolesError || options.length === 0) {
+    return <Badge variant="secondary">{role}</Badge>;
+  }
+
+  return (
+    <Select
+      value={role}
+      disabled={update.isPending}
+      onValueChange={(next) => {
+        if (next !== role) update.mutate(next);
+      }}
+    >
+      <SelectTrigger
+        className="h-8 w-[11rem] text-xs"
+        data-action="change-member-role"
+        aria-label={`Change role (currently ${role})`}
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((name) => (
+          <SelectItem key={name} value={name}>
+            {name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 
@@ -367,6 +499,7 @@ function TenantDetailSheet({
   onRestore,
   onInvite,
 }: TenantDetailSheetProps): ReactNode {
+  const qc = useQueryClient();
   const query = useQuery({
     queryKey: ["admin", "tenants", "detail", tenantId],
     queryFn: () =>
@@ -379,10 +512,10 @@ function TenantDetailSheet({
   return (
     <Sheet open={tenantId !== null} onOpenChange={(o) => !o && onClose()}>
       <SheetContent side="right" className="w-[520px] sm:w-[600px] overflow-y-auto">
-        {query.isPending && <PageLoading>Lade Mandantendetails…</PageLoading>}
+        {query.isPending && <PageLoading>Loading tenant details…</PageLoading>}
         {query.isError && (
           <PageError showAuthHint={needsAdminAuthHint(query.error)}>
-            Details konnten nicht geladen werden.
+            Could not load details.
           </PageError>
         )}
         {tenant && (
@@ -394,13 +527,13 @@ function TenantDetailSheet({
               {!tenant.softDeleted ? (
                 <Button
                   size="sm"
-                  variant="destructive"
+                  variant="danger"
                   onClick={() => {
                     onClose();
                     onSoftDelete(tenant.id);
                   }}
                 >
-                  Archivieren
+                  Archive
                 </Button>
               ) : (
                 <Button
@@ -411,7 +544,7 @@ function TenantDetailSheet({
                     onRestore(tenant.id);
                   }}
                 >
-                  Wiederherstellen
+                  Restore
                 </Button>
               )}
               <Button
@@ -422,19 +555,19 @@ function TenantDetailSheet({
                   onInvite(tenant.id);
                 }}
               >
-                Mitglied einladen
+                Invite member
               </Button>
             </div>
 
             <Tabs defaultValue="overview">
               <TabsList className="mb-4">
-                <TabsTrigger value="overview">Übersicht</TabsTrigger>
-                <TabsTrigger value="members">Mitglieder ({tenant.members.length})</TabsTrigger>
-                <TabsTrigger value="settings">Einstellungen</TabsTrigger>
-                <TabsTrigger value="stats">Statistiken</TabsTrigger>
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="members">Members ({tenant.members.length})</TabsTrigger>
+                <TabsTrigger value="settings">Settings</TabsTrigger>
+                <TabsTrigger value="stats">Statistics</TabsTrigger>
               </TabsList>
 
-              {/* Übersicht tab */}
+              {/* Overview tab */}
               <TabsContent value="overview">
                 <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
                   <dt className="text-fg-muted">ID</dt>
@@ -446,28 +579,28 @@ function TenantDetailSheet({
                   <dt className="text-fg-muted">Status</dt>
                   <dd>
                     {tenant.softDeleted ? (
-                      <Badge variant="destructive">Archiviert</Badge>
+                      <Badge variant="destructive">Archived</Badge>
                     ) : (
-                      <Badge variant="default">Aktiv</Badge>
+                      <Badge variant="default">Active</Badge>
                     )}
                   </dd>
-                  <dt className="text-fg-muted">Mitglieder</dt>
+                  <dt className="text-fg-muted">Members</dt>
                   <dd>{tenant.memberCount}</dd>
-                  <dt className="text-fg-muted">Erstellt</dt>
+                  <dt className="text-fg-muted">Created</dt>
                   <dd>{formatDate(tenant.createdAt)}</dd>
                 </dl>
 
                 {/* Invitations */}
                 {tenant.invitations.length > 0 && (
                   <div className="mt-6">
-                    <h4 className="text-sm font-medium mb-2">Ausstehende Einladungen</h4>
+                    <h4 className="text-sm font-medium mb-2">Pending invitations</h4>
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>E-Mail</TableHead>
-                          <TableHead>Rolle</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Role</TableHead>
                           <TableHead>Status</TableHead>
-                          <TableHead>Läuft ab</TableHead>
+                          <TableHead>Expires</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -491,17 +624,17 @@ function TenantDetailSheet({
                 )}
               </TabsContent>
 
-              {/* Mitglieder tab */}
+              {/* Members tab */}
               <TabsContent value="members">
                 {tenant.members.length === 0 ? (
-                  <PageEmpty>Keine Mitglieder gefunden.</PageEmpty>
+                  <PageEmpty>No members found.</PageEmpty>
                 ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>E-Mail</TableHead>
-                        <TableHead>Rolle</TableHead>
-                        <TableHead>Seit</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Since</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -511,9 +644,16 @@ function TenantDetailSheet({
                             {m.userEmail ?? m.userId}
                           </TableCell>
                           <TableCell>
-                            <Badge variant={m.role === "owner" ? "default" : "secondary"}>
-                              {m.role}
-                            </Badge>
+                            <MemberRoleEditor
+                              tenantId={tenant.id}
+                              memberId={m.id}
+                              role={m.role}
+                              onUpdated={() => {
+                                void qc.invalidateQueries({
+                                  queryKey: ["admin", "tenants", "detail", tenant.id],
+                                });
+                              }}
+                            />
                           </TableCell>
                           <TableCell className="text-xs text-fg-muted whitespace-nowrap">
                             {formatDate(m.createdAt)}
@@ -525,15 +665,15 @@ function TenantDetailSheet({
                 )}
               </TabsContent>
 
-              {/* Einstellungen tab */}
+              {/* Settings tab */}
               <TabsContent value="settings">
                 {!tenant.settings ? (
-                  <PageEmpty>Keine Einstellungen hinterlegt.</PageEmpty>
+                  <PageEmpty>No settings configured.</PageEmpty>
                 ) : (
                   <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
                     <dt className="text-fg-muted">Logo-URL</dt>
                     <dd className="break-all text-xs">{tenant.settings.logoUrl ?? "—"}</dd>
-                    <dt className="text-fg-muted">Primärfarbe</dt>
+                    <dt className="text-fg-muted">Primary color</dt>
                     <dd>
                       {tenant.settings.primaryColor ? (
                         <span className="flex items-center gap-2">
@@ -547,32 +687,32 @@ function TenantDetailSheet({
                         "—"
                       )}
                     </dd>
-                    <dt className="text-fg-muted">Speicherlimit (MB)</dt>
+                    <dt className="text-fg-muted">Storage limit (MB)</dt>
                     <dd>{tenant.settings.storageLimitMb ?? "—"}</dd>
-                    <dt className="text-fg-muted">Kontakt-E-Mail</dt>
+                    <dt className="text-fg-muted">Contact email</dt>
                     <dd className="break-all">{tenant.settings.contactEmail ?? "—"}</dd>
                   </dl>
                 )}
               </TabsContent>
 
-              {/* Statistiken tab */}
+              {/* Statistics tab */}
               <TabsContent value="stats">
                 <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-                  <dt className="text-fg-muted">Mitglieder</dt>
+                  <dt className="text-fg-muted">Members</dt>
                   <dd>{tenant.stats.memberCount}</dd>
-                  <dt className="text-fg-muted">Benutzer</dt>
+                  <dt className="text-fg-muted">Users</dt>
                   <dd>{tenant.stats.userCount}</dd>
-                  <dt className="text-fg-muted">Speicherverbrauch</dt>
+                  <dt className="text-fg-muted">Storage used</dt>
                   <dd>{tenant.stats.fileSizeMb.toFixed(2)} MB</dd>
-                  <dt className="text-fg-muted">Archiviert</dt>
+                  <dt className="text-fg-muted">Archived</dt>
                   <dd>
                     {tenant.stats.softDeleted ? (
-                      <Badge variant="destructive">Ja</Badge>
+                      <Badge variant="destructive">Yes</Badge>
                     ) : (
-                      <Badge variant="outline">Nein</Badge>
+                      <Badge variant="outline">No</Badge>
                     )}
                   </dd>
-                  <dt className="text-fg-muted">Erstellt</dt>
+                  <dt className="text-fg-muted">Created</dt>
                   <dd>{formatDate(tenant.stats.createdAt)}</dd>
                 </dl>
               </TabsContent>
@@ -615,8 +755,7 @@ export function TenantsAdminPage(): ReactNode {
       }
     },
     onSuccess: (_d, action) => {
-      const label =
-        action.kind === "soft-delete" ? "Mandant archiviert" : "Mandant wiederhergestellt";
+      const label = action.kind === "soft-delete" ? "Tenant archived" : "Tenant restored";
       toast.success(label);
       qc.invalidateQueries({ queryKey: ["admin", "tenants"] });
     },
@@ -630,11 +769,12 @@ export function TenantsAdminPage(): ReactNode {
   }, [mutate, pendingConfirm]);
 
   const tenants = listQuery.data?.tenants ?? [];
+  const { sortedRows: sortedTenants, sortKey, sortDirection, toggleSort } = useTableSort(tenants);
 
   return (
     <AdminShell
-      title="Mandantenverwaltung"
-      subtitle="Mandanten anlegen, archivieren und Mitglieder verwalten."
+      title="Tenant management"
+      subtitle="Create tenants, archive them, and manage members."
       currentNav="tenants"
     >
       <div className="space-y-4">
@@ -642,10 +782,10 @@ export function TenantsAdminPage(): ReactNode {
         <div className="flex items-center gap-3 flex-wrap">
           <Input
             className="max-w-sm"
-            placeholder="Nach Name oder Slug suchen…"
+            placeholder="Search by name or slug…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            aria-label="Suche"
+            aria-label="Search"
           />
           {/* Filter buttons */}
           <div className="flex gap-1">
@@ -656,43 +796,73 @@ export function TenantsAdminPage(): ReactNode {
                 variant={filter === f ? "default" : "outline"}
                 onClick={() => setFilter(f)}
               >
-                {f === "all" ? "Alle" : f === "active" ? "Aktiv" : "Archiviert"}
+                {f === "all" ? "All" : f === "active" ? "Active" : "Archived"}
               </Button>
             ))}
           </div>
           <Button size="sm" onClick={() => setShowCreate(true)}>
-            + Neu
+            + New
           </Button>
-          {listQuery.isFetching && <span className="text-xs text-fg-muted">Lädt…</span>}
+          {listQuery.isFetching && <span className="text-xs text-fg-muted">Loading…</span>}
         </div>
 
         {/* Table */}
         {listQuery.isPending ? (
-          <PageLoading>Lade Mandanten…</PageLoading>
+          <PageLoading>Loading tenants…</PageLoading>
         ) : listQuery.isError ? (
           <PageError showAuthHint={needsAdminAuthHint(query.error)}>
-            Mandanten konnten nicht geladen werden.
+            Could not load tenants.
           </PageError>
         ) : tenants.length === 0 ? (
-          <PageEmpty>Keine Mandanten gefunden.</PageEmpty>
+          <PageEmpty>No tenants found.</PageEmpty>
         ) : (
           <Card>
             <CardHeader>
-              <CardTitle>Mandanten ({listQuery.data?.total ?? tenants.length})</CardTitle>
+              <CardTitle>Tenants ({listQuery.data?.total ?? tenants.length})</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Slug</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Mitglieder</TableHead>
-                    <TableHead>Erstellt</TableHead>
+                    <SortableTableHead
+                      label="Name"
+                      sortKey="name"
+                      activeSortKey={sortKey}
+                      sortDirection={sortDirection}
+                      onSort={toggleSort}
+                    />
+                    <SortableTableHead
+                      label="Slug"
+                      sortKey="slug"
+                      activeSortKey={sortKey}
+                      sortDirection={sortDirection}
+                      onSort={toggleSort}
+                    />
+                    <SortableTableHead
+                      label="Status"
+                      sortKey="softDeleted"
+                      activeSortKey={sortKey}
+                      sortDirection={sortDirection}
+                      onSort={toggleSort}
+                    />
+                    <SortableTableHead
+                      label="Members"
+                      sortKey="memberCount"
+                      activeSortKey={sortKey}
+                      sortDirection={sortDirection}
+                      onSort={toggleSort}
+                    />
+                    <SortableTableHead
+                      label="Created"
+                      sortKey="createdAt"
+                      activeSortKey={sortKey}
+                      sortDirection={sortDirection}
+                      onSort={toggleSort}
+                    />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {tenants.map((t) => (
+                  {sortedTenants.map((t) => (
                     <TableRow
                       key={t.id}
                       className="cursor-pointer"
@@ -704,9 +874,9 @@ export function TenantsAdminPage(): ReactNode {
                       </TableCell>
                       <TableCell>
                         {t.softDeleted ? (
-                          <Badge variant="destructive">Archiviert</Badge>
+                          <Badge variant="destructive">Archived</Badge>
                         ) : (
-                          <Badge variant="default">Aktiv</Badge>
+                          <Badge variant="default">Active</Badge>
                         )}
                       </TableCell>
                       <TableCell className="text-xs text-fg-muted">{t.memberCount}</TableCell>
@@ -756,17 +926,13 @@ export function TenantsAdminPage(): ReactNode {
         <ConfirmDialog
           open
           dangerous={pendingConfirm.kind === "soft-delete"}
-          title={
-            pendingConfirm.kind === "soft-delete"
-              ? "Mandant archivieren?"
-              : "Mandant wiederherstellen?"
-          }
+          title={pendingConfirm.kind === "soft-delete" ? "Archive tenant?" : "Restore tenant?"}
           description={
             pendingConfirm.kind === "soft-delete"
-              ? `„${pendingConfirm.tenantName}" wird als archiviert markiert.`
-              : `„${pendingConfirm.tenantName}" wird wiederhergestellt.`
+              ? `„${pendingConfirm.tenantName}" will be marked as archived.`
+              : `„${pendingConfirm.tenantName}" will be restored.`
           }
-          confirmLabel={pendingConfirm.kind === "soft-delete" ? "Archivieren" : "Wiederherstellen"}
+          confirmLabel={pendingConfirm.kind === "soft-delete" ? "Archive" : "Restore"}
           onConfirm={handleConfirm}
           onCancel={() => setPendingConfirm(null)}
         />

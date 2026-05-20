@@ -37,16 +37,11 @@ describe("Story · nestjs-pino LoggerModule integration (CF.OBS — iter-206)", 
     expect(moduleSrc).toMatch(/createLogger\(\{\s*env:\s*cfg\.env/);
   });
 
-  it("LoggerModule.forRootAsync wires test-env autoLogging:false to keep SC.PERF.02 health-latency budget", async () => {
+  it("LoggerModule.forRootAsync disables pino-http autoLogging (no per-request completed lines)", async () => {
     const { readFileSync } = await import("node:fs");
     const moduleSrc = readFileSync("src/core/app/app.module.ts", "utf8");
-    // Test env must disable autoLogging entirely (isTest ? false : ...)
-    expect(moduleSrc).toMatch(/autoLogging:\s*isTest\s*\?\s*false/);
-    expect(moduleSrc).toMatch(/quietReqLogger:\s*isTest/);
-    // Non-test env routes success logs to info (NIT-1: changed from debug
-    // so 2xx requests appear in default log views without extra log-level config)
-    expect(moduleSrc).toMatch(/customLogLevel/);
-    expect(moduleSrc).toMatch(/return\s*"info"/);
+    expect(moduleSrc).toMatch(/autoLogging:\s*false/);
+    expect(moduleSrc).toMatch(/quietReqLogger:\s*true/);
   });
 
   it("bootstrap.ts swaps app.useLogger to nestjs-pino's Logger when no test override is supplied", async () => {

@@ -113,38 +113,36 @@ function RoutesBody({ inventory }: { inventory: RouteInventory }): ReactNode {
           <CardTitle>All routes</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="max-h-[65dvh] min-h-56 overflow-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Method</TableHead>
-                  <TableHead>Path</TableHead>
-                  <TableHead>Controller</TableHead>
-                  <TableHead>Handler</TableHead>
-                  <TableHead>Guard</TableHead>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Method</TableHead>
+                <TableHead>Path</TableHead>
+                <TableHead>Controller</TableHead>
+                <TableHead>Handler</TableHead>
+                <TableHead>Guard</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {inventory.routes.map((r, i) => (
+                <TableRow key={i}>
+                  <TableCell>
+                    <MethodBadge method={r.method} />
+                  </TableCell>
+                  <TableCell className="font-mono text-xs">{r.path}</TableCell>
+                  <TableCell className="text-xs text-fg-muted">{r.controller}</TableCell>
+                  <TableCell className="text-xs text-fg-muted">{r.handler}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {r.guards.map((g, j) => (
+                        <GuardBadge key={j} guard={g} />
+                      ))}
+                    </div>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {inventory.routes.map((r, i) => (
-                  <TableRow key={i}>
-                    <TableCell>
-                      <MethodBadge method={r.method} />
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">{r.path}</TableCell>
-                    <TableCell className="text-xs text-fg-muted">{r.controller}</TableCell>
-                    <TableCell className="text-xs text-fg-muted">{r.handler}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {r.guards.map((g, j) => (
-                          <GuardBadge key={j} guard={g} />
-                        ))}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>

@@ -9,10 +9,7 @@ import type { Request } from "express";
 import { Observable, defer, from, switchMap } from "rxjs";
 
 import { PrismaService } from "../prisma/prisma.service.js";
-import {
-  isHubPortalProtectedPath,
-  prefersHubPortalHtmlResponse,
-} from "../hub/hub-portal-paths.js";
+import { isHubPortalProtectedPath, prefersHubPortalHtmlResponse } from "../hub/hub-portal-paths.js";
 import { resolveHubOperatorTenantId } from "../hub/hub-operator-tenant.js";
 import { resolveRequestTenantId } from "./resolve-request-tenant.js";
 import { getCurrentTenantId, runWithTenant } from "./tenant-context.js";
@@ -36,11 +33,8 @@ import { parseTenantHeader } from "./tenant-header.js";
  *   `resolveRequestTenantId(req, prisma)` helper — the same single
  *   source of truth `AbilityMiddleware` uses. A header pointing at a
  *   tenant the user has no ACTIVE membership in throws
- *   `ForbiddenException` (403). For unauthenticated requests we keep
- *   the old `parseTenantHeader` behaviour (UUID-only validation, no
- *   membership check) — those paths are typically exempt anyway, but
- *   preserving the throw shape avoids breaking any consumer that
- *   relied on `TenantIsolationError` propagation.
+ *   `ForbiddenException` (403). Unauthenticated requests on
+ *   tenant-required paths fail without a session + set-active.
  */
 
 // `getCurrentTenantId` and `runWithTenant` are re-exported from
@@ -103,7 +97,7 @@ export class TenantInterceptor implements NestInterceptor {
         const acceptHeader = Array.isArray(req.headers.accept)
           ? req.headers.accept[0]
           : req.headers.accept;
-        let tenantId = await resolveRequestTenantId(req, this.prisma);
+        let tenantId = await resolveRequestTenantId(req, this.prisma, { path: purePath });
         if (
           !tenantId &&
           isHubPortalProtectedPath(purePath) &&
@@ -121,13 +115,9 @@ export class TenantInterceptor implements NestInterceptor {
         }
         return runWithTenant(tenantId as string, () => streamToPromise(next.handle()));
       }
-      // Unauthenticated path on a non-exempt route: keep the legacy
-      // behaviour (header REQUIRED, UUID validated, no membership
-      // check possible because there is no `req.user`). The route's
-      // own auth/CASL gating remains the security boundary.
-      const headerValue = req.headers["x-tenant-id"];
-      const tenantId = parseTenantHeader(headerValue);
-      return runWithTenant(tenantId, () => streamToPromise(next.handle()));
+      // Unauthenticated: no tenant without a Better-Auth session.
+      parseTenantHeader(undefined);
+      throw new Error("unreachable: parseTenantHeader always throws");
     }).pipe(
       switchMap((value) => from(unwrap(value))),
       // Errors from `defer`'s async factory propagate naturally — no

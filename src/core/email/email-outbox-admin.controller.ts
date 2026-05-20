@@ -11,7 +11,10 @@ import {
   Query,
 } from "@nestjs/common";
 
+import { ApiTags } from "@nestjs/swagger";
+
 import { Can } from "../permissions/can.guard.js";
+import { assertFeatureEnabledFromEnv } from "../features/assert-feature-enabled.js";
 import { parseOutboxListFilter, planOutboxAdminAction } from "./email-outbox-action-planner.js";
 import type {
   EmailOutboxListResult,
@@ -82,6 +85,7 @@ function toDto(r: EmailOutboxRecord): OutboxRecordDto {
   };
 }
 
+@ApiTags("Admin")
 @Controller("admin/email-outbox")
 export class EmailOutboxAdminController {
   constructor(
@@ -110,6 +114,7 @@ export class EmailOutboxAdminController {
       limit?: string;
     },
   ): Promise<{ items: OutboxRecordDto[]; nextCursor?: string; total: number }> {
+    this.assertEmailEnabled();
     const parsed = parseOutboxListFilter(query);
     if (!parsed.ok) throw new BadRequestException(parsed.reason);
 
@@ -128,6 +133,7 @@ export class EmailOutboxAdminController {
   @Can("manage", "EmailOutboxAdmin")
   @Get(":id.json")
   async detail(@Param("id") id: string): Promise<{ record: OutboxRecordDto; payload: unknown }> {
+    this.assertEmailEnabled();
     const record = await this.storage.findById(id);
     if (!record) throw new NotFoundException(`email-outbox record ${id} not found`);
     return { record: toDto(record), payload: record.payload };
@@ -140,6 +146,7 @@ export class EmailOutboxAdminController {
   @Can("manage", "EmailOutboxAdmin")
   @Post(":id/retry")
   async retry(@Param("id") id: string): Promise<{ ok: true }> {
+    this.assertEmailEnabled();
     const record = await this.storage.findById(id);
     if (!record) throw new NotFoundException(`email-outbox record ${id} not found`);
 
@@ -157,6 +164,7 @@ export class EmailOutboxAdminController {
   @Can("manage", "EmailOutboxAdmin")
   @Post(":id/cancel")
   async cancel(@Param("id") id: string): Promise<{ ok: true }> {
+    this.assertEmailEnabled();
     const record = await this.storage.findById(id);
     if (!record) throw new NotFoundException(`email-outbox record ${id} not found`);
 
@@ -178,6 +186,7 @@ export class EmailOutboxAdminController {
     @Body()
     body: { template?: unknown; locale?: unknown; vars?: unknown; recipient?: unknown },
   ): Promise<{ id: string }> {
+    this.assertEmailEnabled();
     if (!body || typeof body.template !== "string" || body.template.trim() === "") {
       throw new BadRequestException("template (non-empty string) is required");
     }
@@ -203,5 +212,9 @@ export class EmailOutboxAdminController {
       : result.messageId;
 
     return { id: rawId };
+  }
+
+  private assertEmailEnabled(): void {
+    assertFeatureEnabledFromEnv("email");
   }
 }

@@ -21,8 +21,10 @@ import { buildDevPortalShellInput, renderDevPortalShell } from "../dx/dev-portal
 import { ConfigModule } from "../config/config.module.js";
 import { ConfigService } from "../config/config.service.js";
 
+import { requireTenantContext } from "../multi-tenancy/require-tenant-context.js";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { Public } from "./public.decorator.js";
+import { buildAbilitySubjectCatalogFromRepo } from "./ability-subject-catalog.js";
 import { buildPermissionMatrix } from "./admin-permissions-planner.js";
 import {
   buildPermissionReport,
@@ -125,9 +127,8 @@ async function negotiate<T>(
     // render the matching page client-side. The same JSON payload
     // remains accessible to fetch() callers (Accept: */* default)
     // because they don't request text/html.
-    res
-      .setHeader("content-type", "text/html; charset=utf-8")
-      .send(renderDevPortalShell(buildDevPortalShellInput({ title, brand: "central" })));
+    res.setHeader("content-type", "text/html; charset=utf-8");
+    res.send(renderDevPortalShell(buildDevPortalShellInput({ title, brand: "central" })));
     return undefined;
   }
   const json = await jsonFactory();
@@ -140,7 +141,7 @@ class RoleAdminService {
   constructor(private readonly prisma: PrismaService) {}
 
   // Iter-202 reviewer-G3 closure: every read/write is now scoped to
-  // the operator's `x-tenant-id` header. Roles carry `tenantId` and
+  // the operator's session tenant (set-active). Roles carry `tenantId` and
   // RLS is enabled on `roles`, but relying solely on RLS leaves the
   // door open if the connection's `app.tenant_id` setting drifts —
   // the explicit Prisma predicate is defense-in-depth alongside the
@@ -160,7 +161,7 @@ class RoleAdminService {
       body.tenantId.length > 0 &&
       body.tenantId !== tenantId
     ) {
-      throw new BadRequestException("body.tenantId must match the x-tenant-id header");
+      throw new BadRequestException("body.tenantId must match the active tenant context");
     }
     return this.prisma.role.create({
       data: {
@@ -316,6 +317,13 @@ class PermissionAdminService {
       include: { policy: { include: { permissions: true } } },
     });
 
+    const rolePrimaryPolicyIds: Record<string, string> = {};
+    for (const rp of rolePolicies) {
+      if (!rolePrimaryPolicyIds[rp.roleId]) {
+        rolePrimaryPolicyIds[rp.roleId] = rp.policyId;
+      }
+    }
+
     // Flatten the join into a MatrixInput.permissions list where each
     // permission row gets the roleId that owns the policy carrying it.
     const permissions = rolePolicies.flatMap((rp) =>
@@ -327,32 +335,19 @@ class PermissionAdminService {
         roleId: rp.roleId,
       })),
     );
+
+    const catalogResources = buildAbilitySubjectCatalogFromRepo(process.cwd());
+
     return buildPermissionMatrix({
       permissions,
       roles: roles.map((r) => ({ id: r.id, name: r.name })),
+      catalogResources,
+      rolePrimaryPolicyIds,
     });
   }
 }
 
 // Iter-202 reviewer feedback: bare non-empty check let `not-a-uuid`
-// strings through to Prisma where they triggered an opaque cast error
-// instead of a clean 400. The canonical contract documented at
-// `tenant-guard.ts:6-7` is "present and parseable as a UUID"; mirror
-// that at every controller header-read entry-point.
-const UUID_PATTERN =
-  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-
-function requireTenantHeader(tenantHeader: string | undefined): string {
-  const tenantId = tenantHeader?.trim() ?? "";
-  if (tenantId.length === 0) {
-    throw new BadRequestException("x-tenant-id header is required");
-  }
-  if (!UUID_PATTERN.test(tenantId)) {
-    throw new BadRequestException("x-tenant-id header must be a valid UUID");
-  }
-  return tenantId;
-}
-
 const DEV_ADMIN_CRUD_PUBLIC_REASON =
   "Dev-Hub permission CRUD operator API — assertDev() guards production; no CASL login required in local development.";
 
@@ -372,41 +367,42 @@ class RoleAdminController {
 
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Get()
-  async list(
-    @Headers("x-tenant-id") tenantHeader: string | undefined,
-    @Headers("accept") accept: string | undefined,
-    @Res() res: Response,
-  ): Promise<void> {
+  async list(@Headers("accept") accept: string | undefined, @Res() res: Response): Promise<void> {
     assertDevPortalOnly(this.config);
-    const tenantId = requireTenantHeader(tenantHeader);
-    await negotiate(accept, res, "Roles", () => this.service.list(tenantId));
+    if (wantsHtml(accept)) {
+      res.setHeader("content-type", "text/html; charset=utf-8");
+      res.send(
+        renderDevPortalShell(buildDevPortalShellInput({ title: "Roles", brand: "central" })),
+      );
+      return;
+    }
+    const tenantId = requireTenantContext();
+    const json = await this.service.list(tenantId);
+    res.json(json);
   }
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Post()
-  async create(
-    @Headers("x-tenant-id") tenantHeader: string | undefined,
-    @Body() body: RoleCreateBody,
-  ) {
+  async create(@Body() body: RoleCreateBody) {
     assertDevPortalOnly(this.config);
-    const tenantId = requireTenantHeader(tenantHeader);
+    const tenantId = requireTenantContext();
     const created = await this.service.create(body, tenantId);
     this.permissions?.invalidateAll();
     return created;
   }
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Get(":id")
-  async get(@Headers("x-tenant-id") tenantHeader: string | undefined, @Param("id") id: string) {
+  async get(@Param("id") id: string) {
     assertDevPortalOnly(this.config);
-    const tenantId = requireTenantHeader(tenantHeader);
+    const tenantId = requireTenantContext();
     const record = await this.service.get(id, tenantId);
     if (!record) throw new NotFoundException("role not found");
     return record;
   }
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Delete(":id")
-  async remove(@Headers("x-tenant-id") tenantHeader: string | undefined, @Param("id") id: string) {
+  async remove(@Param("id") id: string) {
     assertDevPortalOnly(this.config);
-    const tenantId = requireTenantHeader(tenantHeader);
+    const tenantId = requireTenantContext();
     try {
       await this.service.delete(id, tenantId);
     } catch (error) {
@@ -418,25 +414,18 @@ class RoleAdminController {
   }
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Patch(":id")
-  async update(
-    @Headers("x-tenant-id") tenantHeader: string | undefined,
-    @Param("id") id: string,
-    @Body() body: RolePatchBody,
-  ) {
+  async update(@Param("id") id: string, @Body() body: RolePatchBody) {
     assertDevPortalOnly(this.config);
-    const tenantId = requireTenantHeader(tenantHeader);
+    const tenantId = requireTenantContext();
     const updated = await this.service.update(id, tenantId, body);
     this.permissions?.invalidateAll();
     return updated;
   }
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Get(":id/policies")
-  async listPolicies(
-    @Headers("x-tenant-id") tenantHeader: string | undefined,
-    @Param("id") id: string,
-  ) {
+  async listPolicies(@Param("id") id: string) {
     assertDevPortalOnly(this.config);
-    const tenantId = requireTenantHeader(tenantHeader);
+    const tenantId = requireTenantContext();
     // Verify the role belongs to the operator's tenant before exposing data.
     const role = await this.service.get(id, tenantId);
     if (!role) throw new NotFoundException("role not found");
@@ -518,6 +507,16 @@ class PermissionAdminController {
     this.permissions?.invalidateAll();
     return created;
   }
+
+  /** Static path before `:id` — otherwise `matrix.json` is parsed as an id. */
+  @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
+  @Get("matrix.json")
+  async matrix() {
+    assertDevPortalOnly(this.config);
+    const tenantId = requireTenantContext();
+    return this.service.buildMatrix(tenantId);
+  }
+
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Get(":id")
   async get(@Param("id") id: string) {
@@ -540,21 +539,10 @@ class PermissionAdminController {
   }
 
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
-  @Get("matrix.json")
-  async matrix(@Headers("x-tenant-id") tenantHeader: string | undefined) {
-    assertDevPortalOnly(this.config);
-    const tenantId = requireTenantHeader(tenantHeader);
-    return this.service.buildMatrix(tenantId);
-  }
-
-  @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Post("attach")
-  async attach(
-    @Headers("x-tenant-id") tenantHeader: string | undefined,
-    @Body() body: RolePolicyAttachBody,
-  ) {
+  async attach(@Body() body: RolePolicyAttachBody) {
     assertDevPortalOnly(this.config);
-    const tenantId = requireTenantHeader(tenantHeader);
+    const tenantId = requireTenantContext();
     const link = await this.service.attachToRole(body, tenantId);
     this.permissions?.invalidateAll();
     return link;
@@ -562,13 +550,9 @@ class PermissionAdminController {
 
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Delete("attach/:roleId/:policyId")
-  async detach(
-    @Headers("x-tenant-id") tenantHeader: string | undefined,
-    @Param("roleId") roleId: string,
-    @Param("policyId") policyId: string,
-  ) {
+  async detach(@Param("roleId") roleId: string, @Param("policyId") policyId: string) {
     assertDevPortalOnly(this.config);
-    const tenantId = requireTenantHeader(tenantHeader);
+    const tenantId = requireTenantContext();
     try {
       await this.service.detachFromRole(roleId, policyId, tenantId);
     } catch (error) {
@@ -590,7 +574,6 @@ class PermissionAdminController {
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Post("test")
   async test(
-    @Headers("x-tenant-id") tenantHeader: string | undefined,
     @Body()
     body: { userId?: unknown; tenantId?: unknown; action?: unknown; subject?: unknown },
   ): Promise<{
@@ -604,14 +587,14 @@ class PermissionAdminController {
     // could probe permissions for tenants outside their scope. Now
     // the operator's tenant comes from the header, and the body's
     // tenantId must match it (same contract as `RoleAdminService.create`).
-    const tenantId = requireTenantHeader(tenantHeader);
+    const tenantId = requireTenantContext();
     const userId = asString(body?.userId, "userId");
     if (
       typeof body?.tenantId === "string" &&
       body.tenantId.length > 0 &&
       body.tenantId !== tenantId
     ) {
-      throw new BadRequestException("body.tenantId must match the x-tenant-id header");
+      throw new BadRequestException("body.tenantId must match the active tenant context");
     }
     const action = asString(body?.action, "action");
     const subject = asString(body?.subject, "subject");

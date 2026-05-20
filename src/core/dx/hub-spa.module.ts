@@ -4,13 +4,13 @@ import { DiscoveryModule } from "@nestjs/core";
 import { JobsModule } from "../jobs/jobs.module.js";
 import { AdminSpaController } from "./admin-spa.controller.js";
 import { DevFilesController } from "./dev-files.controller.js";
-import { DevHubController } from "./dev-hub.controller.js";
+import { HubController } from "./hub.controller.js";
 import { MigrationsService } from "./migrations/migrations.service.js";
 import { RouteInventoryService } from "./route-inventory-runner.js";
 import { RealtimeModule } from "../realtime/realtime.module.js";
 
 /**
- * DevHubModule — registers the `/hub` and `/admin` SPA controllers.
+ * HubSpaModule — registers the `/hub` and `/admin` SPA controllers.
  *
  * Loaded unconditionally; both controllers short-circuit to a 404
  * outside `NODE_ENV=development` so they can never leak tool URLs in
@@ -28,11 +28,11 @@ import { RealtimeModule } from "../realtime/realtime.module.js";
  */
 @Module({
   imports: [DiscoveryModule, JobsModule, RealtimeModule],
-  // Order matters: `DevFilesController` registers before `DevHubController`
+  // Order matters: `DevFilesController` registers before `HubController`
   // so its specific `/hub/files/*.json` routes win over the latter's
   // `@Get('*splat')` SPA-shell catch-all.
-  controllers: [DevFilesController, AdminSpaController, DevHubController],
+  controllers: [DevFilesController, AdminSpaController, HubController],
   providers: [RouteInventoryService, MigrationsService],
   exports: [RouteInventoryService],
 })
-export class DevHubModule {}
+export class HubSpaModule {}

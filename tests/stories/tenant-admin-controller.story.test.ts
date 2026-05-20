@@ -102,5 +102,17 @@ describe("Story · Tenant Admin Controller", () => {
       );
       expect(src).toContain("/admin/tenants/list.json");
     });
+
+    it("members tab can change member role via PATCH", () => {
+      const src = readFileSync(
+        resolve(ROOT, "src/core/dx/clients/pages/TenantsAdminPage.tsx"),
+        "utf8",
+      );
+      expect(src).toContain("MemberRoleEditor");
+      expect(src).toContain("/members/");
+      expect(src).toContain("/role");
+      expect(src).toContain('method: "PATCH"');
+      expect(src).toContain('data-action="change-member-role"');
+    });
   });
 });

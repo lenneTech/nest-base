@@ -72,7 +72,7 @@ clients/
 │   ├── nav.ts                     ← sidebar nav model + SPA_ROUTES set
 │   └── icons.tsx                  ← SVG icons inlined per dev-portal
 ├── pages/
-│   ├── DevHubLandingPage.tsx      ← /dev — landing dashboard
+│   ├── HubLandingPage.tsx      ← /dev — landing dashboard
 │   ├── FeaturesPage.tsx           ← /dev/features
 │   ├── BrandPage.tsx              ← /dev/brand
 │   ├── CoveragePage.tsx           ← /dev/coverage
@@ -85,11 +85,9 @@ clients/
 │   ├── JobsPage.tsx               ← /dev/jobs
 │   ├── RoutesPage.tsx             ← /dev/routes
 │   ├── ErdPage.tsx                ← /dev/erd
-│   ├── EmailPreviewPage.tsx       ← /dev/email-preview
-│   ├── EmailBuilderPage.tsx       ← /dev/email-builder
+│   ├── EmailBuilderPage.tsx       ← /hub/emails
 │   ├── PostgrestParsePage.tsx     ← /dev/postgrest-parse
 │   ├── FileManagerPage.tsx        ← /dev/files
-│   ├── ComponentShowcasePage.tsx  ← /dev/components (living shadcn showcase)
 │   ├── PermissionTesterPage.tsx   ← /admin/permissions/test
 │   ├── WebhookInspectorPage.tsx   ← /admin/webhooks
 │   ├── RealtimeInspectorPage.tsx  ← /admin/realtime
@@ -122,7 +120,7 @@ clients/
 2. Add the corresponding sidebar entry to `layout/nav.ts` (extend
    `NAV_SECTIONS` and add the path to `SPA_ROUTES` so the link uses
    react-router and not a full reload).
-3. Add a `*.json` endpoint in `dev-hub.controller.ts` (for `/dev/*`)
+3. Add a `*.json` endpoint in `hub.controller.ts` (for `/dev/*`)
    or `admin-spa.controller.ts` (for `/admin/*`) — the controller does
    the planning, returns JSON, the React page renders.
 4. Add a controller `@Get()` for the HTML route that returns
@@ -142,9 +140,8 @@ clients/
    `.js` suffix to every relative import. This is exactly what
    `bunx shadcn@latest add <name>` would do — we do it manually so
    the registry tooling doesn't need network in CI.
-2. **Add at least one example to `pages/ComponentShowcasePage.tsx`** —
-   the showcase is the contract: if it isn't on the showcase, it
-   doesn't exist for downstream pages.
+2. **Use the primitive on the Hub page that needs it** — there is no
+   separate component showcase route; shadcn docs remain the reference.
 3. If the component depends on a Radix primitive that isn't yet a
    dep, install it (`bun add @radix-ui/react-<name>`).
 

@@ -19,9 +19,8 @@ import { describe, expect, it } from "vitest";
  * `IMPERSONATION_AUDIT_SINK`) so projects override the default no-op
  * sinks with their audit-log writer.
  *
- * The behaviour is exercised end-to-end via Better-Auth's session
- * adapter once the Prisma binding lands (the default sentinel storage
- * returns `[]` so any 200 path 404s on "no matching sessions"). This
+ * The behaviour is exercised end-to-end via the Prisma-backed session
+ * storage wired in `SessionsAdminModule`. This story locks the
  * story locks the structural contract: routes mounted, tokens defined,
  * planners consumed correctly.
  */
@@ -104,6 +103,12 @@ describe("Story · sessions-admin + impersonation controllers", () => {
       const src = readFileSync(resolve(ROOT, "src/core/app/app.module.ts"), "utf8");
       expect(src).toContain("SessionsAdminModule");
       expect(src).toContain('from "../auth/sessions-admin.module.js"');
+    });
+
+    it("module wires PrismaSessionRevokeStorage for SESSION_REVOKE_STORAGE", () => {
+      const src = readFileSync(resolve(ROOT, "src/core/auth/sessions-admin.module.ts"), "utf8");
+      expect(src).toContain("PrismaSessionRevokeStorage");
+      expect(src).toContain("new PrismaSessionRevokeStorage(prisma)");
     });
 
     it("module exports the four DI tokens for the project to override", () => {

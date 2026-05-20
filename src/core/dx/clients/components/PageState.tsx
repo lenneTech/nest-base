@@ -29,12 +29,8 @@ export function PageLoading({ className, children }: BaseProps) {
 export function AdminAuthHint(): ReactNode {
   return (
     <p className="mt-3 max-w-xl text-center text-sm text-fg-muted">
-      Melde dich per Better-Auth an (Session-Cookie). Nach{" "}
-      <code className="rounded bg-surface-2 px-1">bun run seed</code> z. B.{" "}
-      <strong className="font-medium text-fg">system-admin@lenne.tech</strong> /{" "}
-      <strong className="font-medium text-fg">system-admin</strong> oder{" "}
-      <strong className="font-medium text-fg">admin@lenne.tech</strong> /{" "}
-      <strong className="font-medium text-fg">admin</strong>.
+      Sign in via Better Auth (session cookie). This page requires a valid operator session with the
+      right permissions.
     </p>
   );
 }

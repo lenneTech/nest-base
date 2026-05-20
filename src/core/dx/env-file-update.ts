@@ -62,7 +62,7 @@ export function planEnvFileUpdate(input: EnvUpdateInput): EnvUpdatePlan {
     }
   }
   // Append under a managed marker so the auto-managed area stays grouped.
-  const marker = "# Managed by /dev/features";
+  const marker = "# Managed by /hub/features";
   const hasMarker = stripped.some((l) => l.trim() === marker);
   const block: string[] = [];
   if (stripped.length > 0 && stripped[stripped.length - 1] !== "") block.push("");

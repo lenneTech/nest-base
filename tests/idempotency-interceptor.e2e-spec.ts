@@ -3,7 +3,9 @@ import { Test } from "@nestjs/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { Public } from "../src/core/permissions/public.decorator.js";
-import { hubReq } from "./helpers/hub-request.js";
+import { hubReqScoped, pinHubTestAuthEnv } from "./helpers/hub-request.js";
+
+const TENANT = "11111111-1111-1111-1111-111111111111";
 
 /**
  * E2E · Idempotency-Key interceptor end-to-end (CF.STORAGE.01 — iter-180).
@@ -42,13 +44,12 @@ class IdempotencyProbeController {
 
 describe("E2E · Idempotency-Key interceptor through HTTP layer", () => {
   let app: INestApplication;
+  let hub: Awaited<ReturnType<typeof hubReqScoped>>;
   const originalSecret = process.env.BETTER_AUTH_SECRET;
   const originalBaseUrl = process.env.APP_BASE_URL;
 
   beforeAll(async () => {
-    process.env.BETTER_AUTH_SECRET =
-      "test-better-auth-secret-for-testing-purposes-only-1234567890abcd";
-    process.env.APP_BASE_URL = "http://localhost:3000";
+    pinHubTestAuthEnv();
     const { AppModule } = await import("../src/core/app/app.module.js");
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
@@ -71,6 +72,7 @@ describe("E2E · Idempotency-Key interceptor through HTTP layer", () => {
       ],
     });
     await app.init();
+    hub = await hubReqScoped(app, TENANT);
   });
 
   afterAll(async () => {
@@ -84,7 +86,7 @@ describe("E2E · Idempotency-Key interceptor through HTTP layer", () => {
   it("first POST with Idempotency-Key runs the handler (no replay header)", async () => {
     invocations = 0;
     const key = `e2e-${crypto.randomUUID()}`;
-    const res = await hubReq(app)
+    const res = await hub
       .post("/hub/idempotency-probe")
       .set("Idempotency-Key", key)
       .set("Content-Type", "application/json")
@@ -101,7 +103,7 @@ describe("E2E · Idempotency-Key interceptor through HTTP layer", () => {
     const key = `e2e-${crypto.randomUUID()}`;
     const body = { value: "replayable", nested: { x: 1, y: ["a", "b"] } };
 
-    const first = await hubReq(app)
+    const first = await hub
       .post("/hub/idempotency-probe")
       .set("Idempotency-Key", key)
       .set("Content-Type", "application/json")
@@ -110,7 +112,7 @@ describe("E2E · Idempotency-Key interceptor through HTTP layer", () => {
     expect(first.body.invocation).toBe(1);
     expect(invocations).toBe(1);
 
-    const second = await hubReq(app)
+    const second = await hub
       .post("/hub/idempotency-probe")
       .set("Idempotency-Key", key)
       .set("Content-Type", "application/json")
@@ -128,7 +130,7 @@ describe("E2E · Idempotency-Key interceptor through HTTP layer", () => {
     invocations = 0;
     const key = `e2e-${crypto.randomUUID()}`;
 
-    const first = await hubReq(app)
+    const first = await hub
       .post("/hub/idempotency-probe")
       .set("Idempotency-Key", key)
       .set("Content-Type", "application/json")
@@ -136,7 +138,7 @@ describe("E2E · Idempotency-Key interceptor through HTTP layer", () => {
     expect(first.status).toBe(201);
     expect(invocations).toBe(1);
 
-    const conflict = await hubReq(app)
+    const conflict = await hub
       .post("/hub/idempotency-probe")
       .set("Idempotency-Key", key)
       .set("Content-Type", "application/json")
@@ -155,11 +157,11 @@ describe("E2E · Idempotency-Key interceptor through HTTP layer", () => {
 
   it("requests without Idempotency-Key bypass the interceptor (every call runs the handler)", async () => {
     invocations = 0;
-    const a = await hubReq(app)
+    const a = await hub
       .post("/hub/idempotency-probe")
       .set("Content-Type", "application/json")
       .send({ value: "no-key-1" });
-    const b = await hubReq(app)
+    const b = await hub
       .post("/hub/idempotency-probe")
       .set("Content-Type", "application/json")
       .send({ value: "no-key-2" });
@@ -176,12 +178,12 @@ describe("E2E · Idempotency-Key interceptor through HTTP layer", () => {
     const k2 = `e2e-${crypto.randomUUID()}`;
     const body = { value: "shared-body" };
 
-    const r1 = await hubReq(app)
+    const r1 = await hub
       .post("/hub/idempotency-probe")
       .set("Idempotency-Key", k1)
       .set("Content-Type", "application/json")
       .send(body);
-    const r2 = await hubReq(app)
+    const r2 = await hub
       .post("/hub/idempotency-probe")
       .set("Idempotency-Key", k2)
       .set("Content-Type", "application/json")

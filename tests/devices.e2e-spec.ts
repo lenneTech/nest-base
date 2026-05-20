@@ -13,8 +13,6 @@ const SILENT_LOGGER: LoggerService = {
   verbose() {},
 };
 
-const TENANT = "11111111-1111-1111-1111-111111111111";
-
 const UA_CHROME =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36";
 const UA_SAFARI =
@@ -138,7 +136,6 @@ describe("E2E · Device-handling", () => {
     const res = await request(app.getHttpServer())
       .get("/api/me/devices")
       .set("user-agent", UA_CHROME)
-      .set("x-tenant-id", TENANT)
       .set("cookie", joinCookies(cookies));
     expect(res.status).toBe(200);
     const list = res.body as Array<{ id: string; deviceLabel: string; current: boolean }>;
@@ -161,7 +158,6 @@ describe("E2E · Device-handling", () => {
     const list = await request(app.getHttpServer())
       .get("/api/me/devices")
       .set("user-agent", UA_CHROME)
-      .set("x-tenant-id", TENANT)
       .set("cookie", joinCookies(cookies));
     const items = list.body as Array<{ id: string; current: boolean }>;
     // Pick a non-current row to revoke (otherwise the next request
@@ -172,7 +168,6 @@ describe("E2E · Device-handling", () => {
     const del = await request(app.getHttpServer())
       .delete(`/api/me/devices/${target.id}`)
       .set("user-agent", UA_CHROME)
-      .set("x-tenant-id", TENANT)
       .set("cookie", joinCookies(cookies));
     expect([200, 204]).toContain(del.status);
     if (del.status === 200) {

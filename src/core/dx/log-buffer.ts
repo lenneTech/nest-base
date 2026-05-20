@@ -61,7 +61,7 @@ export class LogBuffer {
 
 /**
  * Process-wide singleton. The logger factory writes every record here
- * via a pino multistream destination; the dev-hub controller reads
+ * via a pino multistream destination; the Hub controller reads
  * from it. In tests, prefer constructing a fresh `LogBuffer` directly.
  */
 let singleton: LogBuffer | undefined;

@@ -4,7 +4,11 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { bootstrap } from "../src/core/app/bootstrap.js";
 import { PrismaService } from "../src/core/prisma/prisma.service.js";
-
+import {
+  createApiTestSession,
+  provisionApiTestTenant,
+  type ApiTestSession,
+} from "./helpers/api-request.js";
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 
 /**
@@ -17,7 +21,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let tenantId: string;
-  let sessionCookie: string;
+  let session: ApiTestSession;
   const originalEnv: Record<string, string | undefined> = {};
   // Per-suite SUITE_TAG prefix on policy names so concurrent specs
   // writing to the same `policies` / `permissions` / `role_policies`
@@ -55,32 +59,12 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
       },
     });
 
-    const email = `admin-crud-e2e-${Date.now()}@example.com`;
-    const signUp = await request(app.getHttpServer())
-      .post("/api/auth/sign-up/email")
-      .set("content-type", "application/json")
-      .send({ email, password: "password-12345", name: "Admin CRUD E2E" });
-    if (signUp.status !== 200) {
-      throw new Error(`sign-up failed (${signUp.status}): ${JSON.stringify(signUp.body)}`);
-    }
-    const setCookie = signUp.headers["set-cookie"];
-    const cookies: string[] | undefined = Array.isArray(setCookie)
-      ? (setCookie as string[])
-      : typeof setCookie === "string"
-        ? [setCookie]
-        : undefined;
-    sessionCookie = (cookies ?? []).map((c) => c.split(";")[0]).join("; ");
-    const userId = signUp.body.user.id as string;
-    // Create a BA member row so resolveRequestTenantId validates membership.
-    await prisma.member.create({
-      data: {
-        id: crypto.randomUUID(),
-        userId,
-        organizationId: tenantId,
-        role: "owner",
-        createdAt: new Date(),
-      },
+    session = await createApiTestSession(app.getHttpServer(), {
+      organizationId: tenantId,
+      email: `admin-crud-e2e-${Date.now()}@example.com`,
+      name: "Admin CRUD E2E",
     });
+    await provisionApiTestTenant(prisma, app.getHttpServer(), session, tenantId);
   });
 
   afterAll(async () => {
@@ -113,42 +97,37 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
   });
 
   it("persists a Role through POST /admin/roles → GET /admin/roles", async () => {
-    const created = await request(app.getHttpServer())
+    const created = await session.agent
       .post("/admin/roles")
-      .set("x-tenant-id", tenantId)
-      .set("cookie", sessionCookie)
+
       .set("x-test-ability", "full")
       .send({ name: `role-${Date.now()}`, tenantId, description: "iter-115" });
     expect(created.status).toBe(201);
     expect(typeof created.body.id).toBe("string");
-    const list = await request(app.getHttpServer())
+    const list = await session.agent
       .get("/admin/roles")
-      .set("x-tenant-id", tenantId)
-      .set("cookie", sessionCookie)
+
       .set("x-test-ability", "full");
     expect(list.status).toBe(200);
     expect(list.body.some((r: { id: string }) => r.id === created.body.id)).toBe(true);
   });
 
   it("creates a Policy + Permission and links them via /admin/permissions/attach", async () => {
-    const policy = await request(app.getHttpServer())
+    const policy = await session.agent
       .post("/admin/policies")
-      .set("x-tenant-id", tenantId)
-      .set("cookie", sessionCookie)
+
       .set("x-test-ability", "full")
       .send({ name: policyName(`policy-${Date.now()}`), description: "test policy" });
     expect(policy.status).toBe(201);
-    const role = await request(app.getHttpServer())
+    const role = await session.agent
       .post("/admin/roles")
-      .set("x-tenant-id", tenantId)
-      .set("cookie", sessionCookie)
+
       .set("x-test-ability", "full")
       .send({ name: `attach-role-${Date.now()}`, tenantId });
     expect(role.status).toBe(201);
-    const perm = await request(app.getHttpServer())
+    const perm = await session.agent
       .post("/admin/permissions")
-      .set("x-tenant-id", tenantId)
-      .set("cookie", sessionCookie)
+
       .set("x-test-ability", "full")
       .send({
         policyId: policy.body.id,
@@ -159,35 +138,40 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     expect(perm.status).toBe(201);
     expect(perm.body.resource).toBe("Article");
 
-    const link = await request(app.getHttpServer())
+    const link = await session.agent
       .post("/admin/permissions/attach")
-      .set("x-tenant-id", tenantId)
-      .set("cookie", sessionCookie)
+
       .set("x-test-ability", "full")
       .send({ roleId: role.body.id, policyId: policy.body.id });
     expect(link.status).toBe(201);
 
-    const detach = await request(app.getHttpServer())
+    const matrix = await session.agent
+      .get("/admin/permissions/matrix.json")
+
+      .set("x-test-ability", "full");
+    expect(matrix.status).toBe(200);
+    expect(matrix.body.resources).toContain("Article");
+    expect(matrix.body.roleIds).toContain(role.body.id);
+    expect(matrix.body.matrix.Article[role.body.id].actions).toContain("READ");
+
+    const detach = await session.agent
       .delete(`/admin/permissions/attach/${role.body.id}/${policy.body.id}`)
-      .set("x-tenant-id", tenantId)
-      .set("cookie", sessionCookie)
+
       .set("x-test-ability", "full");
     expect(detach.status).toBe(200);
     expect(detach.body.removed).toBe(true);
   });
 
   it("rejects an unknown action with 400", async () => {
-    const policy = await request(app.getHttpServer())
+    const policy = await session.agent
       .post("/admin/policies")
-      .set("x-tenant-id", tenantId)
-      .set("cookie", sessionCookie)
+
       .set("x-test-ability", "full")
       .send({ name: policyName(`policy-bad-${Date.now()}`) });
     expect(policy.status).toBe(201);
-    const res = await request(app.getHttpServer())
+    const res = await session.agent
       .post("/admin/permissions")
-      .set("x-tenant-id", tenantId)
-      .set("cookie", sessionCookie)
+
       .set("x-test-ability", "full")
       .send({
         policyId: policy.body.id,
@@ -198,43 +182,44 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
   });
 
   it("DELETE /admin/roles/:id removes the row", async () => {
-    const created = await request(app.getHttpServer())
+    const created = await session.agent
       .post("/admin/roles")
-      .set("x-tenant-id", tenantId)
-      .set("cookie", sessionCookie)
+
       .set("x-test-ability", "full")
       .send({ name: `to-delete-${Date.now()}`, tenantId });
     const id = created.body.id as string;
-    const removed = await request(app.getHttpServer())
+    const removed = await session.agent
       .delete(`/admin/roles/${id}`)
-      .set("x-tenant-id", tenantId)
-      .set("cookie", sessionCookie)
+
       .set("x-test-ability", "full");
     expect(removed.status).toBe(200);
     expect(removed.body.removed).toBe(true);
-    const after = await request(app.getHttpServer())
+    const after = await session.agent
       .get(`/admin/roles/${id}`)
-      .set("x-tenant-id", tenantId)
-      .set("cookie", sessionCookie)
+
       .set("x-test-ability", "full");
     expect(after.status).toBe(404);
   });
 
-  it("400s on /admin/roles GET when x-tenant-id header is missing (iter-202 reviewer-G3 closure)", async () => {
-    // Iter-202 closes the reviewer's G3: `RoleAdminController` now
-    // requires the header at every read/write, mirroring the iter-201
-    // `auditBrowserJson` defense-in-depth pattern.
-    const res = await request(app.getHttpServer())
-      .get("/admin/roles")
-      .set("cookie", sessionCookie)
-      .set("x-test-ability", "full");
+  it("400s on /admin/roles GET when session has no active organization", async () => {
+    const agent = request.agent(app.getHttpServer());
+    const signUp = await agent
+      .post("/api/auth/sign-up/email")
+      .set("content-type", "application/json")
+      .send({
+        email: `admin-crud-no-org-${Date.now()}@example.com`,
+        password: "password-12345",
+        name: "No Org",
+      });
+    expect(signUp.status).toBe(200);
+    const res = await agent.get("/admin/roles").set("x-test-ability", "full");
     expect(res.status).toBe(400);
     expect(JSON.stringify(res.body)).toMatch(/tenant/i);
   });
 
-  it("GET /admin/roles returns ONLY rows matching the x-tenant-id header — cross-tenant rows do NOT leak", async () => {
+  it("GET /admin/roles returns ONLY rows for the active session org — cross-tenant rows do NOT leak", async () => {
     // Insert a role under a DIFFERENT tenant directly via Prisma. The
-    // GET /admin/roles call (with OUR x-tenant-id header) must not
+    // GET /admin/roles call (with OUR session tenant) must not
     // include it, even though the same DB connection sees both rows.
     const otherId = crypto.randomUUID();
     const otherTenant = await prisma.organization.create({
@@ -249,10 +234,9 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
       data: { name: `other-leak-${crypto.randomUUID()}`, tenantId: otherTenant.id },
     });
     try {
-      const res = await request(app.getHttpServer())
+      const res = await session.agent
         .get("/admin/roles")
-        .set("x-tenant-id", tenantId)
-        .set("cookie", sessionCookie)
+
         .set("x-test-ability", "full");
       expect(res.status).toBe(200);
       const ids = (res.body as Array<{ id: string }>).map((r) => r.id);
@@ -280,10 +264,9 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
       data: { name: `other-id-probe-${crypto.randomUUID()}`, tenantId: otherTenant.id },
     });
     try {
-      const res = await request(app.getHttpServer())
+      const res = await session.agent
         .get(`/admin/roles/${otherRole.id}`)
-        .set("x-tenant-id", tenantId)
-        .set("cookie", sessionCookie)
+
         .set("x-test-ability", "full");
       expect(res.status).toBe(404);
     } finally {
@@ -292,10 +275,8 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     }
   });
 
-  it("POST /admin/roles rejects a body.tenantId that does not match the x-tenant-id header", async () => {
-    // Defense-in-depth: a malicious / buggy operator could pass a
-    // different tenantId in the body to escape their scope. Iter-202
-    // surfaces a 400 instead of trusting body over header.
+  it("POST /admin/roles rejects a body.tenantId that does not match the session tenant", async () => {
+    // Defense-in-depth: body.tenantId must match ALS tenant from set-active.
     const otherId3 = crypto.randomUUID();
     const otherTenant = await prisma.organization.create({
       data: {
@@ -306,10 +287,9 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
       },
     });
     try {
-      const res = await request(app.getHttpServer())
+      const res = await session.agent
         .post("/admin/roles")
-        .set("x-tenant-id", tenantId)
-        .set("cookie", sessionCookie)
+
         .set("x-test-ability", "full")
         .send({ name: `mismatch-${Date.now()}`, tenantId: otherTenant.id });
       expect(res.status).toBe(400);
@@ -336,10 +316,9 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
       data: { name: `other-delete-${crypto.randomUUID()}`, tenantId: otherTenant.id },
     });
     try {
-      const res = await request(app.getHttpServer())
+      const res = await session.agent
         .delete(`/admin/roles/${otherRole.id}`)
-        .set("x-tenant-id", tenantId)
-        .set("cookie", sessionCookie)
+
         .set("x-test-ability", "full");
       expect(res.status).toBe(404);
       // Verify the row still exists.
@@ -351,14 +330,12 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     }
   });
 
-  it("400s on /admin/roles when x-tenant-id is not a valid UUID (iter-202 reviewer feedback)", async () => {
-    const res = await request(app.getHttpServer())
+  it("GET /admin/roles succeeds with session tenant even when a stray x-tenant-id header is malformed", async () => {
+    const res = await session.agent
       .get("/admin/roles")
       .set("x-tenant-id", "not-a-uuid")
-      .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
-    expect(res.status).toBe(400);
-    expect(JSON.stringify(res.body)).toMatch(/uuid|tenant/i);
+    expect(res.status).toBe(200);
   });
 
   it("/admin/permissions/attach refuses to attach a global Policy to a foreign tenant's Role (404)", async () => {
@@ -377,18 +354,16 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     const otherRole = await prisma.role.create({
       data: { name: `attach-foreign-${crypto.randomUUID()}`, tenantId: otherTenant.id },
     });
-    const policy = await request(app.getHttpServer())
+    const policy = await session.agent
       .post("/admin/policies")
-      .set("x-tenant-id", tenantId)
-      .set("cookie", sessionCookie)
+
       .set("x-test-ability", "full")
       .send({ name: policyName(`policy-attach-foreign-${Date.now()}`) });
     expect(policy.status).toBe(201);
     try {
-      const attach = await request(app.getHttpServer())
+      const attach = await session.agent
         .post("/admin/permissions/attach")
-        .set("x-tenant-id", tenantId)
-        .set("cookie", sessionCookie)
+
         .set("x-test-ability", "full")
         .send({ roleId: otherRole.id, policyId: policy.body.id });
       expect(attach.status).toBe(404);
@@ -424,10 +399,9 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
       data: { roleId: otherRole.id, policyId: policy.id },
     });
     try {
-      const res = await request(app.getHttpServer())
+      const res = await session.agent
         .delete(`/admin/permissions/attach/${otherRole.id}/${policy.id}`)
-        .set("x-tenant-id", tenantId)
-        .set("cookie", sessionCookie)
+
         .set("x-test-ability", "full");
       expect(res.status).toBe(404);
       // Verify the link survives.
@@ -445,21 +419,27 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     }
   });
 
-  it("POST /admin/permissions/test 400s when x-tenant-id is missing", async () => {
-    const res = await request(app.getHttpServer())
-      .post("/admin/permissions/test")
-      .set("cookie", sessionCookie)
-      .set("x-test-ability", "full")
+  it("POST /admin/permissions/test 400s when session has no active organization", async () => {
+    const agent = request.agent(app.getHttpServer());
+    const signUp = await agent
+      .post("/api/auth/sign-up/email")
+      .set("content-type", "application/json")
       .send({
-        userId: "00000000-0000-0000-0000-000000000099",
-        tenantId,
-        action: "read",
-        subject: "Article",
+        email: `admin-perm-test-no-org-${Date.now()}@example.com`,
+        password: "password-12345",
+        name: "Perm Test No Org",
       });
+    expect(signUp.status).toBe(200);
+    const res = await agent.post("/admin/permissions/test").set("x-test-ability", "full").send({
+      userId: "00000000-0000-0000-0000-000000000099",
+      tenantId,
+      action: "read",
+      subject: "Article",
+    });
     expect(res.status).toBe(400);
   });
 
-  it("POST /admin/permissions/test rejects body.tenantId mismatch with header", async () => {
+  it("POST /admin/permissions/test rejects body.tenantId mismatch with session tenant", async () => {
     const otherId7 = crypto.randomUUID();
     const otherTenant = await prisma.organization.create({
       data: {
@@ -470,10 +450,9 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
       },
     });
     try {
-      const res = await request(app.getHttpServer())
+      const res = await session.agent
         .post("/admin/permissions/test")
-        .set("x-tenant-id", tenantId)
-        .set("cookie", sessionCookie)
+
         .set("x-test-ability", "full")
         .send({
           userId: "00000000-0000-0000-0000-000000000099",
@@ -489,10 +468,9 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
   });
 
   it("POST /admin/permissions/test echoes (userId, tenantId, action, subject) + ability decision", async () => {
-    const res = await request(app.getHttpServer())
+    const res = await session.agent
       .post("/admin/permissions/test")
-      .set("x-tenant-id", tenantId)
-      .set("cookie", sessionCookie)
+
       .set("x-test-ability", "full")
       .send({
         userId: "00000000-0000-0000-0000-000000000099",

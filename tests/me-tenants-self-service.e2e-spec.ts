@@ -248,13 +248,14 @@ describe("E2E · /me/tenants + POST /tenants self-service", () => {
     const tenantId = createTenant.body.id as string;
     createdTenantIds.push(tenantId);
 
-    // Now hit a `@Can("create", "Example")` route. The header carries
-    // the freshly-created tenant; if either fix is missing, the
-    // ability resolves to empty and CanGuard returns 403.
+    const cookies = signUp.headers["set-cookie"] as string[] | undefined;
+    const sessionCookie = cookies?.map((c) => c.split(";")[0]).join("; ") ?? "";
+    const { setActiveOrganization } = await import("./helpers/tenant-session.js");
+    await setActiveOrganization(app.getHttpServer(), sessionCookie, tenantId);
+
     const createExample = await agent
       .post("/api/examples")
       .set("content-type", "application/json")
-      .set("x-tenant-id", tenantId)
       .send({ name: "First example", status: "draft" });
 
     expect(createExample.status, JSON.stringify(createExample.body)).toBe(201);

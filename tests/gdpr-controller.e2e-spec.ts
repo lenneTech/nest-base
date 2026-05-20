@@ -7,7 +7,6 @@ import { GdprController } from "../src/core/gdpr/gdpr.controller.js";
 import { CAN_METADATA_KEY } from "../src/core/permissions/can.guard.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
-const TENANT = "11111111-1111-1111-1111-111111111111";
 
 /**
  * GDPR endpoints — `/me/export` (Art. 15) and `DELETE /me/account`
@@ -27,24 +26,16 @@ describe("GdprController · /me/*", () => {
   });
 
   it("GET /me/export 403s when unauthenticated", async () => {
-    const res = await request(app.getHttpServer()).get("/api/me/export").set("x-tenant-id", TENANT);
+    const res = await request(app.getHttpServer()).get("/api/me/export");
     expect(res.status).toBe(403);
   });
 
   it("DELETE /me/account 403s when unauthenticated", async () => {
-    const res = await request(app.getHttpServer())
-      .delete("/api/me/account")
-      .set("x-tenant-id", TENANT);
+    const res = await request(app.getHttpServer()).delete("/api/me/account");
     expect(res.status).toBe(403);
   });
 
   describe("@Can() metadata wiring (audit gate)", () => {
-    // Why: /dev/routes flagged `/me/export` and `/me/account` as
-    // unguarded because they had no @Can() decorator — only a
-    // `req.user` nullcheck. That bypasses the CASL ability +
-    // output-pipeline + permission-tester surfaces. Both handlers
-    // must declare their (action, subject) so the unified perm model
-    // applies.
     it("GET /me/export carries @Can('export', 'GdprData')", () => {
       const meta = Reflect.getMetadata(CAN_METADATA_KEY, GdprController.prototype.export);
       expect(meta).toEqual({ action: "export", subject: "GdprData" });

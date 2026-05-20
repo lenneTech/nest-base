@@ -96,7 +96,7 @@ Failing the gate forces more tests, **not** more exclusions.
 | `ci(<scope>):` | CI / build pipeline |
 | `perf(<scope>):` | Measurable performance improvement |
 
-Scope examples: `auth`, `webhooks`, `dev-hub`, `features`,
+Scope examples: `auth`, `webhooks`, `hub`, `features`,
 `<resource-name>` for module changes.
 
 ## What happens after you open a PR

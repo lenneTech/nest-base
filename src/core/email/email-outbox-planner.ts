@@ -42,7 +42,7 @@ export interface EmailOutboxRetryConfig {
  * Aligned with issue #11's "max 5 attempts, then dead-letter"
  * acceptance criterion. Numbers picked so a Brevo / SMTP outage <2h
  * is recoverable without manual replay; longer outages surface as
- * dead-letter records that operators can inspect via the dev-hub.
+ * dead-letter records that operators can inspect via the hub.
  */
 export const DEFAULT_EMAIL_OUTBOX_RETRY: EmailOutboxRetryConfig = {
   initialDelayMs: 60_000,

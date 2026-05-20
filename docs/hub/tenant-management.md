@@ -206,10 +206,12 @@ As of issue #118, tenants are stored in Better-Auth's Organization tables:
 | `invitation` | Pending invitations with expiry and status |
 
 Tenant context resolution: `session.activeOrganizationId` replaces the
-former `User.tenantId` column. The `TenantInterceptor` reads
-`session.activeOrganizationId` from the Better-Auth session and populates
-the AsyncLocalStorage context that `PrismaService.runWithRlsTenant()` uses
-to set the Postgres GUC `app.tenant_id` for RLS.
+former `User.tenantId` column. Operators activate an org via
+`POST /api/auth/organization/set-active` (wired in the Hub SPA via
+`bootstrapHubOperatorSession`). The `TenantInterceptor` reads the
+session field and populates AsyncLocalStorage; `PrismaService.runWithRlsTenant()`
+sets the Postgres GUC `app.tenant_id` for RLS. The `x-tenant-id` header
+is not read on admin routes.
 
 ---
 

@@ -66,7 +66,7 @@ export class ErrorCodeController {
     // React `/errors` page fetches `/errors?format=json` and renders
     // the catalogue through the same `JsonViewer` component the legacy
     // `renderJsonViewerPage` wrapped. This keeps the Dev-Portal SPA
-    // the single owner of the dev-hub chrome.
+    // the single owner of the Hub chrome.
     res
       .type("text/html; charset=utf-8")
       .send(

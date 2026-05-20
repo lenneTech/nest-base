@@ -12,20 +12,21 @@ There is **no** separate Hub operator password or `hub.session` cookie anymore.
 
 1. Open `/` (or any protected `/hub/*` / `/admin/*` URL — you are redirected to `/`).
 2. Sign in with email + password (`POST /api/auth/sign-in/email`, session cookie).
-3. The SPA checks `GET /hub/portal-access.json` (requires `read DevHub`).
-4. On success you land on `/hub` (or the page you requested).
+3. The SPA calls `bootstrapHubOperatorSession()` (Better-Auth `set-active`
+   for the operator's organization) when multi-tenancy is enabled.
+4. The SPA checks `GET /hub/portal-access.json` (`hub` + `tenantAdmin` flags).
+5. On success you land on `/hub` (system admin) or `/admin/*` (tenant admin).
 
-**After setup** (`bun run setup` runs migrate + seed by default; or
-`bun run setup --bootstrap` on an existing `.env`):
+**After setup** (`bun run setup` runs migrate + seed by default), demo accounts are
+created with deterministic roles. **`bun run seed` prints emails and passwords to the
+terminal only** — the Hub login screen and error pages never name accounts (defense
+against account enumeration).
 
-| Email | Password | Hub (`read DevHub`) | Admin panel |
-| --- | --- | --- | --- |
-| `system-admin@lenne.tech` | `system-admin` | yes (`manage:all`) | yes |
-| `admin@lenne.tech` | `admin` | yes | yes |
-| `user@lenne.tech` | `user` | **no** | **no** |
-
-The demo **User** role is for app tenants, not the operator Hub. Use **Admin** or
-**System Admin** for cockpit access.
+| Capability | Who (role) |
+| --- | --- |
+| Hub (`/hub/*`) | System Admin (`manage:all`) |
+| Admin panel (`/admin/*`) | System Admin or tenant Admin |
+| Neither | demo User (app tenant) |
 
 ---
 
@@ -33,14 +34,13 @@ The demo **User** role is for app tenants, not the operator Hub. Use **Admin** o
 
 | Subject | Typical use |
 | --- | --- |
-| `DevHub` | `/hub/*` cockpit, diagnostics, feature toggles, logs, … |
+| `Hub` | `/hub/*` cockpit, diagnostics, feature toggles, logs, … |
 | `User`, `TenantAdmin`, `Role`, … | `/admin/*` CRUD and inspectors |
 
 Rules are seeded in `src/core/setup/seed-plan.ts`.
 
-**Breaking change (Hub password removed):** if your database was seeded before the
-Better-Auth-only Hub, run `bun run seed` again after `git pull` so the Admin policy
-gains `read DevHub` and tenant-admin subjects. Seeding is idempotent.
+After permission changes, run `bun run seed` (or `bun run reset`) and restart
+`bun run dev` so in-memory CASL caches refresh.
 
 ---
 

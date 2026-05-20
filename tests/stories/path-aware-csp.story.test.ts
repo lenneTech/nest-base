@@ -3,7 +3,9 @@ import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { isJsonShapedResponse } from "../../src/core/http/security-headers.js";
-import { hubReq } from "../helpers/hub-request.js";
+import { hubReqScoped, pinHubTestAuthEnv } from "../helpers/hub-request.js";
+
+const TENANT = "11111111-1111-1111-1111-111111111111";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 
@@ -36,13 +38,16 @@ describe("Story · path-aware CSP (no unsafe-inline on JSON APIs)", () => {
   });
 
   let app: INestApplication;
+  let hub: Awaited<ReturnType<typeof hubReqScoped>>;
   let previousNodeEnv: string | undefined;
 
   beforeAll(async () => {
     previousNodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = "development";
+    pinHubTestAuthEnv();
     const { bootstrap } = await import("../../src/core/app/bootstrap.js");
     app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
+    hub = await hubReqScoped(app, TENANT);
   });
 
   afterAll(async () => {
@@ -64,7 +69,7 @@ describe("Story · path-aware CSP (no unsafe-inline on JSON APIs)", () => {
   });
 
   it("HTML dev page (/admin/audit) carries the lenient DEV CSP (unsafe-inline allowed)", async () => {
-    const res = await hubReq(app).get("/admin/audit").set("Accept", "text/html");
+    const res = await hub.get("/admin/audit").set("Accept", "text/html");
     // The page may 200 or redirect (auth) but the CSP header is always
     // emitted by helmet — that's the contract under test.
     const csp = res.headers["content-security-policy"];
@@ -77,7 +82,7 @@ describe("Story · path-aware CSP (no unsafe-inline on JSON APIs)", () => {
     // under the /hub/ prefix. The path-aware override keys on the
     // Accept header + the response Content-Type so JSON-shaped
     // responses always emit the strict CSP regardless of route prefix.
-    const res = await hubReq(app).get("/hub/outbox.json").set("Accept", "application/json");
+    const res = await hub.get("/hub/outbox.json").set("Accept", "application/json");
     if (res.status === 200 || res.status === 401 || res.status === 403) {
       const csp = res.headers["content-security-policy"];
       expect(csp).toBeDefined();

@@ -5,7 +5,9 @@ import {
   SCHEDULED_JOB_REGISTRY,
   type ScheduledJobRegistry,
 } from "../../src/core/jobs/scheduled-job.registry.js";
-import { hubReq } from "../helpers/hub-request.js";
+import { hubReqScoped, pinHubTestAuthEnv } from "../helpers/hub-request.js";
+
+const TENANT = "11111111-1111-1111-1111-111111111111";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 
@@ -31,6 +33,7 @@ describe("Story · ScheduledJob DiscoveryService walk", () => {
   let registry: ScheduledJobRegistry;
 
   beforeAll(async () => {
+    pinHubTestAuthEnv();
     const { bootstrap } = await import("../../src/core/app/bootstrap.js");
     app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
     registry = app.get<ScheduledJobRegistry>(SCHEDULED_JOB_REGISTRY);
@@ -68,8 +71,10 @@ describe("Story · ScheduledJob DiscoveryService walk", () => {
   it("GET /hub/scheduled-jobs.json surfaces the registry", async () => {
     const previousNodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = "development";
+    pinHubTestAuthEnv();
     try {
-      const res = await hubReq(app).get("/hub/scheduled-jobs.json");
+      const hub = await hubReqScoped(app, TENANT);
+      const res = await hub.get("/hub/scheduled-jobs.json");
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body.jobs)).toBe(true);
       const names = (res.body.jobs as Array<{ name: string }>).map((j) => j.name).sort();

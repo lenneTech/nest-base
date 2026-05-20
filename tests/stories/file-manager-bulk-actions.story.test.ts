@@ -58,13 +58,13 @@ describe("Story · FileManagerPage bulk-action UI contract", () => {
     expect(PAGE_SRC).toMatch(/invalidateQueries\(\{ queryKey: \["dev", "files", "list"\] \}\)/);
   });
 
-  it("toast format encodes both succeeded + failed counts (German UI)", () => {
-    expect(PAGE_SRC).toMatch(/Datei\(en\) gelöscht/);
-    expect(PAGE_SRC).toMatch(/fehlgeschlagen/);
+  it("toast format encodes both succeeded + failed counts", () => {
+    expect(PAGE_SRC).toMatch(/file\(s\) deleted/);
+    expect(PAGE_SRC).toMatch(/failed/);
   });
 
   it("guards bulk-delete with a window.confirm prompt that includes the count", () => {
-    expect(PAGE_SRC).toMatch(/window\.confirm\(.*Datei\(en\) löschen/);
+    expect(PAGE_SRC).toMatch(/window\.confirm\(`Delete \$\{ids\.length\} file\(s\)\?`\)/);
   });
 
   it("Auswahl-leeren button is disabled when nothing is selected", () => {

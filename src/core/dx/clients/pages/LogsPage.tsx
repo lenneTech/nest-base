@@ -125,53 +125,50 @@ function LogsBody({ initialRecords }: { initialRecords: LogRecord[] }): ReactNod
           {statusText}
         </div>
       </div>
-      <CardContent className="p-0">
-        <div
-          className="relative max-h-[65dvh] min-h-56 overflow-auto"
-          ref={scrollerRef}
-          onScroll={(e) => {
+      <CardContent className="relative p-0">
+        <Table
+          containerRef={scrollerRef}
+          onContainerScroll={(e) => {
             const node = e.currentTarget;
             const atBottom =
               node.scrollHeight - node.scrollTop - node.clientHeight <= TAIL_THRESHOLD_PX;
             setFollowTail(atBottom);
           }}
         >
-          <Table>
-            <TableHeader className="sticky top-0 z-10 bg-surface-2">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-24">Time</TableHead>
+              <TableHead className="w-20">Level</TableHead>
+              <TableHead>Message</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {records.length === 0 ? (
               <TableRow>
-                <TableHead className="w-24">Time</TableHead>
-                <TableHead className="w-20">Level</TableHead>
-                <TableHead>Message</TableHead>
+                <TableCell colSpan={3} className="text-center text-fg-muted">
+                  No records yet — interact with the API and they'll appear here.
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {records.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={3} className="text-center text-fg-muted">
-                    No records yet — interact with the API and they'll appear here.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                records.map((r, i) => <Row key={`${r.seq ?? i}`} record={r} />)
-              )}
-            </TableBody>
-          </Table>
-          {!followTail ? (
-            <Button
-              type="button"
-              variant="default"
-              size="sm"
-              className="sticky bottom-3 left-1/2 z-20 ml-[-3rem] mt-3"
-              onClick={() => {
-                setFollowTail(true);
-                const node = scrollerRef.current;
-                if (node) node.scrollTo({ top: node.scrollHeight, behavior: "smooth" });
-              }}
-            >
-              ↓ Jump to latest
-            </Button>
-          ) : null}
-        </div>
+            ) : (
+              records.map((r, i) => <Row key={`${r.seq ?? i}`} record={r} />)
+            )}
+          </TableBody>
+        </Table>
+        {!followTail ? (
+          <Button
+            type="button"
+            variant="default"
+            size="sm"
+            className="absolute bottom-3 left-1/2 z-20 -translate-x-1/2"
+            onClick={() => {
+              setFollowTail(true);
+              const node = scrollerRef.current;
+              if (node) node.scrollTo({ top: node.scrollHeight, behavior: "smooth" });
+            }}
+          >
+            ↓ Jump to latest
+          </Button>
+        ) : null}
       </CardContent>
     </Card>
   );

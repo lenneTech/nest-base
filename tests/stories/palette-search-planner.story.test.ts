@@ -19,34 +19,34 @@ import {
 } from "../../src/core/dx/palette-search-planner.js";
 
 const PAGES: readonly PalettePageEntry[] = [
-  { id: "dev-hub", title: "Dev Hub", href: "/hub", aliases: [], category: "Übersicht" },
+  { id: "hub", title: "Hub", href: "/hub", aliases: [], category: "Overview" },
   {
     id: "logs",
     title: "Logs",
     href: "/hub/logs",
-    aliases: ["Protokolle", "logging"],
-    category: "Übersicht",
+    aliases: ["protocols", "logging"],
+    category: "Overview",
   },
   {
     id: "migrations",
     title: "Migrations",
     href: "/hub/migrations",
     aliases: ["schema", "migrate"],
-    category: "Übersicht",
+    category: "Overview",
   },
   {
     id: "diagnostics",
     title: "Diagnostics",
     href: "/hub/diagnostics",
     aliases: ["health", "memory"],
-    category: "Übersicht",
+    category: "Overview",
   },
   {
     id: "features",
     title: "Features",
     href: "/hub/features",
     aliases: ["flags", "toggles"],
-    category: "Übersicht",
+    category: "Overview",
   },
   {
     id: "routes",
@@ -163,8 +163,8 @@ describe("Story · searchPalettePages (palette-search-planner)", () => {
     });
 
     it("alias substring also matches", () => {
-      // "Protokolle" is an alias of the logs page
-      const result = searchPalettePages({ query: "Protokolle", pages: PAGES });
+      // "protocols" is an alias of the logs page
+      const result = searchPalettePages({ query: "protocols", pages: PAGES });
       const logs = result.find((r) => r.id === "logs");
       expect(logs).toBeDefined();
     });

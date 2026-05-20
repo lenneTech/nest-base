@@ -135,8 +135,7 @@ if (!bootstrapResult.ok) {
 console.log("");
 console.log("[setup] ready.");
 console.log("  Start the dev server:  bun run dev");
-console.log("  Hub login (after seed):  system-admin@lenne.tech / system-admin");
-console.log("                         admin@lenne.tech / admin");
+console.log("  Hub login (after seed):  see credentials printed by `bun run seed`");
 console.log("  Sanity check:          bun run onboard");
 
 function readComposeProjectName(cwd: string): string | undefined {

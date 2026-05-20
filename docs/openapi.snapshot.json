@@ -45,7 +45,7 @@
     },
     "/hub/files": {
       "get": {
-        "operationId": "DevFilesController_page",
+        "operationId": "HubFiles_page",
         "parameters": [],
         "responses": {
           "200": {
@@ -53,13 +53,13 @@
           }
         },
         "tags": [
-          "DevFiles"
+          "Hub"
         ]
       }
     },
     "/hub/files/tree.json": {
       "get": {
-        "operationId": "DevFilesController_tree",
+        "operationId": "HubFiles_tree",
         "parameters": [],
         "responses": {
           "200": {
@@ -67,13 +67,13 @@
           }
         },
         "tags": [
-          "DevFiles"
+          "Hub"
         ]
       }
     },
     "/hub/files/list.json": {
       "get": {
-        "operationId": "DevFilesController_list",
+        "operationId": "HubFiles_list",
         "parameters": [],
         "responses": {
           "200": {
@@ -81,13 +81,13 @@
           }
         },
         "tags": [
-          "DevFiles"
+          "Hub"
         ]
       }
     },
     "/hub/files/breadcrumb.json": {
       "get": {
-        "operationId": "DevFilesController_breadcrumb",
+        "operationId": "HubFiles_breadcrumb",
         "parameters": [],
         "responses": {
           "200": {
@@ -95,13 +95,13 @@
           }
         },
         "tags": [
-          "DevFiles"
+          "Hub"
         ]
       }
     },
     "/admin/permissions/test": {
       "get": {
-        "operationId": "AdminSpaController_permissionsTestPage",
+        "operationId": "Admin_permissionsTestPage",
         "parameters": [],
         "responses": {
           "200": {
@@ -109,7 +109,7 @@
           }
         },
         "tags": [
-          "AdminSpa"
+          "Admin"
         ]
       },
       "post": {
@@ -127,7 +127,7 @@
     },
     "/admin/permissions/test.json": {
       "get": {
-        "operationId": "AdminSpaController_permissionsTestJson",
+        "operationId": "Admin_permissionsTestJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -135,13 +135,13 @@
           }
         },
         "tags": [
-          "AdminSpa"
+          "Admin"
         ]
       }
     },
     "/admin/webhooks": {
       "get": {
-        "operationId": "AdminSpaController_webhookInspectorPage",
+        "operationId": "Admin_webhookInspectorPage",
         "parameters": [],
         "responses": {
           "200": {
@@ -149,13 +149,13 @@
           }
         },
         "tags": [
-          "AdminSpa"
+          "Admin"
         ]
       }
     },
     "/admin/webhooks.json": {
       "get": {
-        "operationId": "AdminSpaController_webhookInspectorJson",
+        "operationId": "Admin_webhookInspectorJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -163,13 +163,13 @@
           }
         },
         "tags": [
-          "AdminSpa"
+          "Admin"
         ]
       }
     },
     "/admin/webhooks/aggregates.json": {
       "get": {
-        "operationId": "AdminSpaController_webhookAggregatesJson",
+        "operationId": "Admin_webhookAggregatesJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -177,36 +177,13 @@
           }
         },
         "tags": [
-          "AdminSpa"
-        ]
-      }
-    },
-    "/admin/webhooks/{id}.json": {
-      "get": {
-        "operationId": "AdminSpaController_webhookDeliveryDetailJson",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "AdminSpa"
+          "Admin"
         ]
       }
     },
     "/admin/webhooks/event-types.json": {
       "get": {
-        "operationId": "AdminSpaController_webhookEventTypesJson",
+        "operationId": "Admin_webhookEventTypesJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -214,13 +191,36 @@
           }
         },
         "tags": [
-          "AdminSpa"
+          "Admin"
+        ]
+      }
+    },
+    "/admin/webhooks/{id}.json": {
+      "get": {
+        "operationId": "Admin_webhookDeliveryDetailJson",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
         ]
       }
     },
     "/admin/webhooks/{id}/test": {
       "post": {
-        "operationId": "AdminSpaController_sendTestEvent",
+        "operationId": "Admin_sendTestEvent",
         "parameters": [
           {
             "name": "id",
@@ -237,13 +237,13 @@
           }
         },
         "tags": [
-          "AdminSpa"
+          "Admin"
         ]
       }
     },
     "/admin/webhooks/{id}/redeliver": {
       "post": {
-        "operationId": "AdminSpaController_redeliverWebhook",
+        "operationId": "Admin_redeliverWebhook",
         "parameters": [
           {
             "name": "id",
@@ -260,13 +260,13 @@
           }
         },
         "tags": [
-          "AdminSpa"
+          "Admin"
         ]
       }
     },
     "/admin/realtime": {
       "get": {
-        "operationId": "AdminSpaController_realtimeInspectorPage",
+        "operationId": "Admin_realtimeInspectorPage",
         "parameters": [],
         "responses": {
           "200": {
@@ -274,13 +274,13 @@
           }
         },
         "tags": [
-          "AdminSpa"
+          "Admin"
         ]
       }
     },
     "/admin/realtime.json": {
       "get": {
-        "operationId": "AdminSpaController_realtimeInspectorJson",
+        "operationId": "Admin_realtimeInspectorJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -288,13 +288,13 @@
           }
         },
         "tags": [
-          "AdminSpa"
+          "Admin"
         ]
       }
     },
     "/admin/realtime/channels.json": {
       "get": {
-        "operationId": "AdminSpaController_realtimeChannelsJson",
+        "operationId": "Admin_realtimeChannelsJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -302,13 +302,13 @@
           }
         },
         "tags": [
-          "AdminSpa"
+          "Admin"
         ]
       }
     },
     "/admin/realtime/sockets/{id}/disconnect": {
       "post": {
-        "operationId": "AdminSpaController_realtimeDisconnectSocket",
+        "operationId": "Admin_realtimeDisconnectSocket",
         "parameters": [
           {
             "name": "id",
@@ -325,13 +325,13 @@
           }
         },
         "tags": [
-          "AdminSpa"
+          "Admin"
         ]
       }
     },
     "/admin/realtime/sockets/{id}/send": {
       "post": {
-        "operationId": "AdminSpaController_realtimeSendToSocket",
+        "operationId": "Admin_realtimeSendToSocket",
         "parameters": [
           {
             "name": "id",
@@ -348,13 +348,13 @@
           }
         },
         "tags": [
-          "AdminSpa"
+          "Admin"
         ]
       }
     },
     "/admin/realtime/events/replay": {
       "post": {
-        "operationId": "AdminSpaController_realtimeReplayEvent",
+        "operationId": "Admin_realtimeReplayEvent",
         "parameters": [],
         "responses": {
           "200": {
@@ -362,13 +362,13 @@
           }
         },
         "tags": [
-          "AdminSpa"
+          "Admin"
         ]
       }
     },
     "/admin/audit": {
       "get": {
-        "operationId": "AdminSpaController_auditBrowserPage",
+        "operationId": "Admin_auditBrowserPage",
         "parameters": [],
         "responses": {
           "200": {
@@ -376,13 +376,13 @@
           }
         },
         "tags": [
-          "AdminSpa"
+          "Admin"
         ]
       }
     },
     "/admin/audit.json": {
       "get": {
-        "operationId": "AdminSpaController_auditBrowserJson",
+        "operationId": "Admin_auditBrowserJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -390,13 +390,13 @@
           }
         },
         "tags": [
-          "AdminSpa"
+          "Admin"
         ]
       }
     },
     "/admin/jobs": {
       "get": {
-        "operationId": "AdminSpaController_adminJobsPage",
+        "operationId": "Admin_adminJobsPage",
         "parameters": [],
         "responses": {
           "200": {
@@ -404,13 +404,13 @@
           }
         },
         "tags": [
-          "AdminSpa"
+          "Admin"
         ]
       }
     },
     "/admin/search": {
       "get": {
-        "operationId": "AdminSpaController_searchTesterPage",
+        "operationId": "Admin_searchTesterPage",
         "parameters": [],
         "responses": {
           "200": {
@@ -418,13 +418,13 @@
           }
         },
         "tags": [
-          "AdminSpa"
+          "Admin"
         ]
       }
     },
     "/admin/search.json": {
       "get": {
-        "operationId": "AdminSpaController_searchTesterJson",
+        "operationId": "Admin_searchTesterJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -432,13 +432,13 @@
           }
         },
         "tags": [
-          "AdminSpa"
+          "Admin"
         ]
       }
     },
     "/hub": {
       "get": {
-        "operationId": "DevHubController_index",
+        "operationId": "Hub_index",
         "parameters": [],
         "responses": {
           "200": {
@@ -446,27 +446,13 @@
           }
         },
         "tags": [
-          "DevHub"
-        ]
-      }
-    },
-    "/hub/components": {
-      "get": {
-        "operationId": "DevHubController_componentsPage",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/static/{filename}": {
       "get": {
-        "operationId": "DevHubController_serveStatic",
+        "operationId": "Hub_serveStatic",
         "parameters": [
           {
             "name": "filename",
@@ -483,13 +469,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/portal-access.json": {
       "get": {
-        "operationId": "DevHubController_portalAccessJson",
+        "operationId": "Hub_portalAccessJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -497,13 +483,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/dashboard.json": {
       "get": {
-        "operationId": "DevHubController_dashboardJson",
+        "operationId": "Hub_dashboardJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -511,13 +497,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/tunnel.json": {
       "get": {
-        "operationId": "DevHubController_tunnelJson",
+        "operationId": "Hub_tunnelJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -525,13 +511,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/brand.json": {
       "get": {
-        "operationId": "DevHubController_brandJson",
+        "operationId": "Hub_brandJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -539,13 +525,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/brand": {
       "get": {
-        "operationId": "DevHubController_brandPage",
+        "operationId": "Hub_brandPage",
         "parameters": [],
         "responses": {
           "200": {
@@ -553,11 +539,11 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       },
       "post": {
-        "operationId": "DevHubController_saveBrand",
+        "operationId": "Hub_saveBrand",
         "parameters": [],
         "responses": {
           "200": {
@@ -565,13 +551,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/brand/reset": {
       "post": {
-        "operationId": "DevHubController_resetBrand",
+        "operationId": "Hub_resetBrand",
         "parameters": [],
         "responses": {
           "200": {
@@ -579,13 +565,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/status.json": {
       "get": {
-        "operationId": "DevHubController_statusJson",
+        "operationId": "Hub_statusJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -593,13 +579,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/features": {
       "get": {
-        "operationId": "DevHubController_features",
+        "operationId": "Hub_features",
         "parameters": [],
         "responses": {
           "200": {
@@ -607,13 +593,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/features.json": {
       "get": {
-        "operationId": "DevHubController_featuresJson",
+        "operationId": "Hub_featuresJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -621,13 +607,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/feature-catalog.json": {
       "get": {
-        "operationId": "DevHubController_featureCatalogJson",
+        "operationId": "Hub_featureCatalogJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -635,13 +621,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/scheduled-jobs.json": {
       "get": {
-        "operationId": "DevHubController_scheduledJobsJson",
+        "operationId": "Hub_scheduledJobsJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -649,13 +635,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/webhook-events.json": {
       "get": {
-        "operationId": "DevHubController_webhookEventsJson",
+        "operationId": "Hub_webhookEventsJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -663,13 +649,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/features/{key}/toggle": {
       "post": {
-        "operationId": "DevHubController_toggleFeature",
+        "operationId": "Hub_toggleFeature",
         "parameters": [
           {
             "name": "key",
@@ -686,13 +672,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/postgrest-parse": {
       "get": {
-        "operationId": "DevHubController_postgrestParse",
+        "operationId": "Hub_postgrestParse",
         "parameters": [],
         "responses": {
           "200": {
@@ -700,13 +686,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/coverage": {
       "get": {
-        "operationId": "DevHubController_coverage",
+        "operationId": "Hub_coverage",
         "parameters": [],
         "responses": {
           "200": {
@@ -714,13 +700,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/coverage.json": {
       "get": {
-        "operationId": "DevHubController_coverageJson",
+        "operationId": "Hub_coverageJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -728,13 +714,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/logs": {
       "get": {
-        "operationId": "DevHubController_logsPage",
+        "operationId": "Hub_logsPage",
         "parameters": [],
         "responses": {
           "200": {
@@ -742,13 +728,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/logs.json": {
       "get": {
-        "operationId": "DevHubController_logsJson",
+        "operationId": "Hub_logsJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -756,13 +742,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/tests": {
       "get": {
-        "operationId": "DevHubController_tests",
+        "operationId": "Hub_tests",
         "parameters": [],
         "responses": {
           "200": {
@@ -770,13 +756,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/tests.json": {
       "get": {
-        "operationId": "DevHubController_testsJson",
+        "operationId": "Hub_testsJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -784,13 +770,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/diagnostics": {
       "get": {
-        "operationId": "DevHubController_diagnostics",
+        "operationId": "Hub_diagnostics",
         "parameters": [],
         "responses": {
           "200": {
@@ -798,13 +784,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/diagnostics.json": {
       "get": {
-        "operationId": "DevHubController_diagnosticsJson",
+        "operationId": "Hub_diagnosticsJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -812,13 +798,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/routes": {
       "get": {
-        "operationId": "DevHubController_routesPage",
+        "operationId": "Hub_routesPage",
         "parameters": [],
         "responses": {
           "200": {
@@ -826,13 +812,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/routes.json": {
       "get": {
-        "operationId": "DevHubController_routesJson",
+        "operationId": "Hub_routesJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -840,13 +826,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/erd": {
       "get": {
-        "operationId": "DevHubController_erdPage",
+        "operationId": "Hub_erdPage",
         "parameters": [],
         "responses": {
           "200": {
@@ -854,13 +840,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/json": {
       "get": {
-        "operationId": "DevHubController_jsonViewerPage",
+        "operationId": "Hub_jsonViewerPage",
         "parameters": [],
         "responses": {
           "200": {
@@ -868,13 +854,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/erd.json": {
       "get": {
-        "operationId": "DevHubController_erdJson",
+        "operationId": "Hub_erdJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -882,13 +868,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/traces": {
       "get": {
-        "operationId": "DevHubController_tracesPage",
+        "operationId": "Hub_tracesPage",
         "parameters": [],
         "responses": {
           "200": {
@@ -896,13 +882,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/traces.json": {
       "get": {
-        "operationId": "DevHubController_tracesJson",
+        "operationId": "Hub_tracesJson",
         "parameters": [
           {
             "name": "limit",
@@ -927,13 +913,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/queries": {
       "get": {
-        "operationId": "DevHubController_queriesPage",
+        "operationId": "Hub_queriesPage",
         "parameters": [],
         "responses": {
           "200": {
@@ -941,13 +927,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/queries.json": {
       "get": {
-        "operationId": "DevHubController_queriesJson",
+        "operationId": "Hub_queriesJson",
         "parameters": [
           {
             "name": "limit",
@@ -972,27 +958,13 @@
           }
         },
         "tags": [
-          "DevHub"
-        ]
-      }
-    },
-    "/hub/email-preview": {
-      "get": {
-        "operationId": "DevHubController_emailPreviewPage",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/email-preview.json": {
       "get": {
-        "operationId": "DevHubController_emailPreviewJson",
+        "operationId": "Hub_emailPreviewJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -1000,13 +972,27 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
+        ]
+      }
+    },
+    "/hub/emails": {
+      "get": {
+        "operationId": "Hub_emailsPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hub"
         ]
       }
     },
     "/hub/email-builder": {
       "get": {
-        "operationId": "DevHubController_emailBuilderPage",
+        "operationId": "Hub_emailBuilderPage",
         "parameters": [],
         "responses": {
           "200": {
@@ -1014,13 +1000,59 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
+        ]
+      }
+    },
+    "/hub/emails/templates/{name}/preview.html": {
+      "get": {
+        "operationId": "Hub_emailTemplatePreviewHtml[0]",
+        "parameters": [
+          {
+            "name": "name",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hub"
+        ]
+      }
+    },
+    "/hub/email-builder/templates/{name}/preview.html": {
+      "get": {
+        "operationId": "Hub_emailTemplatePreviewHtml[1]",
+        "parameters": [
+          {
+            "name": "name",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hub"
         ]
       }
     },
     "/hub/email-builder/templates.json": {
       "get": {
-        "operationId": "DevHubController_emailBuilderTemplatesJson",
+        "operationId": "Hub_emailBuilderTemplatesJson[0]",
         "parameters": [],
         "responses": {
           "200": {
@@ -1028,13 +1060,27 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
+        ]
+      }
+    },
+    "/hub/emails/templates.json": {
+      "get": {
+        "operationId": "Hub_emailBuilderTemplatesJson[1]",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hub"
         ]
       }
     },
     "/hub/email-builder/templates/{name}/composition.json": {
       "get": {
-        "operationId": "DevHubController_emailBuilderTemplateComposition",
+        "operationId": "Hub_emailBuilderTemplateComposition[0]",
         "parameters": [
           {
             "name": "name",
@@ -1051,13 +1097,36 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
+        ]
+      }
+    },
+    "/hub/emails/templates/{name}/composition.json": {
+      "get": {
+        "operationId": "Hub_emailBuilderTemplateComposition[1]",
+        "parameters": [
+          {
+            "name": "name",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hub"
         ]
       }
     },
     "/hub/email-builder/templates/{name}/override": {
       "delete": {
-        "operationId": "DevHubController_emailBuilderDeleteOverride",
+        "operationId": "Hub_emailBuilderDeleteOverride[0]",
         "parameters": [
           {
             "name": "name",
@@ -1074,13 +1143,36 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
+        ]
+      }
+    },
+    "/hub/emails/templates/{name}/override": {
+      "delete": {
+        "operationId": "Hub_emailBuilderDeleteOverride[1]",
+        "parameters": [
+          {
+            "name": "name",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hub"
         ]
       }
     },
     "/hub/email-builder/blocks.json": {
       "get": {
-        "operationId": "DevHubController_emailBuilderBlocksJson",
+        "operationId": "Hub_emailBuilderBlocksJson[0]",
         "parameters": [],
         "responses": {
           "200": {
@@ -1088,13 +1180,27 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
+        ]
+      }
+    },
+    "/hub/emails/blocks.json": {
+      "get": {
+        "operationId": "Hub_emailBuilderBlocksJson[1]",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hub"
         ]
       }
     },
     "/hub/email-builder/preview.json": {
       "post": {
-        "operationId": "DevHubController_emailBuilderPreview",
+        "operationId": "Hub_emailBuilderPreview[0]",
         "parameters": [],
         "responses": {
           "200": {
@@ -1102,13 +1208,27 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
+        ]
+      }
+    },
+    "/hub/emails/preview.json": {
+      "post": {
+        "operationId": "Hub_emailBuilderPreview[1]",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hub"
         ]
       }
     },
     "/hub/email-builder/save": {
       "post": {
-        "operationId": "DevHubController_emailBuilderSave",
+        "operationId": "Hub_emailBuilderSave[0]",
         "parameters": [],
         "responses": {
           "200": {
@@ -1116,13 +1236,27 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
+        ]
+      }
+    },
+    "/hub/emails/save": {
+      "post": {
+        "operationId": "Hub_emailBuilderSave[1]",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hub"
         ]
       }
     },
     "/hub/migrations": {
       "get": {
-        "operationId": "DevHubController_migrationsPage",
+        "operationId": "Hub_migrationsPage",
         "parameters": [],
         "responses": {
           "200": {
@@ -1130,13 +1264,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/migrations.json": {
       "get": {
-        "operationId": "DevHubController_migrationsJson",
+        "operationId": "Hub_migrationsJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -1144,13 +1278,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/migrations/preview/{name}": {
       "get": {
-        "operationId": "DevHubController_migrationsPreview",
+        "operationId": "Hub_migrationsPreview",
         "parameters": [
           {
             "name": "name",
@@ -1167,13 +1301,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/migrations/diff": {
       "get": {
-        "operationId": "DevHubController_migrationsDiff",
+        "operationId": "Hub_migrationsDiff",
         "parameters": [],
         "responses": {
           "200": {
@@ -1181,13 +1315,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/migrations/deploy": {
       "post": {
-        "operationId": "DevHubController_migrationsDeploy",
+        "operationId": "Hub_migrationsDeploy",
         "parameters": [],
         "responses": {
           "200": {
@@ -1195,13 +1329,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/migrations/apply-one": {
       "post": {
-        "operationId": "DevHubController_migrationsApplyOne",
+        "operationId": "Hub_migrationsApplyOne",
         "parameters": [],
         "responses": {
           "200": {
@@ -1209,13 +1343,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/migrations/dry-run": {
       "post": {
-        "operationId": "DevHubController_migrationsDryRun",
+        "operationId": "Hub_migrationsDryRun",
         "parameters": [],
         "responses": {
           "200": {
@@ -1223,13 +1357,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/migrations/retry": {
       "post": {
-        "operationId": "DevHubController_migrationsRetry",
+        "operationId": "Hub_migrationsRetry",
         "parameters": [],
         "responses": {
           "200": {
@@ -1237,13 +1371,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/migrations/create": {
       "post": {
-        "operationId": "DevHubController_migrationsCreate",
+        "operationId": "Hub_migrationsCreate",
         "parameters": [],
         "responses": {
           "200": {
@@ -1251,13 +1385,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/migrations/apply-draft": {
       "post": {
-        "operationId": "DevHubController_migrationsApplyDraft",
+        "operationId": "Hub_migrationsApplyDraft",
         "parameters": [],
         "responses": {
           "200": {
@@ -1265,13 +1399,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/migrations/draft/{name}": {
       "delete": {
-        "operationId": "DevHubController_migrationsDiscardDraft",
+        "operationId": "Hub_migrationsDiscardDraft",
         "parameters": [
           {
             "name": "name",
@@ -1288,13 +1422,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/jobs": {
       "get": {
-        "operationId": "DevHubController_jobsPage",
+        "operationId": "Hub_jobsPage",
         "parameters": [],
         "responses": {
           "200": {
@@ -1302,13 +1436,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/jobs/queues.json": {
       "get": {
-        "operationId": "DevHubController_jobsQueuesJson",
+        "operationId": "Hub_jobsQueuesJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -1316,13 +1450,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/jobs/jobs.json": {
       "get": {
-        "operationId": "DevHubController_jobsListJson",
+        "operationId": "Hub_jobsListJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -1330,13 +1464,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/jobs/jobs/{id}.json": {
       "get": {
-        "operationId": "DevHubController_jobDetailJson",
+        "operationId": "Hub_jobDetailJson",
         "parameters": [
           {
             "name": "id",
@@ -1353,13 +1487,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/jobs/jobs/{id}/retry": {
       "post": {
-        "operationId": "DevHubController_retryJob",
+        "operationId": "Hub_retryJob",
         "parameters": [
           {
             "name": "id",
@@ -1376,13 +1510,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/email-outbox": {
       "get": {
-        "operationId": "DevHubController_emailOutboxPage",
+        "operationId": "Hub_emailOutboxPage",
         "parameters": [],
         "responses": {
           "200": {
@@ -1390,13 +1524,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/cron": {
       "get": {
-        "operationId": "DevHubController_cronPage",
+        "operationId": "Hub_cronPage",
         "parameters": [],
         "responses": {
           "200": {
@@ -1404,13 +1538,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/outbox.json": {
       "get": {
-        "operationId": "DevHubController_outboxJson",
+        "operationId": "Hub_outboxJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -1418,13 +1552,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/palette/search.json": {
       "get": {
-        "operationId": "DevHubController_paletteSearchJson",
+        "operationId": "Hub_paletteSearchJson",
         "parameters": [],
         "responses": {
           "200": {
@@ -1432,13 +1566,13 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
     "/hub/{splat}": {
       "get": {
-        "operationId": "DevHubController_spaCatchAll",
+        "operationId": "Hub_spaCatchAll",
         "parameters": [],
         "responses": {
           "200": {
@@ -1446,7 +1580,7 @@
           }
         },
         "tags": [
-          "DevHub"
+          "Hub"
         ]
       }
     },
@@ -1646,7 +1780,7 @@
     },
     "/admin/email-outbox/list.json": {
       "get": {
-        "operationId": "EmailOutboxAdminController_list",
+        "operationId": "EmailOutboxAdmin_list",
         "parameters": [],
         "responses": {
           "200": {
@@ -1654,13 +1788,13 @@
           }
         },
         "tags": [
-          "EmailOutboxAdmin"
+          "Admin"
         ]
       }
     },
     "/admin/email-outbox/{id}.json": {
       "get": {
-        "operationId": "EmailOutboxAdminController_detail",
+        "operationId": "EmailOutboxAdmin_detail",
         "parameters": [
           {
             "name": "id",
@@ -1677,13 +1811,13 @@
           }
         },
         "tags": [
-          "EmailOutboxAdmin"
+          "Admin"
         ]
       }
     },
     "/admin/email-outbox/{id}/retry": {
       "post": {
-        "operationId": "EmailOutboxAdminController_retry",
+        "operationId": "EmailOutboxAdmin_retry",
         "parameters": [
           {
             "name": "id",
@@ -1700,13 +1834,13 @@
           }
         },
         "tags": [
-          "EmailOutboxAdmin"
+          "Admin"
         ]
       }
     },
     "/admin/email-outbox/{id}/cancel": {
       "post": {
-        "operationId": "EmailOutboxAdminController_cancel",
+        "operationId": "EmailOutboxAdmin_cancel",
         "parameters": [
           {
             "name": "id",
@@ -1723,13 +1857,13 @@
           }
         },
         "tags": [
-          "EmailOutboxAdmin"
+          "Admin"
         ]
       }
     },
     "/admin/email-outbox/test-send": {
       "post": {
-        "operationId": "EmailOutboxAdminController_testSend",
+        "operationId": "EmailOutboxAdmin_testSend",
         "parameters": [],
         "responses": {
           "201": {
@@ -1737,7 +1871,7 @@
           }
         },
         "tags": [
-          "EmailOutboxAdmin"
+          "Admin"
         ]
       }
     },
@@ -2322,6 +2456,20 @@
         ]
       }
     },
+    "/admin/users/roles.json": {
+      "get": {
+        "operationId": "UserAdminController_assignableRolesJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserAdmin"
+        ]
+      }
+    },
     "/admin/users/{id}.json": {
       "get": {
         "operationId": "UserAdminController_userDetailJson",
@@ -2337,6 +2485,120 @@
         ],
         "responses": {
           "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserAdmin"
+        ]
+      }
+    },
+    "/admin/users/{id}/role": {
+      "patch": {
+        "operationId": "UserAdminController_assignUserRole",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserAdmin"
+        ]
+      }
+    },
+    "/admin/users/{id}/members/{memberId}/role": {
+      "patch": {
+        "operationId": "UserAdminController_updateMemberRole",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "memberId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserAdmin"
+        ]
+      }
+    },
+    "/admin/users/create": {
+      "post": {
+        "operationId": "UserAdminController_createUser",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserAdmin"
+        ]
+      }
+    },
+    "/admin/users/{id}/set-email-verified": {
+      "post": {
+        "operationId": "UserAdminController_setEmailVerified",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserAdmin"
+        ]
+      }
+    },
+    "/admin/users/{id}/update": {
+      "post": {
+        "operationId": "UserAdminController_updateUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
             "description": ""
           }
         },
@@ -2647,6 +2909,20 @@
         ]
       }
     },
+    "/admin/permissions/matrix.json": {
+      "get": {
+        "operationId": "PermissionAdminController_matrix",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PermissionAdmin"
+        ]
+      }
+    },
     "/admin/permissions/{id}": {
       "get": {
         "operationId": "PermissionAdminController_get",
@@ -2681,20 +2957,6 @@
             }
           }
         ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "PermissionAdmin"
-        ]
-      }
-    },
-    "/admin/permissions/matrix.json": {
-      "get": {
-        "operationId": "PermissionAdminController_matrix",
-        "parameters": [],
         "responses": {
           "200": {
             "description": ""
@@ -3863,7 +4125,7 @@
   },
   "info": {
     "title": "nest-server",
-    "description": "Template-fähiger NestJS-Server",
+    "description": "Template-ready NestJS server",
     "version": "1.0.0",
     "contact": {}
   },

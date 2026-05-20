@@ -30,11 +30,32 @@ describe("Story · User Admin Controller", () => {
       expect(src).toMatch(/@Get\([^)]*:id\.json[^)]*\)/);
     });
 
-    it("exposes ban, unban, and revoke-sessions POST endpoints", () => {
+    it("exposes ban, unban, revoke-sessions, create, update, and set-email-verified POST endpoints", () => {
       const src = readFileSync(resolve(ROOT, "src/core/dx/user-admin.controller.ts"), "utf8");
       expect(src).toMatch(/@Post\([^)]*:id\/ban[^)]*\)/);
       expect(src).toMatch(/@Post\([^)]*:id\/unban[^)]*\)/);
       expect(src).toMatch(/@Post\([^)]*revoke-sessions[^)]*\)/);
+      expect(src).toMatch(/@Post\(\s*["']create["']\s*\)/);
+      expect(src).toMatch(/@Post\([^)]*:id\/update[^)]*\)/);
+      expect(src).toMatch(/@Post\([^)]*set-email-verified[^)]*\)/);
+    });
+
+    it("exposes PATCH member role on user detail (works without multi-tenancy UI)", () => {
+      const src = readFileSync(resolve(ROOT, "src/core/dx/user-admin.controller.ts"), "utf8");
+      expect(src).toMatch(/@Patch\([^)]*:id\/members\/:memberId\/role[^)]*\)/);
+      expect(src).toMatch(/@Patch\([^)]*:id\/role[^)]*\)/);
+      expect(src).toMatch(/@Get\(\s*["']roles\.json["']\s*\)/);
+      expect(src).toContain("memberships");
+      expect(src).toContain("rolesForUser");
+      expect(src).toContain("resolveHubOperatorTenantId");
+      expect(src).toContain("invalidate(");
+    });
+
+    it("forwards the operator session cookie and Origin to Better-Auth admin calls", () => {
+      const src = readFileSync(resolve(ROOT, "src/core/dx/user-admin.controller.ts"), "utf8");
+      expect(src).toContain("req.headers.cookie");
+      expect(src).toContain("headers.cookie = cookie");
+      expect(src).toContain("headers.origin = origin");
     });
 
     it("data routes use @Can(manage, User); shell only is @Public", () => {
@@ -81,6 +102,16 @@ describe("Story · User Admin Controller", () => {
         "utf8",
       );
       expect(src).toContain("/admin/users/list.json");
+      expect(src).toContain("/admin/users/roles.json");
+      expect(src).toContain("/admin/users/create");
+      expect(src).toContain("Create user");
+      expect(src).toContain("set-email-verified");
+      expect(src).toContain("Mark verified");
+      expect(src).toContain("change-user-member-role");
+      expect(src).toContain("assign-user-role");
+      expect(src).toContain("/admin/users/");
+      expect(src).toContain("/members/");
+      expect(src).toContain("/role");
     });
   });
 });

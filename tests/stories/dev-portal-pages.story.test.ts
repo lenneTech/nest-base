@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
  *   - every SPA-owned `/dev/*` URL appears in the sidebar so users
  *     can navigate to it without typing the URL
  *   - every `*.json` endpoint the React pages consume actually exists
- *     on the server (`dev-hub.controller.ts` declares it)
+ *     on the server (`hub.controller.ts` declares it)
  *
  * Pure file-text assertions — no NestJS bootstrap, no React mount.
  * Locks the cross-tier contract that makes the visual fidelity port
@@ -27,11 +27,12 @@ function read(path: string): string {
 
 const APP_TSX = read("src/core/dx/clients/App.tsx");
 const NAV_TS = read("src/core/dx/clients/layout/nav.ts");
-const CONTROLLER = read("src/core/dx/dev-hub.controller.ts");
+const CONTROLLER = read("src/core/dx/hub.controller.ts");
 const ADMIN_SPA_CONTROLLER = read("src/core/dx/admin-spa.controller.ts");
 const GLOBALS_CSS = read("src/core/dx/clients/styles/globals.css");
 const TOKENS_CSS = read("src/core/dx/clients/styles/tokens.css");
 const ADMIN_SHELL = read("src/core/dx/clients/layout/AdminShell.tsx");
+const ADMIN_PORTAL_LAYOUT = read("src/core/dx/clients/layout/AdminPortalLayout.tsx");
 const ICONS_TSX = read("src/core/dx/clients/layout/icons.tsx");
 const TESTS_PAGE = read("src/core/dx/clients/pages/TestsPage.tsx");
 const COVERAGE_PAGE = read("src/core/dx/clients/pages/CoveragePage.tsx");
@@ -59,12 +60,32 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
   describe("Hub login page", () => {
     it("HubLoginPage signs in via Better-Auth and navigates to /hub", () => {
       expect(HUB_LOGIN_PAGE).toContain("signInWithEmail");
-      expect(HUB_LOGIN_PAGE).toContain("navigate(from");
+      expect(HUB_LOGIN_PAGE).toContain("resolveOperatorLandingPath");
+      expect(HUB_LOGIN_PAGE).toContain('invalidateQueries({ queryKey: ["hub", "portal-access"]');
       expect(HUB_LOGIN_PAGE).toContain("/hub/portal-access.json");
+      expect(HUB_LOGIN_PAGE).toContain("Remember email on this device");
+      expect(HUB_LOGIN_PAGE).toContain("persistLoginPrefs");
     });
 
-    it("App.tsx wraps hub/admin routes in HubPortalGate", () => {
+    it("HubLoginPage uses animated hub-login backdrop and card chrome", () => {
+      expect(HUB_LOGIN_PAGE).toContain('import "../styles/hub-login.css"');
+      expect(HUB_LOGIN_PAGE).toContain("hub-login-scene");
+      expect(HUB_LOGIN_PAGE).toContain("hub-login-backdrop");
+      expect(HUB_LOGIN_PAGE).toContain("hub-login-backdrop__orb--a");
+      expect(HUB_LOGIN_PAGE).toContain("hub-login-backdrop__grid");
+      expect(HUB_LOGIN_PAGE).toContain("hub-login-backdrop__beam");
+      expect(HUB_LOGIN_PAGE).toContain("hub-login-backdrop__ring--delay");
+      expect(HUB_LOGIN_PAGE).toContain("FLOATING_PARTICLES");
+      expect(HUB_LOGIN_PAGE).toContain("hub-login-backdrop__particle");
+      expect(HUB_LOGIN_PAGE).toContain("hub-login-backdrop__vignette");
+      expect(HUB_LOGIN_PAGE).toContain("hub-login-card-shell");
+      expect(HUB_LOGIN_PAGE).toContain("hub-login-card-inner");
+      expect(HUB_LOGIN_PAGE).not.toContain("motion.div");
+    });
+
+    it("App.tsx wraps hub/admin routes in HubPortalGate + persistent AdminPortalLayout", () => {
       expect(APP_TSX).toContain("HubPortalGate");
+      expect(APP_TSX).toContain("AdminPortalLayout");
     });
   });
 
@@ -72,7 +93,6 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
     const expectedRoutes = [
       "/",
       "/hub",
-      "/hub/components",
       "/hub/features",
       "/hub/brand",
       "/hub/coverage",
@@ -85,6 +105,7 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       "/hub/jobs",
       "/hub/routes",
       "/hub/erd",
+      "/hub/emails",
       "/hub/email-preview",
       "/hub/email-builder",
       "/hub/postgrest-parse",
@@ -131,9 +152,7 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       "/hub/jobs",
       "/hub/routes",
       "/hub/erd",
-      "/hub/email-preview",
-      "/hub/email-builder",
-      "/hub/components",
+      "/hub/emails",
       "/hub/postgrest-parse",
       "/hub/files",
       "/hub/cron",
@@ -177,28 +196,30 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
   });
 
   describe("AuditBrowserPage loads audit.json with tenant scope", () => {
-    it("AuditBrowserPage.tsx sends x-tenant-id on audit.json fetch", () => {
-      expect(AUDIT_BROWSER_PAGE).toContain('"x-tenant-id"');
+    it("AuditBrowserPage.tsx loads audit via session bootstrap + fetchJson", () => {
+      expect(AUDIT_BROWSER_PAGE).toContain("bootstrapHubOperatorSession");
+      expect(AUDIT_BROWSER_PAGE).toContain("fetchJson<AuditBrowserResponse>");
       expect(AUDIT_BROWSER_PAGE).toContain("/admin/audit.json");
+      expect(AUDIT_BROWSER_PAGE).not.toContain("x-tenant-id");
     });
 
-    it("admin-spa.controller.ts requires x-tenant-id on auditBrowserJson", () => {
-      expect(ADMIN_SPA_CONTROLLER).toContain("x-tenant-id header is required");
+    it("admin-spa.controller.ts scopes auditBrowserJson via requireTenantContext", () => {
+      expect(ADMIN_SPA_CONTROLLER).toContain("requireTenantContext");
     });
 
-    it("AdminSpaController is @Public dev-hub surface with assertDev()", () => {
+    it("AdminSpaController is @Public Hub surface with assertDev()", () => {
       expect(ADMIN_SPA_CONTROLLER).toMatch(/@Public\([^)]*assertDev\(\)[^)]*local development/);
       expect(ADMIN_SPA_CONTROLLER).toContain("private assertDev()");
     });
   });
 
-  describe("FeaturesPage toggle POST matches DevHubController @Controller(hub)", () => {
+  describe("FeaturesPage toggle POST matches HubController @Controller(hub)", () => {
     it("FeaturesPage.tsx POSTs to /hub/features/:key/toggle (not legacy /dev)", () => {
       expect(FEATURES_PAGE).toMatch(/\/hub\/features\/\$\{/);
       expect(FEATURES_PAGE).not.toMatch(/fetch\(`\/dev\/features\//);
     });
 
-    it('dev-hub.controller.ts declares @Post("features/:key/toggle")', () => {
+    it('hub.controller.ts declares @Post("features/:key/toggle")', () => {
       expect(CONTROLLER).toMatch(/@Post\("features\/:key\/toggle"\)/);
     });
   });
@@ -217,20 +238,22 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       "routes.json",
       "erd.json",
       "email-preview.json",
-      "email-builder/templates.json",
-      "email-builder/blocks.json",
+      "emails/templates.json",
+      "emails/blocks.json",
       "coverage.json",
       "tests.json",
       "jobs/queues.json",
       "jobs/jobs.json",
     ];
     for (const ep of jsonEndpoints) {
-      it(`dev-hub.controller.ts declares @Get("${ep}")`, () => {
-        // Match `@Get("foo.json")` allowing for the literal dot — tests
-        // are checking the routing decoration, not just the existence
-        // of the string in any context.
+      it(`hub.controller.ts declares @Get for "${ep}"`, () => {
+        // Match `@Get("foo.json")` or `@Get([..., "foo.json", ...])` —
+        // email routes register both `/hub/emails/*` and legacy
+        // `/hub/email-builder/*` paths on one handler.
         const escaped = ep.replace(/\./g, "\\.");
-        expect(CONTROLLER).toMatch(new RegExp(`@Get\\("${escaped}"\\)`));
+        const single = new RegExp(`@Get\\("${escaped}"\\)`);
+        const inArray = new RegExp(`@Get\\(\\[[^\\]]*"${escaped}"[^\\]]*\\]\\)`);
+        expect(CONTROLLER).toMatch(new RegExp(`${single.source}|${inArray.source}`));
       });
     }
   });
@@ -265,23 +288,21 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
     });
   });
 
-  describe("AdminShell renders the structural identity of the dev-portal", () => {
-    // Spot-check the shell still emits the headline elements the SPA
-    // depends on. The legacy admin-* class catalogue is gone but the
-    // structural contract (sidebar / main / header / online badge /
-    // brand block) holds across the migration.
+  describe("Admin portal layout keeps persistent sidebar chrome", () => {
+    const chrome = `${ADMIN_SHELL}\n${ADMIN_PORTAL_LAYOUT}`;
     const structuralAnchors = [
       "<aside",
       "<main",
       "<nav",
       "<header",
       "online",
-      "NestJS Docs",
       'to="/hub"',
+      "AdminPortalLayout",
+      "AdminSidebar",
     ];
     for (const fragment of structuralAnchors) {
-      it(`AdminShell.tsx contains ${JSON.stringify(fragment)}`, () => {
-        expect(ADMIN_SHELL).toContain(fragment);
+      it(`layout chrome contains ${JSON.stringify(fragment)}`, () => {
+        expect(chrome).toContain(fragment);
       });
     }
   });
@@ -331,7 +352,7 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
 
   describe("Sidebar nav.ts declares every section/page id", () => {
     const ids = [
-      "dev-hub",
+      "hub",
       "diagnostics",
       "features",
       "brand",
@@ -349,8 +370,7 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       "routes",
       "errors",
       "erd",
-      "email-preview",
-      "email-builder",
+      "emails",
       "prisma-studio",
       "users",
       "tenants",
@@ -435,6 +455,13 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
   describe("Sidebar active-state: permissions pages use distinct currentNav ids (regression pin · #125)", () => {
     it('PermissionsAdminPage passes currentNav="permissions-crud" to AdminShell', () => {
       expect(PERMISSIONS_ADMIN_PAGE).toContain('currentNav="permissions-crud"');
+    });
+
+    it("PermissionsAdminPage is matrix-only (no manual create form or list table)", () => {
+      expect(PERMISSIONS_ADMIN_PAGE).toContain("Permission matrix");
+      expect(PERMISSIONS_ADMIN_PAGE).toContain("Checkbox");
+      expect(PERMISSIONS_ADMIN_PAGE).not.toContain("Neue Permission");
+      expect(PERMISSIONS_ADMIN_PAGE).not.toContain('data-action="create-permission"');
     });
 
     it('PermissionTesterPage passes currentNav="permissions" to AdminShell', () => {

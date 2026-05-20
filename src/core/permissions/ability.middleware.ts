@@ -17,7 +17,7 @@ interface AuthenticatedRequest extends Request {
      * Projected by `BetterAuthSessionMiddleware`; undefined when the
      * org plugin is off or no org has been activated this session.
      * `resolveRequestTenantId` reads this as the preferred fallback
-     * when no `x-tenant-id` header is present.
+     * from Better-Auth `set-active` (session-only tenant resolution).
      */
     activeOrganizationId?: string | null;
     /** Present when the request is authenticated via a scoped API key. */
@@ -114,7 +114,7 @@ export class AbilityMiddleware implements NestMiddleware {
 
     let tenantId: string | null;
     try {
-      tenantId = await resolveRequestTenantId(req, this.prisma);
+      tenantId = await resolveRequestTenantId(req, this.prisma, path !== undefined ? { path } : {});
     } catch {
       // The resolver throws ForbiddenException / BadRequestException
       // for security-relevant input (header for a tenant the user
@@ -135,7 +135,7 @@ export class AbilityMiddleware implements NestMiddleware {
 
     await this.attachAbilityForUser(req, async () => {
       if (tenantId) return tenantId;
-      const purePath = stripQuery(path);
+      const purePath = stripQuery(path ?? "/");
       if (req.user && isHubPortalProtectedPath(purePath)) {
         return resolveHubOperatorTenantId(req.user, this.prisma);
       }
@@ -173,7 +173,7 @@ export class AbilityMiddleware implements NestMiddleware {
   }
 }
 
-/** `/hub/*` JSON/HTML uses `@Can(DevHub)` but is exempt from `x-tenant-id`. */
+/** `/hub/*` JSON/HTML uses `@Can(Hub)` with hub-operator tenant fallback. */
 function isHubOperatorAbilityPath(path: string): boolean {
   const pure = stripQuery(path);
   if (isHubPortalStaticAsset(pure)) return false;

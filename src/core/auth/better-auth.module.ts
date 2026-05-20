@@ -216,9 +216,21 @@ import { isBetterAuthRateLimitEnabled } from "./rate-limit-flag.js";
           // Organization plugin (issue #118): enabled by default to back
           // the BA Organizations-as-Tenants migration. When active, BA
           // manages org/member/invitation rows and the session carries
-          // `activeOrganizationId` so clients can omit the x-tenant-id
-          // header after a POST /api/auth/organization/set-active call.
-          ...(features.organization.enabled ? { organization: {} } : {}),
+          // `activeOrganizationId` after POST /api/auth/organization/set-active
+          // (session-only tenant scope; x-tenant-id is not read).
+          ...(features.multiTenancy.enabled ? { organization: {} } : {}),
+          // Admin plugin: ban/unban, create-user, update-user for /admin/users.
+          // Enabled when flagged or in development so the Dev-Hub user UI works.
+          ...(features.adminPlugin.enabled ||
+          cfg.env === "development" ||
+          process.env.NODE_ENV === "test"
+            ? {
+                adminPlugin: {
+                  adminRoles: ["admin"],
+                  defaultRole: "user",
+                },
+              }
+            : {}),
           // Password policy enforcement is opt-in via features.ts.
           // Set FEATURE_PASSWORD_POLICY_ENABLED=true to activate. The
           // service exposes the policy validator (entropy + optional

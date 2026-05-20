@@ -33,8 +33,8 @@ export function CopyButton({ text, className }: CopyButtonProps): ReactNode {
     <button
       type="button"
       onClick={handleCopy}
-      title={copied ? "Kopiert!" : "In Zwischenablage kopieren"}
-      aria-label={copied ? "Kopiert!" : "In Zwischenablage kopieren"}
+      title={copied ? "Copied!" : "Copy to clipboard"}
+      aria-label={copied ? "Copied!" : "Copy to clipboard"}
       className={cn(
         "inline-flex items-center justify-center rounded p-0.5 text-fg-faint transition-colors hover:bg-surface-3 hover:text-fg-muted",
         copied && "text-ok",

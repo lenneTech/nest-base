@@ -4,15 +4,31 @@
 import {
   forwardRef,
   type HTMLAttributes,
+  type Ref,
   type TdHTMLAttributes,
   type ThHTMLAttributes,
+  type UIEventHandler,
 } from "react";
 
 import { cn } from "../../lib/utils.js";
 
-export const Table = forwardRef<HTMLTableElement, HTMLAttributes<HTMLTableElement>>(
-  ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-auto rounded-lg border border-line">
+/** Scrollport shared by every hub table — sticky headers stick to this box. */
+export const TABLE_SCROLL_CONTAINER_CLASS =
+  "relative w-full max-h-[65dvh] min-h-56 overflow-auto rounded-lg border border-line";
+
+export interface TableProps extends HTMLAttributes<HTMLTableElement> {
+  containerClassName?: string;
+  containerRef?: Ref<HTMLDivElement>;
+  onContainerScroll?: UIEventHandler<HTMLDivElement>;
+}
+
+export const Table = forwardRef<HTMLTableElement, TableProps>(
+  ({ className, containerClassName, containerRef, onContainerScroll, ...props }, ref) => (
+    <div
+      ref={containerRef}
+      onScroll={onContainerScroll}
+      className={cn(TABLE_SCROLL_CONTAINER_CLASS, containerClassName)}
+    >
       <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
     </div>
   ),
@@ -73,7 +89,7 @@ export const TableHead = forwardRef<HTMLTableCellElement, ThHTMLAttributes<HTMLT
     <th
       ref={ref}
       className={cn(
-        "h-9 px-3 text-left align-middle text-[0.7rem] font-semibold uppercase tracking-wider text-fg-dim [&:has([role=checkbox])]:pr-0",
+        "sticky top-0 z-10 bg-surface-2 h-9 px-3 text-left align-middle text-[0.7rem] font-semibold uppercase tracking-wider text-fg-dim shadow-[inset_0_-1px_0_0_var(--line)] [&:has([role=checkbox])]:pr-0",
         className,
       )}
       {...props}

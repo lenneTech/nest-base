@@ -52,11 +52,10 @@ export class ApiKeySessionMiddleware implements NestMiddleware {
     next();
   }
 
-  private async resolveTenantId(userId: string, req: AuthenticatedRequest): Promise<string | null> {
-    const header = req.headers["x-tenant-id"];
-    if (typeof header === "string" && header.length > 0) {
-      return header;
-    }
+  private async resolveTenantId(
+    userId: string,
+    _req: AuthenticatedRequest,
+  ): Promise<string | null> {
     if (!this.prisma) return null;
     const member = await this.prisma.member.findFirst({
       where: { userId },

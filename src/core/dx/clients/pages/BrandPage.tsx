@@ -85,7 +85,7 @@ export function BrandPage(): ReactNode {
           </CardHeader>
           <CardContent>
             <Button
-              variant="destructive"
+              variant="danger"
               onClick={() => {
                 if (
                   window.confirm("Delete src/modules/branding/brand.json and reset to default?")

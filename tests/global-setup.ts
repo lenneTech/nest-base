@@ -69,7 +69,9 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
       delete process.env.DATABASE_URL;
     }
 
-    container = await new PostgreSqlContainer("postgres:18-alpine")
+    // Match `docker/postgres/Dockerfile` — geo migrations need PostGIS on
+    // vanilla testcontainers; `postgres:18-alpine` lacks the extension.
+    container = await new PostgreSqlContainer("imresamu/postgis:18-3.6")
       .withDatabase("nst_test")
       .withUsername("nst_test")
       .withPassword("nst_test")
@@ -120,10 +122,10 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   // Idempotent: a re-run with the client already present is a `skip`.
   ensurePrismaClientGenerated();
 
-  // Ensure the Dev-Portal SPA bundle is present before any dev-hub e2e
+  // Ensure the Hub SPA bundle is present before any hub e2e
   // spec runs. Fresh clones don't have `dist/dev-portal/` yet, and the
   // `/dev/static/*` controller is wired straight to that directory — so
-  // `tests/dev-hub.e2e-spec.ts` would 404 unless someone remembered to
+  // `tests/hub.e2e-spec.ts` would 404 unless someone remembered to
   // run `bun run build:dev-portal` first. The build is a no-op if the
   // entry artefact already exists; a fresh install pays the ~1s tax once.
   ensureDevPortalBundle();
@@ -187,7 +189,7 @@ function ensurePrismaClientGenerated(): void {
  * controller at `/dev/static/*` serves files from `dist/dev-portal/`,
  * which only exists after `bun run build:dev-portal`. The standard
  * 6-gate sequence in QUICKSTART.md / CONTRIBUTING.md does not yet
- * include the build, so fresh installs would fail two dev-hub e2e
+ * include the build, so fresh installs would fail two hub e2e
  * tests until they ran the build by hand. Running it from globalSetup
  * removes that sharp edge.
  */

@@ -9,7 +9,7 @@ file answers it. It is the single source of truth referenced by
 `SPEC-CHECKLIST.md` row `SC.FUSION.01`.
 
 **Source repos:**
-- **C** = `nest-server-reload` (the current target — Prisma 7, React 19 SPA Dev Hub, Vitest 4, kubb SDK, AI-first tooling)
+- **C** = `nest-server-reload` (the current target — Prisma 7, React 19 SPA Hub, Vitest 4, kubb SDK, AI-first tooling)
 - **A** = `nest-base-alternative` (feature-richer sibling — 23 feature flags, 9 Better-Auth plugins, AES-256-GCM with KEK rotation, audit-log Prisma extensions, etc.)
 - **C+A** = both repos contributed; the fused version reconciles their best parts
 - **new** = added during the fusion work (post-merge)
@@ -36,7 +36,7 @@ file answers it. It is the single source of truth referenced by
 | PowerSync JWT + JWKS | CF.AUTH.20 | C | `src/core/auth/powersync-jwt.ts` | mobile offline sync |
 | Test-ability hatch | CF.AUTH.23 | C | `src/core/permissions/test-ability.ts` | NODE_ENV=test only |
 | **Multi-Tenancy & Permissions** | | | | |
-| Tenant guard + x-tenant-id | CF.MTPERM.01–03 | C | `src/core/multi-tenancy/` | with /me/tenants + POST /tenants |
+| Tenant guard + session active org | CF.MTPERM.01–03 | C | `src/core/multi-tenancy/` | with /me/tenants + POST /tenants |
 | Postgres RLS + check:rls runtime | CF.MTPERM.04–05 | C | `src/core/permissions/rls-runtime-check.ts` + `scripts/check-rls.ts` | |
 | CASL + DB-rule resolver | CF.MTPERM.06 | C+A | `src/core/permissions/casl-ability.ts` + `db-rule-resolver.ts` | |
 | Ability cache | CF.MTPERM.07 | A → fusion | `src/core/permissions/casl-ability.ts` | memoized resolver |
@@ -128,9 +128,9 @@ file answers it. It is the single source of truth referenced by
 | **OpenAPI / SDK** | | | | |
 | OAS 3.1 + Scalar UI + Zod bridge (5 decorators + registerZodSchema) | CF.OAS.01–07 | C | `src/core/openapi/` | |
 | kubb SDK gen + offline snapshot + drift gates | CF.OAS.08–11 | C+fusion | `kubb.config.ts` + `scripts/{dump-openapi,sdk-check}.ts` | sdk-check added iter-4 |
-| **Dev Hub & DX** | | | | |
+| **Hub & DX** | | | | |
 | React 19 SPA shell (shadcn/Radix/Tailwind 4/lucide/sonner/TanStack/Router) | CF.DH.01–07 | C | `src/core/dx/clients/` | |
-| Cockpit (6 panels) + 18 dev pages + 10 admin pages | CF.DH.08–43 | C+A | `src/core/dx/{dev-hub,admin-spa}.controller.ts` | |
+| Cockpit (6 panels) + 18 dev pages + 10 admin pages | CF.DH.08–43 | C+A | `src/core/dx/{hub,admin-spa}.controller.ts` | |
 | Dev Session runner (Postgres + Studio + .env watch + browser open + free-port) | CF.DH.44–48 | C | `src/core/dx/dev-session-runner.ts` | |
 | Cloudflare Tunnel + Portless integration | CF.DH.49–50 | C | `src/core/dx/dev-session-runner.ts` | |
 | **Setup & Lifecycle** | | | | |

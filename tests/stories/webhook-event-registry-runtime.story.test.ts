@@ -14,7 +14,9 @@ import {
   WebhookDispatcher,
   WebhookEventTypeNotRegisteredError,
 } from "../../src/core/webhooks/webhook-dispatcher.js";
-import { hubReq } from "../helpers/hub-request.js";
+import { hubReqScoped, pinHubTestAuthEnv } from "../helpers/hub-request.js";
+
+const TENANT = "11111111-1111-1111-1111-111111111111";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 
@@ -151,13 +153,16 @@ describe("Story · @WebhookEvent registry hooked into runtime", () => {
 
   describe("GET /hub/webhook-events.json surfaces the registry", () => {
     let app: INestApplication;
+    let hub: Awaited<ReturnType<typeof hubReqScoped>>;
     let previousNodeEnv: string | undefined;
 
     beforeAll(async () => {
       previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "development";
       const { bootstrap } = await import("../../src/core/app/bootstrap.js");
+      pinHubTestAuthEnv();
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
+      hub = await hubReqScoped(app, TENANT);
     });
 
     afterAll(async () => {
@@ -167,7 +172,7 @@ describe("Story · @WebhookEvent registry hooked into runtime", () => {
     });
 
     it("returns the @WebhookEvent registry as a JSON array", async () => {
-      const res = await hubReq(app).get("/hub/webhook-events.json");
+      const res = await hub.get("/hub/webhook-events.json");
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body.events)).toBe(true);
       const names = (res.body.events as Array<{ name: string }>).map((e) => e.name);
@@ -176,7 +181,7 @@ describe("Story · @WebhookEvent registry hooked into runtime", () => {
     });
 
     it("each entry carries name + description + version", async () => {
-      const res = await hubReq(app).get("/hub/webhook-events.json");
+      const res = await hub.get("/hub/webhook-events.json");
       const entry = (
         res.body.events as Array<{ name: string; description?: string; version: number }>
       ).find((e) => e.name === "test.user.created");

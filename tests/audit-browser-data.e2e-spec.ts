@@ -3,7 +3,7 @@ import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { PrismaService } from "../src/core/prisma/prisma.service.js";
-import { hubReq } from "./helpers/hub-request.js";
+import { hubReqScoped, pinHubTestAuthEnv } from "./helpers/hub-request.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 // Per-suite tenant UUID isolates this spec's seeded audit_log rows
@@ -32,14 +32,17 @@ const TENANT = crypto.randomUUID();
  */
 describe("E2E · Audit Browser data source (/admin/audit.json)", () => {
   let app: INestApplication;
+  let hub: Awaited<ReturnType<typeof hubReqScoped>>;
   let prisma: PrismaService;
   let previousNodeEnv: string | undefined;
 
   beforeAll(async () => {
     previousNodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = "development";
+    pinHubTestAuthEnv();
     const { bootstrap } = await import("../src/core/app/bootstrap.js");
     app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
+    hub = await hubReqScoped(app, TENANT);
     prisma = app.get(PrismaService);
 
     // Seed three audit rows so the assertions don't rely on side-effects
@@ -88,7 +91,7 @@ describe("E2E · Audit Browser data source (/admin/audit.json)", () => {
   });
 
   it("GET /admin/audit.json returns all audit rows mapped to the read-model shape", async () => {
-    const res = await hubReq(app).get("/admin/audit.json").set("x-tenant-id", TENANT);
+    const res = await hub.get("/admin/audit.json");
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.entries)).toBe(true);
     expect(res.body.entries.length).toBeGreaterThanOrEqual(3);
@@ -104,7 +107,7 @@ describe("E2E · Audit Browser data source (/admin/audit.json)", () => {
   });
 
   it("?action=create filters to CREATE-action rows (case-insensitive)", async () => {
-    const res = await hubReq(app).get("/admin/audit.json?action=create").set("x-tenant-id", TENANT);
+    const res = await hub.get("/admin/audit.json?action=create");
     expect(res.status).toBe(200);
     expect(res.body.filter).toEqual({ action: "create" });
     for (const entry of res.body.entries) {
@@ -114,9 +117,7 @@ describe("E2E · Audit Browser data source (/admin/audit.json)", () => {
   });
 
   it("?resource=Tenant filters to the Tenant target model", async () => {
-    const res = await hubReq(app)
-      .get("/admin/audit.json?resource=Tenant")
-      .set("x-tenant-id", TENANT);
+    const res = await hub.get("/admin/audit.json?resource=Tenant");
     expect(res.status).toBe(200);
     expect(res.body.filter.resource).toBe("Tenant");
     for (const entry of res.body.entries) {
@@ -126,7 +127,7 @@ describe("E2E · Audit Browser data source (/admin/audit.json)", () => {
   });
 
   it("entries carry the `before` / `after` diff payloads from the JSON column", async () => {
-    const res = await hubReq(app).get("/admin/audit.json").set("x-tenant-id", TENANT);
+    const res = await hub.get("/admin/audit.json");
     const updateEntry = (
       res.body.entries as Array<{ action: string; before?: object; after?: object }>
     ).find((e) => e.action === "update");
@@ -136,7 +137,7 @@ describe("E2E · Audit Browser data source (/admin/audit.json)", () => {
   });
 
   it("orders rows by createdAt DESC (most recent first)", async () => {
-    const res = await hubReq(app).get("/admin/audit.json").set("x-tenant-id", TENANT);
+    const res = await hub.get("/admin/audit.json");
     expect(res.status).toBe(200);
     const occurredAts = (res.body.entries as Array<{ occurredAt: string }>).map((e) =>
       new Date(e.occurredAt).getTime(),
@@ -146,18 +147,22 @@ describe("E2E · Audit Browser data source (/admin/audit.json)", () => {
     }
   });
 
-  it("400s when the x-tenant-id header is missing (iter-201 defense-in-depth alongside RLS)", async () => {
-    // Iter-201 G2 closure: the controller now requires an explicit
-    // `x-tenant-id` header even though `audit_log` has RLS enabled.
-    // The explicit predicate is defense-in-depth against an operator
-    // omitting the header — without it, the query relied entirely on
-    // RLS for tenant isolation. Now the controller surfaces a 400 at
-    // the request boundary instead of falling through.
-    const res = await request(app.getHttpServer())
-      .get("/admin/audit.json")
-      .set("x-test-ability", "full");
+  it("400s when session has no active organization (requireTenantContext)", async () => {
+    process.env.BETTER_AUTH_SECRET ??=
+      "test-better-auth-secret-for-testing-purposes-only-1234567890abcd";
+    const agent = request.agent(app.getHttpServer());
+    const signUp = await agent
+      .post("/api/auth/sign-up/email")
+      .set("content-type", "application/json")
+      .send({
+        email: `audit-no-org-${Date.now()}@example.com`,
+        password: "password-12345",
+        name: "Audit No Org",
+      });
+    expect(signUp.status).toBe(200);
+    const res = await agent.get("/admin/audit.json").set("x-test-ability", "full");
     expect(res.status).toBe(400);
-    expect(res.body.detail).toMatch(/tenant/i);
+    expect(JSON.stringify(res.body)).toMatch(/tenant/i);
   });
 
   it("returns ONLY rows for the request's tenant — concurrent tenants' audit rows do NOT leak", async () => {
@@ -176,7 +181,7 @@ describe("E2E · Audit Browser data source (/admin/audit.json)", () => {
       },
     });
     try {
-      const res = await hubReq(app).get("/admin/audit.json").set("x-tenant-id", TENANT);
+      const res = await hub.get("/admin/audit.json");
       expect(res.status).toBe(200);
       const ids = (res.body.entries as Array<{ id: string }>).map((e) => e.id);
       expect(ids).not.toContain(otherRow.id);
@@ -189,12 +194,12 @@ describe("E2E · Audit Browser data source (/admin/audit.json)", () => {
     // Quick negative case — the assertDev() guard fires regardless of
     // tenant header, so the test boots a separate app instance with
     // NODE_ENV=production.
+    pinHubTestAuthEnv();
     process.env.NODE_ENV = "production";
     const { bootstrap } = await import("../src/core/app/bootstrap.js");
     const prodApp = await bootstrap({ listen: false, logger: SILENT_LOGGER });
-    const res = await request(prodApp.getHttpServer())
-      .get("/admin/audit.json")
-      .set("x-tenant-id", TENANT);
+    const prodHub = await hubReqScoped(prodApp, TENANT);
+    const res = await prodHub.get("/admin/audit.json");
     expect(res.status).toBe(404);
     await prodApp.close();
     process.env.NODE_ENV = "development";

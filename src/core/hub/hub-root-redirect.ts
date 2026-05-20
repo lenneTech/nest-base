@@ -5,14 +5,13 @@
 import type { INestApplication } from "@nestjs/common";
 import type { Request } from "express";
 
-import { canAccessDevHub } from "./hub-portal-access.js";
+import { canAccessHub, canAccessTenantAdmin } from "./hub-portal-access.js";
 
-export type HubRootRedirectTarget = "/hub";
+export type HubRootRedirectTarget = "/hub" | "/admin/users";
 
 /**
- * When the caller already has a Better-Auth session with `read DevHub`,
- * return `/hub` so the Express handler can redirect. Otherwise `null`
- * (serve login shell).
+ * When the caller has a Better-Auth session, return `/hub` (system
+ * admin) or `/admin/users` (tenant admin). Otherwise `null` (login shell).
  */
 export async function resolveHubRootRedirectTarget(
   app: INestApplication,
@@ -75,8 +74,11 @@ export async function resolveHubRootRedirectTarget(
       return null;
     }
     const ability = await permissionService.abilityFor(userId, tenantId);
-    if (canAccessDevHub(ability)) {
+    if (canAccessHub(ability)) {
       return "/hub";
+    }
+    if (canAccessTenantAdmin(ability)) {
+      return "/admin/users";
     }
   } catch {
     return null;

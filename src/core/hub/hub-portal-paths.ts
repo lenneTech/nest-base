@@ -16,8 +16,28 @@ export function isHubPortalLoginPath(path: string): boolean {
 }
 
 /**
+ * SPA gate probe — must stay reachable for any signed-in user so the
+ * client can show "no Hub access" instead of a blind 403.
+ */
+export function isHubPortalAccessProbePath(path: string): boolean {
+  return path === "/hub/portal-access.json";
+}
+
+/** Dev cockpit pages under `/hub/*` (excludes static assets and the access probe). */
+export function isHubCockpitPath(path: string): boolean {
+  if (isHubPortalStaticAsset(path)) return false;
+  if (isHubPortalAccessProbePath(path)) return false;
+  return path === "/hub" || path.startsWith("/hub/");
+}
+
+/** Tenant-admin SPA + JSON under `/admin/*`. */
+export function isTenantAdminPortalPath(path: string): boolean {
+  return path === "/admin" || path.startsWith("/admin/");
+}
+
+/**
  * Operator SPA HTML + JSON under `/hub/*` and `/admin/*` (except static).
- * Requires a Better-Auth session; CASL `DevHub` / admin subjects gate features.
+ * Requires a Better-Auth session; CASL `Hub` / admin subjects gate features.
  */
 export function isHubPortalProtectedPath(path: string): boolean {
   if (isHubPortalStaticAsset(path)) return false;

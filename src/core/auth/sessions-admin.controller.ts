@@ -127,13 +127,23 @@ export class SessionsAdminController {
    */
   @Can("delete", "Session")
   @Get("list.json")
-  async sessionsListJson(
-    @Req() req: AuthedRequest,
-  ): Promise<{ sessions: readonly SessionRecord[] }> {
-    // Scope to the requesting admin's tenant when authenticated; dev-hub
-    // calls without a session pass `undefined` (all tenants in single-tenant).
+  async sessionsListJson(@Req() req: AuthedRequest): Promise<{
+    sessions: ReadonlyArray<{
+      id: string;
+      userId: string;
+      createdAt: string;
+      tenantId: string;
+    }>;
+  }> {
     const sessions = await this.storage.listAllSessions(req.user?.tenantId);
-    return { sessions };
+    return {
+      sessions: sessions.map((s) => ({
+        id: s.id,
+        userId: s.userId,
+        tenantId: s.tenantId,
+        createdAt: new Date(s.createdAt).toISOString(),
+      })),
+    };
   }
 
   /**

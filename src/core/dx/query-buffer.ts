@@ -12,7 +12,7 @@
  * round-trip per row.
  *
  * Singleton-friendly (`getQueryBuffer()`) so the PrismaService can
- * push records and the dev-hub controller can read them. Process-
+ * push records and the Hub controller can read them. Process-
  * local; cleared on dev-server restart.
  */
 

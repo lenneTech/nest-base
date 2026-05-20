@@ -1,29 +1,36 @@
 import type { INestApplication } from "@nestjs/common";
-import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { bootstrap } from "../src/core/app/bootstrap.js";
-import { hubReq } from "./helpers/hub-request.js";
+import { hubReqScoped, pinHubTestAuthEnv } from "./helpers/hub-request.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
+/** Stable org id — avoids circular import on `HUB_TEST_TENANT_ID` default in hub-request. */
+const TENANT = "11111111-1111-1111-1111-111111111111";
 
 /**
- * Dev-Hub controller wiring.
+ * Hub controller wiring.
  *
- * `GET /dev` returns an HTML landing page listing the active DX tools,
- * driven by `planDevHub()`. Outside `NODE_ENV=development` the route
- * either 404s or returns an empty list — `/dev` is a developer-only
+ * `GET /hub` returns an HTML landing page listing the active DX tools,
+ * driven by `planHub()`. Outside `NODE_ENV=development` the route
+ * either 404s or returns an empty list — `/hub` is a developer-only
  * affordance.
+ *
+ * Protected `/hub/*` routes require a Better-Auth session with
+ * `set-active` via {@link hubReqScoped}.
  */
-describe("Dev-Hub · GET /dev", () => {
+describe("Hub · GET /hub", () => {
   describe("in development mode", () => {
     let app: INestApplication;
+    let hub: Awaited<ReturnType<typeof hubReqScoped>>;
     let previousNodeEnv: string | undefined;
 
     beforeAll(async () => {
       previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "development";
+      pinHubTestAuthEnv();
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
+      hub = await hubReqScoped(app, TENANT);
     });
 
     afterAll(async () => {
@@ -33,13 +40,13 @@ describe("Dev-Hub · GET /dev", () => {
     });
 
     it("returns an HTML response", async () => {
-      const res = await hubReq(app).get("/hub");
+      const res = await hub.get("/hub");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/text\/html/);
     });
 
     it('serves the SPA shell with a "Dev Portal" title', async () => {
-      const res = await hubReq(app).get("/hub");
+      const res = await hub.get("/hub");
       // The shell renders one HTML5 document with a fixed title and a
       // <div id="root"> mount point — the React bundle hydrates the
       // rest at runtime. Title uses "Hub" as default (issue #83 rename).
@@ -47,14 +54,14 @@ describe("Dev-Hub · GET /dev", () => {
     });
 
     it("loads the bundled SPA script as type=module from /hub/static/main.js", async () => {
-      const res = await hubReq(app).get("/hub");
+      const res = await hub.get("/hub");
       expect(res.text).toMatch(
         /<script\s+type="module"\s+src="\/hub\/static\/main\.js"><\/script>/,
       );
     });
 
     it("escapes HTML in the rendered page (no raw user-controlled fragments)", async () => {
-      const res = await hubReq(app).get("/hub");
+      const res = await hub.get("/hub");
       // Anti-injection heuristic: every <script> opening must have a
       // matching </script> close somewhere in the document.
       const opens = (res.text.match(/<script\b/g) ?? []).length;
@@ -63,7 +70,7 @@ describe("Dev-Hub · GET /dev", () => {
     });
 
     it("GET /dev/features serves the SPA shell with the correct title", async () => {
-      const res = await hubReq(app).get("/hub/features");
+      const res = await hub.get("/hub/features");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/text\/html/);
       // The Dev-Portal SPA shell. The page-specific DOM is rendered by
@@ -73,7 +80,7 @@ describe("Dev-Hub · GET /dev", () => {
     });
 
     it("GET /dev/feature-catalog.json returns the FEATURE_CATALOG + active Features", async () => {
-      const res = await hubReq(app).get("/hub/feature-catalog.json");
+      const res = await hub.get("/hub/feature-catalog.json");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
       expect(Array.isArray(res.body.catalog)).toBe(true);
@@ -83,7 +90,7 @@ describe("Dev-Hub · GET /dev", () => {
     });
 
     it("GET /dev/features.json returns the active Features object as JSON", async () => {
-      const res = await hubReq(app).get("/hub/features.json");
+      const res = await hub.get("/hub/features.json");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
       expect(res.body).toHaveProperty("multiTenancy");
@@ -92,14 +99,14 @@ describe("Dev-Hub · GET /dev", () => {
     });
 
     it("GET /dev/diagnostics renders the HTML diagnostics page", async () => {
-      const res = await hubReq(app).get("/hub/diagnostics");
+      const res = await hub.get("/hub/diagnostics");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/text\/html/);
       expect(res.text).toMatch(/Diagnostics/);
     });
 
     it("GET /dev/diagnostics.json returns runtime + features report as JSON", async () => {
-      const res = await hubReq(app).get("/hub/diagnostics.json");
+      const res = await hub.get("/hub/diagnostics.json");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
       expect(res.body).toHaveProperty("runtime");
@@ -109,7 +116,7 @@ describe("Dev-Hub · GET /dev", () => {
     });
 
     it("GET /dev/routes serves the SPA shell with the correct title", async () => {
-      const res = await hubReq(app).get("/hub/routes");
+      const res = await hub.get("/hub/routes");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/text\/html/);
       expect(res.text).toContain('<div id="root"></div>');
@@ -118,16 +125,16 @@ describe("Dev-Hub · GET /dev", () => {
 
     it("GET /dev/traces renders the HTML trace viewer", async () => {
       // Make a request first so the buffer has something to show.
-      await hubReq(app).get("/hub/diagnostics.json");
-      const res = await hubReq(app).get("/hub/traces");
+      await hub.get("/hub/diagnostics.json");
+      const res = await hub.get("/hub/traces");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/text\/html/);
       expect(res.text).toMatch(/Traces/);
     });
 
     it("GET /dev/traces.json returns the structured buffer + summary", async () => {
-      await hubReq(app).get("/hub/diagnostics.json");
-      const res = await hubReq(app).get("/hub/traces.json");
+      await hub.get("/hub/diagnostics.json");
+      const res = await hub.get("/hub/traces.json");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
       expect(Array.isArray(res.body.traces)).toBe(true);
@@ -140,7 +147,7 @@ describe("Dev-Hub · GET /dev", () => {
     });
 
     it("GET /dev/queries serves the SPA shell with the correct title", async () => {
-      const res = await hubReq(app).get("/hub/queries");
+      const res = await hub.get("/hub/queries");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/text\/html/);
       expect(res.text).toContain('<div id="root"></div>');
@@ -148,7 +155,7 @@ describe("Dev-Hub · GET /dev", () => {
     });
 
     it("GET /dev/queries.json returns the structured buffer + summary + slowest + topTemplates", async () => {
-      const res = await hubReq(app).get("/hub/queries.json");
+      const res = await hub.get("/hub/queries.json");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
       expect(Array.isArray(res.body.recent)).toBe(true);
@@ -160,12 +167,12 @@ describe("Dev-Hub · GET /dev", () => {
       expect(typeof res.body.summary.badCount).toBe("number");
     });
 
-    it("GET /dev/email-preview serves the SPA shell with the correct title", async () => {
-      const res = await hubReq(app).get("/hub/email-preview");
+    it("GET /hub/emails serves the SPA shell with the correct title", async () => {
+      const res = await hub.get("/hub/emails");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/text\/html/);
       expect(res.text).toContain('<div id="root"></div>');
-      expect(res.text).toContain("Email Preview — nest-server");
+      expect(res.text).toContain("Emails — nest-server");
     });
 
     it("GET /dev/email-preview.json returns structured catalog + rendered", async () => {
@@ -178,7 +185,7 @@ describe("Dev-Hub · GET /dev", () => {
       // when the first response actually included an error field; a
       // genuinely-broken template fails on the second request too.
       const fetchPreview = async () => {
-        const r = await hubReq(app).get("/hub/email-preview.json");
+        const r = await hub.get("/hub/email-preview.json");
         expect(r.status).toBe(200);
         expect(r.headers["content-type"]).toMatch(/application\/json/);
         return r;
@@ -194,11 +201,11 @@ describe("Dev-Hub · GET /dev", () => {
       expect(
         res.body.rendered.welcome.subject,
         `welcome template render failed. error="${res.body.rendered.welcome.error ?? "(none)"}". rendered=${JSON.stringify(res.body.rendered)}`,
-      ).toBe("Welcome to nest-base");
+      ).toBe("Welcome to nest-server");
     });
 
     it("GET /dev/erd serves the SPA shell with the correct title", async () => {
-      const res = await hubReq(app).get("/hub/erd");
+      const res = await hub.get("/hub/erd");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/text\/html/);
       expect(res.text).toContain('<div id="root"></div>');
@@ -206,7 +213,7 @@ describe("Dev-Hub · GET /dev", () => {
     });
 
     it("GET /dev/erd.json returns the parsed ERD plan", async () => {
-      const res = await hubReq(app).get("/hub/erd.json");
+      const res = await hub.get("/hub/erd.json");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
       expect(typeof res.body.mermaid).toBe("string");
@@ -219,7 +226,7 @@ describe("Dev-Hub · GET /dev", () => {
       // Build artefact must exist for this test. `bun run build:dev-portal`
       // is part of the standard quality-gate sequence and emits the
       // file before the e2e suite runs in CI.
-      const res = await hubReq(app).get("/hub/static/main.js");
+      const res = await hub.get("/hub/static/main.js");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/javascript/);
       // First chunk should look like JavaScript (`import`/`export`/`var`/
@@ -229,36 +236,28 @@ describe("Dev-Hub · GET /dev", () => {
     });
 
     it("GET /dev/static/tokens.css serves the design-token CSS", async () => {
-      const res = await hubReq(app).get("/hub/static/tokens.css");
+      const res = await hub.get("/hub/static/tokens.css");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/text\/css/);
       expect(res.text).toContain("--accent: #c5fb45");
     });
 
     it("GET /dev/static/../package.json is rejected (no path traversal)", async () => {
-      const res = await hubReq(app).get("/hub/static/..%2Fpackage.json");
+      const res = await hub.get("/hub/static/..%2Fpackage.json");
       expect(res.status).toBe(404);
-    });
-
-    it("GET /dev/components renders the SPA shell (showcase route)", async () => {
-      const res = await hubReq(app).get("/hub/components");
-      expect(res.status).toBe(200);
-      expect(res.headers["content-type"]).toMatch(/text\/html/);
-      expect(res.text).toContain('<div id="root"></div>');
-      expect(res.text).toMatch(/<title>Components — nest-server<\/title>/);
     });
 
     it("GET /dev/some-future-spa-path falls through to the SPA shell", async () => {
       // The catch-all gives the client router room to add new pages
       // without a server change. Server-rendered routes still win;
       // unknown paths hand off to React.
-      const res = await hubReq(app).get("/hub/this-route-only-exists-on-the-client");
+      const res = await hub.get("/hub/this-route-only-exists-on-the-client");
       expect(res.status).toBe(200);
       expect(res.text).toContain('<div id="root"></div>');
     });
 
     it("GET /dev/routes.json returns the structured inventory", async () => {
-      const res = await hubReq(app).get("/hub/routes.json");
+      const res = await hub.get("/hub/routes.json");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
       expect(res.body).toHaveProperty("routes");
@@ -276,12 +275,15 @@ describe("Dev-Hub · GET /dev", () => {
 
   describe("outside development mode", () => {
     let app: INestApplication;
+    let hub: Awaited<ReturnType<typeof hubReqScoped>>;
     let previousNodeEnv: string | undefined;
 
     beforeAll(async () => {
       previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "production";
+      pinHubTestAuthEnv();
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
+      hub = await hubReqScoped(app, TENANT);
     });
 
     afterAll(async () => {
@@ -291,12 +293,12 @@ describe("Dev-Hub · GET /dev", () => {
     });
 
     it("returns 404 outside development", async () => {
-      const res = await request(app.getHttpServer()).get("/hub");
+      const res = await hub.get("/hub");
       expect(res.status).toBe(404);
     });
 
     it("returns 404 for /dev/static/* outside development", async () => {
-      const res = await request(app.getHttpServer()).get("/hub/static/main.js");
+      const res = await hub.get("/hub/static/main.js");
       expect(res.status).toBe(404);
     });
   });

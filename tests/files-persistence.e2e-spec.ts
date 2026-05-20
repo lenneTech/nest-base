@@ -10,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bootstrap } from "../src/core/app/bootstrap.js";
 import { PrismaService } from "../src/core/prisma/prisma.service.js";
 import { uuidV7 } from "../src/core/uuid/uuid-v7.js";
+import { setActiveOrganization } from "./helpers/tenant-session.js";
 import { emerald8x8Png } from "./lib/png-fixture.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
@@ -105,6 +106,7 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
         createdAt: new Date(),
       },
     });
+    await setActiveOrganization(app.getHttpServer(), sessionCookie, tenantId);
   });
 
   afterAll(async () => {
@@ -135,7 +137,6 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
     const sha = createHash("sha256").update(bytes).digest("hex");
     const res = await request(app.getHttpServer())
       .post("/api/files/upload")
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({
@@ -162,7 +163,6 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
     const bytes = await makePng();
     const upload = await request(app.getHttpServer())
       .post("/api/files/upload")
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({
@@ -178,7 +178,6 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
 
     const get = await request(app.getHttpServer())
       .get(`/api/files/${id}`)
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
 
@@ -191,7 +190,6 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
     const sha = createHash("sha256").update(bytes).digest("hex");
     const upload = await request(app.getHttpServer())
       .post("/api/files/upload")
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({
@@ -212,7 +210,6 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
     // should match the upload exactly.
     const res = await request(app.getHttpServer())
       .get(`/api/assets/${encodeURIComponent(storageKey)}`)
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
 
@@ -227,7 +224,6 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
     const bytes = await makePng();
     const upload = await request(app.getHttpServer())
       .post("/api/files/upload")
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({
@@ -244,7 +240,6 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
     // First call: cache miss (bytes go through sharp).
     const first = await request(app.getHttpServer())
       .get(`/api/assets/${encodeURIComponent(storageKey)}?width=4&format=webp`)
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
     expect(first.status).toBe(200);
@@ -254,7 +249,6 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
     // Second call: cache hit (no transformer invocation).
     const second = await request(app.getHttpServer())
       .get(`/api/assets/${encodeURIComponent(storageKey)}?width=4&format=webp`)
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
     expect(second.status).toBe(200);
@@ -265,7 +259,6 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
     const bytes = await makePng();
     const upload = await request(app.getHttpServer())
       .post("/api/files/upload")
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({

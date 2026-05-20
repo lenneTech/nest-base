@@ -88,9 +88,9 @@ describe("Story · Dev-Portal Shell", () => {
     expect(html).toMatch(/JavaScript/i);
   });
 
-  it("uses lang=de on the <html> element to match the rest of the dev surface", () => {
+  it("uses lang=en on the <html> element to match the rest of the dev surface", () => {
     const html = renderDevPortalShell(input());
-    expect(html).toMatch(/<html\s+lang="de"/);
+    expect(html).toMatch(/<html\s+lang="en"/);
   });
 
   it("buildDevPortalShellInput defaults the static base path and title", () => {

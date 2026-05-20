@@ -1,9 +1,9 @@
 /**
  * Path-classification for the tenant-guard.
  *
- * Public/system paths (/, /health/*, /api/auth/*) are exempt from the
- * tenant-header requirement. Everything else needs the header to be
- * present and parseable as a UUID.
+ * Public/system paths (/, /health/*, /api/auth/*) are exempt from tenant
+ * scope. Tenant-required paths use `session.activeOrganizationId`
+ * (Better-Auth `set-active`); the `x-tenant-id` header is not read.
  *
  * The actual NestJS Guard wraps this classifier in a future slice.
  *
@@ -54,9 +54,6 @@ const EXEMPT_EXACT = new Set([
 const STATIC_EXEMPT_PREFIXES = [
   "/health/",
   "/docs/",
-  // Dev-Hub operator surface — cockpit JSON + SPA HTML are not scoped to a
-  // tenant (contrast `/admin/*`, which is tenant-admin CRUD).
-  "/hub/",
   "/errors/",
   "/api/me/",
   "/api/tenants/",

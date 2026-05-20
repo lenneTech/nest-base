@@ -6,7 +6,15 @@
  *   - right pane: breadcrumb + sort/filter toolbar + file grid
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type DragEvent,
+  type ReactNode,
+} from "react";
 import { toast } from "sonner";
 
 import { Button } from "../components/ui/button.js";
@@ -27,7 +35,8 @@ import {
 } from "../components/ui/select.js";
 import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
-import { fetchJson, formatBytes } from "../lib/api.js";
+import { adminFetch, fetchJson, formatBytes } from "../lib/api.js";
+import { bootstrapHubOperatorSession } from "../lib/hub-session-bootstrap.js";
 import { cn } from "../lib/utils.js";
 
 interface FolderTreeNodeDto {
@@ -75,14 +84,15 @@ type SortDirection = "asc" | "desc";
 
 const SORT_KEYS: { id: SortKey; label: string }[] = [
   { id: "name", label: "Name" },
-  { id: "size", label: "Größe" },
-  { id: "createdAt", label: "Erstellt" },
-  { id: "updatedAt", label: "Aktualisiert" },
-  { id: "mimeType", label: "Typ" },
+  { id: "size", label: "Size" },
+  { id: "createdAt", label: "Created" },
+  { id: "updatedAt", label: "Updated" },
+  { id: "mimeType", label: "Type" },
 ];
 
 export function FileManagerPage(): ReactNode {
-  const [tenantId, setTenantId] = useState<string>(readDefaultTenantId());
+  const [tenantId, setTenantId] = useState("");
+  const [tenantBootstrapDone, setTenantBootstrapDone] = useState(false);
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortKey>("name");
@@ -93,17 +103,28 @@ export function FileManagerPage(): ReactNode {
   const [shareFile, setShareFile] = useState<FileEntryDto | null>(null);
 
   const queryClient = useQueryClient();
-  const tenantValid = isUuid(tenantId);
+  const tenantValid = tenantBootstrapDone && isUuid(tenantId);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const bootstrapped = await bootstrapHubOperatorSession();
+      if (!cancelled && bootstrapped) setTenantId(bootstrapped);
+      if (!cancelled) setTenantBootstrapDone(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const treeQuery = useQuery({
     queryKey: ["dev", "files", "tree", tenantId],
-    queryFn: () => fetchJson<TreeResponse>(`/hub/files/tree.json?tenantId=${tenantId}`),
+    queryFn: () => fetchJson<TreeResponse>("/hub/files/tree.json"),
     enabled: tenantValid,
   });
 
   const listUrl = useMemo(() => {
     const p = new URLSearchParams();
-    p.set("tenantId", tenantId);
     if (activeFolderId) p.set("folderId", activeFolderId);
     if (search) p.set("search", search);
     p.set("sortBy", sortBy);
@@ -119,10 +140,9 @@ export function FileManagerPage(): ReactNode {
 
   const breadcrumbUrl = useMemo(() => {
     const p = new URLSearchParams();
-    p.set("tenantId", tenantId);
     if (activeFolderId) p.set("folderId", activeFolderId);
     return `/hub/files/breadcrumb.json?${p.toString()}`;
-  }, [tenantId, activeFolderId]);
+  }, [activeFolderId]);
 
   const breadcrumbQuery = useQuery({
     queryKey: ["dev", "files", "breadcrumb", breadcrumbUrl],
@@ -132,9 +152,9 @@ export function FileManagerPage(): ReactNode {
 
   const createFolder = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/folders", {
+      const res = await adminFetch("/api/folders", {
         method: "POST",
-        headers: { "content-type": "application/json", "x-tenant-id": tenantId },
+        headers: { "content-type": "application/json" },
         body: JSON.stringify({
           tenantId,
           parentId: activeFolderId,
@@ -153,10 +173,7 @@ export function FileManagerPage(): ReactNode {
 
   const deleteFile = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/files/${id}`, {
-        method: "DELETE",
-        headers: { "x-tenant-id": tenantId },
-      });
+      const res = await adminFetch(`/api/files/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error(`file delete failed (${res.status})`);
       return res.json();
     },
@@ -169,14 +186,14 @@ export function FileManagerPage(): ReactNode {
     mutationFn: async (input: { id: string; next: "PRIVATE" | "PUBLIC" }) => {
       const res = await fetch(`/api/files/${input.id}/visibility`, {
         method: "PATCH",
-        headers: { "content-type": "application/json", "x-tenant-id": tenantId },
+        headers: { "content-type": "application/json" },
         body: JSON.stringify({ visibility: input.next }),
       });
       if (!res.ok) throw new Error(`visibility update failed (${res.status})`);
       return res.json();
     },
     onSuccess: (_d, vars) => {
-      toast.success(`Sichtbarkeit: ${vars.next}`);
+      toast.success(`Visibility: ${vars.next}`);
       void queryClient.invalidateQueries({ queryKey: ["dev", "files", "list"] });
     },
     onError: (err: Error) => toast.error(err.message),
@@ -186,7 +203,7 @@ export function FileManagerPage(): ReactNode {
     mutationFn: async (ids: readonly string[]) => {
       const res = await fetch("/api/files/zip", {
         method: "POST",
-        headers: { "content-type": "application/json", "x-tenant-id": tenantId },
+        headers: { "content-type": "application/json" },
         body: JSON.stringify({ ids }),
       });
       if (!res.ok) throw new Error(`zip failed (${res.status})`);
@@ -201,7 +218,7 @@ export function FileManagerPage(): ReactNode {
       URL.revokeObjectURL(url);
       return ids.length;
     },
-    onSuccess: (count) => toast.success(`${count} Datei(en) als ZIP heruntergeladen.`),
+    onSuccess: (count) => toast.success(`${count} file(s) downloaded as ZIP.`),
     onError: (err: Error) => toast.error(err.message),
   });
 
@@ -209,10 +226,7 @@ export function FileManagerPage(): ReactNode {
     mutationFn: async (ids: readonly string[]) => {
       const results = await Promise.all(
         ids.map(async (id) => {
-          const res = await fetch(`/api/files/${id}`, {
-            method: "DELETE",
-            headers: { "x-tenant-id": tenantId },
-          });
+          const res = await adminFetch(`/api/files/${id}`, { method: "DELETE" });
           return { id, ok: res.ok, status: res.status };
         }),
       );
@@ -224,43 +238,35 @@ export function FileManagerPage(): ReactNode {
       setSelectedIds(new Set());
       void queryClient.invalidateQueries({ queryKey: ["dev", "files", "list"] });
       if (failed.length === 0) {
-        toast.success(`${succeeded} Datei(en) gelöscht.`);
+        toast.success(`${succeeded} file(s) deleted.`);
       } else {
-        toast.error(`${succeeded} gelöscht · ${failed.length} fehlgeschlagen.`);
+        toast.error(`${succeeded} deleted · ${failed.length} failed.`);
       }
     },
   });
 
-  const subtitle = tenantValid
-    ? `Tenant: ${tenantId} · ${listQuery.data?.totalCount ?? 0} Dateien im aktiven Ordner`
-    : "Bitte eine gültige Tenant-UUID eingeben oder als Cookie x-tenant-id setzen.";
+  const subtitle = !tenantBootstrapDone
+    ? "Loading tenant from session…"
+    : tenantValid
+      ? `${listQuery.data?.totalCount ?? 0} files in the active folder`
+      : "Sign in to the Hub and activate an organization (set-active).";
 
   return (
-    <AdminShell title="File Manager" subtitle={subtitle} currentNav="files">
+    <AdminShell title="File manager" subtitle={subtitle} currentNav="files">
       <Card data-file-manager>
         <CardContent className="flex flex-col gap-4 p-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="flex flex-1 min-w-72 flex-col gap-1.5">
-              <Label htmlFor="tenant-id">Tenant-UUID</Label>
-              <Input
-                id="tenant-id"
-                value={tenantId}
-                onChange={(e) => setTenantId(e.target.value)}
-                placeholder="00000000-0000-0000-0000-000000000000"
-              />
-            </div>
-            {!tenantValid ? (
-              <span className="text-xs text-fg-muted">UUID muss 8-4-4-4-12 Zeichen lang sein.</span>
-            ) : null}
-          </div>
-          {tenantValid ? (
+          {!tenantBootstrapDone ? (
+            <PageLoading>Loading tenant from session…</PageLoading>
+          ) : !tenantValid ? (
+            <PageError>{subtitle}</PageError>
+          ) : (
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
               <aside
                 className="rounded-md border border-line bg-surface-2 p-3"
                 data-fm-region="tree"
               >
                 <header className="mb-3 flex items-center justify-between">
-                  <strong className="text-xs uppercase tracking-wider text-fg-dim">Ordner</strong>
+                  <strong className="text-xs uppercase tracking-wider text-fg-dim">Folder</strong>
                   <button
                     type="button"
                     className={cn(
@@ -283,9 +289,9 @@ export function FileManagerPage(): ReactNode {
                     onSelect={setActiveFolderId}
                   />
                 ) : treeQuery.isError ? (
-                  <PageError>Ordnerbaum konnte nicht geladen werden.</PageError>
+                  <PageError>Could not load folder tree.</PageError>
                 ) : (
-                  <PageLoading>Lade…</PageLoading>
+                  <PageLoading>Loading…</PageLoading>
                 )}
                 <form
                   className="mt-4 flex flex-col gap-2 border-t border-line pt-3"
@@ -296,12 +302,12 @@ export function FileManagerPage(): ReactNode {
                     }
                   }}
                 >
-                  <Label htmlFor="new-folder">Neuer Ordner</Label>
+                  <Label htmlFor="new-folder">New folder</Label>
                   <Input
                     id="new-folder"
                     value={newFolderName}
                     onChange={(e) => setNewFolderName(e.target.value)}
-                    placeholder="Neuer Ordner"
+                    placeholder="New folder"
                   />
                   <Button
                     variant="outline"
@@ -310,7 +316,7 @@ export function FileManagerPage(): ReactNode {
                     disabled={createFolder.isPending || newFolderName.trim().length === 0}
                     data-action="create-folder"
                   >
-                    {createFolder.isPending ? "Anlegen…" : "Anlegen"}
+                    {createFolder.isPending ? "Creating…" : "Create"}
                   </Button>
                   {createFolder.isError ? (
                     <span className="text-xs text-err">
@@ -320,7 +326,7 @@ export function FileManagerPage(): ReactNode {
                 </form>
               </aside>
               <section className="flex flex-col gap-3" data-fm-region="grid">
-                <div aria-label="Pfad">
+                <div aria-label="Path">
                   {breadcrumbQuery.data ? (
                     <BreadcrumbBar
                       segments={breadcrumbQuery.data.segments}
@@ -337,16 +343,16 @@ export function FileManagerPage(): ReactNode {
                 />
                 <div className="flex flex-wrap items-end gap-3 rounded-md border border-line bg-surface-2 p-3">
                   <div className="flex flex-1 min-w-48 flex-col gap-1.5">
-                    <Label htmlFor="fm-search">Suche</Label>
+                    <Label htmlFor="fm-search">Search</Label>
                     <Input
                       id="fm-search"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      placeholder="Dateiname enthält…"
+                      placeholder="Filename contains…"
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="fm-sort">Sortieren nach</Label>
+                    <Label htmlFor="fm-sort">Sort by</Label>
                     <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
                       <SelectTrigger id="fm-sort" className="w-44">
                         <SelectValue />
@@ -366,15 +372,15 @@ export function FileManagerPage(): ReactNode {
                     onClick={() => setSortDirection((d) => (d === "asc" ? "desc" : "asc"))}
                     data-action="toggle-direction"
                   >
-                    {sortDirection === "asc" ? "↑ aufsteigend" : "↓ absteigend"}
+                    {sortDirection === "asc" ? "↑ ascending" : "↓ descending"}
                   </Button>
                 </div>
                 {listQuery.isError ? (
-                  <PageError>Datei-Liste konnte nicht geladen werden.</PageError>
+                  <PageError>Could not load file list.</PageError>
                 ) : !listQuery.data ? (
-                  <PageLoading>Lade…</PageLoading>
+                  <PageLoading>Loading…</PageLoading>
                 ) : listQuery.data.files.length === 0 ? (
-                  <PageEmpty>Keine Dateien in diesem Ordner.</PageEmpty>
+                  <PageEmpty>No files in this folder.</PageEmpty>
                 ) : (
                   <>
                     <BulkActionBar
@@ -389,7 +395,7 @@ export function FileManagerPage(): ReactNode {
                         if (ids.length === 0) return;
                         if (
                           typeof window !== "undefined" &&
-                          !window.confirm(`${ids.length} Datei(en) löschen?`)
+                          !window.confirm(`Delete ${ids.length} file(s)?`)
                         )
                           return;
                         bulkDelete.mutate(ids);
@@ -428,7 +434,7 @@ export function FileManagerPage(): ReactNode {
                 )}
               </section>
             </div>
-          ) : null}
+          )}
         </CardContent>
       </Card>
       <FilePreviewLightbox file={lightboxFile} onClose={() => setLightboxFile(null)} />
@@ -447,7 +453,7 @@ function FolderTree({
   onSelect: (id: string) => void;
 }): ReactNode {
   if (nodes.length === 0) {
-    return <PageEmpty>Keine Ordner.</PageEmpty>;
+    return <PageEmpty>No folders.</PageEmpty>;
   }
   return (
     <ul className="flex flex-col gap-0.5" role="tree">
@@ -562,7 +568,7 @@ function FileGrid({
               <Checkbox
                 checked={isSelected}
                 onCheckedChange={() => onToggleSelect(f.id)}
-                aria-label={`Auswählen: ${f.filename}`}
+                aria-label={`Select: ${f.filename}`}
                 data-action="select-file"
               />
               <span className="truncate text-[0.65rem] text-fg-faint">{f.id.slice(0, 8)}…</span>
@@ -576,7 +582,7 @@ function FileGrid({
                 previewable ? "cursor-zoom-in hover:bg-surface-hover" : "cursor-default",
               )}
               data-action="preview-file"
-              aria-label={previewable ? `Vorschau: ${f.filename}` : f.filename}
+              aria-label={previewable ? `Preview: ${f.filename}` : f.filename}
             >
               {f.thumbnailUrl ? (
                 <img
@@ -605,25 +611,25 @@ function FileGrid({
                 size="sm"
                 onClick={() => onToggleVisibility(f)}
                 data-action="toggle-visibility"
-                title={`Sichtbarkeit: ${f.visibility ?? "PRIVATE"}`}
+                title={`Visibility: ${f.visibility ?? "PRIVATE"}`}
               >
-                {f.visibility === "PUBLIC" ? "Öffentlich" : "Privat"}
+                {f.visibility === "PUBLIC" ? "Public" : "Private"}
               </Button>
               <Button variant="ghost" size="sm" onClick={() => onShare(f)} data-action="share-file">
-                Teilen
+                Share
               </Button>
               <Button
-                variant="ghost"
+                variant="danger"
                 size="sm"
                 disabled={isDeleting}
                 onClick={() => {
-                  if (typeof window !== "undefined" && !window.confirm(`Löschen: ${f.filename}?`))
+                  if (typeof window !== "undefined" && !window.confirm(`Delete: ${f.filename}?`))
                     return;
                   onDelete(f.id);
                 }}
                 data-action="delete-file"
               >
-                Löschen
+                Delete
               </Button>
             </div>
           </li>
@@ -666,7 +672,7 @@ function FilePreviewLightbox({
               />
             ) : (
               <div className="flex h-48 w-full items-center justify-center rounded border border-dashed border-line bg-surface-2 text-xs text-fg-muted">
-                Vorschau nicht verfügbar — {file.mimeType}
+                Preview unavailable — {file.mimeType}
               </div>
             )}
             <div className="flex w-full items-center justify-between text-xs text-fg-muted">
@@ -680,7 +686,7 @@ function FilePreviewLightbox({
                 rel="noopener noreferrer"
                 data-action="lightbox-download"
               >
-                Original öffnen ↗
+                Open original ↗
               </a>
             </div>
           </div>
@@ -720,13 +726,13 @@ function BulkActionBar({
         <Checkbox
           checked={allVisibleSelected}
           onCheckedChange={() => (allVisibleSelected ? onClear() : onSelectAll())}
-          aria-label="Alle sichtbaren auswählen"
+          aria-label="Select all visible"
           data-action="select-all"
         />
         <span className="text-fg-muted">
           {selectedIds.size === 0
-            ? `Keine ausgewählt · ${visibleIds.length} sichtbar`
-            : `${selectedIds.size} ausgewählt`}
+            ? `None selected · ${visibleIds.length} visible`
+            : `${selectedIds.size} selected`}
         </span>
       </div>
       <div className="flex items-center gap-2">
@@ -737,7 +743,7 @@ function BulkActionBar({
           onClick={onClear}
           data-action="clear-selection"
         >
-          Auswahl leeren
+          Clear selection
         </Button>
         <Button
           variant="outline"
@@ -749,13 +755,13 @@ function BulkActionBar({
           {isBulkZipping ? "Erzeuge…" : `Als ZIP (${selectedIds.size})`}
         </Button>
         <Button
-          variant="destructive"
+          variant="danger"
           size="sm"
           disabled={selectedIds.size === 0 || isBulkDeleting}
           onClick={onBulkDelete}
           data-action="bulk-delete"
         >
-          {isBulkDeleting ? "Lösche…" : `Auswahl löschen (${selectedIds.size})`}
+          {isBulkDeleting ? "Deleting…" : `Delete selection (${selectedIds.size})`}
         </Button>
       </div>
     </div>
@@ -770,7 +776,7 @@ interface ShareLinkResponse {
 
 function ShareLinkDialog({
   file,
-  tenantId,
+  tenantId: _tenantId,
   onClose,
 }: {
   file: FileEntryDto | null;
@@ -798,7 +804,7 @@ function ShareLinkDialog({
     try {
       const res = await fetch(`/api/files/${file.id}/share-link`, {
         method: "POST",
-        headers: { "content-type": "application/json", "x-tenant-id": tenantId },
+        headers: { "content-type": "application/json" },
         body: JSON.stringify({ ttlSeconds: ttlHours * 3600 }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -814,9 +820,9 @@ function ShareLinkDialog({
   const copy = async (value: string) => {
     try {
       await navigator.clipboard.writeText(value);
-      toast.success("Link in die Zwischenablage kopiert.");
+      toast.success("Link copied to clipboard.");
     } catch (err) {
-      toast.error(`Kopieren fehlgeschlagen: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(`Copy failed: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
 
@@ -833,12 +839,12 @@ function ShareLinkDialog({
     >
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle className="truncate text-sm">Teilen: {file?.filename ?? ""}</DialogTitle>
+          <DialogTitle className="truncate text-sm">Share: {file?.filename ?? ""}</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-3 text-sm">
           <div className="flex items-end gap-2">
             <div className="flex flex-col gap-1">
-              <Label htmlFor="share-ttl">Gültigkeit (Stunden)</Label>
+              <Label htmlFor="share-ttl">Validity (hours)</Label>
               <Input
                 id="share-ttl"
                 type="number"
@@ -875,11 +881,11 @@ function ShareLinkDialog({
                   onClick={() => void copy(absoluteUrl)}
                   data-action="copy-share-link"
                 >
-                  Kopieren
+                  Copy
                 </Button>
               </div>
               <p className="text-xs text-fg-muted">
-                Gültig bis <code className="font-mono">{link.expiresAt}</code>
+                Valid until <code className="font-mono">{link.expiresAt}</code>
               </p>
             </div>
           ) : null}
@@ -912,7 +918,7 @@ interface UploadProgressEntry {
 }
 
 function UploadDropZone({
-  tenantId,
+  tenantId: _tenantId,
   folderId,
   onUploaded,
 }: {
@@ -943,7 +949,6 @@ function UploadDropZone({
         await tusUpload({
           endpoint: "/api/files/upload",
           file,
-          headers: { "x-tenant-id": tenantId },
           metadata: folderId ? { folderId } : {},
           onProgress: (sent) => {
             setProgress((prev) => prev.map((p) => (p.id === id ? { ...p, sentBytes: sent } : p)));
@@ -952,14 +957,14 @@ function UploadDropZone({
         setProgress((prev) =>
           prev.map((p) => (p.id === id ? { ...p, status: "done", sentBytes: file.size } : p)),
         );
-        toast.success(`Hochgeladen: ${file.name}`);
+        toast.success(`Uploaded: ${file.name}`);
         onUploaded();
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         setProgress((prev) =>
           prev.map((p) => (p.id === id ? { ...p, status: "error", errorMessage: message } : p)),
         );
-        toast.error(`Upload-Fehler: ${file.name} — ${message}`);
+        toast.error(`Upload error: ${file.name} — ${message}`);
       }
     }
   };
@@ -997,9 +1002,9 @@ function UploadDropZone({
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-sm">
-          <strong className="text-fg">Dateien hochladen</strong>
+          <strong className="text-fg">Upload files</strong>
           <p className="text-xs text-fg-muted">
-            Hier reinziehen oder unten auswählen — TUS resumable, Standard-Limit 50 MB pro Datei.
+            Drag here or choose below — TUS resumable, default limit 50 MB per file.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -1017,7 +1022,7 @@ function UploadDropZone({
             data-action="upload-pick"
             onClick={() => inputRef.current?.click()}
           >
-            Datei wählen
+            Choose file
           </Button>
         </div>
       </div>
@@ -1040,7 +1045,7 @@ function UploadDropZone({
                           : "text-fg-muted",
                     )}
                   >
-                    {p.status === "done" ? "100% ✓" : p.status === "error" ? "Fehler" : `${pct}%`}
+                    {p.status === "done" ? "100% ✓" : p.status === "error" ? "Error" : `${pct}%`}
                   </span>
                 </div>
                 <Progress value={p.status === "done" ? 100 : pct} className="mt-1.5 h-1" />
@@ -1052,15 +1057,4 @@ function UploadDropZone({
       ) : null}
     </div>
   );
-}
-
-function readDefaultTenantId(): string {
-  if (typeof document === "undefined") return "";
-  const match = /(?:^|; )x-tenant-id=([^;]+)/.exec(document.cookie);
-  if (!match || !match[1]) return "";
-  try {
-    return decodeURIComponent(match[1]);
-  } catch {
-    return "";
-  }
 }

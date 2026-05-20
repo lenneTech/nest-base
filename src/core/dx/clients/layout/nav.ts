@@ -1,6 +1,9 @@
+import type { HubPortalNavFeatures } from "../../../hub/hub-portal-access.js";
+import { isNavItemVisibleForNavSnapshot } from "../../hub-nav-planner.js";
+
 /**
  * Sidebar navigation model — single source of truth for the dev-portal
- * sidebar. All four sections (Übersicht / Laufzeit / API & Docs / Admin)
+ * sidebar. All four sections (Overview / Runtime / API & Docs / Admin)
  * live here; `App.tsx` and `AdminShell.tsx` consume the same model.
  *
  * `id` matches `currentNav` on each page so the active-state highlight
@@ -29,9 +32,9 @@ export const ADMIN_NAV_SECTION_TITLE = "Admin";
 
 export const NAV_SECTIONS: readonly AdminNavSection[] = [
   {
-    title: "Übersicht",
+    title: "Overview",
     items: [
-      { id: "dev-hub", label: "Hub", href: "/hub", icon: "home" },
+      { id: "hub", label: "Hub", href: "/hub", icon: "home" },
       { id: "diagnostics", label: "Diagnostics", href: "/hub/diagnostics", icon: "activity" },
       { id: "features", label: "Features", href: "/hub/features", icon: "toggle" },
       { id: "brand", label: "Brand", href: "/hub/brand", icon: "palette" },
@@ -40,7 +43,7 @@ export const NAV_SECTIONS: readonly AdminNavSection[] = [
     ],
   },
   {
-    title: "Laufzeit",
+    title: "Runtime",
     items: [
       { id: "logs", label: "Logs", href: "/hub/logs", icon: "terminal" },
       { id: "traces", label: "Traces", href: "/hub/traces", icon: "pulse" },
@@ -59,8 +62,7 @@ export const NAV_SECTIONS: readonly AdminNavSection[] = [
       { id: "routes", label: "Routes", href: "/hub/routes", icon: "route" },
       { id: "errors", label: "Error Codes", href: "/errors", icon: "bug" },
       { id: "erd", label: "ERD", href: "/hub/erd", icon: "network" },
-      { id: "email-preview", label: "Email Preview", href: "/hub/email-preview", icon: "eye" },
-      { id: "email-builder", label: "Email Builder", href: "/hub/email-builder", icon: "pen" },
+      { id: "emails", label: "Emails", href: "/hub/emails", icon: "mail" },
       {
         id: "prisma-studio",
         label: "Prisma Studio",
@@ -72,8 +74,8 @@ export const NAV_SECTIONS: readonly AdminNavSection[] = [
   {
     title: ADMIN_NAV_SECTION_TITLE,
     items: [
-      { id: "users", label: "Benutzer", href: "/admin/users", icon: "users" },
-      { id: "tenants", label: "Mandanten", href: "/admin/tenants", icon: "building" },
+      { id: "users", label: "Users", href: "/admin/users", icon: "users" },
+      { id: "tenants", label: "Tenants", href: "/admin/tenants", icon: "building" },
       { id: "sessions", label: "Sessions", href: "/admin/sessions", icon: "key" },
       { id: "roles", label: "Roles", href: "/admin/roles", icon: "shield" },
       { id: "policies", label: "Policies", href: "/admin/policies", icon: "scale" },
@@ -84,7 +86,7 @@ export const NAV_SECTIONS: readonly AdminNavSection[] = [
         href: "/admin/permissions/test",
         icon: "clipboard",
       },
-      { id: "rate-limits", label: "Rate-Limits", href: "/admin/rate-limits", icon: "gauge" },
+      { id: "rate-limits", label: "Rate Limits", href: "/admin/rate-limits", icon: "gauge" },
       { id: "webhooks", label: "Webhook Inspector", href: "/admin/webhooks", icon: "webhook" },
       { id: "realtime", label: "Realtime Inspector", href: "/admin/realtime", icon: "radio" },
       { id: "audit", label: "Audit Browser", href: "/admin/audit", icon: "list" },
@@ -114,9 +116,7 @@ export const SPA_ROUTES = new Set<string>([
   "/hub/email-outbox",
   "/hub/routes",
   "/hub/erd",
-  "/hub/email-preview",
-  "/hub/email-builder",
-  "/hub/components",
+  "/hub/emails",
   "/hub/postgrest-parse",
   "/hub/json",
   "/hub/files",
@@ -136,14 +136,39 @@ export const SPA_ROUTES = new Set<string>([
   "/openapi",
 ]);
 
-/** Hide Admin nav when the signed-in operator lacks tenant-admin CASL subjects. */
-export function navSectionsForPortalAccess(tenantAdmin: boolean): readonly AdminNavSection[] {
-  return NAV_SECTIONS.filter((section) => section.title !== ADMIN_NAV_SECTION_TITLE || tenantAdmin);
+export interface PortalNavAccessInput {
+  hub: boolean;
+  tenantAdmin: boolean;
+  navFeatures: HubPortalNavFeatures;
+}
+
+/** Sidebar sections visible for the signed-in operator and active feature flags. */
+export function navSectionsForPortalAccess(
+  access: PortalNavAccessInput,
+): readonly AdminNavSection[] {
+  let sections: readonly AdminNavSection[];
+  if (!access.hub && access.tenantAdmin) {
+    sections = NAV_SECTIONS.filter((section) => section.title === ADMIN_NAV_SECTION_TITLE);
+  } else if (!access.tenantAdmin) {
+    sections = NAV_SECTIONS.filter((section) => section.title !== ADMIN_NAV_SECTION_TITLE);
+  } else {
+    sections = NAV_SECTIONS;
+  }
+  return filterNavSectionsForSnapshot(sections, access.navFeatures);
 }
 
 export function isSpaRoute(href: string): boolean {
-  // Anchor URLs that the SPA owns get react-router navigation;
-  // everything else (Scalar UI at `/api/docs`, full URLs to Prisma
-  // Studio, etc.) bypasses the router and triggers a real navigation.
   return SPA_ROUTES.has(href);
+}
+
+export function filterNavSectionsForSnapshot(
+  sections: readonly AdminNavSection[],
+  snapshot: HubPortalNavFeatures,
+): AdminNavSection[] {
+  return sections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => isNavItemVisibleForNavSnapshot(item.id, snapshot)),
+    }))
+    .filter((section) => section.items.length > 0);
 }

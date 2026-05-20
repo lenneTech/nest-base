@@ -316,6 +316,21 @@ export function auditControllerRoutes(input: AuditControllerRoutesInput): RouteA
   return findings;
 }
 
+/**
+ * Collect every distinct CASL subject string referenced by a `@Can()`
+ * decorator in the audited controller tree. Used to keep the permissions
+ * matrix resource catalogue aligned with the live route surface.
+ */
+export function collectGatedAbilitySubjects(input: AuditControllerRoutesInput): string[] {
+  const subjects = new Set<string>();
+  for (const finding of auditControllerRoutes(input)) {
+    if (finding.classification !== "gated") continue;
+    const subject = finding.decorators.can?.subject?.trim();
+    if (subject && subject.length > 0) subjects.add(subject);
+  }
+  return Array.from(subjects).sort((a, b) => a.localeCompare(b));
+}
+
 // ─── helpers ────────────────────────────────────────────────────────
 
 function safeIsDirectory(path: string): boolean {

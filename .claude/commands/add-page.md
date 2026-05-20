@@ -146,7 +146,7 @@ list(
 ```
 
 Make sure `devWantsJson` exists at the bottom of the controller file.
-If not, copy the helper from `dev-hub.controller.ts`.
+If not, copy the helper from `hub.controller.ts`.
 
 React page (`src/core/dx/clients/pages/<Slug>Page.tsx`):
 
@@ -174,7 +174,7 @@ export default function <Slug>Page(): JSX.Element {
 
 **Custom flavour** — three pieces:
 
-1. **JSON sidecar route** in `dev-hub.controller.ts` (for `/hub/*`)
+1. **JSON sidecar route** in `hub.controller.ts` (for `/hub/*`)
    or `admin-spa.controller.ts` (for `/admin/*`):
 
    ```typescript

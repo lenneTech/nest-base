@@ -7,18 +7,6 @@
  * shape so an offline endpoint surfaces the same way across pages.
  */
 
-/** Default tenant scope from the `x-tenant-id` cookie set by the hub shell. */
-export function readTenantIdFromCookie(): string {
-  if (typeof document === "undefined") return "";
-  const match = /(?:^|; )x-tenant-id=([^;]+)/.exec(document.cookie);
-  if (!match?.[1]) return "";
-  try {
-    return decodeURIComponent(match[1]);
-  } catch {
-    return "";
-  }
-}
-
 /** True when the server rejected the call for missing/insufficient auth. */
 export function isAdminAuthStatus(status: number): boolean {
   return status === 401 || status === 403;
@@ -75,8 +63,8 @@ export class SignInError extends Error {
   constructor(readonly status: number) {
     super(
       status === 401 || status === 403
-        ? "E-Mail oder Passwort ungültig."
-        : `Anmeldung fehlgeschlagen (${status}).`,
+        ? "Invalid email or password."
+        : `Sign-in failed (${status}).`,
     );
     this.name = "SignInError";
   }
@@ -114,18 +102,6 @@ export async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url, {
     ...ADMIN_FETCH_INIT,
     headers: { accept: "application/json" },
-  });
-  if (!res.ok) {
-    throw await readAdminFetchError(url, res);
-  }
-  return (await res.json()) as T;
-}
-
-/** `fetchJson` with a required `x-tenant-id` header (roles / permissions CRUD). */
-export async function fetchJsonWithTenant<T>(url: string, tenantId: string): Promise<T> {
-  const res = await fetch(url, {
-    ...ADMIN_FETCH_INIT,
-    headers: { accept: "application/json", "x-tenant-id": tenantId },
   });
   if (!res.ok) {
     throw await readAdminFetchError(url, res);

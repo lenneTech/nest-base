@@ -6,11 +6,30 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 
 import { PageError, PageLoading } from "./PageState.js";
-import { AdminFetchError, fetchJson } from "../lib/api.js";
+import { AdminFetchError, fetchJson, signOut } from "../lib/api.js";
+import {
+  isSpaPathAllowedByNavSnapshot,
+  LEGACY_HUB_NAV_FEATURES_FALLBACK,
+} from "../../hub-nav-planner.js";
+import {
+  hasHubPortalAccess,
+  hasTenantAdminPortalAccess,
+  type HubPortalAccessPayload,
+  type HubPortalNavFeatures,
+} from "../lib/hub-portal-access.js";
 
-export interface HubPortalAccess {
-  devHub: boolean;
+export type HubPortalAccess = HubPortalAccessPayload & {
+  hub: boolean;
   tenantAdmin: boolean;
+  features: HubPortalNavFeatures;
+};
+
+function isHubCockpitRoute(pathname: string): boolean {
+  return pathname === "/hub" || pathname.startsWith("/hub/");
+}
+
+function isTenantAdminRoute(pathname: string): boolean {
+  return pathname === "/admin" || pathname.startsWith("/admin/");
 }
 
 export function HubPortalGate(): ReactNode {
@@ -19,12 +38,13 @@ export function HubPortalGate(): ReactNode {
     queryKey: ["hub", "portal-access"],
     queryFn: () => fetchJson<HubPortalAccess>("/hub/portal-access.json"),
     retry: false,
+    refetchOnMount: "always",
   });
 
   if (accessQuery.isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-bg p-8">
-        <PageLoading>Session prüfen…</PageLoading>
+        <PageLoading>Checking session…</PageLoading>
       </div>
     );
   }
@@ -35,22 +55,79 @@ export function HubPortalGate(): ReactNode {
     }
     return (
       <div className="flex min-h-screen items-center justify-center bg-bg p-8">
-        <PageError>Hub-Zugriff konnte nicht geprüft werden.</PageError>
+        <PageError>Could not verify Hub access.</PageError>
       </div>
     );
   }
 
-  if (!accessQuery.data?.devHub) {
+  const data = accessQuery.data;
+  const onHub = isHubCockpitRoute(location.pathname);
+  const onAdmin = isTenantAdminRoute(location.pathname);
+
+  if (onHub && !hasHubPortalAccess(data)) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-bg p-8">
-        <PageError>
-          Kein Zugriff auf den Dev-Hub. Deine Rolle hat kein{" "}
-          <code className="font-mono">read DevHub</code> — nutze einen Operator-Account (z. B.{" "}
-          <code className="font-mono">admin@lenne.tech</code>).
-        </PageError>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-bg p-8">
+        <PageError>No Hub access for this account.</PageError>
+        {hasTenantAdminPortalAccess(data) ? (
+          <a href="/admin/users" className="text-sm text-accent underline-offset-2 hover:underline">
+            Go to admin area
+          </a>
+        ) : null}
+        <button
+          type="button"
+          className="text-sm text-accent underline-offset-2 hover:underline"
+          onClick={() => {
+            void signOut().finally(() => {
+              window.location.href = "/";
+            });
+          }}
+        >
+          Sign out and sign in again
+        </button>
       </div>
     );
   }
 
-  return <Outlet context={accessQuery.data} />;
+  if (onAdmin && !hasTenantAdminPortalAccess(data)) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-bg p-8">
+        <PageError>No admin area access for this account.</PageError>
+        <button
+          type="button"
+          className="text-sm text-accent underline-offset-2 hover:underline"
+          onClick={() => {
+            void signOut().finally(() => {
+              window.location.href = "/";
+            });
+          }}
+        >
+          Sign out and sign in again
+        </button>
+      </div>
+    );
+  }
+
+  const navFeatures = data.features ?? LEGACY_HUB_NAV_FEATURES_FALLBACK;
+
+  if ((onHub || onAdmin) && !isSpaPathAllowedByNavSnapshot(location.pathname, navFeatures)) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-bg p-8">
+        <PageError>This page is disabled — the related feature flag is off.</PageError>
+        {hasHubPortalAccess(data) ? (
+          <a
+            href="/hub/features"
+            className="text-sm text-accent underline-offset-2 hover:underline"
+          >
+            Open feature flags
+          </a>
+        ) : hasTenantAdminPortalAccess(data) ? (
+          <a href="/admin/users" className="text-sm text-accent underline-offset-2 hover:underline">
+            Go to admin area
+          </a>
+        ) : null}
+      </div>
+    );
+  }
+
+  return <Outlet context={data} />;
 }

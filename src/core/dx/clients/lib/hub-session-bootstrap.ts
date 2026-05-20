@@ -1,17 +1,36 @@
+/** Demo org from `bun run seed` — preferred when multiple memberships exist. */
+const PREFERRED_ORG_SLUG = "lenne";
+
+export interface HubOrganizationSummary {
+  id: string;
+  slug?: string;
+  name?: string;
+}
+
 /**
- * After Hub sign-in, activate a default Better-Auth organization and
- * mirror it into the `x-tenant-id` cookie admin pages expect.
+ * Pick the seeded demo org when present, otherwise the first membership.
  */
-export async function bootstrapHubOperatorSession(): Promise<void> {
+export function pickDefaultOrganizationId(
+  orgs: readonly HubOrganizationSummary[],
+): string | undefined {
+  const preferred = orgs.find((o) => o.slug === PREFERRED_ORG_SLUG);
+  return preferred?.id ?? orgs[0]?.id;
+}
+
+/**
+ * After Hub sign-in, activate a default Better-Auth organization via set-active.
+ * Tenant scope for hub/admin JSON comes from the session cookie only.
+ */
+export async function bootstrapHubOperatorSession(): Promise<string | undefined> {
   const listRes = await fetch("/api/auth/organization/list", {
     credentials: "include",
     headers: { accept: "application/json" },
   });
-  if (!listRes.ok) return;
+  if (!listRes.ok) return undefined;
 
-  const orgs = (await listRes.json()) as Array<{ id: string }>;
-  const organizationId = orgs[0]?.id;
-  if (!organizationId) return;
+  const orgs = (await listRes.json()) as HubOrganizationSummary[];
+  const organizationId = pickDefaultOrganizationId(orgs);
+  if (!organizationId) return undefined;
 
   await fetch("/api/auth/organization/set-active", {
     method: "POST",
@@ -23,7 +42,19 @@ export async function bootstrapHubOperatorSession(): Promise<void> {
     body: JSON.stringify({ organizationId }),
   });
 
-  if (typeof document === "undefined") return;
-  const secure = window.location.protocol === "https:" ? "; Secure" : "";
-  document.cookie = `x-tenant-id=${encodeURIComponent(organizationId)}; Path=/; SameSite=Lax${secure}`;
+  return organizationId;
+}
+
+/** Switch the Better-Auth session to a specific organization (hub/admin JSON). */
+export async function activateHubOrganization(organizationId: string): Promise<boolean> {
+  const res = await fetch("/api/auth/organization/set-active", {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      accept: "application/json",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ organizationId }),
+  });
+  return res.ok;
 }

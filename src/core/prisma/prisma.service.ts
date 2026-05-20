@@ -134,7 +134,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     super({
       adapter: new PrismaPg({ connectionString: url }),
       // Emit `query` events so we can record durations into the
-      // dev-hub's QueryBuffer. Tests opt out via `PRISMA_DISABLE_QUERY_BUFFER=1`
+      // hub's QueryBuffer. Tests opt out via `PRISMA_DISABLE_QUERY_BUFFER=1`
       // (the in-memory test setup doesn't need the noise).
       ...(process.env.PRISMA_DISABLE_QUERY_BUFFER === "1"
         ? {}

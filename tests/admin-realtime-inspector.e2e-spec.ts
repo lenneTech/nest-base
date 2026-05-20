@@ -2,7 +2,7 @@ import type { INestApplication } from "@nestjs/common";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { RealtimeGateway } from "../src/core/realtime/realtime.module.js";
-import { hubReq } from "./helpers/hub-request.js";
+import { hubReqScoped, pinHubTestAuthEnv } from "./helpers/hub-request.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 const TENANT = "11111111-1111-1111-1111-111111111111";
@@ -18,13 +18,16 @@ const TENANT = "11111111-1111-1111-1111-111111111111";
 describe("Admin Realtime Inspector · /admin/realtime*", () => {
   describe("in development mode", () => {
     let app: INestApplication;
+    let hub: Awaited<ReturnType<typeof hubReqScoped>>;
     let previousNodeEnv: string | undefined;
 
     beforeAll(async () => {
       previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "development";
+      pinHubTestAuthEnv();
       const { bootstrap } = await import("../src/core/app/bootstrap.js");
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
+      hub = await hubReqScoped(app, TENANT);
     });
 
     afterAll(async () => {
@@ -34,7 +37,7 @@ describe("Admin Realtime Inspector · /admin/realtime*", () => {
     });
 
     it("GET /admin/realtime.json returns sockets + channels + events arrays", async () => {
-      const res = await hubReq(app).get("/admin/realtime.json").set("x-tenant-id", TENANT);
+      const res = await hub.get("/admin/realtime.json");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
       expect(Array.isArray(res.body.sockets)).toBe(true);
@@ -44,17 +47,14 @@ describe("Admin Realtime Inspector · /admin/realtime*", () => {
     });
 
     it("GET /admin/realtime/channels.json returns the aggregated channel list", async () => {
-      const res = await hubReq(app).get("/admin/realtime/channels.json").set("x-tenant-id", TENANT);
+      const res = await hub.get("/admin/realtime/channels.json");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
       expect(Array.isArray(res.body.channels)).toBe(true);
     });
 
     it("POST /admin/realtime/sockets/:id/disconnect 404s on an unknown socket", async () => {
-      const res = await hubReq(app)
-        .post("/admin/realtime/sockets/no-such-socket/disconnect")
-        .set("x-tenant-id", TENANT)
-        .send({});
+      const res = await hub.post("/admin/realtime/sockets/no-such-socket/disconnect").send({});
       expect(res.status).toBe(404);
     });
 
@@ -69,14 +69,11 @@ describe("Admin Realtime Inspector · /admin/realtime*", () => {
         tenantId: TENANT,
         userAgent: "vitest",
       });
-      const res = await hubReq(app)
-        .post("/admin/realtime/sockets/fake-1/disconnect")
-        .set("x-tenant-id", TENANT)
-        .send({});
+      const res = await hub.post("/admin/realtime/sockets/fake-1/disconnect").send({});
       expect(res.status).toBe(200);
       expect(res.body.id).toBe("fake-1");
       // The state has been cleaned up.
-      const json = await hubReq(app).get("/admin/realtime.json").set("x-tenant-id", TENANT);
+      const json = await hub.get("/admin/realtime.json");
       const found = (json.body.sockets as Array<{ id: string }>).find((s) => s.id === "fake-1");
       expect(found).toBeUndefined();
     });
@@ -84,55 +81,48 @@ describe("Admin Realtime Inspector · /admin/realtime*", () => {
     it("POST /admin/realtime/sockets/:id/send rejects malformed bodies", async () => {
       const gateway = app.get(RealtimeGateway);
       gateway.recordTestSocket({ id: "fake-2", userId: "u1", tenantId: TENANT });
-      const res = await hubReq(app)
-        .post("/admin/realtime/sockets/fake-2/send")
-        .set("x-tenant-id", TENANT)
-        .send({});
+      const res = await hub.post("/admin/realtime/sockets/fake-2/send").send({});
       expect(res.status).toBe(400);
     });
 
     it("POST /admin/realtime/sockets/:id/send accepts a well-formed event", async () => {
       const gateway = app.get(RealtimeGateway);
       gateway.recordTestSocket({ id: "fake-3", userId: "u1", tenantId: TENANT });
-      const res = await hubReq(app)
+      const res = await hub
         .post("/admin/realtime/sockets/fake-3/send")
-        .set("x-tenant-id", TENANT)
         .send({ eventType: "debug.ping", payload: { hello: "world" } });
       expect(res.status).toBe(200);
       expect(res.body.delivered).toBe(true);
     });
 
     it("POST /admin/realtime/events/replay rebroadcasts the supplied event", async () => {
-      const res = await hubReq(app)
-        .post("/admin/realtime/events/replay")
-        .set("x-tenant-id", TENANT)
-        .send({
-          channel: "Project:tenant:t1",
-          eventType: "project.updated",
-          payload: { id: "p1" },
-        });
+      const res = await hub.post("/admin/realtime/events/replay").send({
+        channel: "Project:tenant:t1",
+        eventType: "project.updated",
+        payload: { id: "p1" },
+      });
       expect(res.status).toBe(200);
       expect(res.body.replayed).toBe(true);
     });
 
     it("POST /admin/realtime/events/replay rejects malformed bodies", async () => {
-      const res = await hubReq(app)
-        .post("/admin/realtime/events/replay")
-        .set("x-tenant-id", TENANT)
-        .send({ eventType: "x" });
+      const res = await hub.post("/admin/realtime/events/replay").send({ eventType: "x" });
       expect(res.status).toBe(400);
     });
   });
 
   describe("outside development mode", () => {
     let app: INestApplication;
+    let hub: Awaited<ReturnType<typeof hubReqScoped>>;
     let previousNodeEnv: string | undefined;
 
     beforeAll(async () => {
       previousNodeEnv = process.env.NODE_ENV;
+      pinHubTestAuthEnv();
       process.env.NODE_ENV = "production";
       const { bootstrap } = await import("../src/core/app/bootstrap.js");
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
+      hub = await hubReqScoped(app, TENANT);
     });
 
     afterAll(async () => {
@@ -142,23 +132,17 @@ describe("Admin Realtime Inspector · /admin/realtime*", () => {
     });
 
     it("GET /admin/realtime/channels.json 404s in production", async () => {
-      const res = await hubReq(app).get("/admin/realtime/channels.json").set("x-tenant-id", TENANT);
+      const res = await hub.get("/admin/realtime/channels.json");
       expect(res.status).toBe(404);
     });
 
     it("POST /admin/realtime/sockets/:id/disconnect 404s in production", async () => {
-      const res = await hubReq(app)
-        .post("/admin/realtime/sockets/x/disconnect")
-        .set("x-tenant-id", TENANT)
-        .send({});
+      const res = await hub.post("/admin/realtime/sockets/x/disconnect").send({});
       expect(res.status).toBe(404);
     });
 
     it("POST /admin/realtime/events/replay 404s in production", async () => {
-      const res = await hubReq(app)
-        .post("/admin/realtime/events/replay")
-        .set("x-tenant-id", TENANT)
-        .send({});
+      const res = await hub.post("/admin/realtime/events/replay").send({});
       expect(res.status).toBe(404);
     });
   });

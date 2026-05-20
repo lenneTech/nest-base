@@ -11,7 +11,7 @@
  *   - a `byController` grouping for the controller-centric view.
  *
  * The runner side (Express stack walking, filter for /dev itself,
- * controller-name resolution) lives in the dev-hub controller.
+ * controller-name resolution) lives in the Hub controller.
  */
 
 export interface RouteCanMetadata {

@@ -1,7 +1,7 @@
 # Working with AI Agents
 
 **nest-base** is built from day one for AI-assisted development.
-Every convention, every test pattern, every dev-hub page exists with
+Every convention, every test pattern, every hub page exists with
 an AI agent as a first-class user — not as a "nice to have on top".
 
 This guide tells you how to make Claude Code (or any agent that
@@ -220,7 +220,7 @@ to **offer**, the user defaults to **decide**.
 ## Tips for productive sessions
 
 - **State the success criterion up front.** "After this slice I want
-  to be able to POST /orders and see it in the dev-hub admin UI." A
+  to be able to POST /orders and see it in the hub admin UI." A
   concrete acceptance check shortens the loop.
 - **Reference existing modules.** "Like `src/modules/example/`, but
   with these fields..." — the agent copies a known-good pattern.
@@ -253,5 +253,5 @@ Skills compound. Every skill you add makes the next session faster.
 5. [`.claude/skills/writing-story-tests.md`](../.claude/skills/writing-story-tests.md) — TDD pattern
 6. [`.claude/skills/adding-feature-flag.md`](../.claude/skills/adding-feature-flag.md) — feature toggles
 7. [`.claude/skills/adding-feature-module.md`](../.claude/skills/adding-feature-module.md) — new resources
-8. [`.claude/skills/extending-dev-hub.md`](../.claude/skills/extending-dev-hub.md) — new pages
+8. [`.claude/skills/extending-hub.md`](../.claude/skills/extending-hub.md) — new pages
 9. [`.claude/skills/working-with-prisma.md`](../.claude/skills/working-with-prisma.md) — DB layer

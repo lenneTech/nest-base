@@ -27,6 +27,9 @@ export const CORE_EMAIL_TEMPLATES = [
 
 export const KNOWN_EMAIL_LAYOUTS = ["Barebone"] as const;
 
+/** Relative prefix from `src/modules/email/templates/*.tsx` to `src/core/email/`. */
+export const MODULE_TEMPLATE_CORE_IMPORT_PREFIX = "../../../core/email";
+
 export const KNOWN_EMAIL_BLOCKS = [
   "greeting",
   "paragraph",
@@ -223,13 +226,13 @@ export function composeEmailTemplateSource(input: ComposeEmailTemplateSourceInpu
     .sort();
   const varsInterface = vars.map((v) => `  ${v}: string;`).join("\n");
   const blockImportLine = blockImports.length
-    ? `import { ${blockImports.join(", ")} } from "../../core/email/blocks/index.js";\n`
+    ? `import { ${blockImports.join(", ")} } from "${MODULE_TEMPLATE_CORE_IMPORT_PREFIX}/blocks/index.js";\n`
     : "";
 
-  const subjectExpression = renderInterpolatedTemplateLiteral(composition.subject);
+  const subjectExpression = renderInterpolatedTemplateLiteral(composition.subject, "vars");
   const preheaderExpression =
     composition.preheader !== undefined
-      ? renderInterpolatedTemplateLiteral(composition.preheader)
+      ? renderInterpolatedTemplateLiteral(composition.preheader, "props")
       : null;
 
   const childrenJsx = composition.children.map((block) => renderBlockJsx(block)).join("\n");
@@ -243,10 +246,13 @@ export function composeEmailTemplateSource(input: ComposeEmailTemplateSourceInpu
     " */",
     'import * as React from "react";',
     "",
-    'import { Barebone } from "../../core/email/layouts/Barebone.js";',
+    `import { Barebone } from "${MODULE_TEMPLATE_CORE_IMPORT_PREFIX}/layouts/Barebone.js";`,
   ];
   if (blockImportLine) lines.push(blockImportLine.trimEnd());
-  lines.push('import type { BrandConfig } from "../../core/email/brand.js";', "");
+  lines.push(
+    `import type { BrandConfig } from "${MODULE_TEMPLATE_CORE_IMPORT_PREFIX}/brand.js";`,
+    "",
+  );
   lines.push(`export interface ${pascalName}Vars {`);
   if (varsInterface) lines.push(varsInterface);
   lines.push("}", "");
@@ -344,7 +350,7 @@ function kebabToCamel(slug: string): string {
  * Plain strings (no placeholders) come through as a double-quoted
  * literal so the generated source stays readable.
  */
-function renderInterpolatedTemplateLiteral(value: string): string {
+function renderInterpolatedTemplateLiteral(value: string, ref: "vars" | "props"): string {
   if (!VAR_PATTERN.test(value)) {
     VAR_PATTERN.lastIndex = 0; // .test(global) advances state — reset
     return JSON.stringify(value);
@@ -357,7 +363,7 @@ function renderInterpolatedTemplateLiteral(value: string): string {
     .replace(/\\/g, "\\\\")
     .replace(/`/g, "\\`")
     .replace(/\$\{/g, "\\${")
-    .replace(VAR_PATTERN, (_match, name: string) => `\${vars.${name}}`);
+    .replace(VAR_PATTERN, (_match, name: string) => `\${${ref}.${name}}`);
   return `\`${escaped}\``;
 }
 

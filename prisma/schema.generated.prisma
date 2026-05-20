@@ -56,6 +56,11 @@ model User {
   emailVerified    Boolean  @default(false) @map("email_verified")
   image            String?
   twoFactorEnabled Boolean? @map("two_factor_enabled")
+  // Better-Auth admin plugin (ban / role management)
+  role             String?  @default("user")
+  banned           Boolean  @default(false)
+  banReason        String?  @map("ban_reason")
+  banExpires       DateTime? @map("ban_expires")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
@@ -178,6 +183,7 @@ model Session {
   // Projected onto req.user.activeOrganizationId by BetterAuthSessionMiddleware
   // so the tenant interceptor can use it as a header-less fallback.
   activeOrganizationId   String?  @map("active_organization_id")
+  impersonatedBy         String?  @map("impersonated_by")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 

@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bootstrap } from "../src/core/app/bootstrap.js";
 import { PrismaService } from "../src/core/prisma/prisma.service.js";
 import { uuidV7 } from "../src/core/uuid/uuid-v7.js";
+import { setActiveOrganization } from "./helpers/tenant-session.js";
 import { emerald8x8Png } from "./lib/png-fixture.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
@@ -91,11 +92,11 @@ describe("Files · bulk-zip download", () => {
         createdAt: new Date(),
       },
     });
+    await setActiveOrganization(app.getHttpServer(), sessionCookie, tenantId);
 
     async function uploadOne(name: string, payload: Uint8Array, mime: string): Promise<string> {
       const res = await request(app.getHttpServer())
         .post("/api/files/upload")
-        .set("x-tenant-id", tenantId)
         .set("cookie", sessionCookie)
         .set("x-test-ability", "full")
         .send({
@@ -136,7 +137,6 @@ describe("Files · bulk-zip download", () => {
   it("POST /files/zip streams an application/zip body containing both files", async () => {
     const res = await request(app.getHttpServer())
       .post("/api/files/zip")
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .set("accept", "application/zip")
@@ -168,7 +168,6 @@ describe("Files · bulk-zip download", () => {
   it("rejects an empty id list with 400", async () => {
     const res = await request(app.getHttpServer())
       .post("/api/files/zip")
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({ ids: [] });
@@ -178,7 +177,6 @@ describe("Files · bulk-zip download", () => {
   it("returns 404 if any id is not found", async () => {
     const res = await request(app.getHttpServer())
       .post("/api/files/zip")
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({ ids: [fileIdA, "00000000-0000-0000-0000-000000000999"] });

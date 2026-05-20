@@ -8,7 +8,7 @@
  * in this dev session?".
  *
  * Singleton-friendly (`getTraceBuffer()`) so the request-context
- * middleware can record into the same buffer the dev-hub controller
+ * middleware can record into the same buffer the Hub controller
  * reads from. Process-local; cleared on dev-server restart.
  */
 

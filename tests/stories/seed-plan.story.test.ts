@@ -78,14 +78,14 @@ describe("Story · buildSeedPlan", () => {
     expect(bypassPerm!.itemFilter).toBeNull();
   });
 
-  it("Admin policy grants read DevHub and tenant-admin CASL subjects", () => {
+  it("Admin policy grants tenant-admin CASL subjects but not Hub", () => {
     const plan = buildSeedPlan();
     const adminRole = plan.roles.find((r) => r.name === "Admin")!;
     const rp = plan.rolePolicies.find((rp) => rp.roleId === adminRole.id)!;
     const policy = plan.policies.find((p) => p.id === rp.policyId)!;
     const perms = plan.permissions.filter((p) => p.policyId === policy.id);
     const resources = perms.map((p) => `${p.action}:${p.resource}`).sort();
-    expect(resources).toContain("READ:DevHub");
+    expect(resources).not.toContain("READ:Hub");
     expect(resources).toContain("MANAGE:User");
     expect(resources).toContain("MANAGE:TenantAdmin");
     expect(resources).toContain("MANAGE:Role");
@@ -99,7 +99,7 @@ describe("Story · buildSeedPlan", () => {
     const rp = plan.rolePolicies.find((rp) => rp.roleId === adminRole.id)!;
     const policy = plan.policies.find((p) => p.id === rp.policyId)!;
     const perms = plan.permissions.filter(
-      (p) => p.policyId === policy.id && p.action === "MANAGE" && p.resource !== "DevHub",
+      (p) => p.policyId === policy.id && p.action === "MANAGE" && p.resource !== "Hub",
     );
     expect(perms.length).toBeGreaterThan(0);
     for (const perm of perms) {

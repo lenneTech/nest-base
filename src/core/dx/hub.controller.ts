@@ -64,6 +64,11 @@ import {
   renderEmailPreview,
   type EmailPreviewResult,
 } from "./email-preview.js";
+import {
+  loadLatestOutboxVarsByTemplate,
+  resolveEmailPreviewPayload,
+  type EmailPreviewPayloadSource,
+} from "./email-preview-payload-loader.js";
 import { buildErdForProject } from "./erd-runner.js";
 import {
   KNOWN_EMAIL_BLOCKS,
@@ -99,14 +104,23 @@ import {
   type DashboardStatusGroup,
 } from "./dashboard-health-planner.js";
 import {
+  loadDashboardAsyncMetrics,
+  loadDashboardSessionsChart,
+} from "./dashboard-metrics-loader.js";
+import { PrismaService } from "../prisma/prisma.service.js";
+import {
   searchPalettePages,
   type PalettePageEntry,
   type PaletteSearchResult,
 } from "./palette-search-planner.js";
-import { Can } from "../permissions/can.guard.js";
+import { ApiTags } from "@nestjs/swagger";
+
 import type { Ability } from "../permissions/casl-ability.js";
 import { buildHubPortalAccessSnapshot } from "../hub/hub-portal-access.js";
+import { buildHubNavFeatureSnapshot, filterPalettePagesForNavSnapshot } from "./hub-nav-planner.js";
 import { Public } from "../permissions/public.decorator.js";
+import { assertFeatureEnabledFromEnv } from "../features/assert-feature-enabled.js";
+import type { ToggleableFeatureKey } from "../features/features.js";
 
 /**
  * `/hub/*` — Developer-only landing + JSON inspection routes.
@@ -118,12 +132,14 @@ import { Public } from "../permissions/public.decorator.js";
  * Every route 404s outside `NODE_ENV=development` so the surface can
  * never leak in production.
  */
+@ApiTags("Hub")
 @Controller("hub")
-export class DevHubController {
+export class HubController {
   constructor(
     private readonly routes: RouteInventoryService,
     private readonly migrations: MigrationsService,
     private readonly jobs: JobQueueService,
+    private readonly prisma: PrismaService,
     @Inject(SCHEDULED_JOB_REGISTRY) private readonly scheduledJobs: ScheduledJobRegistry,
     @Optional() @Inject(EMAIL_OUTBOX_STORAGE) private readonly emailOutbox?: EmailOutboxStorage,
   ) {}
@@ -134,19 +150,6 @@ export class DevHubController {
     this.assertDev();
     return renderDevPortalShell(
       buildDevPortalShellInput({ title: "Dev Portal", brand: "central" }),
-    );
-  }
-
-  /**
-   * `/hub/components` — react-aria-components living style guide. Same
-   * SPA shell as `/hub`; client-side router decides which page to render.
-   */
-  @Get("components")
-  @Header("content-type", "text/html; charset=utf-8")
-  componentsPage(): string {
-    this.assertDev();
-    return renderDevPortalShell(
-      buildDevPortalShellInput({ title: "Components", brand: "central" }),
     );
   }
 
@@ -167,6 +170,9 @@ export class DevHubController {
     }
     const mime = mimeForExtension(filename);
     res.type(mime);
+    // Dev watch rebuilds emit new content-hashed chunks; prevent the
+    // browser from caching main.js and then 404ing lazy imports.
+    res.setHeader("Cache-Control", "no-store");
     const stream = createReadStream(filePath);
     stream.on("error", () => {
       if (!res.headersSent) {
@@ -201,22 +207,22 @@ export class DevHubController {
   }
 
   /**
-   * `/hub/dashboard.json` — aggregate the React `/hub` landing needs.
-   * One request → all the data the hero / stats grid / services / log
-   * preview / feature overview need, so the SPA never fans out into
-   * 8 sibling fetches on the first paint.
+   * `/hub/dashboard.json` — operator cockpit aggregate for `/hub`.
+   * Real runtime signals only (probes, queues, logs, queries, status
+   * groups). Coverage/test summaries are on their own pages.
    */
   /**
    * `/hub/portal-access.json` — which SPA sections the signed-in operator
-   * may use (`DevHub` vs tenant-admin surfaces).
+   * may use (`Hub` vs tenant-admin surfaces).
    */
   @Get("portal-access.json")
-  @Can("read", "DevHub")
+  @Public("signed-in operators discover which Hub sections apply — snapshot is the gate")
   portalAccessJson(
     @Req() req: { ability?: Ability },
   ): ReturnType<typeof buildHubPortalAccessSnapshot> {
     this.assertDev();
-    return buildHubPortalAccessSnapshot(req.ability);
+    const features = this.featuresOnly();
+    return buildHubPortalAccessSnapshot(req.ability, buildHubNavFeatureSnapshot(features));
   }
 
   @Get("dashboard.json")
@@ -243,12 +249,7 @@ export class DevHubController {
         ...(process.env.POWERSYNC_URL ? { POWERSYNC_URL: process.env.POWERSYNC_URL } : {}),
       },
     });
-    const repoRoot = process.cwd();
-    const [probes, coverage, tests] = await Promise.all([
-      probeServices(candidates, { timeoutMs: 600 }),
-      this.readCoverageSummary(repoRoot),
-      this.readTestSummary(repoRoot),
-    ]);
+    const probes = await probeServices(candidates, { timeoutMs: 600 });
     const buffer = getLogBuffer();
     const mem = process.memoryUsage();
     const tunnelState = readTunnelState(process.cwd());
@@ -258,31 +259,34 @@ export class DevHubController {
     const allMigrationsApplied =
       migrationsStatus.pending.length === 0 && migrationsStatus.failed.length === 0;
 
+    const asyncMetrics = await loadDashboardAsyncMetrics({
+      prisma: this.prisma,
+      jobs: this.jobs,
+      features,
+    });
+    const sessionsChart = await loadDashboardSessionsChart(this.prisma);
+
     const statusGroups: DashboardStatusGroup[] = buildDashboardStatusGroups({
       uptime: process.uptime(),
       heapUsedMb: mem.heapUsed / 1e6,
       rssMb: mem.rss / 1e6,
       bunVersion: readBunVersion() ?? "",
-      pendingJobCount: 0,
-      deadLetterCount: 0,
-      webhookSuccessRate: 1,
+      pendingJobCount: asyncMetrics.pendingJobCount,
+      deadLetterCount: asyncMetrics.deadLetterCount,
+      webhookSuccessRate: asyncMetrics.webhookSuccessRate,
       emailEnabled: Boolean(features.email?.enabled),
       storageDriverName: features.files.storageDefault ?? "local",
-      geoIpAgeDays: 0,
+      geoIpAgeDays: asyncMetrics.geoIpAgeDays,
+      geoIpEnabled: Boolean(features.geoIp?.enabled),
+      geoIpInstalled: asyncMetrics.geoIpInstalled,
       allMigrationsApplied,
-      // RLS is active when row-level security is enforced in the DB.
-      // We infer it from the presence of multi-tenancy feature, since RLS
-      // is always enabled alongside multi-tenancy in this template.
-      rlsActive: Boolean(
-        (features as Record<string, unknown> & { multiTenancy?: { enabled?: boolean } })
-          .multiTenancy?.enabled,
-      ),
+      rlsActive: Boolean(features.multiTenancy?.enabled),
     });
 
-    // Stub chart data — no request log aggregation implemented yet.
-    // The UI renders a "Kein Datenmaterial" placeholder when available=false.
-    const requestsChart = { available: false as const, buckets: buildZeroFilledRequestBuckets() };
-    const sessionsChart = { available: false as const, buckets: buildZeroFilledSessionBuckets() };
+    const requestsChart = {
+      available: false as const,
+      buckets: [] as Array<{ time: string; ok: number; err4xx: number; err5xx: number }>,
+    };
     const geoTopCountries = {
       available: false as const,
       countries: [] as Array<{ countryCode: string; country: string; requests: number }>,
@@ -300,8 +304,6 @@ export class DevHubController {
       features,
       catalog: FEATURE_CATALOG,
       probes,
-      coverage,
-      tests,
       logs: buffer.recent(50),
       logBufferCapacity: buffer.capacity(),
       queries: getQueryBuffer().summary(),
@@ -321,7 +323,7 @@ export class DevHubController {
    * `node_modules/.cache/nest-base/tunnel.json`, which `scripts/dev.ts`
    * writes when `--tunnel` is set and `cloudflared` reports a public
    * URL. Returns `{ active: false }` when no tunnel is running so the
-   * Dev-Hub UI can render a clean "no tunnel" state.
+   * Hub UI can render a clean "no tunnel" state.
    */
   @Get("tunnel.json")
   tunnelJson(): { active: false } | { active: true; url: string; startedAt: string } {
@@ -482,7 +484,7 @@ export class DevHubController {
   scheduledJobsJson(): {
     jobs: Array<{ name: string; cron: string; source: string }>;
   } {
-    this.assertDev();
+    this.assertDevFeature("jobs");
     const jobs = this.scheduledJobs.list().map((entry) => ({
       name: entry.name,
       cron: entry.cron,
@@ -573,7 +575,7 @@ export class DevHubController {
     // `?format=json` and renders the parsed where-clause through the
     // JSON viewer component (still pixel-faithful to the legacy
     // `renderJsonViewerPage`). This keeps the dev-portal SPA the
-    // single owner of the dev-hub chrome.
+    // single owner of the Hub chrome.
     res
       .type("text/html; charset=utf-8")
       .send(
@@ -742,50 +744,85 @@ export class DevHubController {
     };
   }
 
-  @Get("email-preview")
-  @Header("content-type", "text/html; charset=utf-8")
-  emailPreviewPage(): string {
-    this.assertDev();
-    return renderDevPortalShell(
-      buildDevPortalShellInput({ title: "Email Preview", brand: "central" }),
-    );
-  }
-
   @Get("email-preview.json")
   async emailPreviewJson(): Promise<{
     catalog: ReturnType<typeof buildEmailPreviewCatalog>;
     rendered: Record<string, EmailPreviewResult>;
+    payloadSources: Record<string, EmailPreviewPayloadSource>;
   }> {
-    this.assertDev();
+    this.assertDevFeature("email");
     // PRD § Out of Scope bans EJS — `/hub/email-preview` runs the
     // ReactEmailTemplateRenderer (the same path production code uses
     // through `EmailService.sendTemplate`) so the preview reflects
     // the real rendering pipeline. Brand config is resolved once per
     // request to mirror live behaviour.
-    const renderer = new ReactEmailTemplateRenderer({ brand: resolveBrandConfig() });
+    const brand = resolveBrandConfig();
+    const renderer = new ReactEmailTemplateRenderer({ brand });
     const catalog = buildEmailPreviewCatalog();
+    const outboxByTemplate = await loadLatestOutboxVarsByTemplate(this.prisma);
     const rendered: Record<string, EmailPreviewResult> = {};
+    const payloadSources: Record<string, EmailPreviewPayloadSource> = {};
     for (const entry of catalog.entries) {
+      const resolved = resolveEmailPreviewPayload(entry.template, brand.appName, outboxByTemplate);
+      payloadSources[entry.template] = resolved.source;
       rendered[entry.template] = await renderEmailPreview({
         renderer,
         template: entry.template,
         locale: "en",
-        payload: entry.samplePayload,
+        payload: resolved.payload,
       });
     }
-    return { catalog, rendered };
+    return { catalog, rendered, payloadSources };
   }
 
   // -----------------------------------------------------------------
-  // /dev/email-builder · Issue #9 — Layout-Designer + Children-Composer
+  // /hub/emails · Issue #9 — Layout-Designer + Children-Composer
   // -----------------------------------------------------------------
 
-  /** SPA shell for `/hub/email-builder`. */
+  /** SPA shell for `/hub/emails`. */
+  @Get("emails")
+  @Header("content-type", "text/html; charset=utf-8")
+  emailsPage(): string {
+    this.assertDevFeature("email");
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Emails" }));
+  }
+
+  /** Bookmark alias — same SPA shell as `/hub/emails`. */
   @Get("email-builder")
   @Header("content-type", "text/html; charset=utf-8")
   emailBuilderPage(): string {
-    this.assertDev();
-    return renderDevPortalShell(buildDevPortalShellInput({ title: "Email Builder" }));
+    this.assertDevFeature("email");
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Emails" }));
+  }
+
+  /**
+   * HTML preview for a single template (outbox iframe + external deep-links).
+   * Uses the latest outbox sendTemplate vars, else brand appName only.
+   */
+  @Get(["emails/templates/:name/preview.html", "email-builder/templates/:name/preview.html"])
+  @Header("content-type", "text/html; charset=utf-8")
+  async emailTemplatePreviewHtml(@Param("name") name: string): Promise<string> {
+    this.assertDevFeature("email");
+    if (!isValidEmailTemplateSlug(name)) {
+      throw new BadRequestException(`Invalid template name: ${name}`);
+    }
+    const brand = resolveBrandConfig();
+    const outboxByTemplate = await loadLatestOutboxVarsByTemplate(this.prisma);
+    const resolved = resolveEmailPreviewPayload(name, brand.appName, outboxByTemplate);
+    const renderer = new ReactEmailTemplateRenderer({ brand });
+    const rendered = await renderEmailPreview({
+      renderer,
+      template: name,
+      locale: "en",
+      payload: resolved.payload,
+    });
+    if (rendered.error) {
+      throw new NotFoundException(rendered.error);
+    }
+    if (!rendered.html) {
+      throw new NotFoundException(`Template "${name}" produced no HTML`);
+    }
+    return rendered.html;
   }
 
   /**
@@ -793,7 +830,7 @@ export class DevHubController {
    * sample-rendered subjects so the Gallery can render thumbnails
    * without a second round-trip.
    */
-  @Get("email-builder/templates.json")
+  @Get(["email-builder/templates.json", "emails/templates.json"])
   async emailBuilderTemplatesJson(): Promise<{
     templates: Array<{
       name: string;
@@ -802,17 +839,19 @@ export class DevHubController {
       source: "core" | "module";
       subject?: string;
       error?: string;
+      /** Whether gallery preview vars came from outbox or brand-only. */
+      previewPayloadSource?: EmailPreviewPayloadSource;
       /** Module-overlay row that shadows a same-named core template. */
       overridesCore?: boolean;
       /** Core row whose name + locale also has a module overlay. */
       overrideExists?: boolean;
     }>;
   }> {
-    this.assertDev();
+    this.assertDevFeature("email");
     const discovered = await discoverReactEmailTemplates();
-    const renderer = new ReactEmailTemplateRenderer({ brand: resolveBrandConfig() });
-    const catalog = buildEmailPreviewCatalog();
-    const sampleByName = new Map(catalog.entries.map((e) => [e.template, e.samplePayload]));
+    const brand = resolveBrandConfig();
+    const renderer = new ReactEmailTemplateRenderer({ brand });
+    const outboxByTemplate = await loadLatestOutboxVarsByTemplate(this.prisma);
     // Index module-overlay rows so we can flag the matching core rows
     // (and the overlay rows themselves) without an O(n²) scan in the UI.
     // Issue #49 — the gallery surfaces "Core (overridden)" / "Module
@@ -827,11 +866,12 @@ export class DevHubController {
       source: "core" | "module";
       subject?: string;
       error?: string;
+      previewPayloadSource?: EmailPreviewPayloadSource;
       overridesCore?: boolean;
       overrideExists?: boolean;
     }> = [];
     for (const tpl of discovered) {
-      const sample = sampleByName.get(tpl.name) ?? {};
+      const resolved = resolveEmailPreviewPayload(tpl.name, brand.appName, outboxByTemplate);
       const key = `${tpl.name}::${tpl.locale ?? ""}`;
       const flags: { overridesCore?: boolean; overrideExists?: boolean } = {};
       if (tpl.source === "module") {
@@ -848,10 +888,20 @@ export class DevHubController {
         flags.overrideExists = true;
       }
       try {
-        const rendered = await renderer.render(tpl.name, tpl.locale ?? "en", sample);
-        out.push({ ...tpl, subject: rendered.subject, ...flags });
+        const rendered = await renderer.render(tpl.name, tpl.locale ?? "en", resolved.payload);
+        out.push({
+          ...tpl,
+          subject: rendered.subject,
+          previewPayloadSource: resolved.source,
+          ...flags,
+        });
       } catch (err) {
-        out.push({ ...tpl, error: asMessage(err), ...flags });
+        out.push({
+          ...tpl,
+          error: asMessage(err),
+          previewPayloadSource: resolved.source,
+          ...flags,
+        });
       }
     }
     return { templates: out };
@@ -873,7 +923,10 @@ export class DevHubController {
    * The raw `.tsx` source is always returned alongside so the UI
    * can show "View source" even on decomposable templates.
    */
-  @Get("email-builder/templates/:name/composition.json")
+  @Get([
+    "email-builder/templates/:name/composition.json",
+    "emails/templates/:name/composition.json",
+  ])
   async emailBuilderTemplateComposition(
     @Param("name") name: string,
     @Query("locale") locale: string | undefined,
@@ -887,7 +940,7 @@ export class DevHubController {
     composition?: EmailComposition;
     reason?: string;
   }> {
-    this.assertDev();
+    this.assertDevFeature("email");
     if (!isValidEmailTemplateSlug(name)) {
       throw new BadRequestException(`invalid template name: ${name}`);
     }
@@ -961,13 +1014,13 @@ export class DevHubController {
    * 404 when no override exists (no work to do); 200 acted=true
    * after a successful unlink.
    */
-  @Delete("email-builder/templates/:name/override")
+  @Delete(["email-builder/templates/:name/override", "emails/templates/:name/override"])
   @HttpCode(200)
   async emailBuilderDeleteOverride(
     @Param("name") name: string,
     @Query("locale") locale: string | undefined,
   ): Promise<{ ok: true; acted: true; relativePath: string }> {
-    this.assertDev();
+    this.assertDevFeature("email");
     if (!isValidEmailTemplateSlug(name)) {
       throw new BadRequestException(`invalid template name: ${name}`);
     }
@@ -1002,7 +1055,7 @@ export class DevHubController {
    * available layouts. The composer reads this to render the
    * properties panel without a per-block code change.
    */
-  @Get("email-builder/blocks.json")
+  @Get(["email-builder/blocks.json", "emails/blocks.json"])
   emailBuilderBlocksJson(): {
     blocks: Array<{
       type: string;
@@ -1017,7 +1070,7 @@ export class DevHubController {
     }>;
     layouts: Array<{ name: string; description: string }>;
   } {
-    this.assertDev();
+    this.assertDevFeature("email");
     return {
       blocks: KNOWN_EMAIL_BLOCKS.map((type) => buildBlockDescriptor(type)),
       layouts: KNOWN_EMAIL_LAYOUTS.map((name) => ({
@@ -1033,14 +1086,14 @@ export class DevHubController {
    * HTML+text+subject. No filesystem write; the saved-template path
    * is `POST /hub/email-builder/save`.
    */
-  @Post("email-builder/preview.json")
+  @Post(["email-builder/preview.json", "emails/preview.json"])
   @HttpCode(200)
   async emailBuilderPreview(@Body() body: unknown): Promise<{
     subject: string;
     html: string;
     text: string;
   }> {
-    this.assertDev();
+    this.assertDevFeature("email");
     const composition = pickComposition(body);
     const validation = validateEmailComposition(composition);
     if (!validation.ok) throw new BadRequestException(validation.error);
@@ -1060,13 +1113,13 @@ export class DevHubController {
    * traversal; the runner double-checks the resolved path is inside
    * the module-templates root before writing.
    */
-  @Post("email-builder/save")
+  @Post(["email-builder/save", "emails/save"])
   @HttpCode(200)
   async emailBuilderSave(@Body() body: unknown): Promise<{
     relativePath: string;
     bytesWritten: number;
   }> {
-    this.assertDev();
+    this.assertDevFeature("email");
     const slug = pickSlug(body);
     const locale = pickLocale(body);
     const composition = pickComposition(body);
@@ -1279,7 +1332,7 @@ export class DevHubController {
   @Get("jobs")
   @Header("content-type", "text/html; charset=utf-8")
   jobsPage(): string {
-    this.assertDev();
+    this.assertDevFeature("jobs");
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Jobs" }));
   }
 
@@ -1291,7 +1344,7 @@ export class DevHubController {
    */
   @Get("jobs/queues.json")
   async jobsQueuesJson(): Promise<unknown> {
-    this.assertDev();
+    this.assertDevFeature("jobs");
     return this.jobs.getAggregates();
   }
 
@@ -1307,7 +1360,7 @@ export class DevHubController {
     @Query("name") name: string | undefined,
     @Query("limit") limit: string | undefined,
   ): Promise<{ jobs: unknown[] }> {
-    this.assertDev();
+    this.assertDevFeature("jobs");
     const options: ListJobsOptions = {};
     if (state) {
       if (!isJobState(state)) {
@@ -1341,7 +1394,7 @@ export class DevHubController {
    */
   @Get("jobs/jobs/:id.json")
   async jobDetailJson(@Param("id") id: string): Promise<unknown> {
-    this.assertDev();
+    this.assertDevFeature("jobs");
     if (!isSafeJobId(id)) {
       throw new BadRequestException(`invalid job id`);
     }
@@ -1358,7 +1411,7 @@ export class DevHubController {
   @Post("jobs/jobs/:id/retry")
   @HttpCode(200)
   async retryJob(@Param("id") id: string): Promise<{ id: string }> {
-    this.assertDev();
+    this.assertDevFeature("jobs");
     if (!isSafeJobId(id)) {
       throw new BadRequestException(`invalid job id`);
     }
@@ -1389,7 +1442,7 @@ export class DevHubController {
   @Get("email-outbox")
   @Header("content-type", "text/html; charset=utf-8")
   emailOutboxPage(): string {
-    this.assertDev();
+    this.assertDevFeature("email");
     return renderDevPortalShell(
       buildDevPortalShellInput({ title: "Email Outbox", brand: "central" }),
     );
@@ -1405,13 +1458,13 @@ export class DevHubController {
   @Get("cron")
   @Header("content-type", "text/html; charset=utf-8")
   cronPage(): string {
-    this.assertDev();
+    this.assertDevFeature("jobs");
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Cron", brand: "central" }));
   }
 
   @Get("outbox.json")
   async outboxJson() {
-    this.assertDev();
+    this.assertDevFeature("email");
     if (!this.emailOutbox) {
       return {
         enabled: false,
@@ -1450,12 +1503,13 @@ export class DevHubController {
    */
   @Get("palette/search.json")
   @Public(
-    "Dev-Hub palette search — fuzzy page lookup for Cmd+K. Dev portal only; assertDev() guards production.",
+    "Hub palette search — fuzzy page lookup for Cmd+K. Dev portal only; assertDev() guards production.",
   )
   paletteSearchJson(@Query("q") q: string | undefined): { pages: PaletteSearchResult[] } {
     this.assertDev();
     const query = typeof q === "string" ? q.trim() : "";
-    const pages = buildHubPageCatalog();
+    const snapshot = buildHubNavFeatureSnapshot(this.featuresOnly());
+    const pages = filterPalettePagesForNavSnapshot(buildHubPageCatalog(), snapshot);
     const results = searchPalettePages({ query, pages, maxResults: 30 });
     return { pages: results };
   }
@@ -1489,59 +1543,16 @@ export class DevHubController {
   private featuresOnly(): Features {
     return loadFeatures(process.env as Record<string, string | undefined>);
   }
+
+  private assertDevFeature(key: ToggleableFeatureKey): void {
+    this.assertDev();
+    assertFeatureEnabledFromEnv(key);
+  }
 }
 
 function readBunVersion(): string | undefined {
   const bun = (globalThis as { Bun?: { version: string } }).Bun;
   return bun?.version;
-}
-
-/**
- * Build 24 h × 12 buckets/h = 288 zero-filled request buckets.
- * Used as a stub until a request-log aggregator is implemented.
- */
-function buildZeroFilledRequestBuckets(): Array<{
-  time: string;
-  ok: number;
-  err4xx: number;
-  err5xx: number;
-}> {
-  const now = Date.now();
-  const buckets: Array<{ time: string; ok: number; err4xx: number; err5xx: number }> = [];
-  // 24 h in 5-min buckets = 288 entries; iterate newest-last so charts
-  // render left → right in chronological order.
-  for (let i = 287; i >= 0; i--) {
-    const ts = new Date(now - i * 5 * 60 * 1000);
-    buckets.push({
-      time: ts.toISOString().slice(11, 16), // "HH:MM"
-      ok: 0,
-      err4xx: 0,
-      err5xx: 0,
-    });
-  }
-  return buckets;
-}
-
-/**
- * Build 24 zero-filled hourly session buckets.
- * Used as a stub until the session aggregator is implemented.
- */
-function buildZeroFilledSessionBuckets(): Array<{
-  hour: string;
-  active: number;
-  newLogins: number;
-}> {
-  const now = Date.now();
-  const buckets: Array<{ hour: string; active: number; newLogins: number }> = [];
-  for (let i = 23; i >= 0; i--) {
-    const ts = new Date(now - i * 60 * 60 * 1000);
-    buckets.push({
-      hour: ts.toISOString().slice(11, 13) + ":00", // "HH:00"
-      active: 0,
-      newLogins: 0,
-    });
-  }
-  return buckets;
 }
 
 function devWantsJson(accept: string | undefined, format: string | undefined): boolean {
@@ -1599,12 +1610,14 @@ function isJobState(value: string): value is JobState {
 }
 
 /**
- * Allow-list for job ids — UUID-shaped + a defensive length cap.
- * Path-traversal-shaped or otherwise weird ids never reach the lookup.
+ * Allow-list for job ids — UUIDs, numeric BullMQ ids, and custom keys
+ * such as `scheduled:<name>` / `repeat:<queue>`. Rejects path-shaped
+ * values so traversal never reaches the queue lookup.
  */
 function isSafeJobId(value: string): boolean {
-  if (!value || value.length > 64) return false;
-  return /^[a-zA-Z0-9_-]+$/.test(value);
+  if (!value || value.length > 128) return false;
+  if (value.includes("/") || value.includes("\\") || value.includes("..")) return false;
+  return /^[a-zA-Z0-9_:.-]+$/.test(value);
 }
 
 /**
@@ -1625,95 +1638,95 @@ function isSafeQueueName(value: string): boolean {
 function buildHubPageCatalog(): readonly PalettePageEntry[] {
   return [
     {
-      id: "dev-hub",
-      title: "Dev Hub",
+      id: "hub",
+      title: "Hub",
       href: "/hub",
       aliases: ["home", "landing"],
-      category: "Übersicht",
+      category: "Overview",
     },
     {
       id: "diagnostics",
       title: "Diagnostics",
       href: "/hub/diagnostics",
       aliases: ["health", "memory", "runtime"],
-      category: "Übersicht",
+      category: "Overview",
     },
     {
       id: "features",
       title: "Features",
       href: "/hub/features",
       aliases: ["flags", "toggles", "feature-flags"],
-      category: "Übersicht",
+      category: "Overview",
     },
     {
       id: "brand",
       title: "Brand",
       href: "/hub/brand",
       aliases: ["logo", "theme", "colors"],
-      category: "Übersicht",
+      category: "Overview",
     },
     {
       id: "coverage",
       title: "Coverage",
       href: "/hub/coverage",
       aliases: ["test-coverage", "code-coverage"],
-      category: "Übersicht",
+      category: "Overview",
     },
     {
       id: "tests",
       title: "Tests",
       href: "/hub/tests",
       aliases: ["test-results", "vitest"],
-      category: "Übersicht",
+      category: "Overview",
     },
     {
       id: "logs",
       title: "Logs",
       href: "/hub/logs",
-      aliases: ["Protokolle", "logging", "log-buffer"],
-      category: "Laufzeit",
+      aliases: ["Logs", "logging", "log-buffer"],
+      category: "Runtime",
     },
     {
       id: "traces",
       title: "Traces",
       href: "/hub/traces",
       aliases: ["tracing", "spans", "opentelemetry"],
-      category: "Laufzeit",
+      category: "Runtime",
     },
     {
       id: "queries",
       title: "Queries",
       href: "/hub/queries",
       aliases: ["sql", "prisma-queries", "database-queries"],
-      category: "Laufzeit",
+      category: "Runtime",
     },
     {
       id: "migrations",
       title: "Migrations",
       href: "/hub/migrations",
       aliases: ["schema", "migrate", "database-migrations"],
-      category: "Laufzeit",
+      category: "Runtime",
     },
     {
       id: "jobs",
       title: "Jobs",
       href: "/hub/jobs",
       aliases: ["queue", "workers", "background-jobs", "admin-jobs", "admin-queue"],
-      category: "Laufzeit",
+      category: "Runtime",
     },
     {
       id: "cron",
       title: "Cron",
       href: "/hub/cron",
       aliases: ["scheduled-jobs", "schedule", "cron-jobs"],
-      category: "Laufzeit",
+      category: "Runtime",
     },
     {
       id: "email-outbox",
       title: "Email Outbox",
       href: "/hub/email-outbox",
       aliases: ["outbox", "email-queue"],
-      category: "Laufzeit",
+      category: "Runtime",
     },
     {
       id: "files",
@@ -1758,17 +1771,10 @@ function buildHubPageCatalog(): readonly PalettePageEntry[] {
       category: "API & Docs",
     },
     {
-      id: "email-preview",
-      title: "Email Preview",
-      href: "/hub/email-preview",
-      aliases: ["email-templates", "mail-preview"],
-      category: "API & Docs",
-    },
-    {
-      id: "email-builder",
-      title: "Email Builder",
-      href: "/hub/email-builder",
-      aliases: ["email-composer", "template-builder"],
+      id: "emails",
+      title: "Emails",
+      href: "/hub/emails",
+      aliases: ["email-builder", "email-composer", "template-builder", "email-templates"],
       category: "API & Docs",
     },
     {
@@ -1783,13 +1789,6 @@ function buildHubPageCatalog(): readonly PalettePageEntry[] {
       title: "PostgREST Parser",
       href: "/hub/postgrest-parse",
       aliases: ["postgrest", "query-parser"],
-      category: "API & Docs",
-    },
-    {
-      id: "components",
-      title: "Component Showcase",
-      href: "/hub/components",
-      aliases: ["ui-components", "design-system"],
       category: "API & Docs",
     },
     {

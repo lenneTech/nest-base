@@ -12,7 +12,7 @@ import { bootstrap } from "../src/core/app/bootstrap.js";
  * the project skeleton (Bun + NestJS + Prisma + Postgres) is wired.
  *
  * Issue #83: `GET /api/` is the API identity JSON. Unauthenticated
- * `GET /` serves the Hub login SPA shell; authenticated DevHub users
+ * `GET /` serves the Hub login SPA shell; authenticated Hub users
  * are redirected to `/hub`.
  *
  * Health-check endpoints (`/health/live`, `/health/ready`) are a separate

@@ -2,11 +2,11 @@
  * `/admin/rate-limits` — Live rate-limit management for operators (issue #94).
  *
  * Four tabs:
- *   - Inspektor: live throttle rows with auto-refresh, endpoint filter,
- *                "nur gesperrt" toggle, and per-key Entsperren action.
- *   - Konfiguration: per-scope maxRequests + windowSeconds inputs with
- *                    Speichern / Zurücksetzen buttons.
- *   - Entscheidungen: sampled decision history table with pagination and
+ *   - Inspector: live throttle rows with auto-refresh, endpoint filter,
+ *                "blocked only" toggle, and per-key unban action.
+ *   - Configuration: per-scope maxRequests + windowSeconds inputs with
+ *                    Save / Reset buttons.
+ *   - Decisions: sampled decision history table with pagination and
  *                     endpoint / decision type filters.
  *   - Allowlist: user allowlist with add dialog and per-row remove button.
  */
@@ -36,8 +36,10 @@ import {
 } from "../components/ui/table.js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs.js";
 import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
+import { SortableTableHead } from "../components/SortableTableHead.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { adminFetch, fetchJson, needsAdminAuthHint } from "../lib/api.js";
+import { useTableSort } from "../lib/use-table-sort.js";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -81,14 +83,14 @@ export function RateLimitsAdminPage(): ReactNode {
   return (
     <AdminShell
       title="Rate-Limits"
-      subtitle="Live throttle state, Konfiguration und Allowlist"
+      subtitle="Live throttle state, configuration, and allowlist"
       currentNav="rate-limits"
     >
       <Tabs defaultValue="inspector">
         <TabsList className="mb-4">
-          <TabsTrigger value="inspector">Inspektor</TabsTrigger>
-          <TabsTrigger value="config">Konfiguration</TabsTrigger>
-          <TabsTrigger value="decisions">Entscheidungen</TabsTrigger>
+          <TabsTrigger value="inspector">Inspector</TabsTrigger>
+          <TabsTrigger value="config">Configuration</TabsTrigger>
+          <TabsTrigger value="decisions">Decisions</TabsTrigger>
           <TabsTrigger value="allowlist">Allowlist</TabsTrigger>
         </TabsList>
 
@@ -135,7 +137,7 @@ function InspectorTab(): ReactNode {
       return res.json();
     },
     onSuccess: (_d, key) => {
-      toast.success(`Key "${key}" entsperrt.`);
+      toast.success(`Key "${key}" unblocked.`);
       setConfirmKey(null);
       qc.invalidateQueries({ queryKey: ["admin", "rate-limits", "inspector"] });
     },
@@ -144,6 +146,17 @@ function InspectorTab(): ReactNode {
 
   const rows = query.data?.rows ?? [];
   const visible = blockedOnly ? rows : rows;
+  const {
+    sortedRows: sortedVisible,
+    sortKey,
+    sortDirection,
+    toggleSort,
+  } = useTableSort(visible, {
+    getValue: (row, key) => {
+      if (key === "expiresInSeconds") return row.expiresInSeconds;
+      return (row as Record<string, unknown>)[key];
+    },
+  });
 
   return (
     <div className="space-y-4">
@@ -154,12 +167,12 @@ function InspectorTab(): ReactNode {
         <CardContent>
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex flex-col gap-1">
-              <Label htmlFor="inspector-scope">Endpoint enthält</Label>
+              <Label htmlFor="inspector-scope">Endpoint contains</Label>
               <Input
                 id="inspector-scope"
                 value={scopeFilter}
                 onChange={(e) => setScopeFilter(e.target.value)}
-                placeholder="z.B. auth:signIn"
+                placeholder="e.g. auth:signIn"
                 className="w-56"
               />
             </div>
@@ -170,7 +183,7 @@ function InspectorTab(): ReactNode {
                 onChange={(e) => setBlockedOnly(e.target.checked)}
                 className="rounded"
               />
-              Nur gesperrt
+              Blocked only
             </label>
             <Button
               variant="secondary"
@@ -179,39 +192,59 @@ function InspectorTab(): ReactNode {
                 qc.invalidateQueries({ queryKey: ["admin", "rate-limits", "inspector"] })
               }
             >
-              Aktualisieren
+              Refresh
             </Button>
           </div>
         </CardContent>
       </Card>
 
       {query.isPending ? (
-        <PageLoading>Lade Throttle-Einträge…</PageLoading>
+        <PageLoading>Loading throttle entries…</PageLoading>
       ) : query.isError ? (
         <PageError showAuthHint={needsAdminAuthHint(query.error)}>
-          Fehler beim Laden von /admin/rate-limits/inspector.json
+          Error loading /admin/rate-limits/inspector.json
         </PageError>
       ) : visible.length === 0 ? (
-        <PageEmpty>Keine aktiven Throttle-Einträge gefunden.</PageEmpty>
+        <PageEmpty>No active throttle entries found.</PageEmpty>
       ) : (
         <Card>
           <CardHeader>
             <CardTitle>
-              Aktive Einträge ({visible.length} / {query.data?.total ?? 0} gesamt)
+              Active entries ({visible.length} / {query.data?.total ?? 0} total)
             </CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Bucket-Key</TableHead>
-                  <TableHead className="text-right">Count</TableHead>
-                  <TableHead className="text-right">Läuft ab</TableHead>
-                  <TableHead className="text-right">Aktion</TableHead>
+                  <SortableTableHead
+                    label="Bucket-Key"
+                    sortKey="key"
+                    activeSortKey={sortKey}
+                    sortDirection={sortDirection}
+                    onSort={toggleSort}
+                  />
+                  <SortableTableHead
+                    label="Count"
+                    sortKey="count"
+                    activeSortKey={sortKey}
+                    sortDirection={sortDirection}
+                    onSort={toggleSort}
+                    align="right"
+                  />
+                  <SortableTableHead
+                    label="Expires"
+                    sortKey="expiresInSeconds"
+                    activeSortKey={sortKey}
+                    sortDirection={sortDirection}
+                    onSort={toggleSort}
+                    align="right"
+                  />
+                  <TableHead className="text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {visible.map((row) => (
+                {sortedVisible.map((row) => (
                   <TableRow key={row.key}>
                     <TableCell className="font-mono text-xs break-all">{row.key}</TableCell>
                     <TableCell className="text-right">{row.count}</TableCell>
@@ -221,17 +254,17 @@ function InspectorTab(): ReactNode {
                     <TableCell className="text-right">
                       {confirmKey === row.key ? (
                         <div className="flex items-center justify-end gap-2">
-                          <span className="text-xs text-warn">Wirklich?</span>
+                          <span className="text-xs text-warn">Really?</span>
                           <Button
                             size="sm"
-                            variant="destructive"
+                            variant="danger"
                             disabled={resetKey.isPending}
                             onClick={() => resetKey.mutate(row.key)}
                           >
-                            Ja
+                            Yes
                           </Button>
                           <Button size="sm" variant="secondary" onClick={() => setConfirmKey(null)}>
-                            Nein
+                            No
                           </Button>
                         </div>
                       ) : (
@@ -240,7 +273,7 @@ function InspectorTab(): ReactNode {
                           variant="secondary"
                           onClick={() => setConfirmKey(row.key)}
                         >
-                          Entsperren
+                          Unban
                         </Button>
                       )}
                     </TableCell>
@@ -271,20 +304,20 @@ function ConfigTab(): ReactNode {
   return (
     <div className="space-y-4">
       {query.isPending ? (
-        <PageLoading>Lade Konfiguration…</PageLoading>
+        <PageLoading>Loading configuration…</PageLoading>
       ) : query.isError ? (
         <PageError showAuthHint={needsAdminAuthHint(query.error)}>
-          Fehler beim Laden von /admin/rate-limits/config.json
+          Error loading /admin/rate-limits/config.json
         </PageError>
       ) : (
         <>
           <ConfigSection
-            title="Globale Fenster"
+            title="Global windows"
             scopes={globalScopes}
             onChanged={() => qc.invalidateQueries({ queryKey: ["admin", "rate-limits", "config"] })}
           />
           <ConfigSection
-            title="Auth-Endpunkte"
+            title="Auth endpoints"
             scopes={authScopes}
             onChanged={() => qc.invalidateQueries({ queryKey: ["admin", "rate-limits", "config"] })}
           />
@@ -301,6 +334,8 @@ interface ConfigSectionProps {
 }
 
 function ConfigSection({ title, scopes, onChanged }: ConfigSectionProps): ReactNode {
+  const { sortedRows, sortKey, sortDirection, toggleSort } = useTableSort(scopes);
+
   return (
     <Card>
       <CardHeader>
@@ -310,14 +345,32 @@ function ConfigSection({ title, scopes, onChanged }: ConfigSectionProps): ReactN
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Scope</TableHead>
-              <TableHead>Max. Anfragen</TableHead>
-              <TableHead>Fenster (s)</TableHead>
-              <TableHead className="text-right">Aktionen</TableHead>
+              <SortableTableHead
+                label="Scope"
+                sortKey="scope"
+                activeSortKey={sortKey}
+                sortDirection={sortDirection}
+                onSort={toggleSort}
+              />
+              <SortableTableHead
+                label="Max requests"
+                sortKey="maxRequests"
+                activeSortKey={sortKey}
+                sortDirection={sortDirection}
+                onSort={toggleSort}
+              />
+              <SortableTableHead
+                label="Window (s)"
+                sortKey="windowSeconds"
+                activeSortKey={sortKey}
+                sortDirection={sortDirection}
+                onSort={toggleSort}
+              />
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {scopes.map((scope) => (
+            {sortedRows.map((scope) => (
               <ConfigRow key={scope.scope} scope={scope} onChanged={onChanged} />
             ))}
           </TableBody>
@@ -354,12 +407,12 @@ function ConfigRow({ scope, onChanged }: ConfigRowProps): ReactNode {
       });
       if (!res.ok) {
         const body = (await res.json().catch(() => ({}))) as { message?: string };
-        throw new Error(body.message ?? `Speichern fehlgeschlagen (${res.status})`);
+        throw new Error(body.message ?? `Save failed (${res.status})`);
       }
       return res.json();
     },
     onSuccess: () => {
-      toast.success(`Scope "${scope.scope}" gespeichert.`);
+      toast.success(`Scope "${scope.scope}" saved.`);
       onChanged();
     },
     onError: (err: Error) => toast.error(err.message),
@@ -370,11 +423,11 @@ function ConfigRow({ scope, onChanged }: ConfigRowProps): ReactNode {
       const res = await adminFetch(`/admin/rate-limits/config/${encodeURIComponent(scope.scope)}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error(`Zurücksetzen fehlgeschlagen (${res.status})`);
+      if (!res.ok) throw new Error(`Reset failed (${res.status})`);
       return res.json();
     },
     onSuccess: () => {
-      toast.success(`Scope "${scope.scope}" zurückgesetzt.`);
+      toast.success(`Scope "${scope.scope}" reset.`);
       onChanged();
     },
     onError: (err: Error) => toast.error(err.message),
@@ -413,7 +466,7 @@ function ConfigRow({ scope, onChanged }: ConfigRowProps): ReactNode {
       <TableCell className="text-right">
         <div className="flex items-center justify-end gap-2">
           <Button size="sm" disabled={save.isPending} onClick={() => save.mutate()}>
-            {save.isPending ? "Speichern…" : "Speichern"}
+            {save.isPending ? "Saving…" : "Save"}
           </Button>
           {scope.isCustom && (
             <Button
@@ -422,7 +475,7 @@ function ConfigRow({ scope, onChanged }: ConfigRowProps): ReactNode {
               disabled={reset.isPending}
               onClick={() => reset.mutate()}
             >
-              {reset.isPending ? "…" : "Zurücksetzen"}
+              {reset.isPending ? "…" : "Reset"}
             </Button>
           )}
         </div>
@@ -453,6 +506,20 @@ function DecisionsTab(): ReactNode {
       }>(`/admin/rate-limits/decisions.json?${params.toString()}`),
   });
 
+  const decisionItems = query.data?.items ?? [];
+  const {
+    sortedRows: sortedDecisions,
+    sortKey,
+    sortDirection,
+    toggleSort,
+  } = useTableSort(decisionItems, {
+    getValue: (row, key) => {
+      if (key === "ipUser") return row.ip ?? row.userId;
+      if (key === "countLimit") return `${row.count}/${row.limit}`;
+      return (row as Record<string, unknown>)[key];
+    },
+  });
+
   return (
     <div className="space-y-4">
       <Card>
@@ -470,12 +537,12 @@ function DecisionsTab(): ReactNode {
                   setEndpointFilter(e.target.value);
                   setCursor(undefined);
                 }}
-                placeholder="z.B. auth:signIn"
+                placeholder="e.g. auth:signIn"
                 className="w-48"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <Label htmlFor="decisions-type">Typ</Label>
+              <Label htmlFor="decisions-type">Type</Label>
               <select
                 id="decisions-type"
                 value={decisionFilter}
@@ -485,7 +552,7 @@ function DecisionsTab(): ReactNode {
                 }}
                 className="h-9 rounded-md border border-line bg-surface px-3 text-sm"
               >
-                <option value="">Alle</option>
+                <option value="">All</option>
                 <option value="block">Block</option>
                 <option value="allow">Allow</option>
               </select>
@@ -495,34 +562,65 @@ function DecisionsTab(): ReactNode {
       </Card>
 
       {query.isPending ? (
-        <PageLoading>Lade Entscheidungen…</PageLoading>
+        <PageLoading>Loading decisions…</PageLoading>
       ) : query.isError ? (
         <PageError showAuthHint={needsAdminAuthHint(query.error)}>
-          Fehler beim Laden von /admin/rate-limits/decisions.json
+          Error loading /admin/rate-limits/decisions.json
         </PageError>
       ) : (query.data?.items ?? []).length === 0 ? (
-        <PageEmpty>Keine Entscheidungen gefunden.</PageEmpty>
+        <PageEmpty>No decisions found.</PageEmpty>
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle>Entscheidungen ({query.data?.total ?? 0} gesamt)</CardTitle>
+            <CardTitle>Decisions ({query.data?.total ?? 0} total)</CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Zeitpunkt</TableHead>
-                  <TableHead>Endpoint</TableHead>
-                  <TableHead>Typ</TableHead>
-                  <TableHead className="text-right">Count / Limit</TableHead>
-                  <TableHead>IP / User</TableHead>
+                  <SortableTableHead
+                    label="Time"
+                    sortKey="ts"
+                    activeSortKey={sortKey}
+                    sortDirection={sortDirection}
+                    onSort={toggleSort}
+                  />
+                  <SortableTableHead
+                    label="Endpoint"
+                    sortKey="endpoint"
+                    activeSortKey={sortKey}
+                    sortDirection={sortDirection}
+                    onSort={toggleSort}
+                  />
+                  <SortableTableHead
+                    label="Type"
+                    sortKey="decision"
+                    activeSortKey={sortKey}
+                    sortDirection={sortDirection}
+                    onSort={toggleSort}
+                  />
+                  <SortableTableHead
+                    label="Count / Limit"
+                    sortKey="count"
+                    activeSortKey={sortKey}
+                    sortDirection={sortDirection}
+                    onSort={toggleSort}
+                    align="right"
+                  />
+                  <SortableTableHead
+                    label="IP / User"
+                    sortKey="ipUser"
+                    activeSortKey={sortKey}
+                    sortDirection={sortDirection}
+                    onSort={toggleSort}
+                  />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(query.data?.items ?? []).map((r) => (
+                {sortedDecisions.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell className="text-xs text-fg-muted whitespace-nowrap">
-                      {new Date(r.ts).toLocaleString("de-DE")}
+                      {new Date(r.ts).toLocaleString("en-US")}
                     </TableCell>
                     <TableCell className="font-mono text-xs">{r.endpoint}</TableCell>
                     <TableCell>
@@ -547,7 +645,7 @@ function DecisionsTab(): ReactNode {
                   size="sm"
                   onClick={() => setCursor(query.data?.nextCursor ?? undefined)}
                 >
-                  Mehr laden
+                  Load more
                 </Button>
               </div>
             )}
@@ -571,6 +669,14 @@ function AllowlistTab(): ReactNode {
     queryFn: () => fetchJson<{ items: AllowlistEntry[] }>("/admin/rate-limits/allowlist.json"),
   });
 
+  const allowlistItems = query.data?.items ?? [];
+  const {
+    sortedRows: sortedAllowlist,
+    sortKey,
+    sortDirection,
+    toggleSort,
+  } = useTableSort(allowlistItems);
+
   const add = useMutation({
     mutationFn: async () => {
       const res = await adminFetch("/admin/rate-limits/allowlist", {
@@ -580,12 +686,12 @@ function AllowlistTab(): ReactNode {
       });
       if (!res.ok) {
         const body = (await res.json().catch(() => ({}))) as { message?: string };
-        throw new Error(body.message ?? `Hinzufügen fehlgeschlagen (${res.status})`);
+        throw new Error(body.message ?? `Add failed (${res.status})`);
       }
       return res.json();
     },
     onSuccess: () => {
-      toast.success("Benutzer zur Allowlist hinzugefügt.");
+      toast.success("User added to allowlist.");
       setUserId("");
       setReason("");
       setDialogOpen(false);
@@ -599,11 +705,11 @@ function AllowlistTab(): ReactNode {
       const res = await adminFetch(`/admin/rate-limits/allowlist/${encodeURIComponent(uid)}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error(`Entfernen fehlgeschlagen (${res.status})`);
+      if (!res.ok) throw new Error(`Remove failed (${res.status})`);
       return res.json();
     },
     onSuccess: () => {
-      toast.success("Benutzer aus Allowlist entfernt.");
+      toast.success("User removed from allowlist.");
       qc.invalidateQueries({ queryKey: ["admin", "rate-limits", "allowlist"] });
     },
     onError: (err: Error) => toast.error(err.message),
@@ -614,11 +720,11 @@ function AllowlistTab(): ReactNode {
       <div className="flex justify-end">
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button>Hinzufügen</Button>
+            <Button>Add</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Benutzer zur Allowlist hinzufügen</DialogTitle>
+              <DialogTitle>Add user to allowlist</DialogTitle>
             </DialogHeader>
             <form
               className="flex flex-col gap-4 pt-2"
@@ -637,16 +743,16 @@ function AllowlistTab(): ReactNode {
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <Label htmlFor="allowlist-reason">Grund</Label>
+                <Label htmlFor="allowlist-reason">Reason</Label>
                 <Input
                   id="allowlist-reason"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  placeholder="z.B. interner API-Test-User"
+                  placeholder="e.g. internal API test user"
                 />
               </div>
               <Button type="submit" disabled={add.isPending || !userId.trim() || !reason.trim()}>
-                {add.isPending ? "Hinzufügen…" : "Hinzufügen"}
+                {add.isPending ? "Adding…" : "Add"}
               </Button>
             </form>
           </DialogContent>
@@ -654,13 +760,13 @@ function AllowlistTab(): ReactNode {
       </div>
 
       {query.isPending ? (
-        <PageLoading>Lade Allowlist…</PageLoading>
+        <PageLoading>Loading allowlist…</PageLoading>
       ) : query.isError ? (
         <PageError showAuthHint={needsAdminAuthHint(query.error)}>
-          Fehler beim Laden von /admin/rate-limits/allowlist.json
+          Error loading /admin/rate-limits/allowlist.json
         </PageError>
       ) : (query.data?.items ?? []).length === 0 ? (
-        <PageEmpty>Keine Einträge in der Allowlist.</PageEmpty>
+        <PageEmpty>No allowlist entries.</PageEmpty>
       ) : (
         <Card>
           <CardHeader>
@@ -670,35 +776,53 @@ function AllowlistTab(): ReactNode {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>User-UUID</TableHead>
-                  <TableHead>Grund</TableHead>
-                  <TableHead>Hinzugefügt</TableHead>
-                  <TableHead className="text-right">Aktion</TableHead>
+                  <SortableTableHead
+                    label="User-UUID"
+                    sortKey="userId"
+                    activeSortKey={sortKey}
+                    sortDirection={sortDirection}
+                    onSort={toggleSort}
+                  />
+                  <SortableTableHead
+                    label="Reason"
+                    sortKey="reason"
+                    activeSortKey={sortKey}
+                    sortDirection={sortDirection}
+                    onSort={toggleSort}
+                  />
+                  <SortableTableHead
+                    label="Added"
+                    sortKey="createdAt"
+                    activeSortKey={sortKey}
+                    sortDirection={sortDirection}
+                    onSort={toggleSort}
+                  />
+                  <TableHead className="text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(query.data?.items ?? []).map((entry) => (
+                {sortedAllowlist.map((entry) => (
                   <TableRow key={entry.id}>
                     <TableCell className="font-mono text-xs">{entry.userId}</TableCell>
                     <TableCell className="text-sm">{entry.reason}</TableCell>
                     <TableCell className="text-xs text-fg-muted">
-                      {new Date(entry.createdAt).toLocaleString("de-DE")}
+                      {new Date(entry.createdAt).toLocaleString("en-US")}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
-                        variant="destructive"
+                        variant="danger"
                         size="sm"
                         disabled={remove.isPending}
                         onClick={() => {
                           if (
                             typeof window !== "undefined" &&
-                            !window.confirm(`Benutzer "${entry.userId}" von Allowlist entfernen?`)
+                            !window.confirm(`Remove user "${entry.userId}" from allowlist?`)
                           )
                             return;
                           remove.mutate(entry.userId);
                         }}
                       >
-                        Entfernen
+                        Remove
                       </Button>
                     </TableCell>
                   </TableRow>

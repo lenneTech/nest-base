@@ -38,7 +38,7 @@ export function DiagnosticsPage(): ReactNode {
   return (
     <AdminShell
       title="Diagnostics"
-      subtitle="Live runtime, memory, environment, and feature roster."
+      subtitle="Runtime, memory, environment, and feature overview."
       currentNav="diagnostics"
     >
       {data.data ? (

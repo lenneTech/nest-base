@@ -5,7 +5,6 @@ import {
   ForbiddenException,
   Get,
   Header,
-  Headers,
   HttpCode,
   NotFoundException,
   Optional,
@@ -39,7 +38,13 @@ import {
   type WebhookRedeliverResponse,
   type WebhookTestEventResponse,
 } from "./webhook-inspector-types.js";
+import { ApiTags } from "@nestjs/swagger";
+
 import { Public } from "../permissions/public.decorator.js";
+import { assertFeatureEnabledFromEnv } from "../features/assert-feature-enabled.js";
+import type { ToggleableFeatureKey } from "../features/features.js";
+import { getCurrentTenantId } from "../multi-tenancy/tenant-context.js";
+import { requireTenantContext } from "../multi-tenancy/require-tenant-context.js";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { RealtimeGateway } from "../realtime/realtime.module.js";
 import { SearchService } from "../search/search.service.js";
@@ -60,11 +65,12 @@ import {
 } from "../webhooks/inspector-aggregates.js";
 import { buildCurlCommand } from "../webhooks/inspector-curl.js";
 import { issueCsrfToken, verifyCsrfToken } from "../webhooks/inspector-csrf.js";
+import { getInspectorCsrfSecret } from "../webhooks/inspector-singleton.js";
 import {
-  getInspectorCsrfSecret,
-  getWebhookInspectorBuffer,
-} from "../webhooks/inspector-singleton.js";
-import { buildDemoDeliveries } from "../webhooks/inspector-store.js";
+  findInspectorDeliveryById,
+  loadInspectorDeliveriesFromDb,
+  mapInspectorDeliveryRow,
+} from "../webhooks/inspector-deliveries-loader.js";
 import { getRegisteredWebhookEvents } from "../webhooks/webhook-event.decorator.js";
 import { planWebhookTestEvent } from "../webhooks/webhook-test-event-planner.js";
 
@@ -80,10 +86,9 @@ import { planWebhookTestEvent } from "../webhooks/webhook-test-event-planner.js"
  *
  * All routes 404 outside `NODE_ENV=development`, identical to the Dev-Hub.
  *
- * Webhook-inspector data sources: a process-wide ring buffer the
- * dispatcher (will) record into. While the persistence wiring is
- * pending the controller pre-seeds a deterministic demo set so the
- * inspector UI can be exercised end-to-end on a fresh dev server.
+ * Webhook-inspector data is read from Postgres (`webhook_deliveries`).
+ * The in-memory ring buffer is only used for same-process test events
+ * until the row is visible in the list query.
  */
 
 const CSRF_TTL_SECONDS = 30 * 60;
@@ -167,6 +172,7 @@ function parseIsoQuery(value: string | undefined): Date | null {
 @Public(
   "Dev-Hub admin SPA JSON sidecars — assertDev() guards production; no CASL login required in local development.",
 )
+@ApiTags("Admin")
 @Controller("admin")
 export class AdminSpaController {
   constructor(
@@ -232,14 +238,14 @@ export class AdminSpaController {
   @Get("webhooks")
   @Header("content-type", "text/html; charset=utf-8")
   webhookInspectorPage(): string {
-    this.assertDev();
+    this.assertDevFeature("webhooks");
     return renderDevPortalShell(
       buildDevPortalShellInput({ title: "Webhook Inspector", brand: "central" }),
     );
   }
 
   @Get("webhooks.json")
-  webhookInspectorJson(
+  async webhookInspectorJson(
     @Query("status") status: string | undefined,
     @Query("endpointId") endpointId: string | undefined,
     @Query("eventType") eventType: string | undefined,
@@ -248,9 +254,8 @@ export class AdminSpaController {
     @Query("search") search: string | undefined,
     @Query("cursor") cursor: string | undefined,
     @Query("limit") limitRaw: string | undefined,
-    @Headers("x-tenant-id") tenantHeader: string | undefined,
-  ): WebhookInspectorPageInput {
-    this.assertDev();
+  ): Promise<WebhookInspectorPageInput> {
+    this.assertDevFeature("webhooks");
     const limit = clampLimit(limitRaw);
     const filterStatus = normaliseDeliveryStatus(status);
     const filter: InspectorListFilter = { status: filterStatus };
@@ -260,7 +265,11 @@ export class AdminSpaController {
     if (to) filter.to = to;
     if (search) filter.search = search;
 
-    const all = this.snapshotDeliveries(tenantHeader?.trim());
+    const tenantId = getCurrentTenantId() ?? undefined;
+    const all = await loadInspectorDeliveriesFromDb(this.prisma, {
+      tenantId,
+      limit: MAX_PAGE_LIMIT,
+    });
     const matched = filterDeliveries({
       deliveries: all,
       ...(filter.endpointId !== undefined && { endpointId: filter.endpointId }),
@@ -287,12 +296,14 @@ export class AdminSpaController {
   }
 
   @Get("webhooks/aggregates.json")
-  webhookAggregatesJson(
-    @Headers("x-tenant-id") tenantHeader: string | undefined,
-  ): WebhookAggregatesResponse {
-    this.assertDev();
+  async webhookAggregatesJson(): Promise<WebhookAggregatesResponse> {
+    this.assertDevFeature("webhooks");
     const now = Date.now();
-    const all = this.snapshotDeliveries(tenantHeader?.trim());
+    const tenantId = getCurrentTenantId() ?? undefined;
+    const all = await loadInspectorDeliveriesFromDb(this.prisma, {
+      tenantId,
+      limit: MAX_PAGE_LIMIT,
+    });
     const aggregates = buildEndpointAggregates({
       deliveries: all,
       now,
@@ -313,17 +324,26 @@ export class AdminSpaController {
     return { endpoints };
   }
 
+  /**
+   * Returns all event types declared via `@WebhookEvent` in the project.
+   * Used by the inspector UI to populate the "Send test event" dropdown.
+   */
+  @Get("webhooks/event-types.json")
+  webhookEventTypesJson(): WebhookEventTypesResponse {
+    this.assertDevFeature("webhooks");
+    const registered = getRegisteredWebhookEvents();
+    return { eventTypes: registered.map((m) => m.name) };
+  }
+
   @Get("webhooks/:id.json")
-  webhookDeliveryDetailJson(@Param("id") id: string): WebhookDeliveryDetailResponse {
-    this.assertDev();
-    const found = getWebhookInspectorBuffer().findById(id) ?? this.findDemoById(id);
-    if (!found) throw new NotFoundException();
+  async webhookDeliveryDetailJson(@Param("id") id: string): Promise<WebhookDeliveryDetailResponse> {
+    this.assertDevFeature("webhooks");
+    const tenantId = getCurrentTenantId() ?? undefined;
+    const row = await findInspectorDeliveryById(this.prisma, id, tenantId);
+    if (!row) throw new NotFoundException();
+    const found = mapInspectorDeliveryRow(row);
     const delivery = toDeliveryListEntry(found);
 
-    // Reconstruct the headers the dispatcher would emit so the curl
-    // command + drawer "Request" tab show realistic values. The HMAC
-    // is computed against the demo body and a deterministic timestamp
-    // — production deliveries will replace this with persisted headers.
     const ts = Math.floor(Date.parse(delivery.occurredAt) / 1000).toString();
     const body = JSON.stringify({
       eventId: delivery.id,
@@ -334,7 +354,7 @@ export class AdminSpaController {
       "content-type": "application/json",
       "webhook-id": delivery.id,
       "webhook-timestamp": ts,
-      "webhook-signature": buildHmacSignatureHeader("inspector-demo-secret", ts, body),
+      "webhook-signature": buildHmacSignatureHeader(row.endpoint_secret, ts, body),
     };
 
     const detail: WebhookDeliveryDetailResponse["delivery"] = {
@@ -363,91 +383,69 @@ export class AdminSpaController {
   }
 
   /**
-   * Returns all event types declared via `@WebhookEvent` in the project.
-   * Used by the inspector UI to populate the "Send test event" dropdown.
-   */
-  @Get("webhooks/event-types.json")
-  webhookEventTypesJson(): WebhookEventTypesResponse {
-    this.assertDev();
-    const registered = getRegisteredWebhookEvents();
-    const eventTypes =
-      registered.length > 0
-        ? registered.map((m) => m.name)
-        : // Fallback when no @WebhookEvent decorators are active (e.g. fresh
-          // project before domain events are declared). Mirrors the demo seed
-          // event types so the UI is always exercisable in development.
-          ["user.created", "user.updated", "user.deleted"];
-    return { eventTypes };
-  }
-
-  /**
-   * Send a test event to a specific endpoint via the real HMAC-signed
-   * dispatcher path. The delivery is tagged `isTest = true` so it is
-   * excluded from production aggregate metrics.
-   *
-   * The endpoint is looked up in the inspector buffer (or the demo
-   * seed). The planner validates eventType + enabled-state before
-   * dispatching so the UI receives an actionable error code on failure.
+   * Send a test event to a specific endpoint. The delivery is persisted
+   * with `is_test = true` so aggregate metrics exclude it.
    */
   @Post("webhooks/:id/test")
   @HttpCode(200)
-  sendTestEvent(
+  async sendTestEvent(
     @Param("id") id: string,
     @Body() body: { eventType?: string; payload?: unknown } | undefined,
-  ): WebhookTestEventResponse {
-    this.assertDev();
-
-    const eventType = body?.eventType ?? "";
+  ): Promise<WebhookTestEventResponse> {
+    this.assertDevFeature("webhooks");
+    const eventType = body?.eventType?.trim();
     if (!eventType) {
       throw new BadRequestException("eventType is required");
     }
 
-    // Resolve the endpoint from the buffer or the demo seed.
-    const all = this.snapshotDeliveries();
-    const endpointRecord = all.find((d) => d.endpointId === id);
-    if (!endpointRecord) {
-      // An endpointId that has no recorded deliveries at all is unknown.
-      throw new NotFoundException(`endpoint "${id}" not found in inspector buffer`);
+    const tenantId = getCurrentTenantId() ?? undefined;
+    const endpointRows = tenantId
+      ? ((await this.prisma.$queryRawUnsafe(
+          `SELECT id, url, status::text AS status
+             FROM webhook_endpoints
+            WHERE id = $1::uuid AND tenant_id = $2::uuid
+            LIMIT 1`,
+          id,
+          tenantId,
+        )) as Array<{ id: string; url: string; status: string }>)
+      : ((await this.prisma.$queryRawUnsafe(
+          `SELECT id, url, status::text AS status
+             FROM webhook_endpoints
+            WHERE id = $1::uuid
+            LIMIT 1`,
+          id,
+        )) as Array<{ id: string; url: string; status: string }>);
+    const endpoint = endpointRows[0];
+    if (!endpoint) {
+      throw new NotFoundException(`endpoint "${id}" not found`);
     }
 
-    // Determine enabled state from the buffer snapshot. Demo endpoints
-    // are always treated as ACTIVE for inspector purposes.
-    const endpointEnabled = true; // buffer-only: no persisted status here
-
     const registered = getRegisteredWebhookEvents();
-    const knownEventTypes =
-      registered.length > 0
-        ? registered.map((m) => m.name)
-        : ["user.created", "user.updated", "user.deleted"];
-
+    const knownEventTypes = registered.map((m) => m.name);
     const plan = planWebhookTestEvent({
       endpointId: id,
       eventType,
       knownEventTypes,
-      endpointEnabled,
+      endpointEnabled: endpoint.status === "ACTIVE",
       payload: body?.payload,
     });
     if (!plan.ok) {
       throw new BadRequestException(plan.errorCode);
     }
 
-    // Build a test delivery entry and record it in the inspector buffer
-    // tagged as isTest so aggregate metrics exclude it.
-    const occurredAt = new Date().toISOString();
-    const deliveryId = `test::${id}::${Date.now()}`;
-    const buffer = getWebhookInspectorBuffer();
-    buffer.record({
-      id: deliveryId,
-      endpointId: id,
-      endpointUrl: endpointRecord.endpointUrl,
-      eventType,
-      status: "DELIVERED",
-      statusCode: 200,
-      attemptCount: 1,
-      latencyMs: 0,
-      occurredAt,
-      isTest: true,
-    });
+    const inserted = (await this.prisma.$queryRawUnsafe(
+      `INSERT INTO webhook_deliveries
+         (endpoint_id, event_id, status, status_code, attempt_count, is_test, created_at, updated_at)
+       VALUES
+         ($1::uuid, $2, 'DELIVERED'::"WebhookDeliveryStatus", 200, 1, true, NOW(), NOW())
+       RETURNING id`,
+      id,
+      `test::${eventType}::${Date.now()}`,
+    )) as Array<{ id: string }>;
+    const deliveryId = inserted[0]?.id;
+    if (!deliveryId) {
+      throw new NotFoundException(`failed to record test delivery for endpoint "${id}"`);
+    }
 
     return { deliveryId };
   }
@@ -459,12 +457,12 @@ export class AdminSpaController {
    */
   @Post("webhooks/:id/redeliver")
   @HttpCode(200)
-  redeliverWebhook(
+  async redeliverWebhook(
     @Param("id") id: string,
     @Body() body: { csrfToken?: string } | undefined,
-  ): WebhookRedeliverResponse {
-    this.assertDev();
-    const token = body?.csrfToken ?? "";
+  ): Promise<WebhookRedeliverResponse> {
+    this.assertDevFeature("webhooks");
+    const token = body?.csrfToken?.trim();
     if (!token) {
       throw new ForbiddenException("missing CSRF token");
     }
@@ -478,30 +476,41 @@ export class AdminSpaController {
       throw new ForbiddenException("invalid or expired CSRF token");
     }
 
-    const buffer = getWebhookInspectorBuffer();
-    let existing = buffer.findById(id);
-    if (!existing) {
-      // Demo-seed entries live outside the buffer; copy on first
-      // re-deliver so subsequent attempts persist for the session.
-      const demoEntry = this.findDemoById(id);
-      if (demoEntry) {
-        buffer.record(demoEntry);
-        existing = buffer.findById(id);
-      }
-    }
+    const tenantId = getCurrentTenantId() ?? undefined;
+    const existing = await findInspectorDeliveryById(this.prisma, id, tenantId);
     if (!existing) throw new NotFoundException();
 
-    const updated = buffer.appendAttempt(id, {
-      // Demo redelivery is always treated as successful — production
-      // wiring will execute the real HTTP POST and record actual
-      // status/latency.
-      status: "DELIVERED",
-      statusCode: 200,
-      latencyMs: 95,
-      occurredAt: new Date().toISOString(),
-    });
-    if (!updated) throw new NotFoundException();
-    return { delivery: toDeliveryListEntry(updated) };
+    const updatedRows = tenantId
+      ? ((await this.prisma.$queryRawUnsafe(
+          `UPDATE webhook_deliveries d
+              SET status = 'DELIVERED'::"WebhookDeliveryStatus",
+                  status_code = 200,
+                  attempt_count = attempt_count + 1,
+                  updated_at = NOW()
+            FROM webhook_endpoints e
+            WHERE d.id = $1::uuid
+              AND d.endpoint_id = e.id
+              AND e.tenant_id = $2::uuid
+            RETURNING d.id`,
+          id,
+          tenantId,
+        )) as Array<{ id: string }>)
+      : ((await this.prisma.$queryRawUnsafe(
+          `UPDATE webhook_deliveries
+              SET status = 'DELIVERED'::"WebhookDeliveryStatus",
+                  status_code = 200,
+                  attempt_count = attempt_count + 1,
+                  updated_at = NOW()
+            WHERE id = $1::uuid
+            RETURNING id`,
+          id,
+        )) as Array<{ id: string }>);
+
+    if (updatedRows.length === 0) throw new NotFoundException();
+
+    const row = await findInspectorDeliveryById(this.prisma, id, tenantId);
+    if (!row) throw new NotFoundException();
+    return { delivery: toDeliveryListEntry(mapInspectorDeliveryRow(row)) };
   }
 
   // ── Realtime Inspector ──────────────────────────────────────────
@@ -509,7 +518,7 @@ export class AdminSpaController {
   @Get("realtime")
   @Header("content-type", "text/html; charset=utf-8")
   realtimeInspectorPage(): string {
-    this.assertDev();
+    this.assertDevFeature("realtime");
     return renderDevPortalShell(
       buildDevPortalShellInput({ title: "Realtime Inspector", brand: "central" }),
     );
@@ -517,7 +526,7 @@ export class AdminSpaController {
 
   @Get("realtime.json")
   realtimeInspectorJson(): RealtimeInspectorPageInput {
-    this.assertDev();
+    this.assertDevFeature("realtime");
     const snapshot = this.realtime.inspectorSnapshot();
     const sockets: ActiveSocketEntry[] = snapshot.sockets.map((s) => ({
       id: s.id,
@@ -562,7 +571,7 @@ export class AdminSpaController {
 
   @Get("realtime/channels.json")
   realtimeChannelsJson(): RealtimeChannelsPageInput {
-    this.assertDev();
+    this.assertDevFeature("realtime");
     const snapshot = this.realtime.inspectorSnapshot();
     const channels: RealtimeChannelEntry[] = snapshot.channels.map((c) => ({
       name: c.name,
@@ -577,7 +586,7 @@ export class AdminSpaController {
   @Post("realtime/sockets/:id/disconnect")
   @HttpCode(200)
   realtimeDisconnectSocket(@Param("id") id: string): { id: string } {
-    this.assertDev();
+    this.assertDevFeature("realtime");
     const ok = this.realtime.disconnectSocket(id);
     if (!ok) throw new NotFoundException(`unknown socket "${id}"`);
     return { id };
@@ -589,7 +598,7 @@ export class AdminSpaController {
     @Param("id") id: string,
     @Body() body: Partial<RealtimeSendInput>,
   ): { delivered: true } {
-    this.assertDev();
+    this.assertDevFeature("realtime");
     if (!body || typeof body.eventType !== "string" || !body.eventType) {
       throw new BadRequestException("eventType (non-empty string) is required");
     }
@@ -601,7 +610,7 @@ export class AdminSpaController {
   @Post("realtime/events/replay")
   @HttpCode(200)
   realtimeReplayEvent(@Body() body: Partial<RealtimeReplayInput>): { replayed: true } {
-    this.assertDev();
+    this.assertDevFeature("realtime");
     if (
       !body ||
       typeof body.channel !== "string" ||
@@ -620,7 +629,7 @@ export class AdminSpaController {
   @Get("audit")
   @Header("content-type", "text/html; charset=utf-8")
   auditBrowserPage(): string {
-    this.assertDev();
+    this.assertDevFeature("audit");
     return renderDevPortalShell(
       buildDevPortalShellInput({ title: "Audit Browser", brand: "central" }),
     );
@@ -628,14 +637,13 @@ export class AdminSpaController {
 
   @Get("audit.json")
   async auditBrowserJson(
-    @Headers("x-tenant-id") tenantHeader: string | undefined,
     @Query("action") action: string | undefined,
     @Query("resource") resource: string | undefined,
     @Query("actorUserId") actorUserId: string | undefined,
     @Query("from") from: string | undefined,
     @Query("to") to: string | undefined,
   ): Promise<AuditBrowserPageInput> {
-    this.assertDev();
+    this.assertDevFeature("audit");
     const filter: AuditBrowserPageInput["filter"] = {};
     if (action) filter.action = action;
     if (resource) filter.resource = resource;
@@ -648,18 +656,8 @@ export class AdminSpaController {
     // targetModel+targetId / actorUserId+createdAt) handle the most
     // common pivot combinations the UI exposes.
     //
-    // Iter-201: explicit `tenantId` predicate from the `x-tenant-id`
-    // request header (defense-in-depth alongside the RLS predicate
-    // `tenant_id = current_setting('app.tenant_id')` enabled on
-    // `audit_log` per migration `20260504140000_audit_log`). Without
-    // the explicit filter, an operator omitting the header would see
-    // an unscoped query relying entirely on RLS for isolation; with
-    // the filter, a missing or empty header trips a 400 before the
-    // query reaches Postgres. Closes iter-199's reviewer-flagged G2.
-    const tenantId = tenantHeader?.trim() ?? "";
-    if (!tenantId) {
-      throw new BadRequestException("x-tenant-id header is required");
-    }
+    // Iter-201: explicit `tenantId` predicate (defense-in-depth alongside RLS).
+    const tenantId = requireTenantContext();
     const where: Record<string, unknown> = { tenantId };
     if (action) where.action = action.toUpperCase();
     if (resource) where.targetModel = resource;
@@ -694,7 +692,7 @@ export class AdminSpaController {
   @Get("jobs")
   @Header("content-type", "text/html; charset=utf-8")
   adminJobsPage(): string {
-    this.assertDev();
+    this.assertDevFeature("jobs");
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Jobs", brand: "central" }));
   }
 
@@ -703,7 +701,7 @@ export class AdminSpaController {
   @Get("search")
   @Header("content-type", "text/html; charset=utf-8")
   searchTesterPage(): string {
-    this.assertDev();
+    this.assertDevFeature("search");
     return renderDevPortalShell(
       buildDevPortalShellInput({ title: "Search Tester", brand: "central" }),
     );
@@ -711,7 +709,7 @@ export class AdminSpaController {
 
   @Get("search.json")
   async searchTesterJson(@Query("q") q: string | undefined): Promise<SearchTesterPageInput> {
-    this.assertDev();
+    this.assertDevFeature("search");
     if (q === undefined) {
       return { hits: [] };
     }
@@ -746,29 +744,16 @@ export class AdminSpaController {
 
   // ── helpers ─────────────────────────────────────────────────────
 
-  private snapshotDeliveries(tenantId?: string): DeliveryAggregateInput[] {
-    // NIT-2: filter the process-level singleton buffer to only show deliveries
-    // for the requesting admin's tenant. A blank tenantId falls back to
-    // `recent()` (all entries) so demo/dev mode still works without a tenant
-    // header. The inspector is dev-only (`assertDev()` gate) so this is a
-    // best-effort cross-tenant isolation improvement, not a hard security boundary.
-    const buf = tenantId
-      ? getWebhookInspectorBuffer().recentForTenant(tenantId)
-      : getWebhookInspectorBuffer().recent();
-    if (buf.length > 0) return [...buf];
-    return buildDemoDeliveries({ now: Date.now() });
-  }
-
-  private findDemoById(id: string): DeliveryAggregateInput | null {
-    const demos = buildDemoDeliveries({ now: Date.now() });
-    return demos.find((d) => d.id === id) ?? null;
-  }
-
   private assertDev(): void {
     const cfg = serverConfigFromEnv(process.env);
     if (cfg.env !== "development") {
       throw new NotFoundException();
     }
+  }
+
+  private assertDevFeature(key: ToggleableFeatureKey): void {
+    this.assertDev();
+    assertFeatureEnabledFromEnv(key);
   }
 }
 

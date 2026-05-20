@@ -101,9 +101,9 @@ export function planStartupBanner(input: BannerInput): BannerPlan {
       title: "Hub",
       entries: [
         { label: "Landing", url: `${base}/` },
-        { label: "Features", url: `${base}/api/dev/features` },
-        { label: "Diagnostics", url: `${base}/api/dev/diagnostics` },
-        { label: "PostgREST Parser", url: `${base}/api/dev/postgrest-parse?status=eq.draft` },
+        { label: "Features", url: `${base}/hub/features` },
+        { label: "Diagnostics", url: `${base}/hub/diagnostics` },
+        { label: "PostgREST Parser", url: `${base}/hub/postgrest-parse?status=eq.draft` },
       ],
     },
     {
@@ -150,7 +150,7 @@ export function planStartupBanner(input: BannerInput): BannerPlan {
   lines.push("");
   lines.push(HR);
   lines.push(
-    `${BOLD}${GREEN}🚀 Server erfolgreich gestartet${RESET}  ${DIM}(${input.env}, port ${input.port})${RESET}`,
+    `${BOLD}${GREEN}🚀 Server started successfully${RESET}  ${DIM}(${input.env}, port ${input.port})${RESET}`,
   );
   lines.push(`${DIM}Base URL:${RESET} ${CYAN}${base}${RESET}`);
   lines.push(HR);
@@ -167,7 +167,7 @@ export function planStartupBanner(input: BannerInput): BannerPlan {
   }
 
   lines.push(HR);
-  lines.push(`${DIM}Drücke ${RESET}${BOLD}CTRL+C${RESET}${DIM} zum Beenden${RESET}`);
+  lines.push(`${DIM}Press ${RESET}${BOLD}CTRL+C${RESET}${DIM} to quit${RESET}`);
   lines.push("");
 
   return { text: lines.join("\n"), sections, variant };
@@ -183,7 +183,7 @@ function planRestartBanner(input: BannerInput, variant: BannerVariant, base: str
   const ts = input.timestamp ?? new Date().toLocaleTimeString();
   const lines = [
     "",
-    `${DIM}─────${RESET} ${BOLD}${CYAN}♻ Server neu gestartet${RESET} ${DIM}(${reason}, ${ts})${RESET} ${DIM}${"─".repeat(20)}${RESET}`,
+    `${DIM}─────${RESET} ${BOLD}${CYAN}♻ Server restarted${RESET} ${DIM}(${reason}, ${ts})${RESET} ${DIM}${"─".repeat(20)}${RESET}`,
     `${DIM}Base URL:${RESET} ${CYAN}${base}${RESET}   ${DIM}Hub:${RESET} ${CYAN}${base}/${RESET}`,
   ];
   if (input.features.tunnelUrl) {

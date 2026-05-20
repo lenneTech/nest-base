@@ -33,19 +33,19 @@ describe("Story · Better-Auth plugin flags", () => {
     });
   });
 
-  describe("organization plugin", () => {
-    it("is present by default (default ON since issue #118)", () => {
+  describe("organization plugin (gated by multiTenancy)", () => {
+    it("is present by default (tenancy ON since issue #118)", () => {
       const features = FeaturesSchema.parse({});
       expect(listAuthPluginNames(features)).toContain("organization");
     });
 
-    it("is absent when features.organization.enabled is false", () => {
-      const features = FeaturesSchema.parse({ organization: { enabled: false } });
+    it("is absent when features.multiTenancy.enabled is false", () => {
+      const features = FeaturesSchema.parse({ multiTenancy: { enabled: false } });
       expect(listAuthPluginNames(features)).not.toContain("organization");
     });
 
-    it("appears when features.organization.enabled is true", () => {
-      const features = FeaturesSchema.parse({ organization: { enabled: true } });
+    it("appears when features.multiTenancy.enabled is true", () => {
+      const features = FeaturesSchema.parse({ multiTenancy: { enabled: true } });
       expect(listAuthPluginNames(features)).toContain("organization");
     });
   });
@@ -77,7 +77,7 @@ describe("Story · Better-Auth plugin flags", () => {
   it("all four plugins enabled simultaneously", () => {
     const features = FeaturesSchema.parse({
       adminPlugin: { enabled: true },
-      organization: { enabled: true },
+      multiTenancy: { enabled: true },
       oneTap: { enabled: true },
       openAPI: { enabled: true },
     });
@@ -91,7 +91,7 @@ describe("Story · Better-Auth plugin flags", () => {
   it("default-enabled plugins remain present alongside the new ones", () => {
     const features = FeaturesSchema.parse({
       adminPlugin: { enabled: true },
-      organization: { enabled: true },
+      multiTenancy: { enabled: true },
     });
     const plugins = listAuthPluginNames(features);
     // Default-on Better-Auth plugins survive.

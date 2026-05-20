@@ -40,8 +40,8 @@ Existing `.env` but DB not migrated / stale volume:
 bun run setup --bootstrap  # docker + schema + migrate + seed (env untouched)
 ```
 
-Hub login for manual checks: `system-admin@lenne.tech` / `system-admin` or
-`admin@lenne.tech` / `admin` — see `docs/hub/login.md`.
+Hub login for manual checks: use credentials from `bun run seed` terminal output — see
+`docs/hub/login.md`.
 
 # Output
 

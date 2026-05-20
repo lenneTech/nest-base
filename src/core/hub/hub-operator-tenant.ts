@@ -2,7 +2,7 @@
  * Resolves the tenant id used to build CASL for `/hub/*` JSON/HTML.
  *
  * Hub routes are exempt from the `x-tenant-id` header (see
- * `tenant-guard.ts`) but still use `@Can("read", "DevHub")`. The ability
+ * `tenant-guard.ts`) but still use `@Can("read", "Hub")`. The ability
  * middleware must not install an empty ability on those paths.
  */
 import type { PrismaService } from "../prisma/prisma.service.js";

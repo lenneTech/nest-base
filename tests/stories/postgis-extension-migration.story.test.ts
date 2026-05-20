@@ -48,9 +48,23 @@ describe("Story · PostGIS extension migration", () => {
     expect(sql).not.toMatch(/ALTER\s+EXTENSION/i);
   });
 
-  it("is NOT in the always-on prisma/migrations directory (feature-gated)", () => {
+  it("keeps a canonical copy under prisma/features/geo/migrations", () => {
+    const featureMigrations = resolve(ROOT, "prisma/features/geo/migrations");
+    const featureCandidates = readdirSync(featureMigrations).filter((entry) =>
+      /postgis/i.test(entry),
+    );
+    expect(featureCandidates.length).toBeGreaterThan(0);
+  });
+
+  it("when geo schema is prepared into always-on, postgis precedes geo_schema", () => {
     const alwaysOn = resolve(ROOT, "prisma/migrations");
-    const candidates = readdirSync(alwaysOn).filter((entry) => /postgis/i.test(entry));
-    expect(candidates.length, "postgis migration must stay feature-gated, not always-on").toBe(0);
+    const postgis = readdirSync(alwaysOn).filter((entry) => /postgis/i.test(entry));
+    const geoSchema = readdirSync(alwaysOn).filter((entry) => /geo_schema/i.test(entry));
+    if (geoSchema.length === 0) {
+      expect(postgis.length).toBe(0);
+      return;
+    }
+    expect(postgis.length).toBeGreaterThan(0);
+    expect(postgis[0]!.localeCompare(geoSchema[0]!)).toBeLessThan(0);
   });
 });

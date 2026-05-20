@@ -1,10 +1,10 @@
 import type { Features } from "../features/features.js";
 
 /**
- * Dev-Hub planner.
+ * Hub planner.
  *
  * Pure function: features + DX-tool configs → ordered link list for
- * the `/dev` landing page. The page itself is a thin controller that
+ * the `/hub` landing page. The page itself is a thin controller that
  * calls this planner; keeping the planner I/O-free lets us evolve
  * link categorisation, gating, and ordering without booting NestJS
  * in the test suite.
@@ -14,32 +14,32 @@ import type { Features } from "../features/features.js";
  * by label so toggling a feature on/off doesn't shuffle the rest of
  * the page.
  *
- * Production / test environments return an empty list — `/dev` is
+ * Production / test environments return an empty list — `/hub` is
  * a developer affordance and the controller itself is admin-gated,
  * but a missing list is one fewer attack surface.
  */
 
-export type DevHubEnv = "development" | "production" | "test";
-export type DevHubCategory = "api" | "architecture" | "data" | "async";
+export type HubEnv = "development" | "production" | "test";
+export type HubCategory = "api" | "architecture" | "data" | "async";
 
-export interface DevHubLink {
+export interface HubLink {
   label: string;
   url: string;
-  category: DevHubCategory;
+  category: HubCategory;
 }
 
-export interface DevHubInput {
-  env: DevHubEnv;
+export interface HubInput {
+  env: HubEnv;
   features: Features;
   scalar?: { mountPath: string; specUrl?: string };
 }
 
-const CATEGORY_ORDER: DevHubCategory[] = ["api", "architecture", "data", "async"];
+const CATEGORY_ORDER: HubCategory[] = ["api", "architecture", "data", "async"];
 
-export function planDevHub(input: DevHubInput): DevHubLink[] {
+export function planHub(input: HubInput): HubLink[] {
   if (input.env !== "development") return [];
 
-  const links: DevHubLink[] = [];
+  const links: HubLink[] = [];
 
   // api ----------------------------------------------------------------
   if (input.scalar) {
@@ -65,16 +65,18 @@ export function planDevHub(input: DevHubInput): DevHubLink[] {
   // architecture ------------------------------------------------------
   links.push({
     label: "Active Features",
-    url: "/dev/features",
+    url: "/hub/features",
     category: "architecture",
   });
 
   // data --------------------------------------------------------------
-  links.push({
-    label: "Audit Browser",
-    url: "/admin/audit",
-    category: "data",
-  });
+  if (input.features.audit.enabled) {
+    links.push({
+      label: "Audit Browser",
+      url: "/admin/audit",
+      category: "data",
+    });
+  }
 
   // async -------------------------------------------------------------
   if (input.features.webhooks.enabled) {

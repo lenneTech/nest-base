@@ -6,7 +6,7 @@
 
 **A production-grade NestJS starter that ships with a developer cockpit you'll actually want to use.**
 
-Pure-black dark theme. Electric-lime accent. Live status, coverage, tests, logs, feature toggles — all in one screen, rendered by a React 19 SPA built on shadcn/ui (Radix) + Tailwind CSS 4 + lucide-react + sonner. No cloud dependencies. No bloat.
+Pure-black dark theme. Electric-lime accent. Live ops health, logs, feature toggles, and service probes on one screen — coverage and tests on their own Hub pages. React 19 SPA built on shadcn/ui (Radix) + Tailwind CSS 4 + lucide-react + sonner. No cloud dependencies. No bloat.
 
 [Quick Start](#-quick-start) · [Hub](#-the-hub) · [Showcase](docs/showcase/README.md) · [Features](#-features) · [Architecture](#-architecture) · [Testing](#-testing)
 
@@ -22,7 +22,7 @@ Pure-black dark theme. Electric-lime accent. Live status, coverage, tests, logs,
 
 Most NestJS starters give you a `Hello World` and call it a day. This one ships you a server you can actually run on day one **plus** a full-blown operator cockpit at `/hub` that knows what's running, what's failing, and what's available to switch on.
 
-- **Real cockpit, not a JSON dump** — the `/hub` dashboard pulls live health, coverage, test summary, log tail, feature matrix, and service status into one view.
+- **Real cockpit, not a JSON dump** — the `/hub` dashboard pulls live health, job queue pressure, log tail, feature matrix, and service probes into one view; coverage and test gates live on `/hub/coverage` and `/hub/tests`.
 - **Toggle features from the UI** — no `.env` editing dance: flip a feature on, the server restarts, the page reloads. 22 toggleable features ship with sensible defaults.
 - **Template-owned core** — `src/core/` is the synced template surface, `src/modules/` is yours. Pull upstream improvements without losing your domain code.
 - **Battle-tested defaults** — Postgres RLS multi-tenancy, ETag concurrency, idempotency keys, RFC 7807 errors, AES-256-GCM field encryption, OpenAPI 3.1, OWASP-aligned headers.
@@ -43,10 +43,7 @@ bun run rename my-app
 
 # 3. Generate .env, start Postgres + Redis, migrate, and seed demo data
 bun run setup
-# Demo credentials (written by seed):
-#   system-admin@lenne.tech / system-admin  (System Admin — full bypass)
-#   admin@lenne.tech        / admin         (Admin — Hub + tenant admin)
-#   user@lenne.tech         / user          (User — no Hub access)
+# Demo credentials are printed only by `bun run seed` (terminal) — not in the Hub UI.
 
 # Flags: --skip-bootstrap (env only), --skip-docker, --no-seed
 # Re-run DB steps on an existing .env: bun run setup --bootstrap
@@ -96,20 +93,17 @@ A black + lime operator console powered by a React 19 SPA (`src/core/dx/clients/
 
 ### Sign-in
 
-`/hub/*` and `/admin/*` require a **Better-Auth** session (same as the API). Open `/`,
-sign in after `bun run seed` — e.g. `system-admin@lenne.tech` / `system-admin` (full
-operator access) or `admin@lenne.tech` / `admin`. The demo `user@` account has no
-`DevHub` permission and cannot use the cockpit.
-
-**After pulling Hub-auth changes:** re-run `bun run seed` (idempotent) so the Admin
-role receives `read DevHub` and tenant-admin CASL subjects — existing databases keep
-old permission rows until you seed again.
+`/hub/*` and `/admin/*` require a **Better-Auth** session (same as the API). Open `/`
+and sign in with an account that has the right CASL permissions. After a local
+`bun run seed`, demo logins are listed **only in the seed command output** (never in
+the Hub UI). Hub (`/hub/*`) is limited to system-wide operators; tenant admins use
+`/admin/*`.
 
 Details: [`docs/hub/login.md`](docs/hub/login.md).
 
 ### Cockpit Dashboard — `/hub`
 
-Live overview of the running server: health verdict, uptime, heap, 4 stat tiles (Coverage / Tests / Features / Logs), service probes, log preview, feature matrix, quick navigation.
+Live overview of the running server: health verdict, service probes, operator status groups (DB / async / runtime / external), ops metrics (pending jobs, dead letters, slow queries, error logs), optional activity charts, tunnel card, log preview, feature matrix, quick navigation.
 
 ![Hub Cockpit](docs/showcase/screenshots/dev-landing-desktop.png)
 
@@ -175,7 +169,7 @@ Two-column file browser over the Prisma file/folder metadata + storage adapter p
 - **Sort + filter** toolbar — name / size / createdAt / updatedAt / mimeType, asc/desc, free-text filename search.
 - **Folder create** + **file delete** — wired to the existing `/folders` and `/files` REST endpoints.
 
-Tenant id resolves from the `x-tenant-id` header or the active session organization. The page 404s outside `NODE_ENV=development`, identical to every other Hub surface.
+Tenant scope comes from the Better-Auth session (`POST /api/auth/organization/set-active` → `activeOrganizationId`). The page 404s outside `NODE_ENV=development`, identical to every other Hub surface.
 
 Out of scope for this slice (deferred to follow-up issues): TUS upload UI, drag-and-drop move, multi-select bulk actions, lightbox, share-link creator, visibility toggle, server-side zip download.
 
@@ -242,7 +236,7 @@ The realtime inspector at `/admin/realtime` ships with three tabs (Sockets / Cha
 
 | Category | Feature | Default | ENV Toggle |
 |---|---|---|---|
-| **Infrastructure** | Multi-Tenancy (`x-tenant-id` + RLS, `GET /me/tenants`, `POST /tenants`) | ✓ | `FEATURE_MULTI_TENANCY_ENABLED` |
+| **Infrastructure** | Tenancy — BA Organizations + session org + RLS (`GET /me/tenants`, `POST /tenants`) | ✓ | `FEATURE_MULTI_TENANCY_ENABLED` |
 | | Rate Limiting (multi-window, Postgres) | ✓ | `FEATURE_RATE_LIMIT_ENABLED` |
 | | Idempotency (Stripe-style `Idempotency-Key`) | ✓ | `FEATURE_IDEMPOTENCY_ENABLED` |
 | | Background Jobs (BullMQ / in-memory fallback) | ✓ | `FEATURE_JOBS_ENABLED` |
@@ -304,7 +298,7 @@ The architectural rationale lives in [`docs/architecture.md`](./docs/architectur
 | `bun run test:e2e` | Story tests + HTTP e2e (`tests/stories/`, `tests/*.e2e-spec.ts`) | — |
 | `bun run test:types` | TypeScript compile checks (`tests/types/`) | — |
 | `bun run test:coverage` | Vitest + V8 coverage report | core ≥ 80% lines · modules ≥ 75% lines |
-| `bun run test:summary` | Vitest JSON reporter → `/dev/tests` page | — |
+| `bun run test:summary` | Vitest JSON reporter → `/hub/tests` page | — |
 
 **Discipline:** strict red-green-refactor TDD — every behaviour change starts as a failing test. The 6 quality gates (`lint`, `format`, `test:types`, `test:unit`, `test:e2e`, `test:coverage`, `build`) gate every commit.
 
@@ -347,7 +341,7 @@ bun run test:unit             # Unit tests
 bun run test:e2e              # E2E + story tests
 bun run test:types            # tsc --noEmit
 bun run test:coverage         # V8 coverage with gate
-bun run test:summary          # JSON reporter for /dev/tests
+bun run test:summary          # JSON reporter for /hub/tests
 
 # Schema
 bun run prepare:schema        # Concat feature schemas → schema.generated.prisma
@@ -443,7 +437,7 @@ This project is **optimised for AI-assisted development** with [Claude Code](htt
 | `adding-feature-flag` | New toggleable feature, end-to-end |
 | `adding-feature-module` | Scaffold a feature module under `src/modules/` |
 | `adding-error-code` | New `CORE_*` error code with i18n |
-| `extending-dev-hub` | New Hub or admin page in the shared shell |
+| `extending-hub` | New Hub or admin page in the shared shell |
 | `syncing-from-template` | Pull `src/core/` updates from upstream |
 | `contributing-upstream` | When and how to PR a fix back to `nest-base` |
 

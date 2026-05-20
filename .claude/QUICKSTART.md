@@ -43,14 +43,14 @@ bun run dev                     # boots Postgres if needed, Prisma Studio, opens
 ```
 
 After `seed`, open `/` and sign in (Better-Auth) — required for `/hub/*` and `/admin/*`
-(see [`docs/hub/login.md`](../docs/hub/login.md)).
-Use **`system-admin@lenne.tech` / `system-admin`** for full operator access.
+(see [`docs/hub/login.md`](../docs/hub/login.md)). Demo credentials are printed by
+`bun run seed` in the terminal only (never in the Hub UI).
 
-| Email | Password | Role |
-|---|---|---|
-| `system-admin@lenne.tech` | `system-admin` | System Admin (full bypass) |
-| `admin@lenne.tech` | `admin` | Admin (manage tenant resources) |
-| `user@lenne.tech` | `user` | User (read tenant, update own profile) |
+| Role | Hub `/hub/*` | Admin `/admin/*` |
+| --- | --- | --- |
+| System Admin | yes | yes |
+| Admin | no | yes |
+| User | no | no |
 
 > Re-run `bun run prepare:schema` after flipping features in `/hub/features`.
 

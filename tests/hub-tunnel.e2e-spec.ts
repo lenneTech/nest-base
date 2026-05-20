@@ -6,7 +6,9 @@ import type { INestApplication } from "@nestjs/common";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { bootstrap } from "../src/core/app/bootstrap.js";
-import { hubReq } from "./helpers/hub-request.js";
+import { hubReqScoped, pinHubTestAuthEnv } from "./helpers/hub-request.js";
+
+const TENANT = "11111111-1111-1111-1111-111111111111";
 import { tunnelStateLockPath } from "../src/core/dev/tunnel-state-runner.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
@@ -22,24 +24,27 @@ const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {
  */
 describe("Dev-Hub · GET /dev/tunnel.json", () => {
   let app: INestApplication;
+  let hub: Awaited<ReturnType<typeof hubReqScoped>>;
   let previousNodeEnv: string | undefined;
   let previousLockPath: string | undefined;
   let workerCacheDir: string | undefined;
 
   beforeAll(async () => {
     // Per-worker temp lock-file path so this file's tunnel-state
-    // mutations don't race with `dev-hub-tunnel-production.e2e-spec.ts`
+    // mutations don't race with `hub-tunnel-production.e2e-spec.ts`
     // which runs in a sibling worker process and resolves the same
     // project-root-relative lock-file path. iter-146 surfaced the
     // cross-file file-system contention; the env override added to
     // `tunnelStateLockPath` is the durable fix.
-    workerCacheDir = mkdtempSync(join(tmpdir(), "dev-hub-tunnel-cache-"));
+    workerCacheDir = mkdtempSync(join(tmpdir(), "hub-tunnel-cache-"));
     previousLockPath = process.env.TUNNEL_STATE_LOCK_PATH;
     process.env.TUNNEL_STATE_LOCK_PATH = join(workerCacheDir, "tunnel.json");
 
     previousNodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = "development";
+    pinHubTestAuthEnv();
     app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
+    hub = await hubReqScoped(app, TENANT);
   });
 
   afterAll(async () => {
@@ -62,7 +67,7 @@ describe("Dev-Hub · GET /dev/tunnel.json", () => {
   });
 
   it("returns active=false when no tunnel state file exists", async () => {
-    const res = await hubReq(app).get("/hub/tunnel.json");
+    const res = await hub.get("/hub/tunnel.json");
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ active: false });
   });
@@ -78,7 +83,7 @@ describe("Dev-Hub · GET /dev/tunnel.json", () => {
       }),
       "utf8",
     );
-    const res = await hubReq(app).get("/hub/tunnel.json");
+    const res = await hub.get("/hub/tunnel.json");
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       active: true,
@@ -91,22 +96,22 @@ describe("Dev-Hub · GET /dev/tunnel.json", () => {
     const path = tunnelStateLockPath(process.cwd());
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, "{not-valid-json", "utf8");
-    const res = await hubReq(app).get("/hub/tunnel.json");
+    const res = await hub.get("/hub/tunnel.json");
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ active: false });
   });
 });
 
-// The production-gate test moved to dev-hub-tunnel-production.e2e-spec.ts
+// The production-gate test moved to hub-tunnel-production.e2e-spec.ts
 // in iter-146 to avoid a transient parallel-execution race against the
 // development-mode app in this file (iter-144 surfaced the flake; the
 // fix is one NODE_ENV per worker fork). Both files share the same
 // controller code; the split is purely about test isolation.
 
 describe("Dev-Hub · /dev/tunnel.json — controller declaration smoke check", () => {
-  it("dev-hub.controller.ts declares @Get('tunnel.json')", () => {
+  it("hub.controller.ts declares @Get('tunnel.json')", () => {
     const text = require("node:fs").readFileSync(
-      resolve(import.meta.dirname, "..", "src", "core", "dx", "dev-hub.controller.ts"),
+      resolve(import.meta.dirname, "..", "src", "core", "dx", "hub.controller.ts"),
       "utf8",
     );
     expect(text).toMatch(/@Get\("tunnel\.json"\)/);

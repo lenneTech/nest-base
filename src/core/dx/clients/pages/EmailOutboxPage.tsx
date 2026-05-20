@@ -265,7 +265,7 @@ function DetailPanel({ id, onClose }: { id: string; onClose: () => void }): Reac
                   // sandbox="" prevents the rendered email from executing
                   // scripts or navigating — the preview is read-only.
                   sandbox=""
-                  src={`/hub/email-preview/${encodeURIComponent(record.template)}.html`}
+                  src={`/hub/emails/templates/${encodeURIComponent(record.template)}/preview.html`}
                   className="w-full h-[60dvh] border border-border rounded"
                   title={`Preview: ${record.template}`}
                 />
@@ -463,7 +463,7 @@ export function EmailOutboxPage(): ReactNode {
 
   if (selectedId) {
     return (
-      <AdminShell title="Email Outbox" subtitle="Record detail" currentNav="email-outbox">
+      <AdminShell title="Email Outbox" subtitle="Entry details" currentNav="email-outbox">
         <DetailPanel id={selectedId} onClose={() => setSelectedId(null)} />
       </AdminShell>
     );
@@ -472,7 +472,7 @@ export function EmailOutboxPage(): ReactNode {
   return (
     <AdminShell
       title="Email Outbox"
-      subtitle="Operator view — inspect and act on outbox rows"
+      subtitle="View outbox headers and run actions"
       currentNav="email-outbox"
     >
       <div className="space-y-4">

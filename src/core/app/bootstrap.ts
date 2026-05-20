@@ -34,6 +34,7 @@ import { Logger } from "nestjs-pino";
 import { createLogger } from "../observability/logger.js";
 import { createOtelSdk, planOtelBootstrap } from "../observability/otel-sdk-bootstrap.js";
 import { PinoLoggerService } from "../observability/pino-logger.service.js";
+import { applyHubOpenApiPresentation } from "../openapi/hub-openapi-presentation.js";
 import { applyZodSchemaRegistry } from "../openapi/zod-openapi-bridge.js";
 import { serverConfigFromEnv } from "../server/server-config.js";
 import { planAutoMigration } from "../setup/auto-migrate.js";
@@ -106,7 +107,7 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   // are caught before any DI providers, timers, or connections are started.
   // All checks only need env vars; no DI access required.
   // Skipped in test mode (listen: false) so e2e tests that temporarily set
-  // NODE_ENV=production to verify dev-hub gating don't fail here.
+  // NODE_ENV=production to verify Hub gating don't fail here.
   // Hoist feature loading so the same object is reused for the pre-flight
   // validation and the OTel bootstrap below — avoids parsing env twice.
   const preflightFeatures = loadFeatures(process.env as Record<string, string | undefined>);
@@ -399,12 +400,13 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   const brand = loadBrandSync();
   const openApiConfig = new DocumentBuilder()
     .setTitle(brand.name)
-    .setDescription(brand.tagline ?? "Template-fähiger NestJS-Server")
+    .setDescription(brand.tagline ?? "Template-ready NestJS server")
     .setVersion("1.0.0")
     .addBearerAuth()
     .addCookieAuth("better-auth.session_token")
     .build();
   const openApiDocument = SwaggerModule.createDocument(app, openApiConfig);
+  applyHubOpenApiPresentation(openApiDocument);
   // Splice Zod-registered named schemas + the RFC 7807 problem-details
   // components into `components.schemas` / `components.responses`.
   // Routes annotated with `@ApiZod*` already produce inline schemas;
@@ -413,7 +415,7 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
   applyZodSchemaRegistry(openApiDocument);
   // SwaggerModule.setup also mounts the Swagger UI; we only want the
   // raw JSON since Scalar UI is the chosen renderer. Mount /api/openapi
-  // as the dev-hub JSON viewer (browser default) and /api/openapi.json
+  // as the Hub JSON viewer (browser default) and /api/openapi.json
   // as the raw JSON for SDK generators.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   app.use("/api/openapi.json", (_req: any, res: any) => {
@@ -445,7 +447,7 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
       // `/openapi` page fetches `/api/openapi.json` and renders
       // the spec through the same `JsonViewer` component the legacy
       // server viewer wrapped — keeps the SPA the single owner of
-      // the dev-hub chrome.
+      // the Hub chrome.
       res
         .type("text/html; charset=utf-8")
         .send(
@@ -576,9 +578,14 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
               if (!permissionService || !prismaService) return true;
               let tenantId: string | null = null;
               try {
+                const ipxPath =
+                  (typedReq as { originalUrl?: string; url?: string }).originalUrl ??
+                  (typedReq as { url?: string }).url ??
+                  "/_ipx";
                 tenantId = await resolveRequestTenantId(
                   typedReq as Parameters<typeof resolveRequestTenantId>[0],
                   prismaService,
+                  { path: ipxPath },
                 );
               } catch {
                 return false;

@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { Barebone } from "../layouts/Barebone.js";
 import { CTA, Footer, Greeting, Paragraph } from "../blocks/index.js";
-import { defaultBrandConfig, type BrandConfig } from "../brand.js";
+import type { BrandConfig } from "../brand.js";
 
 /**
  * Invitation template.
@@ -29,13 +29,11 @@ export interface InvitationProps extends InvitationVars {
 }
 
 export default function Invitation(props: InvitationProps): React.ReactElement {
-  const accentColor = props.brand?.primaryColor ?? defaultBrandConfig().primaryColor;
   return (
     <Barebone brand={props.brand} preheader={`${props.senderName} invited you to ${props.appName}`}>
       <Greeting brand={props.brand}>Hello {props.recipientName},</Greeting>
       <Paragraph brand={props.brand}>
-        <strong style={{ color: accentColor }}>{props.senderName}</strong> has invited you to join{" "}
-        {props.appName}.
+        {props.senderName} has invited you to join {props.appName}.
       </Paragraph>
       <Paragraph brand={props.brand}>
         Accept the invitation to set up your account and start collaborating.

@@ -112,7 +112,7 @@ describe("Story · AbilityMiddleware", () => {
   });
 
   it("builds ability on tenant-exempt /hub/* paths using the operator's default org", async () => {
-    const ability = buildAbility([{ action: "read", subject: "DevHub" }]);
+    const ability = buildAbility([{ action: "read", subject: "Hub" }]);
     const service = makeService(ability);
     const findFirst = vi.fn(async () => ({ organizationId: "t1" }));
     const prisma = { member: { findFirst } } as unknown as PrismaService;

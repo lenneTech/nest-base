@@ -8,6 +8,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
+import { SortableTableHead } from "../components/SortableTableHead.js";
 import { Button } from "../components/ui/button.js";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
 import { Input } from "../components/ui/input.js";
@@ -23,6 +24,7 @@ import {
 import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { adminFetch, fetchJson, needsAdminAuthHint } from "../lib/api.js";
+import { useTableSort } from "../lib/use-table-sort.js";
 
 interface SessionRecord {
   id: string;
@@ -63,6 +65,9 @@ export function SessionsAdminPage(): ReactNode {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const sessions = query.data?.sessions ?? [];
+  const { sortedRows: sortedSessions, sortKey, sortDirection, toggleSort } = useTableSort(sessions);
+
   const bulk = useMutation({
     mutationFn: bulkRevokeByUser,
     onSuccess: (data) => {
@@ -74,7 +79,7 @@ export function SessionsAdminPage(): ReactNode {
   });
 
   return (
-    <AdminShell title="Sessions" subtitle="Active session inventory" currentNav="sessions">
+    <AdminShell title="Sessions" subtitle="View and end active sign-ins" currentNav="sessions">
       <div className="space-y-4">
         <Card>
           <CardHeader>
@@ -121,21 +126,39 @@ export function SessionsAdminPage(): ReactNode {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Session ID</TableHead>
-                    <TableHead>User ID</TableHead>
-                    <TableHead>Created</TableHead>
+                    <SortableTableHead
+                      label="Session ID"
+                      sortKey="id"
+                      activeSortKey={sortKey}
+                      sortDirection={sortDirection}
+                      onSort={toggleSort}
+                    />
+                    <SortableTableHead
+                      label="User ID"
+                      sortKey="userId"
+                      activeSortKey={sortKey}
+                      sortDirection={sortDirection}
+                      onSort={toggleSort}
+                    />
+                    <SortableTableHead
+                      label="Created"
+                      sortKey="createdAt"
+                      activeSortKey={sortKey}
+                      sortDirection={sortDirection}
+                      onSort={toggleSort}
+                    />
                     <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {query.data?.sessions.map((s) => (
+                  {sortedSessions.map((s) => (
                     <TableRow key={s.id}>
                       <TableCell className="font-mono text-xs">{s.id}</TableCell>
                       <TableCell className="font-mono text-xs">{s.userId}</TableCell>
                       <TableCell className="text-xs text-fg-muted">{s.createdAt ?? "—"}</TableCell>
                       <TableCell className="text-right">
                         <Button
-                          variant="destructive"
+                          variant="danger"
                           size="sm"
                           disabled={revoke.isPending}
                           onClick={() => revoke.mutate(s.id)}

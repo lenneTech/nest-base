@@ -1,11 +1,11 @@
 /**
- * `/dev` — Dev Hub landing page. Hero block + operator status groups +
- * activity charts + geo table + 5-tile stats grid + services strip +
- * log preview + features overview + quick-links.
+ * `/hub` — Operator cockpit (not a CI dashboard).
  *
- * Single fetch: `/hub/dashboard.json` aggregates everything the
- * cockpit needs. The status section also re-polls
- * `/dev/status.json` every 4 s for fast probe updates.
+ * Priority: service probes → status groups → queues/logs/queries →
+ * optional activity charts → quick links. Coverage and test counts are
+ * intentionally omitted — they live on `/hub/coverage` and `/hub/tests`.
+ *
+ * Data: `GET /hub/dashboard.json`; probes refresh via `/hub/status.json`.
  */
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, type ReactNode } from "react";
@@ -29,6 +29,8 @@ import {
 } from "../components/ui/chart.js";
 import { PageError, PageLoading, PageEmpty } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
+import { buildHubNavFeatureSnapshot, isHubQuickLinkVisible } from "../../hub-nav-planner.js";
+import type { Features } from "../../../features/features.js";
 import { fetchJson, formatDuration, levelName, stripProto } from "../lib/api.js";
 import { cn } from "../lib/utils.js";
 
@@ -60,24 +62,6 @@ interface LogRecord {
   msg?: string;
   context?: string;
   seq?: number;
-}
-
-interface CoverageReport {
-  available: boolean;
-  total?: { lines: { pct: number } };
-  thresholds: { core: number; modules: number };
-  gate: { coreOk: boolean; modulesOk: boolean; overallOk: boolean };
-}
-
-interface TestSummary {
-  available: boolean;
-  totals: {
-    tests: number;
-    passed: number;
-    failed: number;
-    durationMs: number;
-    success: boolean;
-  };
 }
 
 interface TunnelInfo {
@@ -128,8 +112,6 @@ interface DashboardJson {
   features: Record<string, { enabled?: boolean }>;
   catalog: FeatureMeta[];
   probes: ServiceProbe[];
-  coverage: CoverageReport;
-  tests: TestSummary;
   logs: LogRecord[];
   logBufferCapacity: number;
   queries: { total: number; slowestMs: number; warnCount: number; badCount: number };
@@ -161,33 +143,69 @@ function computeOverallHealth(input: DashboardJson, probesDown: number): Overall
   if (probesDown > 0) {
     return {
       state: "err",
-      label: "Issues detected",
-      detail: `${probesDown} service(s) offline`,
+      label: "Service unreachable",
+      detail: `${probesDown} probe(s) down`,
     };
   }
-  if (input.coverage.available && !input.coverage.gate.overallOk) {
-    const t = input.coverage.thresholds;
-    return {
-      state: "warn",
-      label: "Coverage below threshold",
-      detail: `core ≥ ${t.core}% / modules ≥ ${t.modules}%`,
-    };
-  }
-  if (input.tests.available && !input.tests.totals.success) {
+  const groups = input.statusGroups ?? [];
+  const errored = groups.filter((g) => g.status === "error");
+  if (errored.length > 0) {
     return {
       state: "err",
-      label: "Tests failing",
-      detail: `${input.tests.totals.failed} failed`,
+      label: "Needs attention",
+      detail: errored.map((g) => g.label).join(" · "),
     };
   }
-  return { state: "ok", label: "All systems operational", detail: "Ready to ship" };
+  if (input.queries.badCount > 0) {
+    return {
+      state: "warn",
+      label: "Slow database",
+      detail: `${input.queries.badCount} critical queries (>200 ms)`,
+    };
+  }
+  const errorLogs = input.logs.filter((r) => r.level >= 50).length;
+  if (errorLogs > 0) {
+    return {
+      state: "warn",
+      label: "Errors in log buffer",
+      detail: `${errorLogs} error ${errorLogs === 1 ? "entry" : "entries"}`,
+    };
+  }
+  const warned = groups.filter((g) => g.status === "warn");
+  if (warned.length > 0) {
+    return {
+      state: "warn",
+      label: "Degraded",
+      detail: warned.map((g) => g.label).join(" · "),
+    };
+  }
+  return { state: "ok", label: "Operational", detail: "No critical signals" };
+}
+
+function asyncQueueSummary(groups: StatusGroup[] | undefined): {
+  pending: number;
+  deadLetters: number;
+} {
+  const async_ = groups?.find((g) => g.id === "async");
+  let pending = 0;
+  let deadLetters = 0;
+  for (const item of async_?.items ?? []) {
+    if (item.label === "Pending jobs" && item.value !== "none") {
+      pending = Number.parseInt(item.value, 10) || 0;
+    }
+    if (item.label === "Dead-Letter-Queue" && item.value !== "empty") {
+      const match = item.value.match(/^(\d+)/);
+      deadLetters = match ? Number.parseInt(match[1]!, 10) : 0;
+    }
+  }
+  return { pending, deadLetters };
 }
 
 // ---------------------------------------------------------------------------
 // Page root
 // ---------------------------------------------------------------------------
 
-export function DevHubLandingPage(): ReactNode {
+export function HubLandingPage(): ReactNode {
   const dashboard = useQuery({
     queryKey: ["dev", "dashboard"],
     queryFn: () => fetchJson<DashboardJson>("/hub/dashboard.json"),
@@ -197,15 +215,15 @@ export function DevHubLandingPage(): ReactNode {
   return (
     <AdminShell
       title="Hub"
-      subtitle="Echtzeit-Cockpit für alle Systeme dieses Servers."
-      currentNav="dev-hub"
+      subtitle="Live health, queues, and dependencies — for day-to-day operations."
+      currentNav="hub"
     >
       {dashboard.data ? (
         <DashboardBody data={dashboard.data} />
       ) : dashboard.isError ? (
-        <PageError>Dashboard-Daten konnten nicht geladen werden.</PageError>
+        <PageError>Could not load dashboard data.</PageError>
       ) : (
-        <PageLoading>Dashboard wird geladen…</PageLoading>
+        <PageLoading>Loading dashboard…</PageLoading>
       )}
     </AdminShell>
   );
@@ -217,38 +235,48 @@ export function DevHubLandingPage(): ReactNode {
 
 function DashboardBody({ data }: { data: DashboardJson }): ReactNode {
   const probesDown = data.probes.filter((p) => p.status === "down").length;
+  const probesUp = data.probes.filter((p) => p.status === "up").length;
   const overall = computeOverallHealth(data, probesDown);
   const errorLogs = data.logs.filter((r) => r.level >= 50).length;
   const warnLogs = data.logs.filter((r) => r.level === 40).length;
+  const queue = asyncQueueSummary(data.statusGroups);
+  const showSessions = data.sessionsChart?.available === true;
+  const showRequests = data.requestsChart?.available === true;
+  const showGeo =
+    data.geoTopCountries?.available === true && (data.geoTopCountries.countries?.length ?? 0) > 0;
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Hero — overall health + runtime metrics */}
       <Hero overall={overall} data={data} />
 
-      {/* Operator status groups — four coloured status cards */}
+      <ServicesGrid probes={data.probes} />
+
       {data.statusGroups && data.statusGroups.length > 0 ? (
         <StatusGroupBar groups={data.statusGroups} />
       ) : null}
 
-      {/* Charts row — requests, error rate, sessions */}
-      <ChartsRow requestsChart={data.requestsChart} sessionsChart={data.sessionsChart} />
+      <OpsMetricsRow
+        probesUp={probesUp}
+        probesTotal={data.probes.length}
+        queue={queue}
+        errorLogs={errorLogs}
+        warnLogs={warnLogs}
+        queries={data.queries}
+      />
 
-      {/* Geographic request distribution */}
-      <GeoSection geoTopCountries={data.geoTopCountries} />
-
-      {/* Stats grid */}
-      <StatsGrid data={data} errorLogs={errorLogs} warnLogs={warnLogs} />
-
-      {/* Tunnel alert (when active) */}
       {data.tunnel?.active && data.tunnel.url ? (
         <TunnelCard url={data.tunnel.url} startedAt={data.tunnel.startedAt} />
       ) : null}
 
-      {/* Services */}
-      <ServicesGrid probes={data.probes} />
+      {showSessions || showRequests ? (
+        <ActivitySection
+          requestsChart={showRequests ? data.requestsChart : undefined}
+          sessionsChart={showSessions ? data.sessionsChart : undefined}
+        />
+      ) : null}
 
-      {/* Logs + Features */}
+      {showGeo ? <GeoSection geoTopCountries={data.geoTopCountries} /> : null}
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <LogPreview
           records={data.logs}
@@ -259,8 +287,7 @@ function DashboardBody({ data }: { data: DashboardJson }): ReactNode {
         <FeatureOverview features={data.features} catalog={data.catalog} />
       </div>
 
-      {/* Quick links */}
-      <QuickLinks />
+      <QuickLinks features={data.features} />
     </div>
   );
 }
@@ -323,10 +350,10 @@ function StatusGroupCard({ group }: { group: StatusGroup }): ReactNode {
           {group.status === "ok"
             ? "OK"
             : group.status === "warn"
-              ? "Warnung"
+              ? "Warning"
               : group.status === "error"
-                ? "Fehler"
-                : "Unbekannt"}
+                ? "Error"
+                : "Unknown"}
         </Badge>
       </div>
       <ul className="flex flex-col gap-1.5">
@@ -347,47 +374,53 @@ function StatusGroupCard({ group }: { group: StatusGroup }): ReactNode {
 }
 
 // ---------------------------------------------------------------------------
-// Charts row
+// Activity charts (only rendered when real data exists)
 // ---------------------------------------------------------------------------
 
-function ChartsRow({
+function ActivitySection({
   requestsChart,
   sessionsChart,
 }: {
   requestsChart?: { available: boolean; buckets: RequestBucket[] };
   sessionsChart?: { available: boolean; buckets: SessionBucket[] };
 }): ReactNode {
+  const hasRequests = Boolean(requestsChart);
+  const hasSessions = Boolean(sessionsChart);
+  if (!hasRequests && !hasSessions) return null;
+
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-      {/* Requests / Fehlerrate chart (spans 2 cols) */}
-      <div className="md:col-span-2">
+    <div
+      className={cn(
+        "grid grid-cols-1 gap-6",
+        hasRequests && hasSessions ? "md:grid-cols-3" : "md:grid-cols-1",
+      )}
+    >
+      {hasRequests ? (
+        <div className={hasSessions ? "md:col-span-2" : ""}>
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle>Requests / min — last 24 h</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <RequestsChart buckets={requestsChart?.buckets ?? []} />
+            </CardContent>
+          </Card>
+        </div>
+      ) : null}
+      {hasSessions ? (
         <Card className="h-full">
           <CardHeader>
-            <CardTitle>Anfragen / min — Letzte 24 Stunden</CardTitle>
+            <CardTitle>Sessions — last 24 h</CardTitle>
           </CardHeader>
           <CardContent>
-            {requestsChart?.available === false ? (
-              <PageEmpty>Kein Datenmaterial — Anfrage-Log noch nicht befüllt.</PageEmpty>
+            {(sessionsChart?.buckets ?? []).every((b) => b.active === 0 && b.newLogins === 0) ? (
+              <PageEmpty>No session activity in the last 24 hours.</PageEmpty>
             ) : (
-              <RequestsChart buckets={requestsChart?.buckets ?? []} />
+              <SessionsChart buckets={sessionsChart?.buckets ?? []} />
             )}
           </CardContent>
         </Card>
-      </div>
-
-      {/* Sessions chart */}
-      <Card className="h-full">
-        <CardHeader>
-          <CardTitle>Sitzungen</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {sessionsChart?.available === false ? (
-            <PageEmpty>Kein Datenmaterial — Sitzungs-Log noch nicht befüllt.</PageEmpty>
-          ) : (
-            <SessionsChart buckets={sessionsChart?.buckets ?? []} />
-          )}
-        </CardContent>
-      </Card>
+      ) : null}
     </div>
   );
 }
@@ -468,7 +501,7 @@ function SessionsChart({ buckets }: { buckets: SessionBucket[] }): ReactNode {
         <Line
           type="monotone"
           dataKey="active"
-          name="Aktiv"
+          name="Active"
           stroke="var(--accent, #c5fb45)"
           dot={false}
           strokeWidth={1.5}
@@ -476,7 +509,7 @@ function SessionsChart({ buckets }: { buckets: SessionBucket[] }): ReactNode {
         <Line
           type="monotone"
           dataKey="newLogins"
-          name="Neue Logins"
+          name="New sign-ins"
           stroke="var(--ok, #4ade80)"
           dot={false}
           strokeWidth={1.5}
@@ -498,18 +531,10 @@ function GeoSection({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Geografische Anfragenverteilung</CardTitle>
+        <CardTitle>Geographic traffic (top countries)</CardTitle>
       </CardHeader>
       <CardContent>
-        {geoTopCountries?.available === false ? (
-          <PageEmpty>
-            Kein Datenmaterial — GeoIP-Datenbank installieren und Anfrage-Log aktivieren.
-          </PageEmpty>
-        ) : (geoTopCountries?.countries ?? []).length === 0 ? (
-          <PageEmpty>Noch keine geografischen Daten.</PageEmpty>
-        ) : (
-          <GeoTable countries={geoTopCountries?.countries ?? []} />
-        )}
+        <GeoTable countries={geoTopCountries?.countries ?? []} />
       </CardContent>
     </Card>
   );
@@ -521,9 +546,9 @@ function GeoTable({ countries }: { countries: GeoCountry[] }): ReactNode {
     <table className="w-full text-sm">
       <thead>
         <tr className="border-b border-line text-left text-[0.65rem] font-semibold uppercase tracking-widest text-fg-faint">
-          <th className="pb-2 pr-4">Land</th>
-          <th className="pb-2 pr-4">Anfragen</th>
-          <th className="pb-2">Anteil</th>
+          <th className="pb-2 pr-4">Country</th>
+          <th className="pb-2 pr-4">Requests</th>
+          <th className="pb-2">Share</th>
         </tr>
       </thead>
       <tbody>
@@ -554,9 +579,7 @@ function TunnelCard({ url, startedAt }: { url: string; startedAt?: string }): Re
       void navigator.clipboard.writeText(url);
     }
   }
-  const startedLabel = startedAt
-    ? `gestartet ${new Date(startedAt).toLocaleTimeString()}`
-    : "aktiv";
+  const startedLabel = startedAt ? `started ${new Date(startedAt).toLocaleTimeString()}` : "active";
   return (
     <Card>
       <CardHeader className="flex-row flex-wrap items-center gap-3">
@@ -568,22 +591,22 @@ function TunnelCard({ url, startedAt }: { url: string; startedAt?: string }): Re
           rel="noopener noreferrer"
           className="text-xs text-fg-dim hover:text-accent"
         >
-          Über cloudflared →
+          Via cloudflared →
         </a>
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <code className="rounded bg-surface-3 px-2 py-1 font-mono text-sm">{url}</code>
-          <Button onClick={copy}>URL kopieren</Button>
+          <Button onClick={copy}>Copy URL</Button>
           <Button asChild variant="outline">
             <a href={url} target="_blank" rel="noopener noreferrer">
-              Öffnen ↗
+              Open ↗
             </a>
           </Button>
         </div>
         <p className="text-xs text-fg-muted">
-          Diese URL in Stripe / GitHub / Slack Webhook-Konfigurationen eintragen. Die URL ist
-          öffentlich — nie einen Tunnel mit echten Nutzerdaten betreiben.
+          Enter this URL in Stripe / GitHub / Slack webhook settings. The URL is public — never run
+          a tunnel with real user data.
         </p>
       </CardContent>
     </Card>
@@ -618,8 +641,8 @@ function Hero({ overall, data }: { overall: OverallHealth; data: DashboardJson }
         <h2 className="m-0 text-2xl font-semibold tracking-tight">{overall.label}</h2>
         <span className="text-sm text-fg-muted">{overall.detail}</span>
       </div>
-      <HeroMetric label="Uptime" value={formatDuration(data.uptimeMs)} hint="seit Start" />
-      <HeroMetric label="Heap" value={`${heapMb} MB`} hint={`${heapPct}% von ${heapTotalMb} MB`} />
+      <HeroMetric label="Uptime" value={formatDuration(data.uptimeMs)} hint="since start" />
+      <HeroMetric label="Heap" value={`${heapMb} MB`} hint={`${heapPct}% of ${heapTotalMb} MB`} />
       <HeroMetric
         label="Node / Bun"
         value={data.process.bun ?? data.process.node}
@@ -659,80 +682,73 @@ function HeroMetric({
   );
 }
 
-function StatsGrid({
-  data,
+function OpsMetricsRow({
+  probesUp,
+  probesTotal,
+  queue,
   errorLogs,
   warnLogs,
+  queries,
 }: {
-  data: DashboardJson;
+  probesUp: number;
+  probesTotal: number;
+  queue: { pending: number; deadLetters: number };
   errorLogs: number;
   warnLogs: number;
+  queries: DashboardJson["queries"];
 }): ReactNode {
-  const cov = data.coverage;
-  const covValue = cov.available ? `${cov.total?.lines.pct.toFixed(1) ?? "—"}%` : "—";
-  const covOk = cov.available ? cov.gate.overallOk : null;
-
-  const tests = data.tests;
-  const testsValue = tests.available ? `${tests.totals.passed}/${tests.totals.tests}` : "—";
-  const testsOk = tests.available ? tests.totals.success : null;
-
-  const totalFeatures = data.catalog.length;
-  const activeFeatures = data.catalog.filter((m) => isFeatureActive(data.features, m.key)).length;
-
-  const querySlow = data.queries.warnCount + data.queries.badCount;
+  const querySlow = queries.warnCount + queries.badCount;
+  const probesDown = probesTotal - probesUp;
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-      <StatCard label="Coverage" value={covValue} href="/hub/coverage">
-        {covOk === null ? (
-          <Badge variant="secondary">kein Run</Badge>
-        ) : covOk ? (
-          <Badge variant="ok">✓ Gates OK</Badge>
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <StatCard
+        label="Service probes"
+        value={
+          <>
+            {probesUp}
+            <span className="text-fg-faint"> / {probesTotal}</span>
+          </>
+        }
+        href="/hub/diagnostics"
+      >
+        {probesDown > 0 ? (
+          <Badge variant="err">{probesDown} offline</Badge>
         ) : (
-          <Badge variant="warn">unter Schwellwert</Badge>
-        )}
-      </StatCard>
-      <StatCard label="Tests" value={testsValue} href="/hub/tests">
-        {testsOk === null ? (
-          <Badge variant="secondary">kein Run</Badge>
-        ) : testsOk ? (
-          <Badge variant="ok">✓ alle grün</Badge>
-        ) : (
-          <Badge variant="err">{tests.totals.failed} fehlgeschlagen</Badge>
+          <Badge variant="ok">all reachable</Badge>
         )}
       </StatCard>
       <StatCard
-        label="Features"
-        value={
-          <>
-            {activeFeatures}
-            <span className="text-fg-faint"> / {totalFeatures}</span>
-          </>
-        }
-        href="/hub/features"
+        label="Work queues"
+        value={queue.deadLetters > 0 ? queue.deadLetters : queue.pending}
+        href="/hub/jobs"
       >
-        <Badge variant="secondary">{totalFeatures - activeFeatures} verfügbar</Badge>
-      </StatCard>
-      <StatCard label="Aktuelle Logs" value={data.logs.length} href="/hub/logs">
-        {errorLogs > 0 ? (
-          <Badge variant="err">{errorLogs} Fehler</Badge>
-        ) : warnLogs > 0 ? (
-          <Badge variant="warn">
-            {warnLogs} Warnung{warnLogs === 1 ? "" : "en"}
-          </Badge>
+        {queue.deadLetters > 0 ? (
+          <Badge variant="err">{queue.deadLetters} dead letter(s)</Badge>
+        ) : queue.pending > 0 ? (
+          <Badge variant="warn">{queue.pending} pending job(s)</Badge>
         ) : (
-          <Badge variant="ok">sauber</Badge>
+          <Badge variant="ok">queues idle</Badge>
         )}
       </StatCard>
-      <StatCard label="DB-Abfragen" value={data.queries.total} href="/hub/queries">
-        {data.queries.badCount > 0 ? (
-          <Badge variant="err">{data.queries.badCount} kritisch (&gt; 200 ms)</Badge>
-        ) : querySlow > 0 ? (
-          <Badge variant="warn">{querySlow} langsam (&gt; 50 ms)</Badge>
-        ) : data.queries.total > 0 ? (
-          <Badge variant="ok">alle schnell</Badge>
+      <StatCard label="Log buffer" value={errorLogs + warnLogs} href="/hub/logs">
+        {errorLogs > 0 ? (
+          <Badge variant="err">{errorLogs} error</Badge>
+        ) : warnLogs > 0 ? (
+          <Badge variant="warn">{warnLogs} warn</Badge>
         ) : (
-          <Badge variant="secondary">noch keine Abfragen</Badge>
+          <Badge variant="ok">no errors</Badge>
+        )}
+      </StatCard>
+      <StatCard label="DB queries (buffer)" value={queries.total} href="/hub/queries">
+        {queries.badCount > 0 ? (
+          <Badge variant="err">{queries.badCount} critical (&gt;200 ms)</Badge>
+        ) : querySlow > 0 ? (
+          <Badge variant="warn">{querySlow} slow (&gt;50 ms)</Badge>
+        ) : queries.total > 0 ? (
+          <Badge variant="ok">within budget</Badge>
+        ) : (
+          <Badge variant="secondary">no samples yet</Badge>
         )}
       </StatCard>
     </div>
@@ -765,7 +781,7 @@ function StatCard({
 }
 
 function ServicesGrid({ probes }: { probes: ServiceProbe[] }): ReactNode {
-  // Re-poll `/dev/status.json` every 4 s to refresh probe state in
+  // Re-poll `/hub/status.json` every 4 s to refresh probe state in
   // place — same UX as the server cockpit had via embedded JS.
   const queryClient = useQueryClient();
   useEffect(() => {
@@ -805,7 +821,7 @@ function ServicesGrid({ probes }: { probes: ServiceProbe[] }): ReactNode {
                   ? "bg-err shadow-[0_0_8px_var(--err)]"
                   : "bg-fg-faint";
             const labelText =
-              p.status === "up" ? "online" : p.status === "down" ? "offline" : "unbekannt";
+              p.status === "up" ? "online" : p.status === "down" ? "offline" : "unknown";
             const latency = p.latencyMs !== undefined ? `${p.latencyMs} ms` : "";
             const href = p.href ?? p.probeUrl ?? "#";
             const url = p.probeUrl ?? p.href ?? "";
@@ -856,21 +872,21 @@ function LogPreview({
       <CardHeader className="flex-row flex-wrap items-center gap-3">
         <CardTitle className="flex-1">Live-Logs</CardTitle>
         <span className="text-[0.7rem] uppercase tracking-widest text-fg-dim">
-          letzte 10 von {records.length}/{capacity}
+          last 10 of {records.length}/{capacity}
         </span>
-        {errorLogs > 0 ? <Badge variant="err">{errorLogs} Fehler</Badge> : null}
+        {errorLogs > 0 ? <Badge variant="err">{errorLogs} Error</Badge> : null}
         {warnLogs > 0 && errorLogs === 0 ? (
           <Badge variant="warn">
-            {warnLogs} Warnung{warnLogs === 1 ? "" : "en"}
+            {warnLogs} Warning{warnLogs === 1 ? "" : "en"}
           </Badge>
         ) : null}
         <Link to="/hub/logs" className="text-xs text-fg-dim hover:text-accent">
-          Alle Logs →
+          All logs →
         </Link>
       </CardHeader>
       <CardContent>
         {records.length === 0 ? (
-          <p className="text-sm text-fg-muted">Noch keine Log-Einträge.</p>
+          <p className="text-sm text-fg-muted">No log entries yet.</p>
         ) : (
           <table className="w-full text-xs">
             <tbody>
@@ -922,10 +938,10 @@ function FeatureOverview({
       <CardHeader className="flex-row flex-wrap items-center gap-3">
         <CardTitle className="flex-1">Features</CardTitle>
         <span className="text-[0.7rem] uppercase tracking-widest text-fg-dim">
-          {active} / {total} aktiv
+          {active} / {total} active
         </span>
         <Link to="/hub/features" className="text-xs text-fg-dim hover:text-accent">
-          Verwalten →
+          Manage →
         </Link>
       </CardHeader>
       <CardContent>
@@ -944,7 +960,7 @@ function FeatureOverview({
               >
                 <span className="truncate text-fg-muted">{meta.label}</span>
                 <Badge variant={on ? "ok" : "secondary"} className="text-[0.6rem]">
-                  {on ? "AN" : "AUS"}
+                  {on ? "ON" : "OFF"}
                 </Badge>
               </li>
             );
@@ -955,40 +971,41 @@ function FeatureOverview({
   );
 }
 
-function QuickLinks(): ReactNode {
+function QuickLinks({ features }: { features: DashboardJson["features"] }): ReactNode {
+  const navSnapshot = buildHubNavFeatureSnapshot(features as Features);
   const links = [
-    { href: "/api/docs", label: "Scalar API Reference", hint: "Interaktive OpenAPI 3.1 Referenz" },
+    { href: "/api/docs", label: "API Reference", hint: "Interactive OpenAPI 3.1 reference" },
     {
       href: "/openapi",
-      label: "OpenAPI-Spec",
-      hint: "Hübscher JSON-Viewer + Rohdaten-Download",
+      label: "OpenAPI Spec",
+      hint: "JSON viewer + raw download",
     },
     {
       href: "/admin/permissions/test",
       label: "Permission Tester",
-      hint: "CASL-Ability pro Nutzer auflösen",
+      hint: "Resolve CASL permission per user",
     },
-    { href: "/admin/webhooks", label: "Webhook Inspector", hint: "Letzte Zustellungen + Replay" },
-    { href: "/admin/realtime", label: "Realtime Inspector", hint: "Aktive Sockets + Events" },
-    { href: "/admin/audit", label: "Audit Browser", hint: "Audit-Log-Einträge filtern" },
-    { href: "/admin/search", label: "Search Tester", hint: "FTS-Abfrage + tsquery Debug" },
+    { href: "/admin/webhooks", label: "Webhook Inspector", hint: "Latest deliveries + replay" },
+    { href: "/admin/realtime", label: "Realtime Inspector", hint: "Active sockets + events" },
+    { href: "/admin/audit", label: "Audit Browser", hint: "Filter audit log entries" },
+    { href: "/admin/search", label: "Search Tester", hint: "FTS query + tsquery debug" },
     {
       href: "/admin/tenants",
-      label: "Mandantenverwaltung",
-      hint: "Mandanten anlegen, archivieren und Mitglieder verwalten",
+      label: "Tenant management",
+      hint: "Create tenants, archive them, and manage members",
     },
-    { href: "/errors", label: "Fehlerkatalog", hint: "Alle CORE_*-Fehlercodes" },
+    { href: "/errors", label: "Error catalog", hint: "All CORE_* error codes" },
     {
       href: "/hub/postgrest-parse?status=eq.draft&age=gte.18",
       label: "PostgREST Parser",
-      hint: "WHERE-Klausel-Parser ausprobieren",
+      hint: "Try the WHERE clause parser",
     },
-    { href: "/hub/diagnostics", label: "Diagnose", hint: "Speicher, Versionen, Runtime" },
-  ];
+    { href: "/hub/diagnostics", label: "Diagnostics", hint: "Memory, versions, runtime" },
+  ].filter((link) => isHubQuickLinkVisible(link.href, navSnapshot));
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Schnellnavigation</CardTitle>
+        <CardTitle>Quick links</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">

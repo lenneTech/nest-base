@@ -1,11 +1,12 @@
 import type { INestApplication } from "@nestjs/common";
 import { existsSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
-import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { bootstrap } from "../src/core/app/bootstrap.js";
-import { hubReq } from "./helpers/hub-request.js";
+import { hubReqScoped, pinHubTestAuthEnv } from "./helpers/hub-request.js";
+
+const TENANT = "11111111-1111-1111-1111-111111111111";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 
@@ -25,6 +26,7 @@ const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {
 describe("Dev-Hub · /dev/email-builder", () => {
   describe("in development mode", () => {
     let app: INestApplication;
+    let hub: Awaited<ReturnType<typeof hubReqScoped>>;
     let previousNodeEnv: string | undefined;
     const repoRoot = process.cwd();
     // Includes core slugs the override-delete tests recreate so a
@@ -42,7 +44,9 @@ describe("Dev-Hub · /dev/email-builder", () => {
     beforeAll(async () => {
       previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "development";
+      pinHubTestAuthEnv();
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
+      hub = await hubReqScoped(app, TENANT);
     });
 
     afterAll(async () => {
@@ -60,16 +64,30 @@ describe("Dev-Hub · /dev/email-builder", () => {
       }
     });
 
-    it("GET /dev/email-builder serves the SPA shell with the correct title", async () => {
-      const res = await hubReq(app).get("/hub/email-builder");
+    it("GET /hub/emails serves the SPA shell with the correct title", async () => {
+      const res = await hub.get("/hub/emails");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/text\/html/);
       expect(res.text).toContain('<div id="root"></div>');
-      expect(res.text).toContain("Email Builder — nest-server");
+      expect(res.text).toContain("Emails — nest-server");
     });
 
-    it("GET /dev/email-builder/templates.json returns discovered templates", async () => {
-      const res = await hubReq(app).get("/hub/email-builder/templates.json");
+    it("GET /hub/email-builder serves the same SPA shell (bookmark alias)", async () => {
+      const res = await hub.get("/hub/email-builder");
+      expect(res.status).toBe(200);
+      expect(res.text).toContain("Emails — nest-server");
+    });
+
+    it("GET /hub/emails/templates/:name/preview.html returns rendered HTML", async () => {
+      const res = await hub.get("/hub/emails/templates/welcome/preview.html");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/text\/html/);
+      expect(res.text.length).toBeGreaterThan(100);
+      expect(res.text.toLowerCase()).toContain("html");
+    });
+
+    it("GET /hub/emails/templates.json returns discovered templates", async () => {
+      const res = await hub.get("/hub/emails/templates.json");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
       expect(Array.isArray(res.body.templates)).toBe(true);
@@ -90,7 +108,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
     });
 
     it("GET /dev/email-builder/blocks.json returns the block library + props", async () => {
-      const res = await hubReq(app).get("/hub/email-builder/blocks.json");
+      const res = await hub.get("/hub/email-builder/blocks.json");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
       expect(Array.isArray(res.body.blocks)).toBe(true);
@@ -121,16 +139,14 @@ describe("Dev-Hub · /dev/email-builder", () => {
           { type: "cta", props: { href: "{{ctaUrl}}", text: "Get started" } },
         ],
       };
-      const res = await hubReq(app)
-        .post("/hub/email-builder/preview.json")
-        .send({
-          composition,
-          vars: {
-            recipientName: "Alice",
-            appName: "nest-base",
-            ctaUrl: "https://example.test/start",
-          },
-        });
+      const res = await hub.post("/hub/email-builder/preview.json").send({
+        composition,
+        vars: {
+          recipientName: "Alice",
+          appName: "nest-base",
+          ctaUrl: "https://example.test/start",
+        },
+      });
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
       expect(res.body.subject).toBe("Welcome to nest-base");
@@ -140,7 +156,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
     });
 
     it("POST /dev/email-builder/preview.json returns 400 for invalid composition", async () => {
-      const res = await hubReq(app)
+      const res = await hub
         .post("/hub/email-builder/preview.json")
         .send({ composition: { layout: "DoesNotExist", subject: "x", children: [] }, vars: {} });
       expect(res.status).toBe(400);
@@ -157,7 +173,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
           { type: "paragraph", props: { text: "Just a quick check-in." } },
         ],
       };
-      const res = await hubReq(app).post("/hub/email-builder/save").send({ slug, composition });
+      const res = await hub.post("/hub/email-builder/save").send({ slug, composition });
       expect(res.status).toBe(200);
       expect(res.body.relativePath).toBe(`src/modules/email/templates/${slug}.tsx`);
       const target = resolve(repoRoot, res.body.relativePath);
@@ -172,46 +188,40 @@ describe("Dev-Hub · /dev/email-builder", () => {
     });
 
     it("POST /dev/email-builder/save rejects path-traversal slugs with 400", async () => {
-      const res = await hubReq(app)
-        .post("/hub/email-builder/save")
-        .send({
-          slug: "../../../../../../tmp/evil",
-          composition: {
-            layout: "Barebone",
-            subject: "x",
-            children: [{ type: "paragraph", props: { text: "x" } }],
-          },
-        });
+      const res = await hub.post("/hub/email-builder/save").send({
+        slug: "../../../../../../tmp/evil",
+        composition: {
+          layout: "Barebone",
+          subject: "x",
+          children: [{ type: "paragraph", props: { text: "x" } }],
+        },
+      });
       expect(res.status).toBe(400);
       // No file should have been written anywhere outside the templates dir.
       expect(existsSync("/tmp/evil.tsx")).toBe(false);
     });
 
     it("POST /dev/email-builder/save rejects invalid slug shapes with 400", async () => {
-      const res = await hubReq(app)
-        .post("/hub/email-builder/save")
-        .send({
-          slug: "InvalidSlug",
-          composition: {
-            layout: "Barebone",
-            subject: "x",
-            children: [{ type: "paragraph", props: { text: "x" } }],
-          },
-        });
+      const res = await hub.post("/hub/email-builder/save").send({
+        slug: "InvalidSlug",
+        composition: {
+          layout: "Barebone",
+          subject: "x",
+          children: [{ type: "paragraph", props: { text: "x" } }],
+        },
+      });
       expect(res.status).toBe(400);
     });
 
     it("POST /dev/email-builder/save rejects invalid compositions with 400", async () => {
-      const res = await hubReq(app)
-        .post("/hub/email-builder/save")
-        .send({
-          slug: "e2e-builder-test",
-          composition: {
-            layout: "Unknown",
-            subject: "x",
-            children: [],
-          },
-        });
+      const res = await hub.post("/hub/email-builder/save").send({
+        slug: "e2e-builder-test",
+        composition: {
+          layout: "Unknown",
+          subject: "x",
+          children: [],
+        },
+      });
       expect(res.status).toBe(400);
     });
 
@@ -220,7 +230,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
     // -----------------------------------------------------------------
     describe("GET /dev/email-builder/templates/:name/composition.json", () => {
       it("returns a decomposable composition for the welcome core template", async () => {
-        const res = await hubReq(app).get("/hub/email-builder/templates/welcome/composition.json");
+        const res = await hub.get("/hub/email-builder/templates/welcome/composition.json");
         expect(res.status).toBe(200);
         expect(res.headers["content-type"]).toMatch(/application\/json/);
         expect(res.body.decomposable).toBe(true);
@@ -236,42 +246,32 @@ describe("Dev-Hub · /dev/email-builder", () => {
 
       it("returns the password-reset and email-verification compositions", async () => {
         for (const name of ["password-reset", "email-verification"]) {
-          const res = await hubReq(app).get(
-            `/hub/email-builder/templates/${name}/composition.json`,
-          );
+          const res = await hub.get(`/hub/email-builder/templates/${name}/composition.json`);
           expect(res.status).toBe(200);
           expect(res.body.decomposable).toBe(true);
           expect(res.body.composition.layout).toBe("Barebone");
         }
       });
 
-      it("returns decomposable=false + raw source for hand-rolled templates", async () => {
-        // invitation.tsx + new-device.tsx use JSX outside the composer
-        // grammar — the endpoint reports it cleanly so the UI can
-        // render the source view instead of opening the composer.
-        for (const name of ["invitation", "new-device"]) {
-          const res = await hubReq(app).get(
-            `/hub/email-builder/templates/${name}/composition.json`,
-          );
+      it("returns decomposable=true for core templates editable in the composer", async () => {
+        for (const name of ["invitation", "new-device", "api-key-expiring"]) {
+          const res = await hub.get(`/hub/email-builder/templates/${name}/composition.json`);
           expect(res.status).toBe(200);
-          expect(res.body.decomposable).toBe(false);
-          expect(typeof res.body.reason).toBe("string");
-          expect(typeof res.body.rawSource).toBe("string");
-          expect(res.body.rawSource.length).toBeGreaterThan(0);
+          expect(res.body.decomposable).toBe(true);
+          expect(res.body.composition.layout).toBe("Barebone");
+          expect(Array.isArray(res.body.composition.children)).toBe(true);
         }
       });
 
       it("returns 404 for unknown template names", async () => {
-        const res = await hubReq(app).get(
+        const res = await hub.get(
           "/hub/email-builder/templates/this-does-not-exist/composition.json",
         );
         expect(res.status).toBe(404);
       });
 
       it("returns 400 for invalid template name shapes", async () => {
-        const res = await hubReq(app).get(
-          "/hub/email-builder/templates/..%2F..%2Fetc/composition.json",
-        );
+        const res = await hub.get("/hub/email-builder/templates/..%2F..%2Fetc/composition.json");
         expect([400, 404]).toContain(res.status);
       });
     });
@@ -295,31 +295,31 @@ describe("Dev-Hub · /dev/email-builder", () => {
           subject: "Custom welcome",
           children: [{ type: "paragraph", props: { text: "Hi {{recipientName}}!" } }],
         };
-        const save = await hubReq(app).post("/hub/email-builder/save").send({ slug, composition });
+        const save = await hub.post("/hub/email-builder/save").send({ slug, composition });
         expect(save.status).toBe(200);
         expect(existsSync(overrideAbs)).toBe(true);
 
         // Now delete it.
-        const res = await hubReq(app).delete(`/hub/email-builder/templates/${slug}/override`);
+        const res = await hub.delete(`/hub/email-builder/templates/${slug}/override`);
         expect(res.status).toBe(200);
         expect(res.body.acted).toBe(true);
         expect(existsSync(overrideAbs)).toBe(false);
       });
 
       it("returns 404 when no override exists", async () => {
-        const res = await hubReq(app).delete(`/hub/email-builder/templates/${slug}/override`);
+        const res = await hub.delete(`/hub/email-builder/templates/${slug}/override`);
         expect(res.status).toBe(404);
       });
 
       it("rejects invalid name shapes with 400", async () => {
-        const res = await hubReq(app).delete("/hub/email-builder/templates/..%2Fetc/override");
+        const res = await hub.delete("/hub/email-builder/templates/..%2Fetc/override");
         expect([400, 404]).toContain(res.status);
       });
 
       it("never touches the core template file", async () => {
         const corePath = resolve(repoRoot, `src/core/email/templates/${slug}.tsx`);
         expect(existsSync(corePath)).toBe(true);
-        await hubReq(app).delete(`/hub/email-builder/templates/${slug}/override`);
+        await hub.delete(`/hub/email-builder/templates/${slug}/override`);
         expect(existsSync(corePath)).toBe(true);
       });
     });
@@ -335,9 +335,9 @@ describe("Dev-Hub · /dev/email-builder", () => {
           subject: "Custom welcome",
           children: [{ type: "paragraph", props: { text: "Hi" } }],
         };
-        await hubReq(app).post("/hub/email-builder/save").send({ slug, composition });
+        await hub.post("/hub/email-builder/save").send({ slug, composition });
 
-        const res = await hubReq(app).get("/hub/email-builder/templates.json");
+        const res = await hub.get("/hub/email-builder/templates.json");
         expect(res.status).toBe(200);
         // The list reflects discovery order. Find the *active* welcome
         // entry — module wins over core for the same name + locale.
@@ -360,12 +360,15 @@ describe("Dev-Hub · /dev/email-builder", () => {
 
   describe("outside development mode", () => {
     let app: INestApplication;
+    let hub: Awaited<ReturnType<typeof hubReqScoped>>;
     let previousNodeEnv: string | undefined;
 
     beforeAll(async () => {
       previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "production";
+      pinHubTestAuthEnv();
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
+      hub = await hubReqScoped(app, TENANT);
     });
 
     afterAll(async () => {
@@ -375,31 +378,25 @@ describe("Dev-Hub · /dev/email-builder", () => {
     });
 
     it("GET /dev/email-builder/templates.json returns 404", async () => {
-      const res = await request(app.getHttpServer()).get("/hub/email-builder/templates.json");
+      const res = await hub.get("/hub/email-builder/templates.json");
       expect(res.status).toBe(404);
     });
 
     it("POST /dev/email-builder/save returns 404", async () => {
-      const res = await request(app.getHttpServer())
-        .post("/hub/email-builder/save")
-        .send({
-          slug: "anything",
-          composition: { layout: "Barebone", subject: "x", children: [] },
-        });
+      const res = await hub.post("/hub/email-builder/save").send({
+        slug: "anything",
+        composition: { layout: "Barebone", subject: "x", children: [] },
+      });
       expect(res.status).toBe(404);
     });
 
     it("GET /dev/email-builder/templates/:name/composition.json returns 404", async () => {
-      const res = await request(app.getHttpServer()).get(
-        "/hub/email-builder/templates/welcome/composition.json",
-      );
+      const res = await hub.get("/hub/email-builder/templates/welcome/composition.json");
       expect(res.status).toBe(404);
     });
 
     it("DELETE /dev/email-builder/templates/:name/override returns 404", async () => {
-      const res = await request(app.getHttpServer()).delete(
-        "/hub/email-builder/templates/welcome/override",
-      );
+      const res = await hub.delete("/hub/email-builder/templates/welcome/override");
       expect(res.status).toBe(404);
     });
   });

@@ -348,9 +348,9 @@ const PORTED_SUBSYSTEMS: readonly PortAssertion[] = [
   { id: "CF.OAS.10", description: "Snapshot dump script", path: "scripts/dump-openapi.ts" },
   { id: "CF.OAS.11", description: "SDK check script", path: "scripts/sdk-check.ts" },
 
-  // Dev Hub
-  { id: "CF.DH.01", description: "Dev Hub SPA shell", path: "src/core/dx/clients" },
-  { id: "CF.DH.01", description: "Dev Hub controller", path: "src/core/dx/dev-hub.controller.ts" },
+  // Hub
+  { id: "CF.DH.01", description: "Hub SPA shell", path: "src/core/dx/clients" },
+  { id: "CF.DH.01", description: "Hub controller", path: "src/core/dx/hub.controller.ts" },
   {
     id: "CF.DH.34-43",
     description: "Admin SPA controller",

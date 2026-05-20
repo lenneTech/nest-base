@@ -36,7 +36,7 @@ interface StoreRow {
  * `PowerSyncStore` adapter (Prisma-backed `power_sync_rows` table by
  * default). Process restart no longer drops offline-queued mutations.
  * Each batch:
- *   1. Reads the operator's tenant from the `x-tenant-id` header.
+ *   1. Reads the operator's tenant from session ALS (`requireTenantContext`).
  *   2. Loads the existing rows for the batch's distinct types into
  *      an in-memory Map (the conflict resolver's input shape).
  *   3. Runs the existing pure `applyPowerSyncCrudBatch` resolver.
@@ -61,9 +61,8 @@ export class PowerSyncController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async crud(@Body() body: unknown): Promise<{ rejected?: unknown[] }> {
     // Use the tenant already validated and set by TenantInterceptor via
-    // AsyncLocalStorage (MIN-5). requireTenantHeader() previously re-read
-    // the raw x-tenant-id header and re-validated the UUID format,
-    // bypassing the interceptor's tenant-membership check entirely.
+    // AsyncLocalStorage (MIN-5). Tenant scope comes from the session
+    // activeOrganizationId set by TenantInterceptor (set-active).
     const tenantId = getCurrentTenantId();
     if (!tenantId) {
       throw new UnauthorizedException("no active tenant");

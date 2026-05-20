@@ -10,6 +10,7 @@ import { bootstrap } from "../src/core/app/bootstrap.js";
 import { PrismaService } from "../src/core/prisma/prisma.service.js";
 import { uuidV7 } from "../src/core/uuid/uuid-v7.js";
 import { signShareLink } from "../src/core/files/share-link.js";
+import { setActiveOrganization } from "./helpers/tenant-session.js";
 import { emerald8x8Png } from "./lib/png-fixture.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
@@ -94,11 +95,11 @@ describe("Files · share-link round-trip", () => {
         createdAt: new Date(),
       },
     });
+    await setActiveOrganization(app.getHttpServer(), sessionCookie, tenantId);
 
     const bytes = emerald8x8Png();
     const upload = await request(app.getHttpServer())
       .post("/api/files/upload")
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({
@@ -135,7 +136,6 @@ describe("Files · share-link round-trip", () => {
   it("POST /files/:id/share-link issues a token + URL + ISO expiry", async () => {
     const res = await request(app.getHttpServer())
       .post(`/api/files/${fileId}/share-link`)
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({ ttlSeconds: 3600 });
@@ -150,7 +150,6 @@ describe("Files · share-link round-trip", () => {
   it("GET /files/share/:token resolves the file metadata without auth", async () => {
     const issue = await request(app.getHttpServer())
       .post(`/api/files/${fileId}/share-link`)
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({ ttlSeconds: 3600 });

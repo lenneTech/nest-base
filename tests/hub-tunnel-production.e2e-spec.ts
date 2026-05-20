@@ -3,18 +3,20 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
 import type { INestApplication } from "@nestjs/common";
-import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { bootstrap } from "../src/core/app/bootstrap.js";
 import { tunnelStateLockPath } from "../src/core/dev/tunnel-state-runner.js";
+import { hubReqScoped, pinHubTestAuthEnv } from "./helpers/hub-request.js";
+
+const TENANT = "11111111-1111-1111-1111-111111111111";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 
 /**
  * `GET /dev/tunnel.json` — production gate.
  *
- * Lives in its own file (split from `dev-hub-tunnel.e2e-spec.ts` in
+ * Lives in its own file (split from `hub-tunnel.e2e-spec.ts` in
  * iter-146) so the file's worker fork boots ONE Nest app with
  * `NODE_ENV=production` set before module evaluation. Co-locating
  * a development-mode app and a production-mode app in the same
@@ -25,39 +27,38 @@ const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {
  */
 describe("Dev-Hub · GET /dev/tunnel.json — production gate", () => {
   let app: INestApplication;
+  let hub: Awaited<ReturnType<typeof hubReqScoped>>;
   let previousNodeEnv: string | undefined;
   let previousLockPath: string | undefined;
   let workerCacheDir: string | undefined;
 
   beforeAll(async () => {
     // Per-worker temp lock-file path so this file's tunnel-state
-    // mutations don't race with `dev-hub-tunnel.e2e-spec.ts` which
+    // mutations don't race with `hub-tunnel.e2e-spec.ts` which
     // runs in a sibling worker process and resolves the same
     // project-root-relative lock-file path. iter-146 surfaced the
     // cross-file file-system contention; the env override added to
     // `tunnelStateLockPath` is the durable fix.
-    workerCacheDir = mkdtempSync(join(tmpdir(), "dev-hub-tunnel-prod-cache-"));
+    workerCacheDir = mkdtempSync(join(tmpdir(), "hub-tunnel-prod-cache-"));
     previousLockPath = process.env.TUNNEL_STATE_LOCK_PATH;
     process.env.TUNNEL_STATE_LOCK_PATH = join(workerCacheDir, "tunnel.json");
 
     // Provide the env vars production bootstrap requires so the env
     // pre-check passes; we only care that the controller short-circuits
     // production traffic to a 404.
+    pinHubTestAuthEnv();
     previousNodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = "production";
-    process.env.APP_BASE_URL = "https://example.com";
-    process.env.SECRET_KEK_HEX = "0".repeat(64);
-    process.env.SECRET_HMAC_HEX = "0".repeat(64);
-    process.env.BETTER_AUTH_SECRET = "0".repeat(64);
+    process.env.SECRET_KEK_HEX ??= "0".repeat(64);
+    process.env.SECRET_HMAC_HEX ??= "0".repeat(64);
     app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
+    hub = await hubReqScoped(app, TENANT);
   });
 
   afterAll(async () => {
     await app.close();
-    delete process.env.APP_BASE_URL;
     delete process.env.SECRET_KEK_HEX;
     delete process.env.SECRET_HMAC_HEX;
-    delete process.env.BETTER_AUTH_SECRET;
     if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
     else process.env.NODE_ENV = previousNodeEnv;
     if (previousLockPath === undefined) delete process.env.TUNNEL_STATE_LOCK_PATH;
@@ -77,9 +78,7 @@ describe("Dev-Hub · GET /dev/tunnel.json — production gate", () => {
       "utf8",
     );
     try {
-      const res = await request(app.getHttpServer())
-        .get("/hub/tunnel.json")
-        .set("x-test-ability", "full");
+      const res = await hub.get("/hub/tunnel.json");
       expect(res.status).toBe(404);
     } finally {
       rmSync(path, { force: true });

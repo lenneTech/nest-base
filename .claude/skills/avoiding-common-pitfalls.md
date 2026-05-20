@@ -77,22 +77,31 @@ without a catalog entry → no toggle in the UI. Always add both.
 
 ## Multi-tenancy
 
+### Session org is required on gated routes
+
+`/api/*` (domain), `/admin/*`, and tenant-scoped hub JSON need
+`session.activeOrganizationId` from Better-Auth `set-active`.
+Symptom: **400** "Tenant context required" when the session has no
+active organization.
+
+Fix for E2E/Hub specs: use `hubReqScoped(app, TENANT)` from
+`tests/helpers/hub-request.ts` (sign-up + `set-active` + CASL hatch).
+Call `pinHubTestAuthEnv()` before `bootstrap()`.
+
 ### Public routes need exemption
 
-The tenant interceptor enforces `x-tenant-id` on every request that's
-not in the exempt list (`src/core/multi-tenancy/tenant-guard.ts`).
-Symptom: 400 `CORE_VALIDATION` "Tenant Header Required" on a route
-that should be public.
+Routes that must run without an active org belong on the exempt list
+(`src/core/multi-tenancy/tenant-guard.ts`) or carry `@Public()`.
+Symptom: 400 on `/health/*`, auth callbacks, or bootstrap endpoints.
 
-Fix: add the path to `EXEMPT_EXACT` or `EXEMPT_PREFIXES`. Query
-strings + fragments are stripped before matching, so `/foo?bar=baz`
-resolves correctly.
+Fix: add the path to `EXEMPT_EXACT` / `EXEMPT_PREFIXES`, or mark the
+handler `@Public("…")` with a one-sentence reason.
 
 ### Off-by-default for new routes
 
-When you add a new route, decide: tenant-scoped (default) or public
-(exempt-list). Auth/health/docs/hub/admin/errors are public.
-Everything else needs the header.
+When you add a route, decide: gated (needs session org + `@Can`) or
+public (`@Public` or allowlist). Do **not** rely on `x-tenant-id` —
+it is ignored everywhere.
 
 ---
 

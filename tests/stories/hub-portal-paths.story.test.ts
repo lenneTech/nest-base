@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  isHubCockpitPath,
+  isHubPortalAccessProbePath,
   isHubPortalLoginPath,
   isHubPortalProtectedPath,
   isHubPortalStaticAsset,
+  isTenantAdminPortalPath,
   prefersHubPortalLoginRedirect,
 } from "../../src/core/hub/hub-portal-paths.js";
 import { isPathProtected } from "../../src/core/auth/jwt-middleware.js";
@@ -26,6 +29,17 @@ describe("Story · Hub portal paths", () => {
   it("keeps / as login path", () => {
     expect(isHubPortalLoginPath("/")).toBe(true);
     expect(isPathProtected("/")).toBe(false);
+  });
+
+  it("marks portal-access.json as the SPA gate probe", () => {
+    expect(isHubPortalAccessProbePath("/hub/portal-access.json")).toBe(true);
+    expect(isHubCockpitPath("/hub/portal-access.json")).toBe(false);
+  });
+
+  it("splits hub cockpit vs tenant-admin surfaces", () => {
+    expect(isHubCockpitPath("/hub/features")).toBe(true);
+    expect(isTenantAdminPortalPath("/admin/users")).toBe(true);
+    expect(isHubCockpitPath("/admin/users")).toBe(false);
   });
 
   it("prefers HTML redirect for unauthenticated hub navigation", () => {

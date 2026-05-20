@@ -17,7 +17,7 @@ import { SessionsAdminModule } from "../auth/sessions-admin.module.js";
 import { BetterAuthSessionMiddleware } from "../auth/session-middleware.js";
 import { ConfigModule } from "../config/config.module.js";
 import { DeviceModule } from "../devices/device.module.js";
-import { DevHubModule } from "../dx/dev-hub.module.js";
+import { HubSpaModule } from "../dx/hub-spa.module.js";
 import { UserAdminModule } from "../dx/user-admin.module.js";
 import { HubModule } from "../hub/hub.module.js";
 import { HubPortalMiddleware } from "../hub/hub-portal.middleware.js";
@@ -87,14 +87,10 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     // HTTP-request-level logging interceptor + injectable `Logger`
     // throughout the app. The underlying Pino instance comes from
     // `createLogger()` so dev-pretty + log-buffer + sink-stream
-    // semantics are preserved. autoLogging is disabled in `test` env
-    // to keep e2e suites quiet (the SILENT_LOGGER override path is
-    // unchanged at the bootstrap layer).
-    // In test env the pino-http middleware is skipped — it adds ~10 ms
-    // per request via child-logger instantiation which would blow the
-    // SC.PERF.02 ≤ 50 ms /health/live median budget. Tests still get
-    // the injectable Logger because LoggerModule is imported, but its
-    // pinoHttp attaches a no-op `req.log` and skips auto-logging.
+    // semantics are preserved. pino-http `autoLogging` stays off so the
+    // console is not flooded with per-request "request completed" lines;
+    // correlation still flows through RequestContextMiddleware + manual
+    // `Logger` calls. In `test` env the injectable logger is `silent`.
     LoggerModule.forRootAsync({
       useFactory: () => {
         const cfg = serverConfigFromEnv(process.env);
@@ -107,25 +103,10 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
         return {
           pinoHttp: {
             logger: pinoLogger,
-            autoLogging: isTest
-              ? false
-              : {
-                  ignore: (req) =>
-                    !!req.url?.startsWith("/health") ||
-                    req.url === "/" ||
-                    !!req.url?.startsWith("/hub/"),
-                },
-            quietReqLogger: isTest,
-            customLogLevel: (_req, res) => {
-              if (res.statusCode >= 500) return "error";
-              if (res.statusCode >= 400) return "warn";
-              return "info";
-            },
-            // Attach userId + tenantId from the resolved session (set by
-            // BetterAuthSessionMiddleware) so every HTTP log line carries
-            // per-user correlation without a manual Logger.log() call.
-            // req.requestId comes from RequestContextMiddleware (set on
-            // req via the X-Request-Id echo header).
+            autoLogging: false,
+            quietReqLogger: true,
+            // Available on manual `req.log` calls — not emitted unless
+            // application code logs explicitly.
             customProps: (req) => {
               const user = (req as AuthenticatedRequest).user;
               const headerRequestId = req.headers["x-request-id"];
@@ -158,7 +139,7 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     HealthModule,
     // HubModule — CASL gate for `/hub/*` + `/admin/*` (Better-Auth session).
     HubModule,
-    DevHubModule,
+    HubSpaModule,
     BetterAuthModule,
     ErrorCodesModule,
     PermissionsModule,
@@ -196,7 +177,7 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     JobsModule,
     OutboxModule,
     // RealtimeModule stays unconditional. SC.BOOT.09's iter-55
-    // experiment with `await import()` inside `DevHubModule.forRootAsync`
+    // experiment with `await import()` inside `HubSpaModule.forRootAsync`
     // succeeded structurally (3188/3188 e2e green) but did NOT increase
     // the measured heap delta beyond the iter-53 5.01 MB ceiling — the
     // dynamic-import overhead absorbed the saved socket.io cost in

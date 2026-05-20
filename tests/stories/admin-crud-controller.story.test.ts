@@ -26,10 +26,18 @@ describe("Story · AdminCrudModule dev gating", () => {
     expect(src).toContain("ConfigModule.forRoot()");
   });
 
-  it("RolesAdminPage sends x-tenant-id when loading roles", () => {
+  it("negotiate() does not chain .send() on setHeader (Express returns void)", () => {
+    const src = readFileSync(resolve(ROOT, "src/core/permissions/admin-crud.module.ts"), "utf8");
+    expect(src).not.toContain('setHeader("content-type", "text/html; charset=utf-8")\n      .send');
+    expect(src).toContain(
+      'res.setHeader("content-type", "text/html; charset=utf-8");\n    res.send(renderDevPortalShell',
+    );
+  });
+
+  it("RolesAdminPage loads roles via session bootstrap + fetchJson", () => {
     const src = readFileSync(resolve(ROOT, "src/core/dx/clients/pages/RolesAdminPage.tsx"), "utf8");
-    expect(src).toContain("fetchJsonWithTenant");
-    expect(src).toContain('"/admin/roles"');
-    expect(src).toContain("readTenantIdFromCookie");
+    expect(src).toContain("bootstrapHubOperatorSession");
+    expect(src).toContain('fetchJson<RoleRecord[]>("/admin/roles")');
+    expect(src).not.toContain("x-tenant-id");
   });
 });

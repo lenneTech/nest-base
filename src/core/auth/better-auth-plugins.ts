@@ -29,7 +29,7 @@ export function listAuthPluginNames(features: Features): AuthPluginName[] {
   if (features.email.enabled) plugins.push("emailVerification");
   if (features.magicLink.enabled) plugins.push("magicLink");
   if (features.adminPlugin.enabled) plugins.push("admin");
-  if (features.organization.enabled) plugins.push("organization");
+  if (features.multiTenancy.enabled) plugins.push("organization");
   if (features.oneTap.enabled) plugins.push("oneTap");
   if (features.openAPI.enabled) plugins.push("openAPI");
   return plugins;

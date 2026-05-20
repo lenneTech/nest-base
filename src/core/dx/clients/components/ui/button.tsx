@@ -1,8 +1,8 @@
 /**
  * shadcn-ui `Button` — vendored once into the dev-portal SPA.
  *
- * Variants follow the shadcn defaults (default, destructive, outline,
- * secondary, ghost, link). Colors resolve to our brand-controlled CSS
+ * Variants follow the shadcn defaults (default, destructive, danger,
+ * outline, secondary, ghost, link). Colors resolve to our brand-controlled CSS
  * vars via the `@theme` block in `styles/globals.css`, so the lime
  * accent / near-black surfaces stay intact.
  *
@@ -16,12 +16,14 @@ import { forwardRef, type ButtonHTMLAttributes } from "react";
 import { cn } from "../../lib/utils.js";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground font-semibold hover:brightness-110",
         destructive: "bg-destructive text-destructive-foreground hover:brightness-110",
+        danger:
+          "border border-err/30 bg-err/5 text-err hover:border-err/50 hover:bg-err/10 active:bg-err/15",
         outline:
           "border border-line-strong bg-surface-2 text-foreground hover:bg-surface-hover hover:border-line-accent",
         secondary: "bg-surface-3 text-foreground hover:bg-surface-hover",

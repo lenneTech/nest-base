@@ -35,6 +35,7 @@ import { ResourceNotFoundError } from "../errors/resource-not-found-error.js";
 import { Can } from "../permissions/can.guard.js";
 import { Public } from "../permissions/public.decorator.js";
 import { PrismaService } from "../prisma/prisma.service.js";
+import { assertFeatureEnabledFromEnv } from "../features/assert-feature-enabled.js";
 import { buildDevPortalShellInput, renderDevPortalShell } from "../dx/dev-portal-shell.js";
 import { buildTenantStats, filterTenants } from "./tenant-admin-planner.js";
 import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from "../auth/better-auth.token.js";
@@ -115,8 +116,9 @@ export class TenantAdminController {
   @Get()
   @Header("content-type", "text/html; charset=utf-8")
   tenantsAdminPage(): string {
+    this.assertMultiTenancyEnabled();
     return renderDevPortalShell(
-      buildDevPortalShellInput({ title: "Mandantenverwaltung", brand: "central" }),
+      buildDevPortalShellInput({ title: "Tenant management", brand: "central" }),
     );
   }
 
@@ -133,6 +135,7 @@ export class TenantAdminController {
     @Query("offset") offsetRaw: string | undefined,
     @Query("filter") filterRaw: string | undefined,
   ): Promise<{ tenants: TenantListEntry[]; total: number }> {
+    this.assertMultiTenancyEnabled();
     const limit = clampLimit(limitRaw);
     const offset = parseOffset(offsetRaw);
 
@@ -190,6 +193,7 @@ export class TenantAdminController {
   @Can("manage", "TenantAdmin")
   @Get(":id.json")
   async tenantDetailJson(@Param("id") id: string): Promise<TenantDetailResponse> {
+    this.assertMultiTenancyEnabled();
     const row = await this.prisma.organization.findUnique({
       where: { id },
       include: {
@@ -277,6 +281,7 @@ export class TenantAdminController {
       contactEmail?: string;
     },
   ): Promise<{ id: string; name: string }> {
+    this.assertMultiTenancyEnabled();
     if (!body.name?.trim()) {
       throw new BadRequestException({ message: "name is required", code: "CORE_VALIDATION" });
     }
@@ -332,6 +337,7 @@ export class TenantAdminController {
       contactEmail?: string;
     },
   ): Promise<{ id: string }> {
+    this.assertMultiTenancyEnabled();
     // Verify org exists before mutating settings.
     const org = await this.prisma.organization.findUnique({ where: { id } });
     if (!org) throw new ResourceNotFoundError("Tenant", id);
@@ -372,6 +378,7 @@ export class TenantAdminController {
   @Can("manage", "TenantAdmin")
   @Delete(":id/soft-delete")
   async softDeleteTenant(@Param("id") id: string): Promise<{ softDeleted: true }> {
+    this.assertMultiTenancyEnabled();
     const org = await this.prisma.organization.findUnique({ where: { id } });
     if (!org) throw new ResourceNotFoundError("Tenant", id);
 
@@ -390,6 +397,7 @@ export class TenantAdminController {
   @Can("manage", "TenantAdmin")
   @Post(":id/restore")
   async restoreTenant(@Param("id") id: string): Promise<{ softDeleted: false }> {
+    this.assertMultiTenancyEnabled();
     const org = await this.prisma.organization.findUnique({ where: { id } });
     if (!org) throw new ResourceNotFoundError("Tenant", id);
 
@@ -411,6 +419,7 @@ export class TenantAdminController {
     @Param("id") id: string,
     @Body() body: { email: string; role?: string },
   ): Promise<{ invited: true }> {
+    this.assertMultiTenancyEnabled();
     if (!body.email?.trim()) {
       throw new BadRequestException({ message: "email is required", code: "CORE_VALIDATION" });
     }
@@ -433,6 +442,7 @@ export class TenantAdminController {
     @Param("id") _id: string,
     @Param("memberId") memberId: string,
   ): Promise<{ removed: true }> {
+    this.assertMultiTenancyEnabled();
     await this.callBaOrgAdmin("remove-member", { memberId });
 
     return { removed: true };
@@ -448,6 +458,7 @@ export class TenantAdminController {
     @Param("memberId") memberId: string,
     @Body() body: { role: string },
   ): Promise<{ updated: true }> {
+    this.assertMultiTenancyEnabled();
     if (!body.role?.trim()) {
       throw new BadRequestException({ message: "role is required", code: "CORE_VALIDATION" });
     }
@@ -461,6 +472,10 @@ export class TenantAdminController {
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────
+
+  private assertMultiTenancyEnabled(): void {
+    assertFeatureEnabledFromEnv("multiTenancy");
+  }
 
   /**
    * Forward a mutating action to the Better-Auth organization admin

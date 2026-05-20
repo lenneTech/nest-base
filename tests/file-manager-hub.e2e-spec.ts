@@ -2,7 +2,7 @@ import type { INestApplication } from "@nestjs/common";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { bootstrap } from "../src/core/app/bootstrap.js";
-import { hubReq } from "./helpers/hub-request.js";
+import { hubReqScoped, pinHubTestAuthEnv } from "./helpers/hub-request.js";
 import { PrismaService } from "../src/core/prisma/prisma.service.js";
 import { uuidV7 } from "../src/core/uuid/uuid-v7.js";
 
@@ -19,11 +19,12 @@ const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {
  *   - GET /dev/files/breadcrumb.json   → root-to-active path
  *
  * Every endpoint 404s outside `NODE_ENV=development`, identical to the
- * rest of the dev-hub.
+ * rest of the Hub.
  */
 describe("Dev-Hub File-Manager · /dev/files*", () => {
   describe("in development mode", () => {
     let app: INestApplication;
+    let hub: Awaited<ReturnType<typeof hubReqScoped>>;
     let prisma: PrismaService;
     let tenantId: string;
     let previousNodeEnv: string | undefined;
@@ -31,9 +32,10 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
     beforeAll(async () => {
       previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "development";
+      pinHubTestAuthEnv();
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
       prisma = app.get(PrismaService);
-      const orgName = `files-dev-hub-${Date.now()}`;
+      const orgName = `files-hub-${Date.now()}`;
       const tenant = await prisma.organization.create({
         data: {
           id: uuidV7(),
@@ -49,6 +51,7 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
         },
       });
       tenantId = tenant.id;
+      hub = await hubReqScoped(app, tenantId);
     });
 
     afterAll(async () => {
@@ -65,14 +68,14 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
     });
 
     it("GET /dev/files returns the SPA shell HTML", async () => {
-      const res = await hubReq(app).get("/hub/files");
+      const res = await hub.get("/hub/files");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/text\/html/);
       expect(res.text).toContain('<div id="root"></div>');
     });
 
     it("GET /dev/files/tree.json returns an empty tree for an empty tenant", async () => {
-      const res = await hubReq(app).get("/hub/files/tree.json").set("x-tenant-id", tenantId);
+      const res = await hub.get("/hub/files/tree.json");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
       expect(Array.isArray(res.body.tree)).toBe(true);
@@ -87,7 +90,7 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
         data: { tenantId, parentId: root.id, name: "Acme" },
       });
       try {
-        const res = await hubReq(app).get("/hub/files/tree.json").set("x-tenant-id", tenantId);
+        const res = await hub.get("/hub/files/tree.json");
         expect(res.status).toBe(200);
         expect(res.body.tree).toHaveLength(1);
         expect(res.body.tree[0].name).toBe("Customers");
@@ -117,9 +120,7 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
         },
       });
       try {
-        const res = await hubReq(app)
-          .get(`/hub/files/list.json?folderId=${folder.id}`)
-          .set("x-tenant-id", tenantId);
+        const res = await hub.get(`/hub/files/list.json?folderId=${folder.id}`);
         expect(res.status).toBe(200);
         expect(Array.isArray(res.body.files)).toBe(true);
         const matched = (
@@ -165,9 +166,7 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
         },
       });
       try {
-        const res = await hubReq(app)
-          .get(`/hub/files/list.json?folderId=${folder.id}&search=invoice`)
-          .set("x-tenant-id", tenantId);
+        const res = await hub.get(`/hub/files/list.json?folderId=${folder.id}&search=invoice`);
         expect(res.status).toBe(200);
         const ids = (res.body.files as Array<{ id: string }>).map((f) => f.id);
         expect(ids).toContain(a.id);
@@ -194,7 +193,7 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
         },
       });
       try {
-        const res = await hubReq(app).get("/hub/files/list.json").set("x-tenant-id", tenantId);
+        const res = await hub.get("/hub/files/list.json");
         expect(res.status).toBe(200);
         const matched = (
           res.body.files as Array<{ id: string; thumbnailUrl?: string; mimeType: string }>
@@ -211,7 +210,7 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
     });
 
     it("GET /dev/files/breadcrumb.json returns Root for activeId=null", async () => {
-      const res = await hubReq(app).get("/hub/files/breadcrumb.json").set("x-tenant-id", tenantId);
+      const res = await hub.get("/hub/files/breadcrumb.json");
       expect(res.status).toBe(200);
       expect(res.body.segments).toEqual([{ id: null, name: "Root" }]);
     });
@@ -224,9 +223,7 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
         data: { tenantId, parentId: root.id, name: "Acme" },
       });
       try {
-        const res = await hubReq(app)
-          .get(`/hub/files/breadcrumb.json?folderId=${child.id}`)
-          .set("x-tenant-id", tenantId);
+        const res = await hub.get(`/hub/files/breadcrumb.json?folderId=${child.id}`);
         expect(res.status).toBe(200);
         expect(res.body.segments).toEqual([
           { id: null, name: "Root" },
@@ -242,12 +239,19 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
 
   describe("outside development mode", () => {
     let app: INestApplication;
+    let hub: Awaited<ReturnType<typeof hubReqScoped>>;
+    let tenantId: string;
     let previousNodeEnv: string | undefined;
 
     beforeAll(async () => {
       previousNodeEnv = process.env.NODE_ENV;
+      pinHubTestAuthEnv();
       process.env.NODE_ENV = "production";
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
+      tenantId = "11111111-1111-1111-1111-111111111111";
+      hub = await hubReqScoped(app, tenantId, {
+        email: `files-prod-${crypto.randomUUID()}@example.com`,
+      });
     });
 
     afterAll(async () => {
@@ -257,23 +261,17 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
     });
 
     it("GET /dev/files/tree.json 404s in production", async () => {
-      const res = await hubReq(app)
-        .get("/hub/files/tree.json")
-        .set("x-tenant-id", "00000000-0000-0000-0000-000000000001");
+      const res = await hub.get("/hub/files/tree.json");
       expect(res.status).toBe(404);
     });
 
     it("GET /dev/files/list.json 404s in production", async () => {
-      const res = await hubReq(app)
-        .get("/hub/files/list.json")
-        .set("x-tenant-id", "00000000-0000-0000-0000-000000000001");
+      const res = await hub.get("/hub/files/list.json");
       expect(res.status).toBe(404);
     });
 
     it("GET /dev/files/breadcrumb.json 404s in production", async () => {
-      const res = await hubReq(app)
-        .get("/hub/files/breadcrumb.json")
-        .set("x-tenant-id", "00000000-0000-0000-0000-000000000001");
+      const res = await hub.get("/hub/files/breadcrumb.json");
       expect(res.status).toBe(404);
     });
   });

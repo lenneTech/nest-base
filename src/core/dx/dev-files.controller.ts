@@ -8,31 +8,24 @@
  *   - `/hub/files/breadcrumb.json`  — root-to-active path (header)
  *
  * Every endpoint 404s outside `NODE_ENV=development`, identical to
- * the rest of the dev-hub. The controller is mounted unconditionally
- * by `DevHubModule` so route discovery (`/hub/routes`) sees it on the
+ * the rest of the Hub. The controller is mounted unconditionally
+ * by `HubSpaModule` so route discovery (`/hub/routes`) sees it on the
  * inventory. The `assertDev()` short-circuit keeps the surface from
  * leaking in a production build.
  *
- * Tenant scoping: every endpoint requires the `x-tenant-id` header
- * (the `TenantInterceptor` validates it). RLS is the last-resort
- * backstop, but we explicitly scope all reads by tenant id so a
- * misconfigured RLS policy can never cross-leak.
+ * Tenant scoping: session `set-active` (TenantInterceptor ALS). RLS is
+ * the last-resort backstop; reads are explicitly scoped by tenant id.
  *
  * The page itself (`GET /hub/files`) is served by the existing
- * splat-catchall on `DevHubController` — react-router takes over from
+ * splat-catchall on `HubController` — react-router takes over from
  * the SPA shell.
  */
-import {
-  BadRequestException,
-  Controller,
-  Get,
-  Header,
-  Headers,
-  NotFoundException,
-  Query,
-} from "@nestjs/common";
+import { Controller, Get, Header, NotFoundException, Query } from "@nestjs/common";
+
+import { ApiTags } from "@nestjs/swagger";
 
 import { Public } from "../permissions/public.decorator.js";
+import { assertFeatureEnabledFromEnv } from "../features/assert-feature-enabled.js";
 
 import { buildDevPortalShellInput, renderDevPortalShell } from "./dev-portal-shell.js";
 import {
@@ -42,6 +35,7 @@ import {
 } from "../files/file-manager-breadcrumb.js";
 import { applyFileSearch, type FileSearchSortKey } from "../files/file-manager-search.js";
 import { buildFolderTree, type FolderTreeNode } from "../files/file-manager-tree.js";
+import { requireTenantContext } from "../multi-tenancy/require-tenant-context.js";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { serverConfigFromEnv } from "../server/server-config.js";
 
@@ -71,6 +65,7 @@ interface BreadcrumbResponse {
   segments: BreadcrumbSegment[];
 }
 
+@ApiTags("Hub")
 @Controller("hub/files")
 export class DevFilesController {
   constructor(private readonly prisma: PrismaService) {}
@@ -79,32 +74,25 @@ export class DevFilesController {
    * `GET /hub/files` — SPA shell HTML.
    *
    * Mirrors the other dev-portal pages: emits the same shell that
-   * `DevHubController.spaCatchAll` would have produced. Listing it
+   * `HubController.spaCatchAll` would have produced. Listing it
    * explicitly here means route inventory shows `/hub/files` as a
    * first-class route instead of "covered by splat".
    */
-  @Public(
-    "dev-hub file browser — NODE_ENV=development only; assertDev() rejects production requests",
-  )
+  @Public("Hub file browser — NODE_ENV=development only; assertDev() rejects production requests")
   @Get()
   @Header("content-type", "text/html; charset=utf-8")
   page(): string {
-    this.assertDev();
+    this.assertDevFiles();
     return renderDevPortalShell(
       buildDevPortalShellInput({ title: "File Manager", brand: "central" }),
     );
   }
 
-  @Public(
-    "dev-hub file browser — NODE_ENV=development only; assertDev() rejects production requests",
-  )
+  @Public("Hub file browser — NODE_ENV=development only; assertDev() rejects production requests")
   @Get("tree.json")
-  async tree(
-    @Query("tenantId") tenantQuery: string | undefined,
-    @Headers("x-tenant-id") tenantHeader: string | undefined,
-  ): Promise<FileTreeResponse> {
-    this.assertDev();
-    const tenantId = this.resolveTenantId(tenantQuery, tenantHeader);
+  async tree(): Promise<FileTreeResponse> {
+    this.assertDevFiles();
+    const tenantId = requireTenantContext();
     const folders = await this.prisma.folder.findMany({
       where: { tenantId, deletedAt: null },
       select: { id: true, name: true, parentId: true, tenantId: true },
@@ -113,22 +101,18 @@ export class DevFilesController {
     return { tree };
   }
 
-  @Public(
-    "dev-hub file browser — NODE_ENV=development only; assertDev() rejects production requests",
-  )
+  @Public("Hub file browser — NODE_ENV=development only; assertDev() rejects production requests")
   @Get("list.json")
   async list(
-    @Query("tenantId") tenantQuery: string | undefined,
     @Query("folderId") folderId: string | undefined,
     @Query("search") search: string | undefined,
     @Query("mimeTypePrefix") mimeTypePrefix: string | undefined,
     @Query("sortBy") sortBy: string | undefined,
     @Query("sortDirection") sortDirection: string | undefined,
     @Query("limit") limitRaw: string | undefined,
-    @Headers("x-tenant-id") tenantHeader: string | undefined,
   ): Promise<FileListResponse> {
-    this.assertDev();
-    const tenantId = this.resolveTenantId(tenantQuery, tenantHeader);
+    this.assertDevFiles();
+    const tenantId = requireTenantContext();
     const effectiveFolderId =
       folderId === "" || folderId === undefined || folderId === "null" ? null : folderId;
 
@@ -198,17 +182,11 @@ export class DevFilesController {
     return { files, totalCount: rows.length };
   }
 
-  @Public(
-    "dev-hub file browser — NODE_ENV=development only; assertDev() rejects production requests",
-  )
+  @Public("Hub file browser — NODE_ENV=development only; assertDev() rejects production requests")
   @Get("breadcrumb.json")
-  async breadcrumb(
-    @Query("tenantId") tenantQuery: string | undefined,
-    @Query("folderId") folderId: string | undefined,
-    @Headers("x-tenant-id") tenantHeader: string | undefined,
-  ): Promise<BreadcrumbResponse> {
-    this.assertDev();
-    const tenantId = this.resolveTenantId(tenantQuery, tenantHeader);
+  async breadcrumb(@Query("folderId") folderId: string | undefined): Promise<BreadcrumbResponse> {
+    this.assertDevFiles();
+    const tenantId = requireTenantContext();
     const activeId = folderId === "" || folderId === undefined ? null : folderId;
     if (activeId === null) {
       return { segments: buildFolderBreadcrumb({ activeId: null, folders: [] }) };
@@ -227,25 +205,9 @@ export class DevFilesController {
     }
   }
 
-  /**
-   * `/hub/*` paths are exempt from the TenantInterceptor (see
-   * `tenant-guard.ts`'s `EXEMPT_PREFIXES`), so the AsyncLocalStorage
-   * is empty for these handlers. We read the header directly and let
-   * the caller override via `?tenantId=` for ease of debugging from
-   * the React page.
-   *
-   * Defense in depth: explicit UUID check on the resolved value so a
-   * misbehaving operator cannot smuggle a non-UUID into Prisma queries.
-   */
-  private resolveTenantId(queryParam: string | undefined, headerValue: string | undefined): string {
-    const candidate = (queryParam ?? headerValue ?? "").trim();
-    if (!candidate) {
-      throw new BadRequestException("tenantId required (header or ?tenantId=)");
-    }
-    if (!isUuid(candidate)) {
-      throw new BadRequestException("tenantId must be a UUID");
-    }
-    return candidate;
+  private assertDevFiles(): void {
+    this.assertDev();
+    assertFeatureEnabledFromEnv("files");
   }
 }
 
@@ -266,10 +228,6 @@ function parsePositiveInt(value: string | undefined): number | undefined {
   const n = Number(value);
   if (!Number.isFinite(n) || !Number.isInteger(n) || n <= 0) return undefined;
   return n;
-}
-
-function isUuid(value: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
 
 /**

@@ -51,7 +51,7 @@ describe("Story · Route-gating audit (CI gate)", () => {
   it("findings include a non-trivial number of routes (planner is wired)", () => {
     // Belt-and-braces — guards against accidental misconfiguration that
     // would silently report zero ungated routes because the planner
-    // simply never ran. We expect at least the dev-hub + better-auth +
+    // simply never ran. We expect at least the Hub + better-auth +
     // health controllers' routes to be picked up.
     const findings = auditControllerRoutes({ root: REPO_ROOT });
     expect(findings.length).toBeGreaterThan(20);

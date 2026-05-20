@@ -53,3 +53,4 @@ for (const step of plan.steps) {
 
 console.log('');
 console.log('[reset] done. DB wiped, migrated, seeded.');
+console.log('[reset] Restart `bun run dev` if it was already running (permission cache is in-memory).');

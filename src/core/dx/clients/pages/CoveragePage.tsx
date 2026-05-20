@@ -57,7 +57,7 @@ export function CoveragePage(): ReactNode {
     : "Loading…";
 
   return (
-    <AdminShell title="Coverage" subtitle={subtitle} currentNav="coverage">
+    <AdminShell title="Test coverage" subtitle={subtitle} currentNav="coverage">
       {data.data ? (
         data.data.available ? (
           <CoverageBody report={data.data} />
@@ -108,25 +108,23 @@ function CoverageBody({ report }: { report: CoverageReport }): ReactNode {
           {report.files.length === 0 ? (
             <PageEmpty>No file-level coverage data.</PageEmpty>
           ) : (
-            <div className="max-h-[65dvh] min-h-56 overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>File</TableHead>
-                    <TableHead>Tier</TableHead>
-                    <TableHead>Lines</TableHead>
-                    <TableHead>Stmts</TableHead>
-                    <TableHead>Branches</TableHead>
-                    <TableHead>Funcs</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {report.files.map((file) => (
-                    <FileRowView key={file.path} file={file} />
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>File</TableHead>
+                  <TableHead>Tier</TableHead>
+                  <TableHead>Lines</TableHead>
+                  <TableHead>Stmts</TableHead>
+                  <TableHead>Branches</TableHead>
+                  <TableHead>Funcs</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {report.files.map((file) => (
+                  <FileRowView key={file.path} file={file} />
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>

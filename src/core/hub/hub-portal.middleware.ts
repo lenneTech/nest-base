@@ -8,8 +8,14 @@ import type { NextFunction, Request, Response } from "express";
 
 import type { Ability } from "../permissions/casl-ability.js";
 import { serverConfigFromEnv } from "../server/server-config.js";
-import { canAccessDevHub } from "./hub-portal-access.js";
-import { isHubPortalProtectedPath, prefersHubPortalLoginRedirect } from "./hub-portal-paths.js";
+import { canAccessHub, canAccessTenantAdmin } from "./hub-portal-access.js";
+import {
+  isHubCockpitPath,
+  isHubPortalAccessProbePath,
+  isHubPortalProtectedPath,
+  isTenantAdminPortalPath,
+  prefersHubPortalLoginRedirect,
+} from "./hub-portal-paths.js";
 
 interface HubPortalRequest extends Request {
   user?: { id: string };
@@ -20,13 +26,21 @@ interface HubPortalRequest extends Request {
  * Enforces CASL on `/hub/*` and `/admin/*` after the session + ability
  * middleware ran. Anonymous requests are already rejected by
  * `BetterAuthSessionMiddleware`; this layer denies authenticated users
- * without `read DevHub` (or `manage all`).
+ * without Hub (`read Hub` / `manage:all`) or tenant-admin subjects on
+ * `/admin/*`.
  */
 @Injectable()
 export class HubPortalMiddleware implements NestMiddleware {
   use(req: HubPortalRequest, res: Response, next: NextFunction): void {
     const path = stripQuery((req.originalUrl ?? req.url ?? "/") as string);
     if (!isHubPortalProtectedPath(path)) {
+      next();
+      return;
+    }
+
+    // Let the SPA read `{ hub, tenantAdmin }` even when the operator lacks
+    // `read Hub` — the React gate renders the friendly denial screen.
+    if (isHubPortalAccessProbePath(path)) {
       next();
       return;
     }
@@ -42,10 +56,15 @@ export class HubPortalMiddleware implements NestMiddleware {
       ? req.headers.accept[0]
       : req.headers.accept;
 
-    const devHubAllowed = canAccessDevHub(req.ability);
+    const hubAllowed = canAccessHub(req.ability);
+    const tenantAdminAllowed = canAccessTenantAdmin(req.ability);
+    const surfaceAllowed =
+      (isHubCockpitPath(path) && hubAllowed) ||
+      (isTenantAdminPortalPath(path) && tenantAdminAllowed) ||
+      isHubPortalAccessProbePath(path);
 
     if (!req.user?.id) {
-      if (devHubAllowed) {
+      if (surfaceAllowed) {
         next();
         return;
       }
@@ -62,7 +81,7 @@ export class HubPortalMiddleware implements NestMiddleware {
       throw new UnauthorizedException("Authentication required.");
     }
 
-    if (!devHubAllowed) {
+    if (!surfaceAllowed) {
       if (
         prefersHubPortalLoginRedirect({
           path,
@@ -70,10 +89,12 @@ export class HubPortalMiddleware implements NestMiddleware {
           acceptHeader,
         })
       ) {
-        res.redirect(302, "/?access=devhub");
+        res.redirect(302, "/?access=hub");
         return;
       }
-      throw new ForbiddenException("DevHub access required.");
+      throw new ForbiddenException(
+        isTenantAdminPortalPath(path) ? "Tenant admin access required." : "Hub access required.",
+      );
     }
 
     next();
