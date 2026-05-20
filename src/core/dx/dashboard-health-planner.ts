@@ -47,11 +47,19 @@ export interface DashboardHealthInput {
   rlsActive: boolean;
 }
 
-/** Escalate group status to the worst item status. */
+/**
+ * Escalate group status to the worst item status.
+ *
+ * Severity order: error > warn > ok > unknown. `unknown` is treated as
+ * neutral — a disabled/indeterminate optional item (e.g. webhooks OFF,
+ * GeoIP disabled) must not drag a group to "unknown" while its active
+ * items are healthy. The group only reports "unknown" when *every* item
+ * is unknown (genuinely nothing to assess).
+ */
 function worstOf(items: DashboardStatusItem[]): StatusLevel {
   if (items.some((i) => i.status === "error")) return "error";
   if (items.some((i) => i.status === "warn")) return "warn";
-  if (items.every((i) => i.status === "ok")) return "ok";
+  if (items.some((i) => i.status === "ok")) return "ok";
   return "unknown";
 }
 
