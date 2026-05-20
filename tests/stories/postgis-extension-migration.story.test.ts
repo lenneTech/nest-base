@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -66,5 +67,26 @@ describe("Story · PostGIS extension migration", () => {
     }
     expect(postgis.length).toBeGreaterThan(0);
     expect(postgis[0]!.localeCompare(geoSchema[0]!)).toBeLessThan(0);
+  });
+
+  it("does not commit geo migrations into always-on prisma/migrations (CI geo-off)", () => {
+    const featureMigrations = resolve(ROOT, "prisma/features/geo/migrations");
+    const geoNames = readdirSync(featureMigrations);
+    const git = spawnSync("git", ["ls-files", "prisma/migrations"], {
+      cwd: ROOT,
+      encoding: "utf8",
+    });
+    expect(git.status).toBe(0);
+    const committed = [
+      ...new Set(
+        (git.stdout ?? "")
+          .split("\n")
+          .map((line) => /prisma\/migrations\/([^/]+)\//.exec(line)?.[1])
+          .filter((name): name is string => !!name && name !== "migration_lock.toml"),
+      ),
+    ];
+    for (const name of geoNames) {
+      expect(committed, `${name} must stay feature-gated`).not.toContain(name);
+    }
   });
 });
