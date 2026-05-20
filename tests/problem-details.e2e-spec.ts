@@ -181,11 +181,12 @@ describe("Problem-Details exception filter", () => {
     expect(response.status).toBe(400);
     expect(response.body).toMatchObject({
       code: "CORE_VALIDATION",
-      title: "Tenant Header Required",
-      detail: "Tenant header could not be resolved for this request",
+      title: "Tenant Context Required",
+      detail: "No active organization for this request — activate one via POST /api/auth/organization/set-active",
       status: 400,
     });
-    // The internal message must NOT leak into the response body.
+    // The raw internal exception.message must NOT leak verbatim into the body.
+    // The fixture throws `new TenantIsolationError("tenant header is required")`.
     expect(JSON.stringify(response.body)).not.toContain("tenant header is required");
   });
 
