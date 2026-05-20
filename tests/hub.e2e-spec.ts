@@ -184,6 +184,9 @@ describe("Hub · GET /hub", () => {
       // assert against the second response. The retry only kicks in
       // when the first response actually included an error field; a
       // genuinely-broken template fails on the second request too.
+      // Module overlays from email-builder e2e are wiped per-worker in
+      // tests/setup-files/clean-module-email-overlays.ts so welcome uses
+      // the core template + brand-only preview payload here.
       const fetchPreview = async () => {
         const r = await hub.get("/hub/email-preview.json");
         expect(r.status).toBe(200);

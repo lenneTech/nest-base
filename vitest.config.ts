@@ -12,7 +12,10 @@ export default defineConfig({
     // autoload — a fresh consumer's `.env` ships with
     // `NODE_ENV=development` and the assertion in
     // `tests/unit/test-infrastructure.spec.ts` would otherwise fail.
-    setupFiles: ['./tests/setup-files/pin-node-env.ts'],
+    setupFiles: [
+      './tests/setup-files/pin-node-env.ts',
+      './tests/setup-files/clean-module-email-overlays.ts',
+    ],
     include: ['tests/**/*.{spec,test,e2e-spec,story.test}.ts'],
     exclude: ['node_modules', 'dist', 'tests/k6/**', 'tests/types/**'],
     testTimeout: 30_000,
