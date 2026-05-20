@@ -41,6 +41,8 @@ export interface DashboardHealthInput {
   geoIpEnabled: boolean;
   geoIpInstalled: boolean;
   allMigrationsApplied: boolean;
+  /** Whether multi-tenancy (RLS) is required by configuration */
+  multiTenancyEnabled: boolean;
   /** Whether row-level security is active on the DB */
   rlsActive: boolean;
 }
@@ -55,7 +57,21 @@ function worstOf(items: DashboardStatusItem[]): StatusLevel {
 
 function buildDatabaseGroup(input: DashboardHealthInput): DashboardStatusGroup {
   const migrationsStatus: StatusLevel = input.allMigrationsApplied ? "ok" : "error";
-  const rlsStatus: StatusLevel = input.rlsActive ? "ok" : "warn";
+
+  // RLS is only relevant when multi-tenancy is required. When multiTenancy is OFF,
+  // RLS inactive is the expected state — no warning should fire.
+  let rlsStatus: StatusLevel;
+  let rlsValue: string;
+  if (input.rlsActive) {
+    rlsStatus = "ok";
+    rlsValue = "active";
+  } else if (input.multiTenancyEnabled) {
+    rlsStatus = "warn";
+    rlsValue = "inactive";
+  } else {
+    rlsStatus = "ok";
+    rlsValue = "not required";
+  }
 
   const items: DashboardStatusItem[] = [
     {
@@ -65,7 +81,7 @@ function buildDatabaseGroup(input: DashboardHealthInput): DashboardStatusGroup {
     },
     {
       label: "Row-Level Security",
-      value: input.rlsActive ? "active" : "inactive",
+      value: rlsValue,
       status: rlsStatus,
     },
   ];

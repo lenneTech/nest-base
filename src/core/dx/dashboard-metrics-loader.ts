@@ -99,7 +99,12 @@ async function loadPendingJobCount(jobs: JobQueueService, jobsEnabled: boolean):
   try {
     const aggregates = await jobs.getAggregates();
     const t = aggregates.totals;
-    return t.created + t.active + t.retry;
+    // Only count genuine backlog (created) and in-flight (active) jobs.
+    // BullMQ maps its "delayed" state to `retry` in StateCounts — this includes
+    // scheduled cron/repeat jobs waiting for their next fire time, which are
+    // always in delayed state between runs and must NOT be treated as pending.
+    // Permanent failures are tracked separately via deadLetterCount.
+    return t.created + t.active;
   } catch {
     return 0;
   }
