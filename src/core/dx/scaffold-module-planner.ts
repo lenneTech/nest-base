@@ -503,7 +503,7 @@ src/modules/${ctx.kebab}/
 | \`PATCH\`  | \`/${ctx.pluralRoute}/:id\` | Patch fields.                                         |
 | \`DELETE\` | \`/${ctx.pluralRoute}/:id\` | Remove. 204 on success.                               |
 
-Every handler carries \`@Can('action', '${ctx.pascal}')\` so \`/dev/routes\`
+Every handler carries \`@Can('action', '${ctx.pascal}')\` so \`/hub/routes\`
 shows the module guarded.
 
 ## Next steps after scaffolding

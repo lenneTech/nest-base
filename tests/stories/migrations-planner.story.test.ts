@@ -11,7 +11,7 @@ import {
 } from "../../src/core/dx/migrations/migrations-planner.js";
 
 /**
- * Story · `/dev/migrations` planner (Issue #10).
+ * Story · `/hub/migrations` planner (Issue #10).
  *
  * Pure functions only — file IO and database queries belong in the
  * runner. The planner is the contract the controller / story-tests /

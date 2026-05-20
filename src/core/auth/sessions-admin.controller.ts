@@ -18,6 +18,7 @@ import { fromNodeHeaders } from "better-auth/node";
 import type { Request } from "express";
 
 import { buildDevPortalShellInput, renderDevPortalShell } from "../dx/dev-portal-shell.js";
+import { resolveSessionTenantId } from "../multi-tenancy/resolve-session-tenant.js";
 import { Can } from "../permissions/can.guard.js";
 import { Public } from "../permissions/public.decorator.js";
 import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from "./better-auth.token.js";
@@ -92,7 +93,7 @@ export const SESSION_REVOKE_STORAGE = Symbol.for("lt:SessionRevokeStorage");
 export const SESSION_REVOKE_AUDIT_SINK = Symbol.for("lt:SessionRevokeAuditSink");
 
 interface AuthedRequest extends Request {
-  readonly user?: { readonly id: string; readonly tenantId?: string };
+  readonly user?: { readonly id: string; readonly activeOrganizationId?: string | null };
   readonly headers: Request["headers"] & { readonly "x-session-id"?: string };
 }
 
@@ -135,7 +136,7 @@ export class SessionsAdminController {
       tenantId: string;
     }>;
   }> {
-    const sessions = await this.storage.listAllSessions(req.user?.tenantId);
+    const sessions = await this.storage.listAllSessions(resolveSessionTenantId(req) ?? undefined);
     return {
       sessions: sessions.map((s) => ({
         id: s.id,
@@ -232,7 +233,11 @@ export class SessionsAdminController {
     if (!req.user) {
       throw new UnauthorizedException("authentication required");
     }
-    return { id: req.user.id, tenantId: req.user.tenantId, fromSession: true };
+    return {
+      id: req.user.id,
+      tenantId: resolveSessionTenantId(req) ?? undefined,
+      fromSession: true,
+    };
   }
 
   private async executeRevoke(

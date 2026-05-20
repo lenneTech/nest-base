@@ -29,7 +29,7 @@ const SILENT_LOGGER: LoggerService = {
  *     SMTP_HOST set)
  *   - Record graduates to status "sent"
  *
- * `/dev/outbox.json` and `/health/ready` reflect the state so
+ * `/hub/outbox.json` and `/health/ready` reflect the state so
  * operators see the same thing the worker sees.
  */
 describe("E2E · Email-Outbox flow", () => {

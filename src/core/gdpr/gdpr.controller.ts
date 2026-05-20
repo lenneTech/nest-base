@@ -11,13 +11,14 @@ import {
 } from "@nestjs/common";
 import type { Request } from "express";
 
+import { resolveSessionTenantId } from "../multi-tenancy/resolve-session-tenant.js";
 import { Can } from "../permissions/can.guard.js";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { GdprExportJobRegistry, type GdprExportJob } from "./gdpr-export.registry.js";
 import { buildGdprExport } from "./gdpr.service.js";
 
 interface AuthedRequest extends Request {
-  user?: { id: string; tenantId?: string };
+  user?: { id: string; activeOrganizationId?: string | null };
 }
 
 /**
@@ -68,20 +69,21 @@ export class GdprController {
     if (!req.user) {
       throw new ForbiddenException("authentication required");
     }
+    const tenantId = resolveSessionTenantId(req);
     const job = await this.exportJobs.enqueue({
       userId: req.user.id,
-      tenantId: req.user.tenantId ?? null,
+      tenantId,
     });
     // Run the export synthesizer asynchronously — the controller
     // returns immediately; the job transitions PENDING → RUNNING →
     // COMPLETED in the background. The .catch() ensures any unexpected
     // throw outside runExport's internal try/catch is logged rather than
     // silently swallowed as an unhandled rejection.
-    void this.runExport(job.id, req.user.id, req.user.tenantId ?? null).catch((err: unknown) =>
+    void this.runExport(job.id, req.user.id, tenantId).catch((err: unknown) => {
       this.logger.error(
         `GDPR export failed unexpectedly for job ${job.id}: ${err instanceof Error ? err.message : String(err)}`,
-      ),
-    );
+      );
+    });
     return {
       jobId: job.id,
       status: job.status,

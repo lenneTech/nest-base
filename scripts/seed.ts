@@ -213,7 +213,7 @@ try {
   const removedHub = await prisma.permission.deleteMany({
     where: {
       policyId: adminPolicyId,
-      resource: { in: ["Hub", "DevHub"] },
+      resource: { in: ["Hub"] },
     },
   });
   if (removedHub.count > 0) {

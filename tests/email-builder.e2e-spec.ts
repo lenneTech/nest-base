@@ -11,19 +11,19 @@ const TENANT = "11111111-1111-1111-1111-111111111111";
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 
 /**
- * `/dev/email-builder` controller wiring (Issue #9).
+ * `/hub/email-builder` controller wiring (Issue #9).
  *
  * Endpoints:
- *   - GET  /dev/email-builder                   — SPA shell
- *   - GET  /dev/email-builder/templates.json    — discovered templates + meta
- *   - GET  /dev/email-builder/blocks.json       — block library + props schema
- *   - POST /dev/email-builder/preview.json      — render composition → HTML+text
- *   - POST /dev/email-builder/save              — write composition as .tsx
+ *   - GET  /hub/email-builder                   — SPA shell
+ *   - GET  /hub/email-builder/templates.json    — discovered templates + meta
+ *   - GET  /hub/email-builder/blocks.json       — block library + props schema
+ *   - POST /hub/email-builder/preview.json      — render composition → HTML+text
+ *   - POST /hub/email-builder/save              — write composition as .tsx
  *
  * Outside `NODE_ENV=development` every endpoint 404s. Path-traversal
  * + invalid-slug attempts return 400 without touching the filesystem.
  */
-describe("Dev-Hub · /dev/email-builder", () => {
+describe("Hub · /hub/email-builder", () => {
   describe("in development mode", () => {
     let app: INestApplication;
     let hub: Awaited<ReturnType<typeof hubReqScoped>>;
@@ -107,7 +107,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
       expect(entry.subject.length).toBeGreaterThan(0);
     });
 
-    it("GET /dev/email-builder/blocks.json returns the block library + props", async () => {
+    it("GET /hub/email-builder/blocks.json returns the block library + props", async () => {
       const res = await hub.get("/hub/email-builder/blocks.json");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
@@ -128,7 +128,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
       expect(res.body.layouts.map((l: { name: string }) => l.name)).toContain("Barebone");
     });
 
-    it("POST /dev/email-builder/preview.json renders a composition to HTML+text", async () => {
+    it("POST /hub/email-builder/preview.json renders a composition to HTML+text", async () => {
       const composition = {
         layout: "Barebone",
         subject: "Welcome to {{appName}}",
@@ -155,14 +155,14 @@ describe("Dev-Hub · /dev/email-builder", () => {
       expect(res.body.text).toContain("Hello Alice");
     });
 
-    it("POST /dev/email-builder/preview.json returns 400 for invalid composition", async () => {
+    it("POST /hub/email-builder/preview.json returns 400 for invalid composition", async () => {
       const res = await hub
         .post("/hub/email-builder/preview.json")
         .send({ composition: { layout: "DoesNotExist", subject: "x", children: [] }, vars: {} });
       expect(res.status).toBe(400);
     });
 
-    it("POST /dev/email-builder/save writes a .tsx file under src/modules/email/templates/", async () => {
+    it("POST /hub/email-builder/save writes a .tsx file under src/modules/email/templates/", async () => {
       const slug = "e2e-builder-test";
       const composition = {
         layout: "Barebone",
@@ -187,7 +187,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
       rmSync(target);
     });
 
-    it("POST /dev/email-builder/save rejects path-traversal slugs with 400", async () => {
+    it("POST /hub/email-builder/save rejects path-traversal slugs with 400", async () => {
       const res = await hub.post("/hub/email-builder/save").send({
         slug: "../../../../../../tmp/evil",
         composition: {
@@ -201,7 +201,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
       expect(existsSync("/tmp/evil.tsx")).toBe(false);
     });
 
-    it("POST /dev/email-builder/save rejects invalid slug shapes with 400", async () => {
+    it("POST /hub/email-builder/save rejects invalid slug shapes with 400", async () => {
       const res = await hub.post("/hub/email-builder/save").send({
         slug: "InvalidSlug",
         composition: {
@@ -213,7 +213,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
       expect(res.status).toBe(400);
     });
 
-    it("POST /dev/email-builder/save rejects invalid compositions with 400", async () => {
+    it("POST /hub/email-builder/save rejects invalid compositions with 400", async () => {
       const res = await hub.post("/hub/email-builder/save").send({
         slug: "e2e-builder-test",
         composition: {
@@ -228,7 +228,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
     // -----------------------------------------------------------------
     // Issue #49 — core-templates editable via module overlay
     // -----------------------------------------------------------------
-    describe("GET /dev/email-builder/templates/:name/composition.json", () => {
+    describe("GET /hub/email-builder/templates/:name/composition.json", () => {
       it("returns a decomposable composition for the welcome core template", async () => {
         const res = await hub.get("/hub/email-builder/templates/welcome/composition.json");
         expect(res.status).toBe(200);
@@ -276,7 +276,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
       });
     });
 
-    describe("DELETE /dev/email-builder/templates/:name/override", () => {
+    describe("DELETE /hub/email-builder/templates/:name/override", () => {
       const slug = "welcome";
       const overrideAbs = resolve(repoRoot, `src/modules/email/templates/${slug}.tsx`);
 
@@ -324,7 +324,7 @@ describe("Dev-Hub · /dev/email-builder", () => {
       });
     });
 
-    describe("GET /dev/email-builder/templates.json (Issue #49)", () => {
+    describe("GET /hub/email-builder/templates.json (Issue #49)", () => {
       it("flags core templates with overrides via overrideExists=true", async () => {
         const slug = "welcome";
         const overrideAbs = resolve(repoRoot, `src/modules/email/templates/${slug}.tsx`);
@@ -377,12 +377,12 @@ describe("Dev-Hub · /dev/email-builder", () => {
       else process.env.NODE_ENV = previousNodeEnv;
     });
 
-    it("GET /dev/email-builder/templates.json returns 404", async () => {
+    it("GET /hub/email-builder/templates.json returns 404", async () => {
       const res = await hub.get("/hub/email-builder/templates.json");
       expect(res.status).toBe(404);
     });
 
-    it("POST /dev/email-builder/save returns 404", async () => {
+    it("POST /hub/email-builder/save returns 404", async () => {
       const res = await hub.post("/hub/email-builder/save").send({
         slug: "anything",
         composition: { layout: "Barebone", subject: "x", children: [] },
@@ -390,12 +390,12 @@ describe("Dev-Hub · /dev/email-builder", () => {
       expect(res.status).toBe(404);
     });
 
-    it("GET /dev/email-builder/templates/:name/composition.json returns 404", async () => {
+    it("GET /hub/email-builder/templates/:name/composition.json returns 404", async () => {
       const res = await hub.get("/hub/email-builder/templates/welcome/composition.json");
       expect(res.status).toBe(404);
     });
 
-    it("DELETE /dev/email-builder/templates/:name/override returns 404", async () => {
+    it("DELETE /hub/email-builder/templates/:name/override returns 404", async () => {
       const res = await hub.delete("/hub/email-builder/templates/welcome/override");
       expect(res.status).toBe(404);
     });

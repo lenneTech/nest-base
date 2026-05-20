@@ -14,7 +14,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { ProblemDetailsExceptionFilter } from "../src/core/errors/problem-details.filter.js";
 import { ResourceNotFoundError } from "../src/core/errors/resource-not-found-error.js";
-import { TenantIsolationError } from "../src/core/multi-tenancy/tenant-header.js";
+import { TenantIsolationError } from "../src/core/multi-tenancy/tenant-scope-error.js";
 
 const Body = z.object({ name: z.string().min(2) });
 

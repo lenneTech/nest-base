@@ -20,7 +20,7 @@ const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {
  * Tests are scoped to the in-memory adapter; the future pg-boss
  * adapter swap re-uses the same JSON contract.
  */
-describe("Dev Jobs Dashboard · /dev/jobs/*", () => {
+describe("Hub Jobs Dashboard · /hub/jobs/*", () => {
   describe("in development mode", () => {
     let app: INestApplication;
     let hub: Awaited<ReturnType<typeof hubReqScoped>>;
@@ -52,7 +52,7 @@ describe("Dev Jobs Dashboard · /dev/jobs/*", () => {
       });
     });
 
-    it("GET /dev/jobs renders the SPA shell", async () => {
+    it("GET /hub/jobs renders the SPA shell", async () => {
       const res = await hub.get("/hub/jobs");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/text\/html/);
@@ -60,7 +60,7 @@ describe("Dev Jobs Dashboard · /dev/jobs/*", () => {
       expect(res.text).toMatch(/<title>Jobs — nest-server<\/title>/);
     });
 
-    it("GET /dev/jobs/queues.json returns the aggregated snapshot", async () => {
+    it("GET /hub/jobs/queues.json returns the aggregated snapshot", async () => {
       const id = await queue.enqueue("e2e-ok", { who: "alice" });
       await queue.drain();
       const res = await hub.get("/hub/jobs/queues.json");
@@ -80,7 +80,7 @@ describe("Dev Jobs Dashboard · /dev/jobs/*", () => {
       expect(ids).toContain(id);
     });
 
-    it("GET /dev/jobs/jobs.json supports state + name filters and limit", async () => {
+    it("GET /hub/jobs/jobs.json supports state + name filters and limit", async () => {
       await queue.enqueue("e2e-ok", { i: 1 });
       await queue.enqueue("e2e-ok", { i: 2 });
       await queue.enqueue("e2e-bad", { i: 3 });
@@ -102,7 +102,7 @@ describe("Dev Jobs Dashboard · /dev/jobs/*", () => {
       expect(tiny.body.jobs.length).toBe(1);
     });
 
-    it("GET /dev/jobs/jobs/:id.json returns the full record + 404 on miss", async () => {
+    it("GET /hub/jobs/jobs/:id.json returns the full record + 404 on miss", async () => {
       const id = await queue.enqueue("e2e-ok", { hello: "world" });
       await queue.drain();
       const detail = await hub.get(`/hub/jobs/jobs/${id}.json`);
@@ -116,7 +116,7 @@ describe("Dev Jobs Dashboard · /dev/jobs/*", () => {
       expect(miss.status).toBe(404);
     });
 
-    it("GET /dev/jobs/jobs/:id.json accepts BullMQ-style custom ids (colons)", async () => {
+    it("GET /hub/jobs/jobs/:id.json accepts BullMQ-style custom ids (colons)", async () => {
       // Scheduled/repeat jobs use ids like `scheduled:<name>` — reject at
       // the path validator used to surface 400 before lookup; unknown ids
       // should 404 instead.
@@ -141,7 +141,7 @@ describe("Dev Jobs Dashboard · /dev/jobs/*", () => {
       }
     });
 
-    it("POST /dev/jobs/jobs/:id/retry re-enqueues a failed job", async () => {
+    it("POST /hub/jobs/jobs/:id/retry re-enqueues a failed job", async () => {
       const original = await queue.enqueue("e2e-bad", { run: 1 });
       await queue.drain();
       const res = await hub.post(`/hub/jobs/jobs/${original}/retry`).send();
@@ -155,12 +155,12 @@ describe("Dev Jobs Dashboard · /dev/jobs/*", () => {
       expect(retried.body.attempt).toBe(2);
     });
 
-    it("POST /dev/jobs/jobs/:id/retry returns 404 when the id is unknown", async () => {
+    it("POST /hub/jobs/jobs/:id/retry returns 404 when the id is unknown", async () => {
       const res = await hub.post(`/hub/jobs/jobs/${"a".repeat(36)}/retry`).send();
       expect(res.status).toBe(404);
     });
 
-    it("POST /dev/jobs/jobs/:id/retry returns 409 when the job is not failed", async () => {
+    it("POST /hub/jobs/jobs/:id/retry returns 409 when the job is not failed", async () => {
       const id = await queue.enqueue("e2e-ok", {});
       await queue.drain();
       const res = await hub.post(`/hub/jobs/jobs/${id}/retry`).send();
@@ -187,12 +187,12 @@ describe("Dev Jobs Dashboard · /dev/jobs/*", () => {
       else process.env.NODE_ENV = previousNodeEnv;
     });
 
-    it("404s on /dev/jobs/queues.json", async () => {
+    it("404s on /hub/jobs/queues.json", async () => {
       const res = await hub.get("/hub/jobs/queues.json");
       expect(res.status).toBe(404);
     });
 
-    it("404s on /dev/jobs/jobs.json", async () => {
+    it("404s on /hub/jobs/jobs.json", async () => {
       const res = await hub.get("/hub/jobs/jobs.json");
       expect(res.status).toBe(404);
     });

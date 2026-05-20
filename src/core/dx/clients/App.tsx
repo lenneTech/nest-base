@@ -1,7 +1,7 @@
 /**
  * Top-level layout + route table for the Dev-Portal SPA.
  *
- * Every server-rendered `/dev/*` HTML page is now a React route that
+ * Every server-rendered `/hub/*` HTML page is now a React route that
  * fetches its sibling `*.json` endpoint and renders the same DOM the
  * legacy `*-ui.ts` renderer produced. The active route owns its own
  * `AdminPortalLayout` (persistent sidebar) and `AdminShell` per page

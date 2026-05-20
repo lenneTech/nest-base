@@ -13,7 +13,7 @@ import {
  * query-buffer (CF.OBS.09 + CF.OBS.10) implements the threshold via
  * `BAD_THRESHOLD_MS = 200`; any query above that threshold counts
  * toward the `summary().badCount` (and surfaces as red in the
- * /dev/queries page).
+ * /hub/queries page).
  *
  * This slice locks the threshold value and verifies the summary
  * counts violations correctly. Live p95 enforcement happens at

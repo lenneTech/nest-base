@@ -14,7 +14,7 @@ import {
  * decorator + secret format". The decorator records name +
  * description + version on the class' prototype + into a
  * process-wide registry the dispatcher / Audit Browser /
- * `/dev/webhooks` catalogue read from.
+ * `/hub/webhooks` catalogue read from.
  *
  * Validation surface:
  *   - `name` required + non-empty

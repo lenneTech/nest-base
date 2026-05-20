@@ -11,7 +11,7 @@ import { FeaturesSchema, loadFeatures } from "../../src/core/features/features.j
  * `dbip-lite` as the no-key provider, and exposes
  * `licenseKey` + `dbPath` for opt-in MaxMind tuning.
  *
- * The feature catalog must list it so `/dev/features` can render
+ * The feature catalog must list it so `/hub/features` can render
  * the toggle, and `loadFeatures()` must respond to the
  * `FEATURE_GEO_IP_*` ENV-Var family.
  */

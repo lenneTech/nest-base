@@ -2,10 +2,10 @@
  * Dev-Portal Shell renderer (pure planner).
  *
  * Produces the static HTML skeleton that hosts the React SPA at every
- * `/dev/*` route reachable by the new client. The skeleton is deliberately
+ * `/hub/*` route reachable by the new client. The skeleton is deliberately
  * minimal — `<div id="root"></div>` plus the design-token stylesheet and
  * the bundled `main.js`. React-Router (`createBrowserRouter`) takes over
- * the navigation; the server only catches all `/dev/*` paths and returns
+ * the navigation; the server only catches all `/hub/*` paths and returns
  * the same shell.
  *
  * Inputs are explicit and HTML-escaped: title, scriptUrl, tokenCssUrl. A

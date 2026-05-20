@@ -1,5 +1,5 @@
 /**
- * `/dev/postgrest-parse` — accepts arbitrary `?key=op.value` filters
+ * `/hub/postgrest-parse` — accepts arbitrary `?key=op.value` filters
  * and renders the resulting Prisma `where` clause through
  * `JsonViewer`.
  */
@@ -34,7 +34,7 @@ export function PostgrestParsePage(): ReactNode {
   const filterCount = Array.from(filterParams.keys()).length;
 
   const data = useQuery({
-    queryKey: ["dev", "postgrest-parse", fetchUrl],
+    queryKey: ["hub", "postgrest-parse", fetchUrl],
     queryFn: () => fetchJson<PostgrestParseResponse>(fetchUrl),
   });
 

@@ -9,6 +9,7 @@
 import { Body, Controller, ForbiddenException, Get, Patch, Req } from "@nestjs/common";
 
 import type { AuthenticatedRequest } from "../../core/auth/session-middleware.js";
+import { requireSessionTenantId } from "../../core/multi-tenancy/resolve-session-tenant.js";
 
 import { ApiZodBody, ApiZodOkResponse } from "../../core/openapi/zod-api-decorators.js";
 import { registerZodSchema } from "../../core/openapi/zod-to-openapi.js";
@@ -55,9 +56,8 @@ export class UserProfileController {
 
 function requireCurrentUser(req: AuthenticatedRequest): { id: string; tenantId: string } {
   const id = req.user?.id;
-  const tenantId = req.user?.tenantId;
-  if (!id || !tenantId) {
+  if (!id) {
     throw new ForbiddenException("user-profile: no authenticated user on request");
   }
-  return { id, tenantId };
+  return { id, tenantId: requireSessionTenantId(req) };
 }

@@ -124,9 +124,7 @@ export function buildTusFinishHook(
       }
       const sessionTenantId =
         (session as { session?: { activeOrganizationId?: string | null } }).session
-          ?.activeOrganizationId ??
-        (session as { user?: { tenantId?: string | null } }).user?.tenantId ??
-        "";
+          ?.activeOrganizationId ?? "";
       // CRIT-2: if sessionTenantId is empty the session has no active org —
       // we cannot verify the claim, so reject. Previously the falsy guard
       // `if (sessionTenantId && ...)` skipped this check entirely.

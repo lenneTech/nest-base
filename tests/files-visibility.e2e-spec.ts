@@ -100,7 +100,6 @@ describe("Files · visibility toggle", () => {
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({
-        tenantId,
         folderId: null,
         filename: "vis-test.png",
         mimeType: "image/png",

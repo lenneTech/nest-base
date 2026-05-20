@@ -20,6 +20,7 @@ import {
 import type { Response } from "express";
 
 import { loadFeatures, type Features } from "../features/features.js";
+import { requireTenantContext } from "../multi-tenancy/require-tenant-context.js";
 import { Can } from "../permissions/can.guard.js";
 import { Public } from "../permissions/public.decorator.js";
 import { uuidV7 } from "../uuid/uuid-v7.js";
@@ -53,7 +54,6 @@ import {
   bindPrismaFolderStorage,
 } from "./file-storage.prisma.js";
 import {
-  type CreateFileInput,
   type FileRecord,
   type FileServiceStorage,
   FileNotFoundError,
@@ -113,13 +113,24 @@ export const TUS_SERVER_TOKEN = TUS_SERVER;
 export const TUS_CONFIG_TOKEN = TUS_CONFIG;
 
 export interface CreateFileBody {
-  tenantId: string;
   folderId: string | null;
   filename: string;
   mimeType: string;
   uploaderId: string;
   /** Base64-encoded payload — kept as a single field so the DTO schema is flat. */
   contentsBase64: string;
+}
+
+/** HTTP body for `POST /files` — tenantId is injected server-side. */
+export interface CreateFileHttpBody {
+  folderId: string | null;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  sha256: string;
+  storageDriver: string;
+  storageKey: string;
+  uploaderId: string;
 }
 
 @Controller("files")
@@ -134,11 +145,8 @@ class FileController {
 
   @Can("read", "File")
   @Get()
-  async list(
-    @Query("tenantId") tenantId: string,
-    @Query("folderId") folderId: string | undefined,
-  ): Promise<FileRecord[]> {
-    if (!tenantId) throw new BadRequestException("tenantId required");
+  async list(@Query("folderId") folderId: string | undefined): Promise<FileRecord[]> {
+    const tenantId = requireTenantContext();
     return this.service.listInFolder(
       tenantId,
       folderId === "" || folderId === undefined ? null : folderId,
@@ -200,13 +208,13 @@ class FileController {
   @Can("create", "File")
   @Post("upload")
   async upload(@Body() body: CreateFileBody): Promise<FileRecord> {
-    if (!body.tenantId) throw new BadRequestException("tenantId required");
+    const tenantId = requireTenantContext();
     if (!body.uploaderId) throw new BadRequestException("uploaderId required");
     if (!body.filename) throw new BadRequestException("filename required");
     if (!body.contentsBase64) throw new BadRequestException("contentsBase64 required");
     const bytes = Uint8Array.from(Buffer.from(body.contentsBase64, "base64"));
     return this.service.uploadAndCreate({
-      tenantId: body.tenantId,
+      tenantId,
       folderId: body.folderId ?? null,
       filename: body.filename,
       mimeType: body.mimeType ?? "application/octet-stream",
@@ -217,8 +225,9 @@ class FileController {
 
   @Can("create", "File")
   @Post()
-  async create(@Body() body: CreateFileInput): Promise<FileRecord> {
-    return this.service.create(body);
+  async create(@Body() body: CreateFileHttpBody): Promise<FileRecord> {
+    const tenantId = requireTenantContext();
+    return this.service.create({ ...body, tenantId });
   }
 
   /**
@@ -345,11 +354,8 @@ class FolderController {
 
   @Can("read", "Folder")
   @Get()
-  async list(
-    @Query("tenantId") tenantId: string,
-    @Query("parentId") parentId: string | undefined,
-  ): Promise<FolderRecord[]> {
-    if (!tenantId) throw new BadRequestException("tenantId required");
+  async list(@Query("parentId") parentId: string | undefined): Promise<FolderRecord[]> {
+    const tenantId = requireTenantContext();
     return this.service.listChildren(
       tenantId,
       parentId === "" || parentId === undefined ? null : parentId,
@@ -358,10 +364,9 @@ class FolderController {
 
   @Can("create", "Folder")
   @Post()
-  async create(
-    @Body() body: { tenantId: string; parentId: string | null; name: string },
-  ): Promise<FolderRecord> {
-    return this.service.create(body);
+  async create(@Body() body: { parentId: string | null; name: string }): Promise<FolderRecord> {
+    const tenantId = requireTenantContext();
+    return this.service.create({ tenantId, parentId: body.parentId, name: body.name });
   }
 
   @Can("delete", "Folder")

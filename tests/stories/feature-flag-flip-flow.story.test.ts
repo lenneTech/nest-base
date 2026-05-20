@@ -6,12 +6,12 @@ import { planEnvFileUpdate } from "../../src/core/dx/env-file-update.js";
  * Story · Feature-flag flip flow (SC.BOOT.05).
  *
  * The PRD's `SC.BOOT.05` requires that flipping a feature OFF in the
- * `/dev/features` UI:
+ * `/hub/features` UI:
  *   1. Patches the `.env` file (existing line replaced; missing line
  *      appended).
  *   2. Triggers the dev runner's watch loop to restart the server
  *      with the new feature set.
- *   3. The route audit at `/dev/routes.json` reflects the dropped
+ *   3. The route audit at `/hub/routes.json` reflects the dropped
  *      feature within 5s of the flip.
  *
  * The dev session runner (CF.DH.46 — env watcher) handles steps 2-3

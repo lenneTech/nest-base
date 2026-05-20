@@ -6,10 +6,10 @@ import { TraceBufferSpanProcessor } from "../../src/core/observability/trace-buf
 /**
  * Story · TraceBufferSpanProcessor (CF.OBS.07 — iter-96 review Finding 6).
  *
- * The PRD pins "Custom span buffer for /dev/traces (parallel
+ * The PRD pins "Custom span buffer for /hub/traces (parallel
  * SpanProcessor to OTLP exporter)". Iter-104 ships the SpanProcessor
  * that mirrors every ended span (DB / Prisma / HTTP-client / inbound
- * HTTP) into the in-memory TraceBuffer surface that backs /dev/traces.
+ * HTTP) into the in-memory TraceBuffer surface that backs /hub/traces.
  *
  * Three layers covered:
  *   1. The processor maps OTel `ReadableSpan` shape to the buffer's

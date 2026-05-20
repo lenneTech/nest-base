@@ -2,7 +2,7 @@
  * Dev-Portal design tokens.
  *
  * Single source of truth for the dark, near-black + electric-lime
- * surface used by both the server-rendered `/admin/*` / `/dev/*` pages
+ * surface used by both the server-rendered `/admin/*` / `/hub/*` pages
  * — consumed verbatim by the dev-portal SPA shell.
  * They drive the design language of every dev/admin/errors/openapi page.
  * deviation means the two surfaces drift visually.

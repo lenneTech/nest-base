@@ -83,6 +83,12 @@ describe("dev runner", () => {
     it("returns https://api.<project>.localhost when app is api", () => {
       expect(buildPortlessAppBaseUrl("nest-base")).toBe("https://api.nest-base.localhost");
     });
+
+    it("includes a non-default HTTPS proxy port when the daemon listens elsewhere", () => {
+      expect(buildPortlessAppBaseUrl("nest-base", "api", 1355)).toBe(
+        "https://api.nest-base.localhost:1355",
+      );
+    });
   });
 
   describe("planDevChildEnv()", () => {

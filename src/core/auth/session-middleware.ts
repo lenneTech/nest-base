@@ -71,7 +71,7 @@ export interface AuthenticatedRequest extends Request {
  * deterministic.
  *
  * Public paths (per `isPathProtected`) skip the auth requirement —
- * `/`, `/health/*`, `/api/auth/*`, `/docs/*`, `/dev/*`. Authenticated
+ * `/`, `/health/*`, `/api/auth/*`, `/docs/*`, `/hub/static/*`. Authenticated
  * users on those paths still get `req.user` populated when a valid
  * session cookie is present, so logging / per-user diagnostics see
  * the real user.
@@ -206,7 +206,7 @@ function extractActiveOrganizationId(lookup: {
   // without requiring the client to send a header on every request.
   // This is undefined when the plugin is off; null when the plugin is on
   // but no org has been activated. Both map to null here — the resolver
-  // treats them identically (fall through to `req.user.tenantId`).
+  // is the sole tenant scope for gated routes (see resolve-request-tenant.ts).
   return lookup.session.activeOrganizationId ?? null;
 }
 

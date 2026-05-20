@@ -100,7 +100,6 @@ describe("Files · bulk-zip download", () => {
         .set("cookie", sessionCookie)
         .set("x-test-ability", "full")
         .send({
-          tenantId,
           folderId: null,
           filename: name,
           mimeType: mime,

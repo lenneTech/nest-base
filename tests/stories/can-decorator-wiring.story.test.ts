@@ -10,7 +10,7 @@ import { CAN_METADATA_KEY } from "../../src/core/permissions/can.guard.js";
 /**
  * Story · @Can() decorator wiring across core controllers.
  *
- * `/dev/routes` flagged user-data-touching endpoints (gdpr, address,
+ * `/hub/routes` flagged user-data-touching endpoints (gdpr, address,
  * search, powersync, asset, geo) as `unguarded` because they had no
  * @Can() metadata. They DO check `req.user` for authentication, but
  * they bypass the unified CASL ability layer + output-pipeline +

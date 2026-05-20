@@ -4,7 +4,7 @@
  *
  * The state file lives in `node_modules/.cache/nest-base/tunnel.json`
  * (gitignored, ephemeral). The dev runner owns writes; the NestJS
- * API child reads it on demand for `GET /dev/tunnel.json`.
+ * API child reads it on demand for `GET /hub/tunnel.json`.
  */
 
 export interface TunnelState {

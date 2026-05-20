@@ -2,7 +2,7 @@
  * In-memory query buffer for Prisma `$on('query', …)` events.
  *
  * Same pattern as `log-buffer.ts` and `trace-buffer.ts` — bounded
- * ring buffer surfaced via `/dev/queries` so a developer can see
+ * ring buffer surfaced via `/hub/queries` so a developer can see
  * "what queries did my last request fire, and which were slow?"
  * without booting a real APM (Datadog, NewRelic).
  *

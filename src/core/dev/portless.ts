@@ -81,12 +81,18 @@ export interface BuildPortlessRunCommandInput {
  * itself if the repo is on a non-default branch.
  */
 /** Public HTTPS URL for `portless run --name <app>.<projectName>`. */
-export function buildPortlessAppBaseUrl(projectName: string, app = "api"): string {
+export function buildPortlessAppBaseUrl(
+  projectName: string,
+  app = "api",
+  proxyHttpsPort = 443,
+): string {
   if (!projectName) {
     throw new Error("buildPortlessAppBaseUrl: projectName must not be empty");
   }
   const fullName = app ? `${app}.${projectName}` : projectName;
-  return `https://${fullName}.localhost`;
+  const host = `${fullName}.localhost`;
+  if (proxyHttpsPort === 443) return `https://${host}`;
+  return `https://${host}:${proxyHttpsPort}`;
 }
 
 export interface PlanDevChildEnvInput {
@@ -96,6 +102,8 @@ export interface PlanDevChildEnvInput {
   /** Required when `mode` is `direct` — concrete port the API child binds. */
   port?: number;
   app?: string;
+  /** HTTPS port the portless proxy listens on (443 or an unprivileged fallback). */
+  proxyHttpsPort?: number;
 }
 
 /**
@@ -109,7 +117,11 @@ export function planDevChildEnv(input: PlanDevChildEnvInput): NodeJS.ProcessEnv 
     return {
       ...input.baseEnv,
       PORTLESS_ACTIVE: "1",
-      APP_BASE_URL: buildPortlessAppBaseUrl(input.projectName, input.app),
+      APP_BASE_URL: buildPortlessAppBaseUrl(
+        input.projectName,
+        input.app,
+        input.proxyHttpsPort ?? 443,
+      ),
     };
   }
   const port = input.port ?? 3000;
@@ -187,24 +199,11 @@ export function decideRegistrationAction(
 }
 
 /**
- * TCP-pings 127.0.0.1:443 with a short timeout. Returns true when the
- * portless proxy daemon is listening, false otherwise. Used by `dev.ts`
- * to decide whether the banner can claim "portless is active" — without
- * the daemon up, the route 404s and the URL is misleading.
+ * True when the portless proxy daemon is listening. Delegates to
+ * `portless-proxy-runner.ts`, which reads `~/.portless/proxy.port` so
+ * unprivileged fallbacks (e.g. :1355) are detected — not only :443.
  */
-export async function isPortlessProxyRunning(timeoutMs: number = 300): Promise<boolean> {
-  const { connect } = await import("node:net");
-  return new Promise((resolve) => {
-    const socket = connect({ host: "127.0.0.1", port: 443, timeout: timeoutMs });
-    let settled = false;
-    const finish = (ok: boolean): void => {
-      if (settled) return;
-      settled = true;
-      socket.destroy();
-      resolve(ok);
-    };
-    socket.on("connect", () => finish(true));
-    socket.on("error", () => finish(false));
-    socket.on("timeout", () => finish(false));
-  });
+export async function isPortlessProxyRunning(): Promise<boolean> {
+  const { isPortlessProxyListening } = await import("./portless-proxy-runner.js");
+  return isPortlessProxyListening();
 }

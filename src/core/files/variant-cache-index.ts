@@ -80,7 +80,7 @@ export interface VariantCacheIndex {
   removeBySourceKey(sourceKey: string): Promise<string[]>;
 
   /**
-   * Index-wide stats. Powers admin/dev observability dashboards.
+   * Index-wide stats. Powers admin/Hub observability dashboards.
    */
   getStats(): Promise<VariantCacheIndexStats>;
 

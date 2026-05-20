@@ -116,7 +116,7 @@ pipeline_, not the read surface):
 | DELETE | `/me/devices/:id` | yes  | Revokes a session; ownership check enforced |
 
 Both endpoints are tenant-scoped (the global `TenantInterceptor`
-applies). Frontend / SDK callers must send `x-tenant-id`.
+applies). Frontend / SDK callers must activate an organization via Better-Auth `set-active`.
 
 ## Tests
 

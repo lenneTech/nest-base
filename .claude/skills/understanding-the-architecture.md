@@ -245,8 +245,10 @@ Flags: `--bootstrap` (DB only), `--skip-bootstrap`, `--skip-docker`,
 
 `scripts/dev.ts` is the dev launcher. It:
 
-1. Probes `127.0.0.1:443` to see if portless proxy is alive
-2. Spawns either `portless run` (if alive) or `bun --watch src/main.ts`
+1. Starts the portless proxy if needed (`portless proxy start`, with an
+   unprivileged HTTPS fallback when :443 is unavailable)
+2. Probes the listener port from `~/.portless/proxy.port` (not only :443)
+3. Spawns either `portless run` (if alive) or `bun --watch src/main.ts`
 3. **Watches `.env`** — when it changes (e.g. via /hub/features
    toggle), kills the child and respawns. Without this, env vars stay
    cached because `bun --watch` only reloads source, not env.

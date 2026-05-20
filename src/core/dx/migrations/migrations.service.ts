@@ -1,5 +1,5 @@
 /**
- * Service layer for `/dev/migrations`.
+ * Service layer for `/hub/migrations`.
  *
  * Composes `migrations-planner.ts` (pure decisions) with
  * `migrations-runner.ts` (file system + Postgres + child-process side

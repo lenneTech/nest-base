@@ -233,19 +233,13 @@ project owner reviews and answers.
 
 ### 2026-05-13 · Files · tenantId from query-param in FileController/FolderController (Fix 2.5)
 
-- **Context:** `GET /files?tenantId=<id>` and `GET /folders?tenantId=<id>` accept
-  the tenant via a query parameter. The `TenantInterceptor` normally reads
-  `x-tenant-id` from headers and populates the AsyncLocalStorage context. For
-  these endpoints the query param bypasses the standard interceptor path.
-- **Why it's acceptable now:** The CASL `@Can("read", "File")` gate and
-  service-layer Prisma queries both filter by `tenantId` explicitly. The RLS
-  policy is the last-resort backstop.
-- **Planned fix:** remove the `?tenantId=` query param pattern from
-  `FileController` and `FolderController` and require the standard
-  `x-tenant-id` header so the TenantInterceptor sets the RLS context before
-  any query runs. This is a breaking API change — existing callers must be
-  updated.
-- **Status:** open (deferred; breaking change requiring client migration).
+- **Context:** `GET /files?tenantId=<id>` and `GET /folders?tenantId=<id>` used to
+  accept the tenant via a query parameter, bypassing session scope.
+- **Resolution (2026-05-19):** List/create/upload routes now call
+  `requireTenantContext()` (session `activeOrganizationId` via
+  `TenantInterceptor`). Hub File Manager no longer sends `tenantId` in query or
+  folder-create bodies. Regression: `tests/stories/files-session-tenant-scope.story.test.ts`.
+- **Status:** closed.
 
 ### 2026-05-13 · Realtime · `OUTBOX_DISPATCHERS` push()-mutation vs. useFactory (Fix 4.2)
 

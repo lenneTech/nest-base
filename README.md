@@ -265,7 +265,7 @@ src/
 │   ├── app/             ← Bootstrap + AppModule + dev-tab auto-open
 │   ├── auth/            ← Better-Auth wiring + API keys + PowerSync JWT + 24h verifications-cleanup cron
 │   ├── concurrency/     ← ETag + If-Match optimistic concurrency
-│   ├── dx/              ← /dev + /admin + /errors + /openapi (React SPA shell + JSON sidecars)
+│   ├── dx/              ← /hub + /admin + /errors + /openapi (React SPA shell + JSON sidecars)
 │   ├── email/           ← EmailService + React Email .tsx templates
 │   ├── encryption/      ← AES-256-GCM field encryption
 │   ├── errors/          ← CORE_* error codes + RFC 7807 filter

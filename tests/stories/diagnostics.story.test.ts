@@ -6,7 +6,7 @@ import { buildDiagnosticsReport, type DiagnosticsInput } from "../../src/core/dx
 /**
  * Story · Diagnostics endpoint.
  *
- * Pure assembler that collects every signal the `/dev/diagnostics`
+ * Pure assembler that collects every signal the `/hub/diagnostics`
  * endpoint shows — process info, runtime, memory, active features,
  * dependency versions, recent boot timing — into a structured
  * report. The controller serves the result as JSON; an admin

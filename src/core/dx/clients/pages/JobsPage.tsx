@@ -1,7 +1,7 @@
 /**
- * `/dev/jobs` — jobs dashboard with two tabs (Queues / Jobs) over the
+ * `/hub/jobs` — jobs dashboard with two tabs (Queues / Jobs) over the
  * in-memory queue or BullMQ when REDIS_URL is set (both expose
- * the same `/dev/jobs/*` JSON contract).
+ * the same `/hub/jobs/*` JSON contract).
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
@@ -95,7 +95,7 @@ const POLL_INTERVAL_MS = 4000;
 
 export function JobsPage(): ReactNode {
   const aggregates = useQuery({
-    queryKey: ["dev", "jobs", "queues"],
+    queryKey: ["hub", "jobs", "queues"],
     queryFn: () => fetchJson<JobAggregates>("/hub/jobs/queues.json"),
     refetchInterval: POLL_INTERVAL_MS,
   });
@@ -258,7 +258,7 @@ function JobsTab({
   params.set("limit", "100");
 
   const list = useQuery({
-    queryKey: ["dev", "jobs", "list", queueFilter, stateFilter],
+    queryKey: ["hub", "jobs", "list", queueFilter, stateFilter],
     queryFn: () => fetchJson<JobListResponse>(`/hub/jobs/jobs.json?${params.toString()}`),
     refetchInterval: POLL_INTERVAL_MS,
   });
@@ -389,7 +389,7 @@ function StateBadge({ state }: { state: JobState }): ReactNode {
 function JobDrawer({ id, onClose }: { id: string; onClose: () => void }): ReactNode {
   const queryClient = useQueryClient();
   const detail = useQuery({
-    queryKey: ["dev", "jobs", "detail", id],
+    queryKey: ["hub", "jobs", "detail", id],
     queryFn: () => fetchJson<JobRecord>(`/hub/jobs/jobs/${encodeURIComponent(id)}.json`),
   });
 
@@ -407,7 +407,7 @@ function JobDrawer({ id, onClose }: { id: string; onClose: () => void }): ReactN
       return (await res.json()) as { id: string };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["dev", "jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["hub", "jobs"] });
     },
   });
 

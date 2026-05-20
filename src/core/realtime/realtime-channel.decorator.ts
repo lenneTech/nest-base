@@ -5,7 +5,7 @@
  *
  * The PRD pins "@RealtimeChannel decorator + permission filter" so
  * project code declares its emittable channels at one well-known
- * location and the gateway + Audit Browser + `/dev/realtime` can
+ * location and the gateway + Audit Browser + `/hub/realtime` can
  * enumerate the contract.
  *
  * Decorator usage on the project's payload-shape class:
@@ -53,7 +53,7 @@ export interface RealtimeChannelOptions {
   readonly name: string;
   /**
    * One-line description rendered in the Realtime Inspector +
-   * `/dev/realtime` catalogue. Empty string is rejected — every
+   * `/hub/realtime` catalogue. Empty string is rejected — every
    * channel must self-describe.
    */
   readonly description?: string;

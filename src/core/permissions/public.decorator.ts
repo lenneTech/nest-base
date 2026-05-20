@@ -8,7 +8,7 @@ import { SetMetadata } from "@nestjs/common";
  * subject)`; the only acceptable alternatives are `@Public()` (with a
  * comment / reason explaining why) or having the path on the auth-
  * middleware / tenant-guard public allowlist (e.g. `/health/*`,
- * `/api/auth/*`, `/me/*`, `/dev/*`). Anything else is a bug — see
+ * `/api/auth/*`, `/me/*`, `/hub/static/*`). Anything else is a bug — see
  * Issue #47 for the audit + CI gate.
  *
  * The decorator only sets metadata (`is_public_route: true`) — runtime

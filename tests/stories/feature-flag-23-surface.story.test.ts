@@ -6,7 +6,7 @@ import { FeaturesSchema, loadFeatures } from "../../src/core/features/features.j
  * Story · Feature-flag surface contract (SC.BOOT.04).
  *
  * The PRD's `SC.BOOT.04` requires the feature surface listed at
- * /dev/features.json to enumerate every toggleable subsystem. The
+ * /hub/features.json to enumerate every toggleable subsystem. The
  * exposition is auto-derived from the FeaturesSchema, so this test
  * pins the canonical key set: any rename / addition / deletion is
  * a deliberate change that has to land here too.

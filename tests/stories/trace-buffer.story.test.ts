@@ -7,7 +7,7 @@ import { TraceBuffer, type TraceRecord } from "../../src/core/dx/trace-buffer.js
  *
  * In-memory ring buffer that records request-level "traces" — start
  * time, duration, method/path, status, optional error. Same shape as
- * the log buffer; surfaced via `/dev/traces` so a developer can see
+ * the log buffer; surfaced via `/hub/traces` so a developer can see
  * "what just happened in this dev session?" without booting a real
  * OTel pipeline.
  */
@@ -142,7 +142,7 @@ describe("Story · TraceBuffer", () => {
   });
 
   describe("seq + since() for incremental polling", () => {
-    // Why: the /dev/traces page polls /dev/traces.json every 2 s for
+    // Why: the /hub/traces page polls /hub/traces.json every 2 s for
     // new traces. To avoid re-sending the entire buffer on every
     // tick, each record carries a monotonic `seq` so the client can
     // ask "give me everything after the last one I saw".

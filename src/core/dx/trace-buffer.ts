@@ -3,7 +3,7 @@
  *
  * Same pattern as `log-buffer.ts`: bounded ring buffer that records
  * the recent N HTTP requests with start time, duration, status, and
- * optional error. Surfaced via `/dev/traces` — a lightweight stand-in
+ * optional error. Surfaced via `/hub/traces` — a lightweight stand-in
  * for a real OTel exporter when all you want is "what just happened
  * in this dev session?".
  *
@@ -25,7 +25,7 @@ export interface TraceRecord {
   error?: { name: string; message: string };
   /**
    * Monotonic sequence number assigned by the buffer at record time.
-   * Used by the /dev/traces poller as a cursor: "give me everything
+   * Used by the /hub/traces poller as a cursor: "give me everything
    * after seq=N".
    */
   seq?: number;
@@ -61,7 +61,7 @@ export class TraceBuffer {
     }
   }
 
-  /** Records with `seq > sinceSeq`. Used by the /dev/traces poller. */
+  /** Records with `seq > sinceSeq`. Used by the /hub/traces poller. */
   since(sinceSeq: number): readonly TraceRecord[] {
     return this.buffer.filter((r) => Number(r.seq ?? 0) > sinceSeq);
   }

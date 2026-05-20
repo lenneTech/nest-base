@@ -9,7 +9,7 @@ const TENANT = "11111111-1111-1111-1111-111111111111";
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 
 /**
- * `/dev/migrations` controller wiring (Issue #10).
+ * `/hub/migrations` controller wiring (Issue #10).
  *
  * Same pattern as `hub.e2e-spec.ts`: development boot exposes the
  * page + JSON; production boot returns 404 on every endpoint.
@@ -21,7 +21,7 @@ const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {
  * deferred to a follow-up integration spec. The lock-gating + 400
  * validation paths are covered here.
  */
-describe("Dev-Hub · /dev/migrations", () => {
+describe("Hub · /hub/migrations", () => {
   describe("in development mode", () => {
     let app: INestApplication;
     let hub: Awaited<ReturnType<typeof hubReqScoped>>;
@@ -41,7 +41,7 @@ describe("Dev-Hub · /dev/migrations", () => {
       else process.env.NODE_ENV = previousNodeEnv;
     });
 
-    it("GET /dev/migrations serves the SPA shell with the correct title", async () => {
+    it("GET /hub/migrations serves the SPA shell with the correct title", async () => {
       const res = await hub.get("/hub/migrations");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/text\/html/);
@@ -49,7 +49,7 @@ describe("Dev-Hub · /dev/migrations", () => {
       expect(res.text).toContain("Migrations — nest-server");
     });
 
-    it("GET /dev/migrations.json returns applied + pending + drift snapshot", async () => {
+    it("GET /hub/migrations.json returns applied + pending + drift snapshot", async () => {
       const res = await hub.get("/hub/migrations.json");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
@@ -68,7 +68,7 @@ describe("Dev-Hub · /dev/migrations", () => {
       ).toBe(true);
     });
 
-    it("GET /dev/migrations/preview/:name returns the SQL for an applied migration", async () => {
+    it("GET /hub/migrations/preview/:name returns the SQL for an applied migration", async () => {
       // Pick a known migration that ships with the repo
       const name = "20260508000000_init";
       const res = await hub.get(`/hub/migrations/preview/${name}`);
@@ -78,37 +78,37 @@ describe("Dev-Hub · /dev/migrations", () => {
       expect(res.body.sql).toContain("CREATE");
     });
 
-    it("GET /dev/migrations/preview/:name rejects path-traversal names with 400", async () => {
+    it("GET /hub/migrations/preview/:name rejects path-traversal names with 400", async () => {
       const res = await hub.get("/hub/migrations/preview/..%2F..%2Fetc%2Fpasswd");
       expect(res.status).toBe(400);
     });
 
-    it("POST /dev/migrations/apply-one rejects an invalid name with 400", async () => {
+    it("POST /hub/migrations/apply-one rejects an invalid name with 400", async () => {
       const res = await hub.post("/hub/migrations/apply-one").send({ name: "../../../etc/passwd" });
       expect(res.status).toBe(400);
     });
 
-    it("POST /dev/migrations/apply-one requires body.name", async () => {
+    it("POST /hub/migrations/apply-one requires body.name", async () => {
       const res = await hub.post("/hub/migrations/apply-one").send({});
       expect(res.status).toBe(400);
     });
 
-    it("POST /dev/migrations/dry-run rejects a malformed name", async () => {
+    it("POST /hub/migrations/dry-run rejects a malformed name", async () => {
       const res = await hub.post("/hub/migrations/dry-run").send({ name: "no-timestamp-prefix" });
       expect(res.status).toBe(400);
     });
 
-    it("POST /dev/migrations/create rejects names with capitals or special chars", async () => {
+    it("POST /hub/migrations/create rejects names with capitals or special chars", async () => {
       const res = await hub.post("/hub/migrations/create").send({ name: "AddTable!" });
       expect(res.status).toBe(400);
     });
 
-    it("DELETE /dev/migrations/draft/:name rejects path-traversal", async () => {
+    it("DELETE /hub/migrations/draft/:name rejects path-traversal", async () => {
       const res = await hub.delete("/hub/migrations/draft/..%2F..%2Fetc%2Fpasswd");
       expect(res.status).toBe(400);
     });
 
-    it("GET /dev/migrations/diff returns a structured response", async () => {
+    it("GET /hub/migrations/diff returns a structured response", async () => {
       const res = await hub.get("/hub/migrations/diff");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
@@ -137,32 +137,32 @@ describe("Dev-Hub · /dev/migrations", () => {
       else process.env.NODE_ENV = previousNodeEnv;
     });
 
-    it("GET /dev/migrations returns 404 in production", async () => {
+    it("GET /hub/migrations returns 404 in production", async () => {
       const res = await hub.get("/hub/migrations");
       expect(res.status).toBe(404);
     });
 
-    it("GET /dev/migrations.json returns 404 in production", async () => {
+    it("GET /hub/migrations.json returns 404 in production", async () => {
       const res = await hub.get("/hub/migrations.json");
       expect(res.status).toBe(404);
     });
 
-    it("POST /dev/migrations/deploy returns 404 in production", async () => {
+    it("POST /hub/migrations/deploy returns 404 in production", async () => {
       const res = await hub.post("/hub/migrations/deploy");
       expect(res.status).toBe(404);
     });
 
-    it("POST /dev/migrations/apply-one returns 404 in production", async () => {
+    it("POST /hub/migrations/apply-one returns 404 in production", async () => {
       const res = await hub.post("/hub/migrations/apply-one").send({ name: "20260508000000_init" });
       expect(res.status).toBe(404);
     });
 
-    it("POST /dev/migrations/create returns 404 in production", async () => {
+    it("POST /hub/migrations/create returns 404 in production", async () => {
       const res = await hub.post("/hub/migrations/create").send({ name: "test-feature" });
       expect(res.status).toBe(404);
     });
 
-    it("DELETE /dev/migrations/draft/:name returns 404 in production", async () => {
+    it("DELETE /hub/migrations/draft/:name returns 404 in production", async () => {
       const res = await hub.delete("/hub/migrations/draft/20260508000000_init");
       expect(res.status).toBe(404);
     });

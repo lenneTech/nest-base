@@ -7,6 +7,8 @@ Used by the autonomous loop in `nest-base-loop-prompt.md`.
 
 **Loop rule:** Promise the completion marker only when this file has zero `☐`/`🔄` rows AND `scripts/verify-spec.sh` exits 0 AND the code-reviewer subagent returns no items.
 
+> **2026-05-19:** Evidence columns may still cite historical `/dev/*` paths and `dev-hub.controller.ts`; live routes are under `/hub/*` (`hub.controller.ts`). See `docs/security/route-audit-2026-05-02.md` banner.
+
 ---
 
 ## CF — Core Features
@@ -43,14 +45,14 @@ Used by the autonomous loop in `nest-base-loop-prompt.md`.
 
 | ID | Requirement | Status | File:Line | Test | Evidence |
 |---|---|---|---|---|---|
-| CF.MTPERM.01 | Tenant guard + `x-tenant-id` resolver | ✅ | src/core/multi-tenancy/ | tests/stories/tenant-header.story.test.ts + tests/stories/tenant-interceptor.story.test.ts (11/11) + tests/stories/resolve-request-tenant.story.test.ts (iter-12) | x-tenant-id resolver tested |
+| CF.MTPERM.01 | Tenant guard + session `activeOrganizationId` resolver | ✅ | src/core/multi-tenancy/ | tests/stories/tenant-resolution-policy.story.test.ts + tests/stories/tenant-interceptor.story.test.ts (11/11) + tests/stories/resolve-request-tenant.story.test.ts (iter-12) | session-only tenant scope |
 | CF.MTPERM.02 | `GET /me/tenants` endpoint | ✅ | src/core/multi-tenancy/ | tests/stories/tenant-self-service.story.test.ts + tests/stories/tenant-self-service-prisma-storage.story.test.ts (iter-12) | GET /me/tenants response |
 | CF.MTPERM.03 | `POST /tenants` endpoint | ✅ | src/core/multi-tenancy/ | tests/stories/tenant-self-service.story.test.ts + tests/stories/tenant-self-service-sets-user-tenant.story.test.ts (iter-12) | POST /tenants creates + assigns |
 | CF.MTPERM.04 | Postgres RLS on every tenant-scoped table | ✅ | src/core/permissions/rls-runtime-check.ts + rls-runtime-planner.ts | tests/stories/rls-runtime-planner.story.test.ts (5/5 iter-6) | runtime planner verifies pg_class.relrowsecurity matches expectations |
 | CF.MTPERM.05 | `bun run check:rls` runtime verification | ✅ | scripts/check-rls.ts | tests/stories/check-rls-loads-project-env.story.test.ts (3/3 iter-6) | script loads project .env and runs runtime check |
 | CF.MTPERM.06 | CASL ability + DB-rule resolver | ✅ | src/core/permissions/casl-ability.ts + db-rule-resolver.ts | tests/stories/casl-ability.story.test.ts (6/6 iter-8) + tests/unit/permission-models.spec.ts (11/11) | ability resolves rules from Prisma storage |
 | CF.MTPERM.07 | Ability cache | ✅ | src/core/permissions/permission.service.ts (TTL+LRU cache keyed by `${userId}\|${tenantId}` with `invalidate(userId, tenantId?)` + `invalidateAll()` + `cacheSize()` iter-98) + src/core/permissions/admin-crud.module.ts (CrudController calls `permissions.invalidateAll()` from create + delete iter-98) | tests/stories/casl-ability.story.test.ts (6/6) + tests/stories/permission-service.story.test.ts (cache + invalidate(userId, tenantId) + invalidate(userId)) + tests/stories/permission-cache-invalidation.story.test.ts (2/2 iter-98) | end-to-end: cache hits within TTL; invalidate(userId, tenantId) drops single entry; invalidate(userId) drops every entry for the user; invalidateAll() drops everything; admin-crud create/delete on roles/policies/permissions invalidates so next request rebuilds without waiting on the 60s TTL |
-| CF.MTPERM.08 | `@Can(action, subject)` guard | ✅ | src/core/permissions/can.guard.ts + ability.middleware.ts | tests/stories/ability-middleware.story.test.ts (5/5) + tests/stories/ability-middleware-tenant-header-fallback.story.test.ts (7/7 iter-8) | guard rejects without ability |
+| CF.MTPERM.08 | `@Can(action, subject)` guard | ✅ | src/core/permissions/can.guard.ts + ability.middleware.ts | tests/stories/ability-middleware.story.test.ts (5/5) + tests/stories/ability-middleware-ignores-tenant-header.story.test.ts (7/7 iter-8) | guard rejects without ability |
 | CF.MTPERM.09 | `@Public("reason")` decorator with mandatory reason | ✅ | src/core/permissions/public.decorator.ts | tests/stories/public-decorator.story.test.ts (9/9 iter-6) | reason required, lint error on empty/generic |
 | CF.MTPERM.10 | Route audit: every handler @Can() / @Public() / allow-listed | ✅ | src/core/permissions/route-audit-planner.ts | tests/stories/route-audit-planner.story.test.ts (12/12 iter-6) | planner classifies @Can / @Public / allow-listed / unguarded |
 | CF.MTPERM.11 | Route audit fails CI on gaps | ✅ | tests/stories/route-gating-audit.story.test.ts | tests/stories/route-gating-audit.story.test.ts (2/2 iter-9) | gating audit story fails CI on unguarded routes |

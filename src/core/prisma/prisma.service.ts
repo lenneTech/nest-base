@@ -405,7 +405,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     const id = tenantId ?? getCurrentTenantId();
     if (!id) throw new RlsTenantMissingError();
     // Defense-in-depth: validate UUID format at the call-site even though
-    // upstream code (parseTenantHeader) already validates. An invalid format
+    // upstream code (requireTenantContext) already validates. An invalid format
     // here means a programming error — fail loudly before touching SQL.
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
       throw new Error(`runWithRlsTenant: invalid tenant ID format`);

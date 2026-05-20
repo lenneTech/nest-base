@@ -1,5 +1,5 @@
 /**
- * `/dev/diagnostics` — runtime + environment + active features +
+ * `/hub/diagnostics` — runtime + environment + active features +
  * application metadata.
  */
 import { useQuery } from "@tanstack/react-query";
@@ -30,7 +30,7 @@ interface DiagnosticsReport {
 
 export function DiagnosticsPage(): ReactNode {
   const data = useQuery({
-    queryKey: ["dev", "diagnostics"],
+    queryKey: ["hub", "diagnostics"],
     queryFn: () => fetchJson<DiagnosticsReport>("/hub/diagnostics.json"),
     refetchInterval: 5_000,
   });

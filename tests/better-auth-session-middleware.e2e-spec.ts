@@ -108,8 +108,7 @@ describe("Better-Auth · Session middleware (req.user)", () => {
       .send({ email, password, name: "Session User" });
     expect(signUp.status, JSON.stringify(signUp.body)).toBe(200);
 
-    // Provision a BA organization + member row so the unified resolver
-    // accepts the x-tenant-id header (presence of member row = ACTIVE).
+    // Provision a BA organization + member row so set-active can scope the session.
     await prisma.organization.upsert({
       where: { id: TENANT_ID },
       update: {},

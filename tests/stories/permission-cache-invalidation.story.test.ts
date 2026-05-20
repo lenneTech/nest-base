@@ -18,7 +18,7 @@ import {
  *   1. `invalidateAll()` — broadest invalidation, called on
  *      role/policy/permission graph mutations whose affected user set
  *      is unknown without a graph walk.
- *   2. `cacheSize()` — observability surface (used by /dev portal +
+ *   2. `cacheSize()` — observability surface (used by the Hub portal +
  *      tests).
  *
  * The admin-crud controllers (`/admin/roles`, `/admin/policies`,

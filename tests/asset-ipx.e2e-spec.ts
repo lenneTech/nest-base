@@ -113,7 +113,6 @@ describe("Asset · IPX endpoint", () => {
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({
-        tenantId,
         folderId: null,
         filename: "fixture.png",
         mimeType: "image/png",
@@ -221,7 +220,6 @@ describe("Asset · IPX endpoint", () => {
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({
-        tenantId,
         folderId: null,
         filename: "sibling.png",
         mimeType: "image/png",

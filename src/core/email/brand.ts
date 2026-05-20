@@ -64,7 +64,7 @@ export interface BrandConfig {
  *     non-empty value, even when the project hasn't set the field
  *   - `supportEmail` → defaults to a sample value so the "Need help?"
  *     line in the footer renders coherently before the operator fills
- *     the real address via `/dev/brand` (the sample is obvious
+ *     the real address via `/hub/brand` (the sample is obvious
  *     enough to flag in QA).
  */
 export function brandConfigFromCentral(central: CentralBrandConfig): BrandConfig {

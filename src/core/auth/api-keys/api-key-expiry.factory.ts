@@ -35,10 +35,9 @@ interface ApiKeyExpiryFactoryDeps {
  * cooldown filter prevents double-notifications even if the
  * watermark write races with a concurrent tick.
  *
- * Manage URL: `process.env.PUBLIC_BASE_URL ?? "http://localhost:3000"`
- * + `/dev/api-keys` so the email's CTA points at the project's
- * key-management page. Production deployments override
- * `PUBLIC_BASE_URL` in their environment.
+ * Manage URL: `ConfigService.server.baseUrl` + `/api/docs` (Scalar API
+ * reference — API keys are managed via `POST /api/api-keys`). Production
+ * deployments override `BASE_URL` in their environment.
  */
 export function buildDefaultApiKeyExpiryRunnerInput(
   deps: ApiKeyExpiryFactoryDeps,
@@ -109,7 +108,7 @@ async function sendExpiryEmail(
   // keeps config access consistent with the rest of the codebase and avoids
   // a pure-planner caller having to read process.env directly.
   const baseUrl = deps.config.server.baseUrl;
-  const manageUrl = `${baseUrl.replace(/\/$/, "")}/dev/api-keys`;
+  const manageUrl = `${baseUrl.replace(/\/$/, "")}/api/docs`;
   // APP_NAME is not (yet) in AppConfig/BrandConfig — fall back to brand.name
   // once brand injection is available; for now read from process.env with a
   // sensible default (same fallback the Better-Auth email hooks use).

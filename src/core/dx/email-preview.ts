@@ -1,7 +1,7 @@
 import type { EmailRenderedTemplate, EmailTemplateRenderer } from "../email/email.service.js";
 
 /**
- * Pure planner for `/dev/email-preview`.
+ * Pure planner for `/hub/email-preview`.
  *
  *   - `buildEmailPreviewCatalog()` enumerates every built-in template.
  *   - `renderEmailPreview()` composes one template + payload into

@@ -41,7 +41,7 @@ describe("Brand-Config · runtime surfaces", () => {
     else process.env.NODE_ENV = previousNodeEnv;
   });
 
-  describe("/dev/brand.json", () => {
+  describe("/hub/brand.json", () => {
     it("returns the effective brand config", async () => {
       const res = await hub.get("/hub/brand.json");
       expect(res.status).toBe(200);
@@ -82,7 +82,7 @@ describe("Brand-Config · runtime surfaces", () => {
     });
   });
 
-  describe("POST /dev/brand", () => {
+  describe("POST /hub/brand", () => {
     const overlayPath = resolve(process.cwd(), "src/modules/branding/brand.json");
 
     afterEach(async () => {
@@ -109,14 +109,14 @@ describe("Brand-Config · runtime surfaces", () => {
       expect(existsSync(overlayPath)).toBe(true);
     });
 
-    it("subsequent /dev/brand.json reads return the new value", async () => {
+    it("subsequent /hub/brand.json reads return the new value", async () => {
       await hub.post("/hub/brand").send({ name: "Acme", primaryColor: "#ff00aa" });
       const after = await hub.get("/hub/brand.json");
       expect(after.body.name).toBe("Acme");
       expect(after.body.primaryColor).toBe("#ff00aa");
     });
 
-    it("POST /dev/brand/reset removes the overlay (idempotent)", async () => {
+    it("POST /hub/brand/reset removes the overlay (idempotent)", async () => {
       await hub.post("/hub/brand").send({ name: "Acme" });
       const reset1 = await hub.post("/hub/brand/reset");
       expect(reset1.status).toBe(200);

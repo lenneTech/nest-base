@@ -14,7 +14,7 @@ import { tunnelStateLockPath } from "../src/core/dev/tunnel-state-runner.js";
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 
 /**
- * `GET /dev/tunnel.json` — exposes the active Cloudflare-Tunnel URL
+ * `GET /hub/tunnel.json` — exposes the active Cloudflare-Tunnel URL
  * the dev runner discovered. The endpoint reads the `tunnel.json`
  * lock file in `node_modules/.cache/nest-base/`. When the file is
  * absent, the endpoint reports `{ active: false }`.
@@ -22,7 +22,7 @@ const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {
  * The endpoint 404s outside `NODE_ENV=development` so a stale lock
  * file in production never leaks a public URL.
  */
-describe("Dev-Hub · GET /dev/tunnel.json", () => {
+describe("Hub · GET /hub/tunnel.json", () => {
   let app: INestApplication;
   let hub: Awaited<ReturnType<typeof hubReqScoped>>;
   let previousNodeEnv: string | undefined;
@@ -108,7 +108,7 @@ describe("Dev-Hub · GET /dev/tunnel.json", () => {
 // fix is one NODE_ENV per worker fork). Both files share the same
 // controller code; the split is purely about test isolation.
 
-describe("Dev-Hub · /dev/tunnel.json — controller declaration smoke check", () => {
+describe("Hub · /hub/tunnel.json — controller declaration smoke check", () => {
   it("hub.controller.ts declares @Get('tunnel.json')", () => {
     const text = require("node:fs").readFileSync(
       resolve(import.meta.dirname, "..", "src", "core", "dx", "hub.controller.ts"),

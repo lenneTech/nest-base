@@ -251,8 +251,8 @@ inside is fixed by `src/core/`:
 
 - `src/modules/branding/brand.json` — the project brand config
   (issue #5). Schema-validated via `BrandConfigSchema`. Edited via
-  `/dev/brand` (writes the file directly), reset via
-  `POST /dev/brand/reset`. Falls back to
+  `/hub/brand` (writes the file directly), reset via
+  `POST /hub/brand/reset`. Falls back to
   `src/core/branding/brand.default.json` when missing.
 - `src/modules/email/templates/<name>.tsx` — project-owned email
   templates that override the core templates of the same name.

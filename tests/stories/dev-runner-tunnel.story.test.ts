@@ -27,7 +27,7 @@ describe("Story · Dev runner — `--tunnel` wiring", () => {
     expect(DEV_SCRIPT).toMatch(/formatMissingCloudflaredHint/);
   });
 
-  it("imports the tunnel-state runner so the API can read the URL via /dev/tunnel.json", () => {
+  it("imports the tunnel-state runner so the API can read the URL via /hub/tunnel.json", () => {
     expect(DEV_SCRIPT).toMatch(/from ['"]\.\.\/src\/core\/dev\/tunnel-state-runner\.js['"]/);
     expect(DEV_SCRIPT).toMatch(/writeTunnelState/);
     expect(DEV_SCRIPT).toMatch(/clearTunnelState/);
@@ -49,7 +49,7 @@ describe("Story · Dev runner — `--tunnel` wiring", () => {
 
   it("forwards SIGINT/SIGTERM to the cloudflared child for clean teardown", () => {
     // The shutdown handler must kill the tunnel process and clear the
-    // state file so /dev/tunnel.json never reports a dead URL.
+    // state file so /hub/tunnel.json never reports a dead URL.
     expect(DEV_SCRIPT).toMatch(/tunnelChild\.kill/);
     expect(DEV_SCRIPT).toMatch(/clearTunnelState\(process\.cwd\(\)\)/);
   });

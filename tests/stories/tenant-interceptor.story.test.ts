@@ -157,7 +157,7 @@ describe("Story · Tenant-Interceptor + RLS", () => {
           findFirst: async () => null,
         },
       };
-      // The unauthenticated code-path only uses parseTenantHeader and
+      // The unauthenticated code-path throws TenantIsolationError and
       // never calls `resolveRequestTenantId`, so we test the authenticated
       // path by passing a user + prisma stub. `TenantInterceptor` uses
       // `resolveRequestTenantId` for auth'd requests, which now reads

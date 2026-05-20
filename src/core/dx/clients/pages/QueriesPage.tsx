@@ -1,5 +1,5 @@
 /**
- * `/dev/queries` — recent / slowest / most-frequent Prisma queries.
+ * `/hub/queries` — recent / slowest / most-frequent Prisma queries.
  */
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
@@ -47,7 +47,7 @@ interface QueriesResponse {
 
 export function QueriesPage(): ReactNode {
   const data = useQuery({
-    queryKey: ["dev", "queries"],
+    queryKey: ["hub", "queries"],
     queryFn: () => fetchJson<QueriesResponse>("/hub/queries.json"),
     refetchInterval: 3_000,
   });

@@ -36,7 +36,7 @@ export interface WebhookEventOptions {
   readonly name: string;
   /**
    * One-line description rendered in the Webhook Inspector +
-   * `/dev/webhooks` catalogue. Empty string is rejected — every
+   * `/hub/webhooks` catalogue. Empty string is rejected — every
    * event must self-describe.
    */
   readonly description?: string;

@@ -684,7 +684,7 @@ export class AdminSpaController {
 
   /**
    * `/admin/jobs` — Admin SPA shell for the Jobs dashboard. The
-   * React page re-uses the JSON contract under `/dev/jobs/*` so the
+   * React page re-uses the JSON contract under `/hub/jobs/*` so the
    * admin and dev surfaces stay byte-for-byte aligned. Iter-108 ships
    * the shell so site operators (Better-Auth admin role) can see
    * queue + job state without dropping into the developer portal.

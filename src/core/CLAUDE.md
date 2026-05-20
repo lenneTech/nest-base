@@ -19,7 +19,7 @@ branding/        ← BrandConfig schema + loader + CSS-var generator + default
 concurrency/     ← ETag + If-Match optimistic-concurrency primitives
 config/          ← env validation, base-url + cookie + cors config
 dev/             ← (reserved — no current files)
-dx/              ← /dev landing page + /admin/* HTML renderers + diagnostics
+dx/              ← /hub landing page + /admin/* HTML renderers + diagnostics
 email/           ← EmailService (Nodemailer + Brevo) + EJS-subset templates
 encryption/      ← AES-256-GCM field-level encryption with KEK rotation
 errors/          ← CORE_* error codes + RFC 7807 problem-details + registry
@@ -125,7 +125,7 @@ if (features.webhooks.enabled) {
 
 ### HTML renderers
 
-Every `/admin/*` and `/dev/*` page renderer in `dx/` HTML-escapes
+Every `/admin/*` and `/hub/*` page renderer in `dx/` HTML-escapes
 user-controlled fragments via the standard five-char table:
 
 ```typescript

@@ -11,7 +11,7 @@ import { ZodError } from "zod";
 
 import { ETagMissingError, ETagPreconditionFailedError } from "../concurrency/etag.js";
 import { IdempotencyConflictError } from "../idempotency/idempotency.service.js";
-import { TenantIsolationError } from "../multi-tenancy/tenant-header.js";
+import { TenantIsolationError } from "../multi-tenancy/tenant-scope-error.js";
 import { getRequestContext } from "../request-context/request-context.js";
 import { CORE_ERROR_CODES, type ProblemDetails, problemDetails } from "./error-code.js";
 

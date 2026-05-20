@@ -1,7 +1,7 @@
 /**
  * Email-Builder runtime — renders a composition (JSON spec + vars) to
  * HTML+text+subject **without** writing a `.tsx` to disk. Used by the
- * `POST /dev/email-builder/preview.json` endpoint so the live preview
+ * `POST /hub/email-builder/preview.json` endpoint so the live preview
  * always reflects the current draft, not the last save.
  *
  * Why a runtime module:

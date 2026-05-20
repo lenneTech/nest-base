@@ -95,7 +95,7 @@ describe("Story · Route-audit planner — parseControllerSource", () => {
     expect(first?.decorators.allowlistMatch).toBe("/health/");
   });
 
-  it("treats /admin/* and /dev/* as dev-only (public-by-design) by default", () => {
+  it("treats /admin/* and /hub/* as dev-only (public-by-design) by default", () => {
     const source = `
       @Controller("admin")
       class AdminController {

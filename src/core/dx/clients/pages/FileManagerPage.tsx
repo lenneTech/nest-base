@@ -1,8 +1,8 @@
 /**
- * `/dev/files` — Dev-Portal File-Manager.
+ * `/hub/files` — Dev-Portal File-Manager.
  *
  * Two-column layout:
- *   - left rail: collapsible folder tree (built from /dev/files/tree.json)
+ *   - left rail: collapsible folder tree (built from /hub/files/tree.json)
  *   - right pane: breadcrumb + sort/filter toolbar + file grid
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -118,7 +118,7 @@ export function FileManagerPage(): ReactNode {
   }, []);
 
   const treeQuery = useQuery({
-    queryKey: ["dev", "files", "tree", tenantId],
+    queryKey: ["hub", "files", "tree", tenantId],
     queryFn: () => fetchJson<TreeResponse>("/hub/files/tree.json"),
     enabled: tenantValid,
   });
@@ -133,7 +133,7 @@ export function FileManagerPage(): ReactNode {
   }, [tenantId, activeFolderId, search, sortBy, sortDirection]);
 
   const listQuery = useQuery({
-    queryKey: ["dev", "files", "list", listUrl],
+    queryKey: ["hub", "files", "list", listUrl],
     queryFn: () => fetchJson<ListResponse>(listUrl),
     enabled: tenantValid,
   });
@@ -145,7 +145,7 @@ export function FileManagerPage(): ReactNode {
   }, [activeFolderId]);
 
   const breadcrumbQuery = useQuery({
-    queryKey: ["dev", "files", "breadcrumb", breadcrumbUrl],
+    queryKey: ["hub", "files", "breadcrumb", breadcrumbUrl],
     queryFn: () => fetchJson<BreadcrumbResponse>(breadcrumbUrl),
     enabled: tenantValid,
   });
@@ -156,7 +156,6 @@ export function FileManagerPage(): ReactNode {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          tenantId,
           parentId: activeFolderId,
           name: newFolderName,
         }),
@@ -166,8 +165,8 @@ export function FileManagerPage(): ReactNode {
     },
     onSuccess: () => {
       setNewFolderName("");
-      void queryClient.invalidateQueries({ queryKey: ["dev", "files", "tree"] });
-      void queryClient.invalidateQueries({ queryKey: ["dev", "files", "list"] });
+      void queryClient.invalidateQueries({ queryKey: ["hub", "files", "tree"] });
+      void queryClient.invalidateQueries({ queryKey: ["hub", "files", "list"] });
     },
   });
 
@@ -178,7 +177,7 @@ export function FileManagerPage(): ReactNode {
       return res.json();
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["dev", "files", "list"] });
+      void queryClient.invalidateQueries({ queryKey: ["hub", "files", "list"] });
     },
   });
 
@@ -194,7 +193,7 @@ export function FileManagerPage(): ReactNode {
     },
     onSuccess: (_d, vars) => {
       toast.success(`Visibility: ${vars.next}`);
-      void queryClient.invalidateQueries({ queryKey: ["dev", "files", "list"] });
+      void queryClient.invalidateQueries({ queryKey: ["hub", "files", "list"] });
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -236,7 +235,7 @@ export function FileManagerPage(): ReactNode {
     },
     onSuccess: ({ succeeded, failed }) => {
       setSelectedIds(new Set());
-      void queryClient.invalidateQueries({ queryKey: ["dev", "files", "list"] });
+      void queryClient.invalidateQueries({ queryKey: ["hub", "files", "list"] });
       if (failed.length === 0) {
         toast.success(`${succeeded} file(s) deleted.`);
       } else {
@@ -338,7 +337,7 @@ export function FileManagerPage(): ReactNode {
                   tenantId={tenantId}
                   folderId={activeFolderId}
                   onUploaded={() => {
-                    void queryClient.invalidateQueries({ queryKey: ["dev", "files", "list"] });
+                    void queryClient.invalidateQueries({ queryKey: ["hub", "files", "list"] });
                   }}
                 />
                 <div className="flex flex-wrap items-end gap-3 rounded-md border border-line bg-surface-2 p-3">

@@ -9,6 +9,7 @@ import {
 } from "@nestjs/common";
 import type { Request } from "express";
 
+import { requireSessionTenantId } from "../multi-tenancy/resolve-session-tenant.js";
 import { Can } from "../permissions/can.guard.js";
 import {
   buildImpersonationAuditEvent,
@@ -48,7 +49,7 @@ export const IMPERSONATION_AUDIT_SINK = Symbol.for("lt:ImpersonationAuditSink");
 export const IMPERSONATION_TEARDOWN = Symbol.for("lt:ImpersonationTeardown");
 
 interface AuthedRequest extends Request {
-  readonly user?: { readonly id: string; readonly tenantId?: string };
+  readonly user?: { readonly id: string; readonly activeOrganizationId?: string | null };
 }
 
 interface ImpersonationStopBody {
@@ -105,7 +106,7 @@ export class ImpersonationController {
       kind: "stop",
       adminUserId: req.user.id,
       impersonatedUserId: body.impersonatedUserId,
-      tenantId: req.user.tenantId ?? "",
+      tenantId: requireSessionTenantId(req),
       ipAddress,
       sessionId: body.sessionId,
       occurredAt: Date.now(),

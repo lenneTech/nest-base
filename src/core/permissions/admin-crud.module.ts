@@ -154,7 +154,7 @@ class RoleAdminService {
   }
   async create(body: RoleCreateBody, tenantId: string) {
     const name = asString(body.name, "name");
-    // If the body carries a tenantId, it MUST match the header — never
+    // If the body carries a tenantId, it MUST match the active tenant context — never
     // trust the body to escape the operator's scope.
     if (
       typeof body.tenantId === "string" &&

@@ -166,11 +166,6 @@ function renderEnvExample(answers: WizardAnswers): string {
   lines.push("# ── Object storage (RustFS / S3-compatible) ────────────────────");
   lines.push("S3_ACCESS_KEY=rustfs");
   lines.push("S3_SECRET_KEY=rustfs-secret");
-  if (answers.multiTenant) {
-    lines.push("");
-    lines.push("# ── Multi-tenancy ──────────────────────────────────────────────");
-    lines.push("TENANT_HEADER=x-tenant-id");
-  }
   if (answers.emailEnabled) {
     lines.push("");
     lines.push("# ── Email ──────────────────────────────────────────────────────");
@@ -237,10 +232,9 @@ function renderEnvExample(answers: WizardAnswers): string {
   lines.push("# FEATURE_AUTH_METHODS_API_KEYS=true");
   lines.push("# FEATURE_AUTH_METHODS_SOCIAL_PROVIDERS=");
   lines.push("");
-  lines.push("# Multi-tenancy");
+  lines.push("# Multi-tenancy (session org via set-active; no tenant header)");
   lines.push("# FEATURE_MULTI_TENANCY_ENABLED=true");
   lines.push("# FEATURE_MULTI_TENANCY_RLS=true");
-  lines.push("# FEATURE_MULTI_TENANCY_HEADER_NAME=x-tenant-id");
   lines.push("");
   lines.push("# Files (TUS uploads, storage adapter, image transforms)");
   lines.push("# FEATURE_FILES_ENABLED=true");

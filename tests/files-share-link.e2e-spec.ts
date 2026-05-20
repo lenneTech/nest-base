@@ -103,7 +103,6 @@ describe("Files · share-link round-trip", () => {
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({
-        tenantId,
         folderId: null,
         filename: "shared.png",
         mimeType: "image/png",
@@ -167,7 +166,6 @@ describe("Files · share-link round-trip", () => {
   it("rejects an expired token with 404", async () => {
     const expiredToken = signShareLink({
       fileId,
-      tenantId,
       expiresAtMs: Date.now() - 60_000,
       secret: "iter-112-share-link-secret",
     });
@@ -178,7 +176,6 @@ describe("Files · share-link round-trip", () => {
   it("rejects a tampered token with 400", async () => {
     const valid = signShareLink({
       fileId,
-      tenantId,
       expiresAtMs: Date.now() + 60_000,
       secret: "iter-112-share-link-secret",
     });

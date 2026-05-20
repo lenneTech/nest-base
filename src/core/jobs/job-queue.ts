@@ -22,7 +22,7 @@ import { uuidV7 } from "../uuid/uuid-v7.js";
  *
  * Beyond the runtime surface the queue keeps a per-job `JobRecord`
  * with createdAt / startedAt / completedAt timestamps + the original
- * payload + the error captured on failure. The `/dev/jobs/*`
+ * payload + the error captured on failure. The `/hub/jobs/*`
  * dashboard reads that history through `listJobs()` and `getAggregates()`.
  */
 
@@ -180,7 +180,7 @@ export class InMemoryJobQueue {
   }
 
   /**
-   * Aggregate snapshot the `/dev/jobs/queues.json` endpoint serves.
+   * Aggregate snapshot the `/hub/jobs/queues.json` endpoint serves.
    * Built from the unfiltered history so totals reflect everything
    * the queue has ever processed in the current process lifetime.
    */

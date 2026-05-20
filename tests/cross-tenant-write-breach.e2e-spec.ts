@@ -15,15 +15,11 @@ import { uuidV7 } from "../src/core/uuid/uuid-v7.js";
  *   - Alice owns `aliceTenant`; Bob has NO membership in it.
  *   - Bob calls `POST /examples` with `x-tenant-id: <aliceTenantId>`.
  *
- * Before the fix:
- *   - `TenantInterceptor.parseTenantHeader` blindly trusted the header
- *     → RLS context = aliceTenantId → row landed in Alice's tenant.
- *   - `AbilityMiddleware` short-circuited on `req.user.tenantId`
- *     (= bobTenant) → ability built for Bob's primary tenant grants
- *     `manage Example` → CASL `@Can('create', 'Example')` PERMITS
- *     because the type-only check doesn't evaluate the
- *     `tenantId == $CURRENT_TENANT` condition.
- *   - Net result: 201 Created, foreign-tenant write.
+ * Before the fix (header-based tenancy):
+ *   - A stray `x-tenant-id` header could override the session tenant,
+ *     landing rows in another organization's scope.
+ *   - Net result: cross-tenant write despite Bob having no membership
+ *     in Alice's organization.
  *
  * After session-first policy (app `/api/*`):
  *   - Stray `x-tenant-id` on `/api/examples` is ignored; scope comes

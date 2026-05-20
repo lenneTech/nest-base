@@ -207,7 +207,7 @@ function asyncQueueSummary(groups: StatusGroup[] | undefined): {
 
 export function HubLandingPage(): ReactNode {
   const dashboard = useQuery({
-    queryKey: ["dev", "dashboard"],
+    queryKey: ["hub", "dashboard"],
     queryFn: () => fetchJson<DashboardJson>("/hub/dashboard.json"),
     refetchInterval: 5_000,
   });
@@ -790,7 +790,7 @@ function ServicesGrid({ probes }: { probes: ServiceProbe[] }): ReactNode {
       try {
         const next = await fetchJson<ServiceProbe[]>("/hub/status.json");
         if (cancelled) return;
-        queryClient.setQueryData<DashboardJson | undefined>(["dev", "dashboard"], (prev) =>
+        queryClient.setQueryData<DashboardJson | undefined>(["hub", "dashboard"], (prev) =>
           prev ? { ...prev, probes: next } : prev,
         );
       } catch {

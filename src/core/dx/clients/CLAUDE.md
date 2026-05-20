@@ -1,6 +1,6 @@
 # `src/core/dx/clients/` — Dev-Portal SPA source
 
-Every `/dev/*`, `/admin/*`, `/errors`, and `/openapi` HTML page is
+Every `/hub/*`, `/admin/*`, `/errors`, and `/openapi` HTML page is
 served by this React 19 SPA. The legacy server-side `*-ui.ts`
 renderers are gone — `dist/dev-portal/` is the single source of UI
 for every developer surface.
@@ -72,22 +72,22 @@ clients/
 │   ├── nav.ts                     ← sidebar nav model + SPA_ROUTES set
 │   └── icons.tsx                  ← SVG icons inlined per dev-portal
 ├── pages/
-│   ├── HubLandingPage.tsx      ← /dev — landing dashboard
-│   ├── FeaturesPage.tsx           ← /dev/features
-│   ├── BrandPage.tsx              ← /dev/brand
-│   ├── CoveragePage.tsx           ← /dev/coverage
-│   ├── TestsPage.tsx              ← /dev/tests
-│   ├── DiagnosticsPage.tsx        ← /dev/diagnostics
-│   ├── LogsPage.tsx               ← /dev/logs
-│   ├── TracesPage.tsx             ← /dev/traces
-│   ├── QueriesPage.tsx            ← /dev/queries
-│   ├── MigrationsPage.tsx         ← /dev/migrations (5 tabs)
-│   ├── JobsPage.tsx               ← /dev/jobs
-│   ├── RoutesPage.tsx             ← /dev/routes
-│   ├── ErdPage.tsx                ← /dev/erd
+│   ├── HubLandingPage.tsx      ← /hub — landing dashboard
+│   ├── FeaturesPage.tsx           ← /hub/features
+│   ├── BrandPage.tsx              ← /hub/brand
+│   ├── CoveragePage.tsx           ← /hub/coverage
+│   ├── TestsPage.tsx              ← /hub/tests
+│   ├── DiagnosticsPage.tsx        ← /hub/diagnostics
+│   ├── LogsPage.tsx               ← /hub/logs
+│   ├── TracesPage.tsx             ← /hub/traces
+│   ├── QueriesPage.tsx            ← /hub/queries
+│   ├── MigrationsPage.tsx         ← /hub/migrations (5 tabs)
+│   ├── JobsPage.tsx               ← /hub/jobs
+│   ├── RoutesPage.tsx             ← /hub/routes
+│   ├── ErdPage.tsx                ← /hub/erd
 │   ├── EmailBuilderPage.tsx       ← /hub/emails
-│   ├── PostgrestParsePage.tsx     ← /dev/postgrest-parse
-│   ├── FileManagerPage.tsx        ← /dev/files
+│   ├── PostgrestParsePage.tsx     ← /hub/postgrest-parse
+│   ├── FileManagerPage.tsx        ← /hub/files
 │   ├── PermissionTesterPage.tsx   ← /admin/permissions/test
 │   ├── WebhookInspectorPage.tsx   ← /admin/webhooks
 │   ├── RealtimeInspectorPage.tsx  ← /admin/realtime
@@ -120,7 +120,7 @@ clients/
 2. Add the corresponding sidebar entry to `layout/nav.ts` (extend
    `NAV_SECTIONS` and add the path to `SPA_ROUTES` so the link uses
    react-router and not a full reload).
-3. Add a `*.json` endpoint in `hub.controller.ts` (for `/dev/*`)
+3. Add a `*.json` endpoint in `hub.controller.ts` (for `/hub/*`)
    or `admin-spa.controller.ts` (for `/admin/*`) — the controller does
    the planning, returns JSON, the React page renders.
 4. Add a controller `@Get()` for the HTML route that returns
@@ -151,7 +151,7 @@ clients/
 splitting: true, minify: true, plugins: [bunPluginTailwind] })` and
 writes the bundle to `dist/dev-portal/`. The output is gitignored.
 `bun run dev` awaits the initial build before spawning the API so
-`/dev/static/main.js` is never missing on first paint, then starts a
+`/hub/static/main.js` is never missing on first paint, then starts a
 watcher for incremental rebuilds (~80 ms warm).
 
 ## Coverage

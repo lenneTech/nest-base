@@ -54,7 +54,7 @@ export function createLogger(options: CreateLoggerOptions): Logger {
 
   if (options.env === "development") {
     // Dev: pino-pretty for the terminal + an in-memory ring buffer that
-    // backs `/dev/logs`. multistream lets every record fan out to both
+    // backs `/hub/logs`. multistream lets every record fan out to both
     // destinations without re-running formatters.
     const buffer = getLogBuffer();
     const prettyTransport = pino.transport({
