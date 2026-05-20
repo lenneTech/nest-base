@@ -4,8 +4,9 @@
  * `https://api.<project>.localhost` with auto-HTTPS.
  *
  * portless 0.11+ replaced its YAML-config model with `portless run
- * --name <name> -- <cmd>`. The portless proxy must already be running
- * — start it once per session via `portless proxy start` (sudo).
+ * --name <name> -- <cmd>`. When portless is on PATH, `dev.ts` starts
+ * the proxy daemon if it is not already listening (`portless proxy start`,
+ * with an unprivileged HTTPS fallback when :443 needs sudo).
  *
  * Fallback path: when portless is not on PATH (or `DISABLE_PORTLESS=1`
  * is set), the API binds to a dynamically assigned port so devs without
@@ -49,6 +50,7 @@ import {
   resolveDevPort,
   shouldUsePortless,
 } from '../src/core/dev/portless.js';
+import { ensurePortlessProxyRunning } from '../src/core/dev/portless-proxy-runner.js';
 import {
   isPidAlive,
   readPortlessRouteOwner,
@@ -138,7 +140,17 @@ const portlessPath = resolvePortlessBinary();
 const useDisable = process.env.DISABLE_PORTLESS === '1';
 const usePortless = shouldUsePortless({ portlessPath, disable: useDisable });
 const projectName = readProjectName();
-const proxyAlive = usePortless ? await isPortlessProxyRunning() : false;
+
+let proxyHttpsPort = 443;
+let proxyAlive = false;
+if (usePortless && portlessPath) {
+  const ensured = await ensurePortlessProxyRunning({ portlessPath });
+  proxyAlive = ensured.running;
+  proxyHttpsPort = ensured.port;
+  if (ensured.started) {
+    console.log(`[dev] portless proxy started (HTTPS on port ${proxyHttpsPort})`);
+  }
+}
 
 // Boot Postgres via docker compose if it's not already up. Skip when
 // SKIP_DB_BOOT=1 (CI passes its own DATABASE_URL via testcontainers,
@@ -292,7 +304,7 @@ if (tunnelArgs.tunnelEnabled) {
 }
 
 async function buildSpawnPlan(): Promise<SpawnPlan> {
-  if (usePortless && proxyAlive) {
+  if (usePortless && proxyAlive && portlessPath) {
     // Defence-in-depth against stale registrations. When a previous
     // `bun --watch` was hard-killed (SIGKILL, OOM, terminal closed),
     // its entry in `~/.portless/routes.json` outlives the process and
@@ -325,17 +337,18 @@ async function buildSpawnPlan(): Promise<SpawnPlan> {
       formatDevSurvivalBanner({
         scheme: 'https',
         host: hostname,
-        port: 443,
+        port: proxyHttpsPort,
       }),
     );
     return {
-      command: portlessPath!,
+      command: portlessPath,
       args,
       env: planDevChildEnv({
         baseEnv: process.env,
         projectName,
         mode: 'portless',
         app: 'api',
+        proxyHttpsPort,
       }),
     };
   }
@@ -424,12 +437,17 @@ async function buildSpawnPlan(): Promise<SpawnPlan> {
 }
 
 if (usePortless && proxyAlive) {
-  console.log(`[dev] portless detected — running through proxy as api.${projectName}.localhost`);
+  const suffix = proxyHttpsPort === 443 ? '' : `:${proxyHttpsPort}`;
+  console.log(
+    `[dev] portless active — api.${projectName}.localhost via https://api.${projectName}.localhost${suffix}`,
+  );
 } else if (usePortless && !proxyAlive) {
   console.log(
-    '[dev] portless found on PATH but proxy is not running — falling back to direct localhost binding.',
+    '[dev] portless binary found but proxy could not be started — falling back to direct localhost binding.',
   );
-  console.log('[dev] (run `portless proxy start` once to enable the https://api.<project>.localhost route)');
+  console.log(
+    '[dev] (try `bunx portless proxy start` manually, or `bunx portless trust` for HTTPS on :443)',
+  );
 }
 
 let child: ChildProcess | undefined;

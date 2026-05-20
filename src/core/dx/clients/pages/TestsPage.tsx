@@ -1,5 +1,5 @@
 /**
- * `/dev/tests` — totals + per-file Vitest summary.
+ * `/hub/tests` — totals + per-file Vitest summary.
  */
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
@@ -47,7 +47,7 @@ interface TestSummary {
 
 export function TestsPage(): ReactNode {
   const data = useQuery({
-    queryKey: ["dev", "tests"],
+    queryKey: ["hub", "tests"],
     queryFn: () => fetchJson<TestSummary>("/hub/tests.json"),
   });
 

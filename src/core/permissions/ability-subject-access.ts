@@ -6,14 +6,10 @@ import type { Ability, AbilityAction, AbilitySubjectType } from "./casl-ability.
 /** CASL subject for operator cockpit routes (`/hub/*`). */
 export const HUB_CASL_SUBJECT = "Hub";
 
-/** Pre-rename rows in existing DBs (`bun run seed` migrates resource to Hub). */
-export const HUB_CASL_SUBJECT_LEGACY = "DevHub";
-
 /** True when the ability may use Hub portal routes or `@Can(..., "Hub")` handlers. */
 export function grantsHubPortalAccess(ability: Ability): boolean {
   if (canManageSubject(ability, "all")) return true;
-  if (ability.can("read", HUB_CASL_SUBJECT)) return true;
-  return ability.can("read", HUB_CASL_SUBJECT_LEGACY);
+  return ability.can("read", HUB_CASL_SUBJECT);
 }
 
 /** True when the ability grants full CRUD on a subject (DB stores MANAGE expanded). */
@@ -36,11 +32,8 @@ export function abilityAllows(
   if (action === "read" && subject === HUB_CASL_SUBJECT && grantsHubPortalAccess(ability))
     return true;
   if (ability.can(action, subject)) return true;
-  if (subject === HUB_CASL_SUBJECT && ability.can(action, HUB_CASL_SUBJECT_LEGACY)) return true;
   if (action === "manage") {
     if (canManageSubject(ability, subject)) return true;
-    if (subject === HUB_CASL_SUBJECT && canManageSubject(ability, HUB_CASL_SUBJECT_LEGACY))
-      return true;
     if (canManageSubject(ability, "all")) return true;
   }
   return false;

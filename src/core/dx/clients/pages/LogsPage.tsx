@@ -1,5 +1,5 @@
 /**
- * `/dev/logs` — live tail of the in-memory Pino ring buffer with
+ * `/hub/logs` — live tail of the in-memory Pino ring buffer with
  * auto-pin to bottom and "Jump to latest" affordance.
  */
 import { useQuery } from "@tanstack/react-query";
@@ -34,7 +34,7 @@ const MAX_ROWS = 500;
 
 export function LogsPage(): ReactNode {
   const initial = useQuery({
-    queryKey: ["dev", "logs", "initial"],
+    queryKey: ["hub", "logs", "initial"],
     queryFn: async () => {
       const records = await fetchJson<LogRecord[]>("/hub/logs.json");
       return records;

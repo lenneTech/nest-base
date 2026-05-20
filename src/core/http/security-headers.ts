@@ -49,7 +49,7 @@ const PROD_CSP: CspDirectives = {
   "form-action": ["'self'"],
 };
 
-// /api/docs (Scalar) and /dev sidebar use rsms.me (Inter) + jsdelivr (Scalar
+// /api/docs (Scalar) and /hub sidebar use rsms.me (Inter) + jsdelivr (Scalar
 // JS bundle). In production those static assets should be self-hosted, but
 // in dev we trust the upstream CDNs so the docs page renders out of the box.
 const DEV_CDN_HOSTS = ["https://cdn.jsdelivr.net", "https://rsms.me"];
@@ -116,7 +116,7 @@ export function serializeCsp(directives: CspDirectives): string {
  *      is a pre-response signal we can rely on without inspecting
  *      the response body.
  *
- * The hub HTML pages live under `/dev/` and `/admin/` — those
+ * The hub HTML pages live under `/hub/` and `/admin/` — those
  * routes also expose a `*.json` companion, so we ALSO match
  * `*.json` suffixes so JSON companions of HTML pages get the strict
  * CSP without needing to wait for the response Content-Type.
@@ -159,7 +159,7 @@ export function isJsonShapedResponse(input: PathAwareCspInput): boolean {
   }
   if (path.endsWith(".json")) return true;
   // Allow-list a small set of well-known JSON paths. We deliberately
-  // don't include `/admin/` or `/dev/` (those are HTML by default;
+  // don't include `/admin/` or `/hub/` (those are HTML by default;
   // their `.json` siblings hit the suffix branch above).
   if (path === "/health/live" || path === "/health/ready") return true;
   if (path === "/api/errors" || path === "/errors") return true;

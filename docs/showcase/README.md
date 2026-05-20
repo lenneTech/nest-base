@@ -16,13 +16,13 @@ sonner toasts + TanStack Query — vendored under
 
 | Page                                                                                | Desktop (1440 × 900)                                                                                 | Mobile (390 × 844)                                                                                |
 | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| [`/hub`](../../src/core/dx/clients/pages/HubLandingPage.tsx) — Cockpit landing   | [![dev landing desktop](screenshots/dev-landing-desktop.png)](screenshots/dev-landing-desktop.png)   | [![dev landing mobile](screenshots/dev-landing-mobile.png)](screenshots/dev-landing-mobile.png)   |
-| [`/hub/features`](../../src/core/dx/clients/pages/FeaturesPage.tsx) — toggles       | [![features desktop](screenshots/dev-features-desktop.png)](screenshots/dev-features-desktop.png)    | [![features mobile](screenshots/dev-features-mobile.png)](screenshots/dev-features-mobile.png)    |
-| [`/hub/coverage`](../../src/core/dx/clients/pages/CoveragePage.tsx) — Vitest report | [![coverage desktop](screenshots/dev-coverage-desktop.png)](screenshots/dev-coverage-desktop.png)    | [![coverage mobile](screenshots/dev-coverage-mobile.png)](screenshots/dev-coverage-mobile.png)    |
-| [`/hub/jobs`](../../src/core/dx/clients/pages/JobsPage.tsx) — queues + jobs         | [![jobs desktop](screenshots/dev-jobs-desktop.png)](screenshots/dev-jobs-desktop.png)                | [![jobs mobile](screenshots/dev-jobs-mobile.png)](screenshots/dev-jobs-mobile.png)                |
-| [`/hub/migrations`](../../src/core/dx/clients/pages/MigrationsPage.tsx) — Prisma    | [![migrations desktop](screenshots/dev-migrations-desktop.png)](screenshots/dev-migrations-desktop.png) | [![migrations mobile](screenshots/dev-migrations-mobile.png)](screenshots/dev-migrations-mobile.png) |
-| [`/hub/email-builder`](../../src/core/dx/clients/pages/EmailBuilderPage.tsx)        | [![email builder desktop](screenshots/dev-email-builder-desktop.png)](screenshots/dev-email-builder-desktop.png) | [![email builder mobile](screenshots/dev-email-builder-mobile.png)](screenshots/dev-email-builder-mobile.png) |
-| [`/hub/email-preview`](../../src/core/dx/clients/pages/EmailPreviewPage.tsx)        | [![email preview desktop](screenshots/dev-email-preview-desktop.png)](screenshots/dev-email-preview-desktop.png) | [![email preview mobile](screenshots/dev-email-preview-mobile.png)](screenshots/dev-email-preview-mobile.png) |
+| [`/hub`](../../src/core/dx/clients/pages/HubLandingPage.tsx) — Cockpit landing   | [![hub landing desktop](screenshots/hub-landing-desktop.png)](screenshots/hub-landing-desktop.png)   | [![hub landing mobile](screenshots/hub-landing-mobile.png)](screenshots/hub-landing-mobile.png)   |
+| [`/hub/features`](../../src/core/dx/clients/pages/FeaturesPage.tsx) — toggles       | [![features desktop](screenshots/hub-features-desktop.png)](screenshots/hub-features-desktop.png)    | [![features mobile](screenshots/hub-features-mobile.png)](screenshots/hub-features-mobile.png)    |
+| [`/hub/coverage`](../../src/core/dx/clients/pages/CoveragePage.tsx) — Vitest report | [![coverage desktop](screenshots/hub-coverage-desktop.png)](screenshots/hub-coverage-desktop.png)    | [![coverage mobile](screenshots/hub-coverage-mobile.png)](screenshots/hub-coverage-mobile.png)    |
+| [`/hub/jobs`](../../src/core/dx/clients/pages/JobsPage.tsx) — queues + jobs         | [![jobs desktop](screenshots/hub-jobs-desktop.png)](screenshots/hub-jobs-desktop.png)                | [![jobs mobile](screenshots/hub-jobs-mobile.png)](screenshots/hub-jobs-mobile.png)                |
+| [`/hub/migrations`](../../src/core/dx/clients/pages/MigrationsPage.tsx) — Prisma    | [![migrations desktop](screenshots/hub-migrations-desktop.png)](screenshots/hub-migrations-desktop.png) | [![migrations mobile](screenshots/hub-migrations-mobile.png)](screenshots/hub-migrations-mobile.png) |
+| [`/hub/email-builder`](../../src/core/dx/clients/pages/EmailBuilderPage.tsx)        | [![email builder desktop](screenshots/hub-email-builder-desktop.png)](screenshots/hub-email-builder-desktop.png) | [![email builder mobile](screenshots/hub-email-builder-mobile.png)](screenshots/hub-email-builder-mobile.png) |
+| [`/hub/email-preview`](../../src/core/dx/clients/pages/EmailPreviewPage.tsx)        | [![email preview desktop](screenshots/hub-email-preview-desktop.png)](screenshots/hub-email-preview-desktop.png) | [![email preview mobile](screenshots/hub-email-preview-mobile.png)](screenshots/hub-email-preview-mobile.png) |
 
 ### `/admin/*` — operator surfaces
 
@@ -85,13 +85,13 @@ because portless terminates TLS on the loopback host.
 
 | Slug                       | Source page                                                          |
 | -------------------------- | -------------------------------------------------------------------- |
-| `dev-landing`              | `/hub` dashboard                                                     |
-| `dev-features`             | `/hub/features`                                                      |
-| `dev-coverage`             | `/hub/coverage`                                                      |
-| `dev-jobs`                 | `/hub/jobs`                                                          |
-| `dev-migrations`           | `/hub/migrations`                                                    |
-| `dev-email-builder`        | `/hub/email-builder` gallery                                         |
-| `dev-email-preview`        | `/hub/email-preview`                                                 |
+| `hub-landing`              | `/hub` dashboard                                                     |
+| `hub-features`             | `/hub/features`                                                      |
+| `hub-coverage`             | `/hub/coverage`                                                      |
+| `hub-jobs`                 | `/hub/jobs`                                                          |
+| `hub-migrations`           | `/hub/migrations`                                                    |
+| `hub-email-builder`        | `/hub/email-builder` gallery                                         |
+| `hub-email-preview`        | `/hub/email-preview`                                                 |
 | `admin-permissions-test`   | `/admin/permissions/test`                                            |
 | `admin-webhooks`           | `/admin/webhooks` (3-column inspector)                               |
 | `admin-realtime`           | `/admin/realtime` (Sockets/Channels/Events tabs)                     |

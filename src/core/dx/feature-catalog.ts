@@ -3,7 +3,7 @@ import type { Features, ToggleableFeatureKey } from "../features/features.js";
 /**
  * Human-readable catalog for every toggleable feature.
  *
- * Pure data — used by `/dev` (overview tile) and `/dev/features` (full
+ * Pure data — used by `/hub` (overview tile) and `/hub/features` (full
  * page) to render each feature with description, ENV-toggle, and the
  * dependent module surface. Keep this in sync with `FeaturesSchema`
  * when a new feature is added.

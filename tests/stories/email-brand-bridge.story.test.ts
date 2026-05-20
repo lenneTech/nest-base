@@ -134,7 +134,7 @@ describe("Story · Email ↔ central brand bridge", () => {
       });
       // Email layouts surface "Need help? <supportEmail>" only when
       // set — we provide a sentinel that's clearly a placeholder so
-      // operators know to fill the real value in /dev/brand.
+      // operators know to fill the real value in /hub/brand.
       expect(adapted.supportEmail).toMatch(/@/);
     });
   });

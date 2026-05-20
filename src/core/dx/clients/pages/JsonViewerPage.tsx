@@ -1,5 +1,5 @@
 /**
- * `/dev/json` — paste-text-render JSON viewer (PRD line 145).
+ * `/hub/json` — paste-text-render JSON viewer (PRD line 145).
  *
  * Standalone page that lets developers paste arbitrary JSON into a
  * textarea and inspect the parsed structure through the same

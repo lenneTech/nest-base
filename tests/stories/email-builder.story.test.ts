@@ -18,7 +18,7 @@ import {
 /**
  * Story · Email-Builder planners (Issue #9).
  *
- * Pure-function planners that the `/dev/email-builder` UI calls
+ * Pure-function planners that the `/hub/email-builder` UI calls
  * through. Codegen turns a JSON composition into a `.tsx` source
  * string; slug + path validation guard the save endpoint against
  * path-traversal and core-template clobbering.
@@ -314,7 +314,7 @@ describe("Story · Email-Builder", () => {
     /**
      * The decomposer is the inverse of `composeEmailTemplateSource`: it
      * parses a `.tsx` source string back into the JSON composition that
-     * the `/dev/email-builder` UI consumes. Round-trip integrity is the
+     * the `/hub/email-builder` UI consumes. Round-trip integrity is the
      * load-bearing contract — `decompose(compose(c))` must equal `c` for
      * any composition the composer can build.
      */

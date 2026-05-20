@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
  * The React `App.tsx` and the sidebar nav (`clients/layout/nav.ts`)
  * must stay in lock-step:
  *   - every SPA route is owned by a page chunk in `App.tsx`
- *   - every SPA-owned `/dev/*` URL appears in the sidebar so users
+ *   - every SPA-owned `/hub/*` URL appears in the sidebar so users
  *     can navigate to it without typing the URL
  *   - every `*.json` endpoint the React pages consume actually exists
  *     on the server (`hub.controller.ts` declares it)

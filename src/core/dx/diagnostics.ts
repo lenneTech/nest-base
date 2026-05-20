@@ -5,7 +5,7 @@ import type { Features } from "../features/features.js";
  *
  * Pure assembler. Inputs are gathered by the surrounding controller
  * (process info, runtime versions, the active Features object) and
- * piped through here to produce the JSON the `/dev/diagnostics`
+ * piped through here to produce the JSON the `/hub/diagnostics`
  * endpoint serves. An admin pastes the response into a bug report
  * when something looks off in prod.
  *

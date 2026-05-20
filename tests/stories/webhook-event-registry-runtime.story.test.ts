@@ -35,7 +35,7 @@ const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {
  *     ProblemDetailsFilter mapping). When the registry is empty
  *     (project hasn't declared any events yet), validation is
  *     bypassed for backward-compat.
- *  2. `GET /dev/webhook-events.json` — admin endpoint that surfaces
+ *  2. `GET /hub/webhook-events.json` — admin endpoint that surfaces
  *     `getRegisteredWebhookEvents()` so the dev-portal UI can render
  *     "Available webhook events" without hand-crafting the list.
  */

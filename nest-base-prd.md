@@ -2,7 +2,7 @@
 
 ## Overview
 
-nest-base is a production-grade NestJS starter that ships you a server you can run on day one plus a full-blown developer cockpit at /dev that knows what's running, what's failing, and what's available to switch on. 23 feature-toggleable subsystems — multi-tenancy with Postgres RLS, TUS uploads across 4 storage adapters, 9 Better-Auth plugins (incl. organisations, magic-link, passkeys, impersonation), AES-256-GCM field encryption with KEK rotation and blind index, PostGIS-backed geo, pg-boss queues, FTS search, HMAC webhooks, MCP, GDPR export & 30-day-grace deletion — each one off-by-default with zero runtime cost when disabled, each one surfaces and toggles from the cockpit. Built strict-TDD (six quality gates per commit), with AI-first tooling (skills, slash commands, autonomous Ralph loop) and a hard src/core/ ↔ src/modules/ boundary so consuming projects pull upstream improvements without losing their domain code. MIT-licensed.
+nest-base is a production-grade NestJS starter that ships you a server you can run on day one plus a full-blown developer cockpit at /hub that knows what's running, what's failing, and what's available to switch on. 23 feature-toggleable subsystems — multi-tenancy with Postgres RLS, TUS uploads across 4 storage adapters, 9 Better-Auth plugins (incl. organisations, magic-link, passkeys, impersonation), AES-256-GCM field encryption with KEK rotation and blind index, PostGIS-backed geo, pg-boss queues, FTS search, HMAC webhooks, MCP, GDPR export & 30-day-grace deletion — each one off-by-default with zero runtime cost when disabled, each one surfaces and toggles from the cockpit. Built strict-TDD (six quality gates per commit), with AI-first tooling (skills, slash commands, autonomous Ralph loop) and a hard src/core/ ↔ src/modules/ boundary so consuming projects pull upstream improvements without losing their domain code. MIT-licensed.
 
 This PRD describes a fusion: the existing nest-base repo (Prisma 7, Postgres 18, React 19 SPA Hub, Vitest 4, AI-first tooling) is the target, and the best implementations from nest-base-alternative (9 Better-Auth plugins fully wired, 4-stage output pipeline with secret safety net, 7 stacked Prisma extensions, AES-256-GCM with KEK rotation, PostGIS ST_DWithin, pg-boss webhook outbox, audit-log + audit-stamp extensions, RustFS adapter, antivirus scanner, prom-client metrics, custom span buffer, and more) are ported into it.
 
@@ -20,7 +20,7 @@ This PRD describes a fusion: the existing nest-base repo (Prisma 7, Postgres 18,
 - Test-ability hatch (X-Test-Ability: full, NODE_ENV=test only)
 
 ### Multi-Tenancy & Permissions
-- Tenant guard + x-tenant-id resolver + GET /me/tenants + POST /tenants
+- Tenant guard + session `activeOrganizationId` resolver + GET /me/tenants + POST /tenants
 - Postgres RLS on every tenant-scoped table + runtime check (bun run check:rls)
 - CASL ability + DB-rule resolver + ability cache
 - @Can(action, subject) guard + @Public("reason") decorator (reason mandatory)
@@ -48,7 +48,7 @@ This PRD describes a fusion: the existing nest-base repo (Prisma 7, Postgres 18,
 - IPX image transforms (/_ipx/*, Nuxt-Image-compatible) + AssetPresets + variant cache
 - File / Folder metadata (Prisma) + tenant-scoped RLS
 - Upload security (MIME sniffing, size limits, file-type validation)
-- File Manager UI (/dev/files): folder tree + grid + thumbnails + breadcrumbs
+- File Manager UI (/hub/files): folder tree + grid + thumbnails + breadcrumbs
 
 ### Email
 - EmailService (Nodemailer + Brevo + SMTP transports)
@@ -56,8 +56,8 @@ This PRD describes a fusion: the existing nest-base repo (Prisma 7, Postgres 18,
 - Email Outbox (at-least-once dispatch, exponential backoff 1m → 5m → 25m → 2h cap, 5 attempts → DLQ)
 - /health/ready trips to 503 when outbox lag exceeds 30s
 - Locale fallback + recipient blocklist + per-recipient rate limiter
-- Visual Email Builder UI (/dev/email-builder): block palette + live preview + module overlay + reset-to-default
-- Email Preview (/dev/email-preview): every template with sample payload
+- Visual Email Builder UI (/hub/email-builder): block palette + live preview + module overlay + reset-to-default
+- Email Preview (/hub/email-preview): every template with sample payload
 - Brand-aware layouts via single-file brand.json
 
 ### Realtime
@@ -75,14 +75,14 @@ This PRD describes a fusion: the existing nest-base repo (Prisma 7, Postgres 18,
 ### Jobs & Scheduling
 - pg-boss adapter (replaces in-memory queue)
 - @ScheduledJob cron decorator
-- Jobs Dashboard (/dev/jobs + /admin/jobs): queues / jobs / retry-failed / payload drawer
-- Cron Inspector (/dev/cron): pgboss.schedule table view
+- Jobs Dashboard (/hub/jobs + /admin/jobs): queues / jobs / retry-failed / payload drawer
+- Cron Inspector (/hub/cron): pgboss.schedule table view
 
 ### Observability
 - OpenTelemetry SDK + traceparent middleware
 - Pino logger with nestjs-pino integration
 - Ring-buffer log capture (last 500 records, hooks.logMethod, no hot-path latency tax)
-- Custom span buffer for /dev/traces (parallel SpanProcessor to OTLP exporter)
+- Custom span buffer for /hub/traces (parallel SpanProcessor to OTLP exporter)
 - Prisma query buffer (500-entry, >50ms warn / >200ms bad)
 - Live request traces UI with click-to-expand DB queries by requestId
 - Prometheus /metrics (prom-client)
@@ -140,8 +140,8 @@ This PRD describes a fusion: the existing nest-base repo (Prisma 7, Postgres 18,
 
 ### Hub & DX
 - React 19 SPA shell (shadcn/ui · Radix · Tailwind 4 · lucide-react · sonner · TanStack Query · React Router 7)
-- Cockpit (/dev): health verdict, 4-tile summary, probes, log preview, feature matrix, quick nav
-- Feature toggles (/dev/features): flip → patch .env → restart → reload
+- Cockpit (/hub): health verdict, 4-tile summary, probes, log preview, feature matrix, quick nav
+- Feature toggles (/hub/features): flip → patch .env → restart → reload
 - Dev pages: Diagnostics, Logs, Traces, Queries, Routes, ERD, Coverage, Tests, Email Preview, Email Builder, Email Outbox, File Manager, Jobs, Migrations, Errors, OpenAPI, JSON viewer, postgrest-parse, Brand
 - Admin pages: Audit, Roles, Policies, Permissions, Permission Tester, Search Tester, Webhook Inspector, Realtime Inspector, Sessions, Jobs Admin
 - Dev Session runner: spawns Postgres, Prisma Studio, watches .env, opens browser, picks free port
@@ -258,8 +258,8 @@ This PRD describes a fusion: the existing nest-base repo (Prisma 7, Postgres 18,
 - Canonical pipeline: GitHub Actions (.github/workflows/ in template)
 - Downstream-consumer parallel: .gitlab-ci.yml.example shipped (some lenne.tech projects deploy via GitLab)
 - Required checks: all six gates green + bun run check:rls + OpenAPI snapshot drift + SDK drift
-- Coverage reporting: LCOV → coverage/lcov.info → /dev/coverage page
-- Test summary: JSON reporter → coverage/test-summary.json → /dev/tests page
+- Coverage reporting: LCOV → coverage/lcov.info → /hub/coverage page
+- Test summary: JSON reporter → coverage/test-summary.json → /hub/tests page
 
 ## Out of Scope
 
@@ -277,7 +277,7 @@ This PRD describes a fusion: the existing nest-base repo (Prisma 7, Postgres 18,
 - Custom session stores beyond Better-Auth Prisma adapter
 
 ### Frontend
-- Separate consumer frontend — the React 19 SPA at /dev is dev-tooling only, 404s in production
+- Separate consumer frontend — the React 19 SPA at /hub is dev-tooling only, 404s in production
 - PWA / service workers / offline support for the dev hub
 - No-build static admin templates (alt's SSR HTML rejected)
 
@@ -323,8 +323,8 @@ This PRD describes a fusion: the existing nest-base repo (Prisma 7, Postgres 18,
 - bun run dev boots end-to-end in < 5 s cold (M-series Mac, default-ON features only) and prints the Dev-Hub URL
 - /health/live returns 200 in < 50 ms median
 - /health/ready returns 200 with all probes (DB, storage, jobs, OTel, email) reporting OK
-- All 23 feature flags listed at /dev/features.json and toggleable from /dev/features
-- Flipping a feature OFF in the UI patches .env, restarts the server, and removes the feature's routes from /dev/routes.json within 5 s
+- All 23 feature flags listed at /hub/features.json and toggleable from /hub/features
+- Flipping a feature OFF in the UI patches .env, restarts the server, and removes the feature's routes from /hub/routes.json within 5 s
 - All 9 Better-Auth plugins mountable: feature-flag-gated routes appear in route audit when enabled, absent when disabled
 - Each opt-in feature has at least one e2e test that boots the server with FEATURE_<KEY>_ENABLED=true and exercises one route
 - Heap snapshot 5s after boot with all opt-in features OFF is ≥ 50 MB lower than with all ON
@@ -399,11 +399,11 @@ This PRD describes a fusion: the existing nest-base repo (Prisma 7, Postgres 18,
    - Sessions admin pane
    - Prometheus /metrics (prom-client)
    - nestjs-pino integration
-   - Custom span buffer for /dev/traces
+   - Custom span buffer for /hub/traces
    - Ability cache in CASL resolver
 
 3. **Phase 3 — Hub completeness + docs + AI tooling**:
-   - SPA pages ported from alt's SSR: /admin/audit (with diff viz), /admin/jobs (retry-failed), /admin/roles + /policies + /permissions CRUD, /admin/sessions, /dev/cron
+   - SPA pages ported from alt's SSR: /admin/audit (with diff viz), /admin/jobs (retry-failed), /admin/roles + /policies + /permissions CRUD, /admin/sessions, /hub/cron
    - Permission tester resource × actions matrix view
    - Webhook inspector enhancements (delivery history, re-deliver button)
    - File Manager UI finalisation (TUS upload UI, drag-and-drop move, multi-select, lightbox, share-link, visibility toggle, server-side zip)

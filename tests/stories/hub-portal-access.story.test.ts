@@ -37,14 +37,9 @@ describe("Story · Hub portal CASL access", () => {
     expect(canAccessTenantAdmin(ability)).toBe(false);
   });
 
-  it("legacy read DevHub still grants hub until DB rows are re-seeded", () => {
+  it("read DevHub (renamed Hub) does not grant hub portal access", () => {
     const ability = buildAbility([{ action: "read", subject: "DevHub" }]);
-    expect(canAccessHub(ability)).toBe(true);
-    expect(buildHubPortalAccessSnapshot(ability, navFeatures)).toEqual({
-      hub: true,
-      tenantAdmin: false,
-      features: navFeatures,
-    });
+    expect(canAccessHub(ability)).toBe(false);
   });
 
   it("manage User grants tenant admin panel but not Hub (seeded Admin role)", () => {

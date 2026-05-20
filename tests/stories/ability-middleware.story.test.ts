@@ -9,7 +9,7 @@ import type { PrismaService } from "../../src/core/prisma/prisma.service.js";
 /**
  * Prisma stand-in for cases where the middleware does NOT need to
  * consult the membership table — `findFirst` is always-null fallback.
- * The middleware-tenant-header-fallback story covers the path where
+ * The ability-middleware-ignores-tenant-header story covers the path where
  * the lookup actually matters.
  *
  * After issue #118, the membership table is BA's `member`

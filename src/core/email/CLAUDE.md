@@ -42,9 +42,9 @@ email/
 - **direct** (default): synchronous driver call; the result carries the real provider message-id. Used by ad-hoc sends from project code.
 - **outbox**: `EmailService.send(opts, { mode: "outbox", idempotencyKey })` writes to the `email_outbox` table and returns immediately with `outbox:<uuid>`. The worker (`EmailOutboxWorker`, ticking on `EMAIL_OUTBOX_TICK_MS`) claims due rows, dispatches via the same driver, and graduates them to `sent` / `dead-letter`. Retry policy: 1m → 5m → 25m, 2h cap, 5 attempts.
 
-Better-Auth hooks default to outbox-mode with a deterministic idempotency-key (recipient + token / user-id / url) so duplicate triggers (Resend click) collapse to one row but a fresh request (new token) re-enqueues. `/dev/outbox.json` returns a JSON snapshot for inspection; `/health/ready` flips to 503 when oldest-pending age exceeds 30s.
+Better-Auth hooks default to outbox-mode with a deterministic idempotency-key (recipient + token / user-id / url) so duplicate triggers (Resend click) collapse to one row but a fresh request (new token) re-enqueues. `/hub/outbox.json` returns a JSON snapshot for inspection; `/health/ready` flips to 503 when oldest-pending age exceeds 30s.
 
-## Email Builder UI (`/dev/email-builder`, Issue #9)
+## Email Builder UI (`/hub/email-builder`, Issue #9)
 
 A Dev-Portal page lets devs:
 
@@ -67,29 +67,29 @@ Runtime (`email-builder-runtime.tsx`):
 
 - `renderEmailComposition()` — turns a JSON composition + vars into
   HTML+text+subject via `@react-email/render`. Used by
-  `POST /dev/email-builder/preview.json` so the live preview always
+  `POST /hub/email-builder/preview.json` so the live preview always
   reflects the current draft, not the last save.
 
-Controller endpoints (in `dev-hub.controller.ts`):
+Controller endpoints (in `hub.controller.ts`):
 
-- `GET /dev/email-builder/templates.json` — discovered + sample-rendered.
+- `GET /hub/email-builder/templates.json` — discovered + sample-rendered.
   Each row carries `overridesCore` (module overlay shadows a core
   template) / `overrideExists` (core template has a module overlay)
   so the gallery can render "Core (overridden)" badges in one round-trip.
-- `GET /dev/email-builder/blocks.json` — block library + props
-- `POST /dev/email-builder/preview.json` — render draft live
-- `POST /dev/email-builder/save` — codegen + write `.tsx`. Always
+- `GET /hub/email-builder/blocks.json` — block library + props
+- `POST /hub/email-builder/preview.json` — render draft live
+- `POST /hub/email-builder/save` — codegen + write `.tsx`. Always
   resolves to `src/modules/email/templates/` (path-validation in
   `resolveEmailTemplateTarget` + runner-side anchor check); core
   files cannot be overwritten through this endpoint.
-- `GET /dev/email-builder/templates/:name/composition.json` —
+- `GET /hub/email-builder/templates/:name/composition.json` —
   decompose an existing template's `.tsx` back into the JSON
   composition the builder consumes (Issue #49). Resolves via
   module > core, locale > default. Returns
   `{ decomposable: true, composition }` for sources inside the
   composer grammar; `{ decomposable: false, reason, rawSource }` for
   hand-rolled templates with custom JSX.
-- `DELETE /dev/email-builder/templates/:name/override` — remove the
+- `DELETE /hub/email-builder/templates/:name/override` — remove the
   module-overlay file so the core template becomes authoritative
   again (Issue #49 "Reset to default"). 404 when no overlay exists.
 

@@ -1,8 +1,8 @@
 /**
- * `/dev/brand` — read-only viewer (with reset action) for the
+ * `/hub/brand` — read-only viewer (with reset action) for the
  * project brand configuration.
  *
- * Reset posts to `/dev/brand/reset` which deletes
+ * Reset posts to `/hub/brand/reset` which deletes
  * `src/modules/branding/brand.json` and triggers the dev-runner's
  * brand-watcher to restart the API.
  */

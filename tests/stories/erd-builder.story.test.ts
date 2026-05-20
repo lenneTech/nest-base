@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { buildErdFromSchema } from "../../src/core/dx/erd-builder.js";
 
 /**
- * Story · `/dev/erd` — Prisma ERD viewer.
+ * Story · `/hub/erd` — Prisma ERD viewer.
  *
  * Pure planner that reads a `schema.prisma` source string and emits
  * a Mermaid `erDiagram` representation. The runner side

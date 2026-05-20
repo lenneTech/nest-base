@@ -1,5 +1,5 @@
 /**
- * `/dev/routes` — route inventory: 5-tile summary + per-route table.
+ * `/hub/routes` — route inventory: 5-tile summary + per-route table.
  */
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
@@ -46,7 +46,7 @@ interface RouteInventory {
 
 export function RoutesPage(): ReactNode {
   const data = useQuery({
-    queryKey: ["dev", "routes"],
+    queryKey: ["hub", "routes"],
     queryFn: () => fetchJson<RouteInventory>("/hub/routes.json"),
   });
 

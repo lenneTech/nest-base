@@ -1,8 +1,8 @@
 /**
- * `/dev/migrations` — five-tab Prisma migration dashboard
+ * `/hub/migrations` — five-tab Prisma migration dashboard
  * (Status / Pending / Diff / History / Create New). Server data comes
- * from `/dev/migrations.json`; mutations POST to lock-gated
- * `/dev/migrations/*` endpoints.
+ * from `/hub/migrations.json`; mutations POST to lock-gated
+ * `/hub/migrations/*` endpoints.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
@@ -86,7 +86,7 @@ async function postJson<T>(url: string, body?: unknown): Promise<T> {
 
 export function MigrationsPage(): ReactNode {
   const status = useQuery({
-    queryKey: ["dev", "migrations", "status"],
+    queryKey: ["hub", "migrations", "status"],
     queryFn: () => fetchJson<MigrationsStatus>("/hub/migrations.json"),
     refetchInterval: 30_000,
   });
@@ -271,7 +271,7 @@ function StatusTab({ data }: { data: MigrationsStatus }): ReactNode {
   const retry = useMutation({
     mutationFn: (name: string) =>
       postJson<{ success: boolean; stderr: string }>("/hub/migrations/retry", { name }),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ["dev", "migrations", "status"] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["hub", "migrations", "status"] }),
   });
 
   return (
@@ -366,7 +366,7 @@ function PendingTab({ data }: { data: MigrationsStatus }): ReactNode {
   );
 
   const refresh = () =>
-    queryClient.invalidateQueries({ queryKey: ["dev", "migrations", "status"] });
+    queryClient.invalidateQueries({ queryKey: ["hub", "migrations", "status"] });
 
   const deployAll = useMutation({
     mutationFn: () => postJson<{ success: boolean; stderr: string }>("/hub/migrations/deploy"),
@@ -496,7 +496,7 @@ function PendingTab({ data }: { data: MigrationsStatus }): ReactNode {
 
 function DiffTab(): ReactNode {
   const diff = useQuery({
-    queryKey: ["dev", "migrations", "diff"],
+    queryKey: ["hub", "migrations", "diff"],
     queryFn: () =>
       fetchJson<{ sql: string; success: boolean; stderr: string }>("/hub/migrations/diff"),
   });
@@ -562,7 +562,7 @@ function CreateNewTab(): ReactNode {
     null,
   );
   const refresh = () =>
-    queryClient.invalidateQueries({ queryKey: ["dev", "migrations", "status"] });
+    queryClient.invalidateQueries({ queryKey: ["hub", "migrations", "status"] });
 
   const create = useMutation({
     mutationFn: (n: string) =>

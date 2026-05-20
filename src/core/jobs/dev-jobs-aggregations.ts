@@ -164,7 +164,7 @@ export function aggregateJobsByQueue(records: readonly JobRecord[]): QueueAggreg
 }
 
 /**
- * Top-level snapshot the `/dev/jobs/queues.json` endpoint returns.
+ * Top-level snapshot the `/hub/jobs/queues.json` endpoint returns.
  * Combines totals, the per-queue list, and global p95 + failure-rate
  * so the dashboard hero can render without a second pass.
  */

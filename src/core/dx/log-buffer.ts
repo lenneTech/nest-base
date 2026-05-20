@@ -1,7 +1,7 @@
 /**
  * In-memory Pino log ring-buffer.
  *
- * Holds the last N log records so the `/dev/logs` page can render a
+ * Holds the last N log records so the `/hub/logs` page can render a
  * live tail without subscribing to external log shipping. The buffer
  * is a pure planner (LogBuffer class) plus a singleton instance the
  * logger writes into. Tests use the class directly with explicit

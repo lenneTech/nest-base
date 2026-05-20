@@ -21,6 +21,10 @@ describe("Story · Dev runner — stale portless registration takeover", () => {
     expect(DEV_SCRIPT).toMatch(/decideRegistrationAction/);
   });
 
+  it("ensures the portless proxy is running before portless run", () => {
+    expect(DEV_SCRIPT).toMatch(/ensurePortlessProxyRunning/);
+  });
+
   it("imports a routes-reading helper to look up the existing PID", () => {
     // The runner needs to read ~/.portless/routes.json; that's the
     // only way to know whether to pass --force without provoking the

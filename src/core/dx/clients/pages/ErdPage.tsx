@@ -1,5 +1,5 @@
 /**
- * `/dev/erd` — Mermaid-rendered Prisma schema diagram. Mermaid is
+ * `/hub/erd` — Mermaid-rendered Prisma schema diagram. Mermaid is
  * loaded from the CDN on first paint (CSP allows it in dev).
  */
 import { useQuery } from "@tanstack/react-query";
@@ -46,7 +46,7 @@ function loadMermaid(): Promise<typeof import("mermaid").default> {
 
 export function ErdPage(): ReactNode {
   const data = useQuery({
-    queryKey: ["dev", "erd"],
+    queryKey: ["hub", "erd"],
     queryFn: () => fetchJson<ErdResponse>("/hub/erd.json"),
   });
 

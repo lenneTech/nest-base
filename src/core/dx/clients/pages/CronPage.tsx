@@ -1,6 +1,6 @@
 /**
- * `/dev/cron` — cron-schedule inventory (CF.JOBS.02). Reads the
- * existing `/dev/scheduled-jobs.json` payload populated by the
+ * `/hub/cron` — cron-schedule inventory (CF.JOBS.02). Reads the
+ * existing `/hub/scheduled-jobs.json` payload populated by the
  * DiscoveryService walk at OnApplicationBootstrap and renders a
  * read-only table of every `@ScheduledJob`-decorated method.
  */
@@ -28,7 +28,7 @@ interface ScheduledJobEntry {
 
 export function CronPage(): ReactNode {
   const query = useQuery({
-    queryKey: ["dev", "cron"],
+    queryKey: ["hub", "cron"],
     queryFn: () => fetchJson<{ jobs: ScheduledJobEntry[] }>("/hub/scheduled-jobs.json"),
   });
 
@@ -37,7 +37,7 @@ export function CronPage(): ReactNode {
       {query.isPending ? (
         <PageLoading>Loading cron registry…</PageLoading>
       ) : query.isError ? (
-        <PageError>Failed to load /dev/scheduled-jobs.json</PageError>
+        <PageError>Failed to load /hub/scheduled-jobs.json</PageError>
       ) : (query.data?.jobs ?? []).length === 0 ? (
         <PageEmpty>No @ScheduledJob-decorated methods found.</PageEmpty>
       ) : (

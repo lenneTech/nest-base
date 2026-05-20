@@ -61,7 +61,7 @@ export default function () {
   // it once per VU iteration; the Trend metric records the
   // first-vs-current delta so the threshold can fire on monotonic
   // growth.
-  const diag = http.get(`${BASE_URL}/dev/diagnostics`);
+  const diag = http.get(`${BASE_URL}/hub/diagnostics.json`);
   if (diag.status === 200) {
     try {
       const body = JSON.parse(diag.body);
@@ -74,7 +74,7 @@ export default function () {
         heapDeltaMb.add(heapMb - firstHeapMb);
       }
     } catch {
-      // /dev/diagnostics is dev-only; in production it 404s. The
+      // /hub/diagnostics.json is dev-only; in production it 404s. The
       // threshold then has zero samples and does not fire — the
       // intent is the dev-time soak run, not prod gating.
     }

@@ -17,7 +17,7 @@ import { MetricsService } from "./metrics.service.js";
  * cookie or an API key — the standard pattern is to gate the endpoint
  * via network policy (only scrapers in the same VPC reach it) rather
  * than auth. The reason string lands in the route audit so it's
- * clear in `/dev/routes`.
+ * clear in `/hub/routes`.
  */
 @Controller("metrics")
 export class MetricsController {

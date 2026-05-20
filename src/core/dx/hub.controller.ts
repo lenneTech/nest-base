@@ -125,7 +125,7 @@ import type { ToggleableFeatureKey } from "../features/features.js";
 /**
  * `/hub/*` — Developer-only landing + JSON inspection routes.
  *
- * - `GET /dev`             — HTML landing page (categorised tool links)
+ * - `GET /hub`             — HTML landing page (categorised tool links)
  * - `GET /hub/features`    — active Features object as JSON
  * - `GET /hub/diagnostics` — runtime + memory + features report
  *
@@ -1180,7 +1180,7 @@ export class HubController {
   }
 
   // -----------------------------------------------------------------
-  // /dev/migrations · Issue #10 — Migration Handler
+  // /hub/migrations · Issue #10 — Migration Handler
   // -----------------------------------------------------------------
 
   /** SPA shell for `/hub/migrations` — React decides which tab to show. */

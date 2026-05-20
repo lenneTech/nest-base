@@ -14,27 +14,19 @@ import { resolveHubOperatorTenantId } from "../hub/hub-operator-tenant.js";
 import { resolveRequestTenantId } from "./resolve-request-tenant.js";
 import { getCurrentTenantId, runWithTenant } from "./tenant-context.js";
 import { isTenantExempt } from "./tenant-guard.js";
-import { parseTenantHeader } from "./tenant-header.js";
+import { TenantIsolationError } from "./tenant-scope-error.js";
 
 /**
  * Tenant-Interceptor + AsyncLocalStorage container.
  *
- * Reads the tenant header on every inbound request and runs the rest of
- * the handler chain inside `runWithTenant()`. Domain code reads the
- * tenant via `getCurrentTenantId()` — no parameter threading. Public
- * paths (/, /health/*, /api/auth/*) are exempt.
+ * Runs every non-exempt request inside `runWithTenant()` using
+ * `session.activeOrganizationId` (Better-Auth `set-active`). Domain
+ * code reads the tenant via `getCurrentTenantId()` — no parameter
+ * threading. Public paths (/, /health/*, /api/auth/*) are exempt.
  *
  * The Prisma extension that stamps `SET app.tenant_id = $1` on each
- * Postgres connection (added in a follow-up slice) reads from the same
- * storage so RLS policies see the right value.
- *
- * Cross-tenant write breach fix (LLM-test 2026-05-03 #20:21):
- *   For authenticated requests, the interceptor now runs the
- *   `resolveRequestTenantId(req, prisma)` helper — the same single
- *   source of truth `AbilityMiddleware` uses. A header pointing at a
- *   tenant the user has no ACTIVE membership in throws
- *   `ForbiddenException` (403). Unauthenticated requests on
- *   tenant-required paths fail without a session + set-active.
+ * Postgres connection reads from the same storage so RLS policies see
+ * the right value. `AbilityMiddleware` uses the same resolver.
  */
 
 // `getCurrentTenantId` and `runWithTenant` are re-exported from
@@ -106,18 +98,13 @@ export class TenantInterceptor implements NestInterceptor {
           tenantId = await resolveHubOperatorTenantId(req.user, this.prisma);
         }
         if (!tenantId) {
-          // No header AND no session tenant on a non-exempt route is
-          // exactly what `parseTenantHeader` used to throw on. Mirror
-          // that behaviour so existing tests / consumers see the same
-          // error shape. We re-invoke parseTenantHeader so the
-          // TenantIsolationError signal stays consistent.
-          parseTenantHeader(undefined);
+          throw new TenantIsolationError(
+            "active organization required — call POST /api/auth/organization/set-active",
+          );
         }
         return runWithTenant(tenantId as string, () => streamToPromise(next.handle()));
       }
-      // Unauthenticated: no tenant without a Better-Auth session.
-      parseTenantHeader(undefined);
-      throw new Error("unreachable: parseTenantHeader always throws");
+      throw new TenantIsolationError("authentication required for tenant-scoped routes");
     }).pipe(
       switchMap((value) => from(unwrap(value))),
       // Errors from `defer`'s async factory propagate naturally — no

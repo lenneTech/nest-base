@@ -14,7 +14,6 @@ export const FRAMEWORK_ABILITY_SUBJECTS = [
   "Account",
   "Asset",
   "AuditLogAdmin",
-  "DevHub",
   "EmailOutboxAdmin",
   "GdprData",
   "Geo",

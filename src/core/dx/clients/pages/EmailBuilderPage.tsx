@@ -97,7 +97,7 @@ interface PreviewResponse {
 }
 
 /**
- * Response of GET /dev/email-builder/templates/:name/composition.json.
+ * Response of GET /hub/email-builder/templates/:name/composition.json.
  * `decomposable: false` means the source uses hand-written JSX outside
  * the composer grammar — the UI falls back to a read-only source view.
  */
@@ -140,12 +140,12 @@ export function EmailBuilderPage(): ReactNode {
   const [resetError, setResetError] = useState<string | null>(null);
 
   const templates = useQuery({
-    queryKey: ["dev", "email-builder", "templates"],
+    queryKey: ["hub", "email-builder", "templates"],
     queryFn: () => fetchJson<{ templates: DiscoveredTemplate[] }>("/hub/emails/templates.json"),
   });
 
   const blocks = useQuery({
-    queryKey: ["dev", "email-builder", "blocks"],
+    queryKey: ["hub", "email-builder", "blocks"],
     queryFn: () => fetchJson<BlocksResponse>("/hub/emails/blocks.json"),
   });
 
@@ -204,7 +204,7 @@ export function EmailBuilderPage(): ReactNode {
       return (await res.json()) as { ok: true; acted: true; relativePath: string };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["dev", "email-builder", "templates"] });
+      queryClient.invalidateQueries({ queryKey: ["hub", "email-builder", "templates"] });
       setResetTarget(null);
     },
     onError: (err) => setResetError(err instanceof Error ? err.message : String(err)),
@@ -556,7 +556,7 @@ function ComposerView({
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const brand = useQuery({
-    queryKey: ["dev", "brand"],
+    queryKey: ["hub", "brand"],
     queryFn: () => fetchJson<{ name: string }>("/hub/brand.json"),
   });
 
@@ -578,7 +578,7 @@ function ComposerView({
   }, [referencedVars, brand.data?.name]);
 
   const preview = useQuery({
-    queryKey: ["dev", "email-builder", "preview", draft, vars],
+    queryKey: ["hub", "email-builder", "preview", draft, vars],
     queryFn: async () => {
       const res = await fetch("/hub/emails/preview.json", {
         method: "POST",
@@ -620,7 +620,7 @@ function ComposerView({
       return parsed as { relativePath: string; bytesWritten: number };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["dev", "email-builder", "templates"] });
+      queryClient.invalidateQueries({ queryKey: ["hub", "email-builder", "templates"] });
     },
     onError: (err) => setSaveError(err instanceof Error ? err.message : String(err)),
   });

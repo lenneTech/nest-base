@@ -17,7 +17,7 @@
  *
  * Production rendering happens through the React Email path
  * (`email-templates.react.ts > ReactEmailTemplateRenderer`) which
- * is the only renderer wired into `EmailModule` + `/dev/email-preview`
+ * is the only renderer wired into `EmailModule` + `/hub/email-preview`
  * + the email-builder live preview.
  */
 

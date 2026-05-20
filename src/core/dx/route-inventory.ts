@@ -1,5 +1,5 @@
 /**
- * Pure planner for `/dev/routes`.
+ * Pure planner for `/hub/routes`.
  *
  * Takes a flat list of (method, path, controller, handler [, canMetadata])
  * — usually walked out of NestJS' Express adapter — and returns:
@@ -10,7 +10,7 @@
  *   - a summary count for at-a-glance audit;
  *   - a `byController` grouping for the controller-centric view.
  *
- * The runner side (Express stack walking, filter for /dev itself,
+ * The runner side (Express stack walking, filter for /hub itself,
  * controller-name resolution) lives in the Hub controller.
  */
 

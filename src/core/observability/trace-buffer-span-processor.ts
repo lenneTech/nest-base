@@ -7,7 +7,7 @@ import { type TraceBuffer, getTraceBuffer } from "../dx/trace-buffer.js";
  * `TraceBufferSpanProcessor` (CF.OBS.07).
  *
  * OTel `SpanProcessor` that mirrors every ended span into the
- * in-memory `TraceBuffer` consumed by `/dev/traces`. Runs in
+ * in-memory `TraceBuffer` consumed by `/hub/traces`. Runs in
  * parallel with the OTLP exporter so the dev surface keeps
  * working even when the OTLP collector is unreachable.
  *

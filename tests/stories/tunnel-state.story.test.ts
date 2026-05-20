@@ -22,7 +22,7 @@ import {
  * `scripts/dev.ts` (parent process, owns the cloudflared child)
  * writes the discovered tunnel URL to a JSON state file under
  * `node_modules/.cache/nest-base/tunnel.json`. The NestJS API child
- * reads it on demand via `GET /dev/tunnel.json`.
+ * reads it on demand via `GET /hub/tunnel.json`.
  *
  * The split mirrors `dev-session-runner.ts`: a pure planner
  * (parse / serialize) + a thin runner (file IO).

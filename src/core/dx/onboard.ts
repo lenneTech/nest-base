@@ -13,7 +13,7 @@
  *
  * Keeping the planner I/O-free buys deterministic tests and lets
  * us reuse the same shape in fixtures, the runner, and a future
- * `/dev/onboarding` page.
+ * `/hub/onboarding` page.
  */
 
 export type OnboardStatus = "ok" | "warning" | "blocked";

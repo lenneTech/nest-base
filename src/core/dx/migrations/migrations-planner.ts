@@ -1,5 +1,5 @@
 /**
- * Pure planner for `/dev/migrations` (Issue #10).
+ * Pure planner for `/hub/migrations` (Issue #10).
  *
  * I/O-free helpers shared by the controller, story tests, and React
  * page. The runner half (`migrations-runner.ts`) wraps these with file

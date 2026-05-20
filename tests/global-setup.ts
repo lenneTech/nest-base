@@ -124,7 +124,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
 
   // Ensure the Hub SPA bundle is present before any hub e2e
   // spec runs. Fresh clones don't have `dist/dev-portal/` yet, and the
-  // `/dev/static/*` controller is wired straight to that directory — so
+  // `/hub/static/*` controller is wired straight to that directory — so
   // `tests/hub.e2e-spec.ts` would 404 unless someone remembered to
   // run `bun run build:dev-portal` first. The build is a no-op if the
   // entry artefact already exists; a fresh install pays the ~1s tax once.
@@ -186,7 +186,7 @@ function ensurePrismaClientGenerated(): void {
 
 /**
  * Build the Dev-Portal SPA bundle on demand if it is missing. The
- * controller at `/dev/static/*` serves files from `dist/dev-portal/`,
+ * controller at `/hub/static/*` serves files from `dist/dev-portal/`,
  * which only exists after `bun run build:dev-portal`. The standard
  * 6-gate sequence in QUICKSTART.md / CONTRIBUTING.md does not yet
  * include the build, so fresh installs would fail two hub e2e

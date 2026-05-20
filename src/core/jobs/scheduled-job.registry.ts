@@ -22,7 +22,7 @@ import { getScheduledJobs } from "./scheduled-job.decorator.js";
  * map.
  *
  * Two consumers of the registry live in the codebase today:
- *  - `GET /dev/scheduled-jobs.json` (dev portal) — surfaces the
+ *  - `GET /hub/scheduled-jobs.json` (dev portal) — surfaces the
  *    inventory so an operator sees which crons are active without
  *    grepping the source.
  *  - `runOnce(name)` — drives any registered tick under test (the
@@ -39,7 +39,7 @@ export interface ScheduledJobEntry {
   readonly name: string;
   /** Standard 5-field cron expression (validated lazily by the cron driver). */
   readonly cron: string;
-  /** Friendly identifier — `<ClassName>.<methodName>` — useful for /dev hub. */
+  /** Friendly identifier — `<ClassName>.<methodName>` — useful for the Hub. */
   readonly source: string;
   /** Bound closure that invokes the decorated method on its instance. */
   readonly run: () => Promise<unknown>;

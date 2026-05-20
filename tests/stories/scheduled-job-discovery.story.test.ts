@@ -23,7 +23,7 @@ const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {
  * `DiscoveryService` at `OnApplicationBootstrap`, reads the
  * `@ScheduledJob` metadata via `getScheduledJobs(prototype)`, and
  * registers each entry into a runtime registry so:
- *  - The dev hub can list active jobs at `/dev/scheduled-jobs.json`.
+ *  - The Hub can list active jobs at `/hub/scheduled-jobs.json`.
  *  - Tests can drive any scheduled tick via `registry.runOnce(name)`.
  *  - Future PgBossAdapter consumes the same registry to call
  *    `pgboss.schedule(name, cron, handler)` per entry.

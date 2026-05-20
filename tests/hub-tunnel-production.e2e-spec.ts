@@ -14,7 +14,7 @@ const TENANT = "11111111-1111-1111-1111-111111111111";
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 
 /**
- * `GET /dev/tunnel.json` — production gate.
+ * `GET /hub/tunnel.json` — production gate.
  *
  * Lives in its own file (split from `hub-tunnel.e2e-spec.ts` in
  * iter-146) so the file's worker fork boots ONE Nest app with
@@ -25,7 +25,7 @@ const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {
  * teardown and bootstrap-time env reads land on stale values. One
  * NODE_ENV per file is the durable fix.
  */
-describe("Dev-Hub · GET /dev/tunnel.json — production gate", () => {
+describe("Hub · GET /hub/tunnel.json — production gate", () => {
   let app: INestApplication;
   let hub: Awaited<ReturnType<typeof hubReqScoped>>;
   let previousNodeEnv: string | undefined;

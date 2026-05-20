@@ -1,5 +1,5 @@
 /**
- * `/dev/traces` — live tail of recent HTTP request traces with
+ * `/hub/traces` — live tail of recent HTTP request traces with
  * click-to-expand DB-query drill-down.
  */
 import { useQuery } from "@tanstack/react-query";
@@ -53,7 +53,7 @@ interface QueriesResponse {
 
 export function TracesPage(): ReactNode {
   const initial = useQuery({
-    queryKey: ["dev", "traces"],
+    queryKey: ["hub", "traces"],
     queryFn: () => fetchJson<TracesResponse>(`/hub/traces.json?limit=${INITIAL_ROW_CAP}`),
   });
 

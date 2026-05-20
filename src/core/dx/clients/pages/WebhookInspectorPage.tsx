@@ -563,7 +563,7 @@ function DetailDrawer({
           {delivery.traceId ? (
             <a
               className="text-accent hover:underline"
-              href={`/dev/traces?traceId=${encodeURIComponent(delivery.traceId)}`}
+              href={`/hub/traces?traceId=${encodeURIComponent(delivery.traceId)}`}
             >
               View trace
             </a>

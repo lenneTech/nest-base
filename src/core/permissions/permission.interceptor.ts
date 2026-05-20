@@ -6,11 +6,12 @@ import {
 } from "@nestjs/common";
 import { type Observable, from, mergeMap } from "rxjs";
 
+import { resolveSessionTenantId } from "../multi-tenancy/resolve-session-tenant.js";
 import { buildAbility } from "./casl-ability.js";
 import { PermissionService } from "./permission.service.js";
 
 interface AuthenticatedRequest {
-  user?: { id: string; tenantId: string; scopes?: string[] };
+  user?: { id: string; activeOrganizationId?: string | null; scopes?: string[] };
   ability?: import("./casl-ability.js").Ability;
 }
 
@@ -40,8 +41,12 @@ export class PermissionInterceptor implements NestInterceptor {
       req.ability = buildAbility([]);
       return;
     }
-    req.ability = await this.permissions.abilityFor(req.user.id, req.user.tenantId, {
-      scopes: req.user.scopes,
-    });
+    req.ability = await this.permissions.abilityFor(
+      req.user.id,
+      resolveSessionTenantId(req) ?? "",
+      {
+        scopes: req.user.scopes,
+      },
+    );
   }
 }

@@ -209,9 +209,7 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     const userId = session.user.id;
     const tenantId =
       (session as { session?: { activeOrganizationId?: string | null } }).session
-        ?.activeOrganizationId ??
-      session.user.tenantId ??
-      "";
+        ?.activeOrganizationId ?? "";
 
     // Resolve CASL ability for this user/tenant so channel subscriptions
     // can be permission-checked synchronously in the subscribe listener.

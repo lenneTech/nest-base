@@ -178,11 +178,6 @@ describe("Story · Setup-Wizard planner", () => {
         expect(env).toMatch(/^ERROR_DOC_BASE_URL=/m);
       });
 
-      it("emits TENANT_HEADER when multi-tenancy is on", () => {
-        const env = planSetup(answers({ multiTenant: true })).envExample;
-        expect(env).toMatch(/^TENANT_HEADER=/m);
-      });
-
       it("emits OTEL_RESOURCE_ATTRIBUTES (observability hint, optional)", () => {
         const env = planSetup(answers()).envExample;
         expect(env).toMatch(/^# OTEL_RESOURCE_ATTRIBUTES=|^OTEL_RESOURCE_ATTRIBUTES=/m);
@@ -212,11 +207,10 @@ describe("Story · Setup-Wizard planner", () => {
         expect(env).toMatch(/^#\s*FEATURE_GEO_ENABLED=false$/m);
       });
 
-      it("lists multiTenancy fields (enabled, RLS, header)", () => {
+      it("lists multiTenancy fields (enabled, RLS)", () => {
         const env = planSetup(answers()).envExample;
         expect(env).toMatch(/^#\s*FEATURE_MULTI_TENANCY_ENABLED=true$/m);
         expect(env).toMatch(/^#\s*FEATURE_MULTI_TENANCY_RLS=true$/m);
-        expect(env).toMatch(/^#\s*FEATURE_MULTI_TENANCY_HEADER_NAME=x-tenant-id$/m);
       });
 
       it("lists files fields (enabled, storage default, tus, transformations)", () => {

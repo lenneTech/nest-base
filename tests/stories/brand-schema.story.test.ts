@@ -11,7 +11,7 @@ import {
  *
  * `BrandConfigSchema` is the single Zod definition every consumer
  * (loader, dev-portal, email layouts, OpenAPI) parses against. It
- * guards the boundary between "JSON on disk" / "edits via /dev/brand"
+ * guards the boundary between "JSON on disk" / "edits via /hub/brand"
  * and "validated, fully-typed BrandConfig" the rest of the code uses.
  *
  * The schema is intentionally strict on hex-colors and email shape

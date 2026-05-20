@@ -8,7 +8,7 @@ import {
 import { ReactEmailTemplateRenderer } from "../../src/core/email/email-templates.react.js";
 
 /**
- * Story · `/dev/email-preview`.
+ * Story · `/hub/email-preview`.
  *
  * Catalog lists templates; payloads come from outbox or brand at request time.
  */

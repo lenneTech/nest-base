@@ -3,12 +3,12 @@ import { describe, expect, it } from "vitest";
 import { buildRouteInventory, type RouteRecord } from "../../src/core/dx/route-inventory.js";
 
 /**
- * Story · `/dev/routes` — Route Inventory.
+ * Story · `/hub/routes` — Route Inventory.
  *
  * Pure planner that takes the Express-style route stack (or
  * NestJS' equivalent) and returns a structured list. Used by:
- *   - GET /dev/routes      → HTML table with decorator badges
- *   - GET /dev/routes.json → raw JSON for SDK / agent tooling
+ *   - GET /hub/routes      → HTML table with decorator badges
+ *   - GET /hub/routes.json → raw JSON for SDK / agent tooling
  *
  * Why this matters: a downstream agent or human auditor needs to
  * answer "which endpoints have no permission decorator?" and
@@ -164,7 +164,7 @@ describe("Story · buildRouteInventory", () => {
   });
 
   describe("Dev-only allowlist (split from `public`)", () => {
-    // Why: routes under /dev and /admin previously got the same
+    // Why: routes under /hub and /admin previously got the same
     // `public` label as /health and /api/openapi, which is misleading
     // — they're not actually public, they 404 in production via
     // `assertDev()`. Splitting the kinds gives a more honest audit:

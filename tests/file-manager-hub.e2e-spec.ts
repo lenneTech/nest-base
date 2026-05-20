@@ -9,19 +9,19 @@ import { uuidV7 } from "../src/core/uuid/uuid-v7.js";
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 
 /**
- * `/dev/files*` — JSON sidecars that drive the File-Manager React page
+ * `/hub/files*` — JSON sidecars that drive the File-Manager React page
  * (issue #18).
  *
  * Surface contract:
- *   - GET /dev/files                   → SPA shell HTML
- *   - GET /dev/files/tree.json         → folder tree (root + children, recursive)
- *   - GET /dev/files/list.json         → files in a folder, with sort/filter
- *   - GET /dev/files/breadcrumb.json   → root-to-active path
+ *   - GET /hub/files                   → SPA shell HTML
+ *   - GET /hub/files/tree.json         → folder tree (root + children, recursive)
+ *   - GET /hub/files/list.json         → files in a folder, with sort/filter
+ *   - GET /hub/files/breadcrumb.json   → root-to-active path
  *
  * Every endpoint 404s outside `NODE_ENV=development`, identical to the
  * rest of the Hub.
  */
-describe("Dev-Hub File-Manager · /dev/files*", () => {
+describe("Hub File-Manager · /hub/files*", () => {
   describe("in development mode", () => {
     let app: INestApplication;
     let hub: Awaited<ReturnType<typeof hubReqScoped>>;
@@ -67,14 +67,14 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
       else process.env.NODE_ENV = previousNodeEnv;
     });
 
-    it("GET /dev/files returns the SPA shell HTML", async () => {
+    it("GET /hub/files returns the SPA shell HTML", async () => {
       const res = await hub.get("/hub/files");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/text\/html/);
       expect(res.text).toContain('<div id="root"></div>');
     });
 
-    it("GET /dev/files/tree.json returns an empty tree for an empty tenant", async () => {
+    it("GET /hub/files/tree.json returns an empty tree for an empty tenant", async () => {
       const res = await hub.get("/hub/files/tree.json");
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/application\/json/);
@@ -82,7 +82,7 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
       expect(res.body.tree).toEqual([]);
     });
 
-    it("GET /dev/files/tree.json returns the folder hierarchy after seeding", async () => {
+    it("GET /hub/files/tree.json returns the folder hierarchy after seeding", async () => {
       const root = await prisma.folder.create({
         data: { tenantId, parentId: null, name: "Customers" },
       });
@@ -102,7 +102,7 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
       }
     });
 
-    it("GET /dev/files/list.json returns files in the requested folder with metadata", async () => {
+    it("GET /hub/files/list.json returns files in the requested folder with metadata", async () => {
       const folder = await prisma.folder.create({
         data: { tenantId, parentId: null, name: "Reports" },
       });
@@ -135,7 +135,7 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
       }
     });
 
-    it("GET /dev/files/list.json filters by `search` substring", async () => {
+    it("GET /hub/files/list.json filters by `search` substring", async () => {
       const folder = await prisma.folder.create({
         data: { tenantId, parentId: null, name: "Filter" },
       });
@@ -178,7 +178,7 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
       }
     });
 
-    it("GET /dev/files/list.json injects an IPX thumbnailUrl for image mime-types", async () => {
+    it("GET /hub/files/list.json injects an IPX thumbnailUrl for image mime-types", async () => {
       const fileRow = await prisma.file.create({
         data: {
           tenantId,
@@ -209,13 +209,13 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
       }
     });
 
-    it("GET /dev/files/breadcrumb.json returns Root for activeId=null", async () => {
+    it("GET /hub/files/breadcrumb.json returns Root for activeId=null", async () => {
       const res = await hub.get("/hub/files/breadcrumb.json");
       expect(res.status).toBe(200);
       expect(res.body.segments).toEqual([{ id: null, name: "Root" }]);
     });
 
-    it("GET /dev/files/breadcrumb.json walks the parent chain back to the root", async () => {
+    it("GET /hub/files/breadcrumb.json walks the parent chain back to the root", async () => {
       const root = await prisma.folder.create({
         data: { tenantId, parentId: null, name: "Customers" },
       });
@@ -260,17 +260,17 @@ describe("Dev-Hub File-Manager · /dev/files*", () => {
       else process.env.NODE_ENV = previousNodeEnv;
     });
 
-    it("GET /dev/files/tree.json 404s in production", async () => {
+    it("GET /hub/files/tree.json 404s in production", async () => {
       const res = await hub.get("/hub/files/tree.json");
       expect(res.status).toBe(404);
     });
 
-    it("GET /dev/files/list.json 404s in production", async () => {
+    it("GET /hub/files/list.json 404s in production", async () => {
       const res = await hub.get("/hub/files/list.json");
       expect(res.status).toBe(404);
     });
 
-    it("GET /dev/files/breadcrumb.json 404s in production", async () => {
+    it("GET /hub/files/breadcrumb.json 404s in production", async () => {
       const res = await hub.get("/hub/files/breadcrumb.json");
       expect(res.status).toBe(404);
     });

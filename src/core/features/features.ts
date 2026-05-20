@@ -36,14 +36,12 @@ const AuthMethodsSchema = z.object({
 });
 /**
  * Single tenant feature: Better-Auth Organizations (membership,
- * invitations, `session.activeOrganizationId`) plus request-scoped
- * isolation (`x-tenant-id`, Postgres RLS). Disable via
- * `FEATURE_MULTI_TENANCY_ENABLED=false`.
+ * invitations, `session.activeOrganizationId` via set-active) plus
+ * Postgres RLS. Disable via `FEATURE_MULTI_TENANCY_ENABLED=false`.
  */
 const MultiTenancySchema = z.object({
   enabled: z.boolean().default(true),
   rls: z.boolean().default(true),
-  headerName: z.string().default("x-tenant-id"),
 });
 const FilesSchema = z.object({
   enabled: z.boolean().default(true),
@@ -279,7 +277,6 @@ const FIELD_TO_PROP: Record<string, string> = {
   TUS: "tus",
   TRANSFORMATIONS: "transformations",
   RLS: "rls",
-  HEADER_NAME: "headerName",
   PROVIDER: "provider",
   EMAILPASSWORD: "emailPassword",
   EMAIL_PASSWORD: "emailPassword",
@@ -304,7 +301,6 @@ const FIELD_TO_PROP: Record<string, string> = {
 
 const STRING_VALUE_PROPS = new Set([
   "storageDefault",
-  "headerName",
   "provider",
   "licenseKey",
   "dbPath",

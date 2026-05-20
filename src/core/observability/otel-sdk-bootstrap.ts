@@ -30,7 +30,7 @@ import { TraceBufferSpanProcessor } from "./trace-buffer-span-processor.js";
  *
  * The custom span buffer (`src/core/dx/trace-buffer.ts` / CF.OBS.07)
  * runs as a parallel SpanProcessor — independent of this OTLP
- * exporter — so `/dev/traces` keeps working even when the OTLP
+ * exporter — so `/hub/traces` keeps working even when the OTLP
  * endpoint is unreachable.
  */
 
@@ -93,7 +93,7 @@ export function createOtelSdk(input: OtelSdkRunnerInput): NodeSDK {
   });
 
   // The TraceBufferSpanProcessor mirrors every ended span into the
-  // in-memory buffer that backs `/dev/traces`. Runs in parallel with
+  // in-memory buffer that backs `/hub/traces`. Runs in parallel with
   // the OTLP exporter so the dev surface keeps working when the
   // collector is unreachable, and so DB / Prisma / HTTP-client
   // spans (emitted by the auto-instrumentations bundle) land in

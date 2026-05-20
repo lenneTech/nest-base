@@ -12,7 +12,7 @@ Pure-black dark theme. Electric-lime accent. Live ops health, logs, feature togg
 
 ---
 
-[![Hub](docs/showcase/screenshots/dev-landing-desktop.png)](docs/showcase/README.md)
+[![Hub](docs/showcase/screenshots/hub-landing-desktop.png)](docs/showcase/README.md)
 
 > The full screenshot index — every Hub page — `/hub`, `/hub/features`, `/hub/email-builder`, `/admin/*`, `/errors`, `/openapi` — at desktop + mobile is in [`docs/showcase/`](docs/showcase/README.md).
 
@@ -105,14 +105,14 @@ Details: [`docs/hub/login.md`](docs/hub/login.md).
 
 Live overview of the running server: health verdict, service probes, operator status groups (DB / async / runtime / external), ops metrics (pending jobs, dead letters, slow queries, error logs), optional activity charts, tunnel card, log preview, feature matrix, quick navigation.
 
-![Hub Cockpit](docs/showcase/screenshots/dev-landing-desktop.png)
+![Hub Cockpit](docs/showcase/screenshots/hub-landing-desktop.png)
 
 ### Feature Toggles — `/hub/features`
 
 23 feature flags grouped by category (PRD § Success Criteria pin —
 verified by `verify-spec.sh` SC.FUSION.04). Each card shows description, exposed surfaces, and the matching `FEATURE_*` env-var. **Flip the switch → `.env` is patched → server respawns → page reloads.** No manual restarts.
 
-![Feature Toggles](docs/showcase/screenshots/dev-features-desktop.png)
+![Feature Toggles](docs/showcase/screenshots/hub-features-desktop.png)
 
 ### Brand — `/hub/brand`
 
@@ -126,7 +126,7 @@ Reads `coverage/test-summary.json` (populated by `bun run test:summary`). Failed
 
 Reads `reports/coverage/coverage-summary.json` (populated by `bun run test:coverage`). Per-tier gate badges (core ≥ 80% lines / modules ≥ 75% lines), per-file table sorted worst-first.
 
-![Coverage](docs/showcase/screenshots/dev-coverage-desktop.png)
+![Coverage](docs/showcase/screenshots/hub-coverage-desktop.png)
 
 ### Live Log Tail — `/hub/logs`
 
@@ -265,7 +265,7 @@ src/
 │   ├── app/             ← Bootstrap + AppModule + dev-tab auto-open
 │   ├── auth/            ← Better-Auth wiring + API keys + PowerSync JWT + 24h verifications-cleanup cron
 │   ├── concurrency/     ← ETag + If-Match optimistic concurrency
-│   ├── dx/              ← /dev + /admin + /errors + /openapi (React SPA shell + JSON sidecars)
+│   ├── dx/              ← /hub + /admin + /errors + /openapi (React SPA shell + JSON sidecars)
 │   ├── email/           ← EmailService + React Email .tsx templates
 │   ├── encryption/      ← AES-256-GCM field encryption
 │   ├── errors/          ← CORE_* error codes + RFC 7807 filter

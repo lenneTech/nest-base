@@ -67,7 +67,7 @@ describe("Story · Test-Containers-Setup", () => {
 
     /**
      * Regression: the `tests/hub.e2e-spec.ts` suite hits
-     * `/dev/static/main.js` and `/dev/static/tokens.css`, which the
+     * `/hub/static/main.js` and `/hub/static/tokens.css`, which the
      * controller serves from `dist/dev-portal/`. That directory only
      * exists after `bun run build:dev-portal`. Fresh installs would
      * fail the two asset tests until someone remembered to run the

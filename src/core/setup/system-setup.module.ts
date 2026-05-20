@@ -52,7 +52,7 @@ class SystemSetupBootstrap implements OnModuleInit {
  * from env (`systemSetupConfigFromEnv()`); when both are set, calls
  * `provisionInitialAdmin()` exactly once per boot. Result is logged
  * and cached on `SystemSetupBootstrap.getLastResult()` for the
- * `/dev/system-setup` diagnostics endpoint.
+ * `/hub/system-setup` diagnostics endpoint.
  *
  * Iter-211 CF.SETUP.01 closure: the storage provider is now
  * `PrismaAdminProvisioningStorage` which writes to Better-Auth's

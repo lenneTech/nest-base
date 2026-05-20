@@ -1,10 +1,10 @@
 /**
  * Dev-Portal SPA entry point.
  *
- * Bootstraps React 19, react-router (browser router scoped to `/dev`),
- * and TanStack Query against `/dev/*.json` endpoints. The shell HTML
+ * Bootstraps React 19, react-router (browser router scoped to `/hub`),
+ * and TanStack Query against `/hub/*.json` endpoints. The shell HTML
  * (`dev-portal-shell.ts` on the server) loads this bundle as
- * `type="module"` from `/dev/static/main.js`.
+ * `type="module"` from `/hub/static/main.js`.
  *
  * Two stylesheets are imported here so Bun emits them as siblings of
  * the bundle:
@@ -38,7 +38,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       // Dev surface — refresh aggressively, but do not retry on a 404
-      // (gives a sharp red signal when a `/dev/*.json` endpoint moves).
+      // (gives a sharp red signal when a `/hub/*.json` endpoint moves).
       retry: 1,
       refetchOnWindowFocus: false,
       staleTime: 5_000,

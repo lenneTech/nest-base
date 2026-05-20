@@ -1,5 +1,5 @@
 /**
- * Pure planner for `/dev/erd`.
+ * Pure planner for `/hub/erd`.
  *
  * Parses a `schema.prisma` source string into a Mermaid `erDiagram`
  * suitable for rendering in the dev hub. We could shell out to a

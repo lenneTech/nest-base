@@ -55,7 +55,7 @@ describe("Story · FileManagerPage bulk-action UI contract", () => {
 
   it("bulk-delete success path resets the selection + invalidates the list", () => {
     expect(PAGE_SRC).toMatch(/setSelectedIds\(new Set\(\)\)/);
-    expect(PAGE_SRC).toMatch(/invalidateQueries\(\{ queryKey: \["dev", "files", "list"\] \}\)/);
+    expect(PAGE_SRC).toMatch(/invalidateQueries\(\{ queryKey: \["hub", "files", "list"\] \}\)/);
   });
 
   it("toast format encodes both succeeded + failed counts", () => {

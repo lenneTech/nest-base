@@ -38,7 +38,7 @@ The pattern is documented in
 | `PATCH`  | `/examples/:id` | Patch fields.                                            |
 | `DELETE` | `/examples/:id` | Remove. 204 on success.                                  |
 
-Every handler carries `@Can('action', 'Example')` so `/dev/routes`
+Every handler carries `@Can('action', 'Example')` so `/hub/routes`
 shows the module guarded.
 
 ## Patterns demonstrated

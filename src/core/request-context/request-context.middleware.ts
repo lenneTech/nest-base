@@ -46,7 +46,7 @@ export class RequestContextMiddleware implements NestMiddleware {
       formatTraceparent({ traceId: ctx.traceId, parentId: ctx.parentId, sampled: ctx.sampled }),
     );
 
-    // Record one trace per HTTP request — surfaced via /dev/traces.
+    // Record one trace per HTTP request — surfaced via /hub/traces.
     // Capturing on `finish` (success) and `close` (early disconnect)
     // gives us the actual handler duration.
     const startedAtMs = Date.now();

@@ -103,7 +103,6 @@ describe("Files · share-link round-trip", () => {
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({
-        tenantId,
         folderId: null,
         filename: "shared.png",
         mimeType: "image/png",

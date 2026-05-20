@@ -140,7 +140,6 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({
-        tenantId,
         folderId: null,
         filename: "logo.png",
         mimeType: "image/png",
@@ -166,7 +165,6 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({
-        tenantId,
         folderId: null,
         filename: "alpha.png",
         mimeType: "image/png",
@@ -193,7 +191,6 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({
-        tenantId,
         folderId: null,
         filename: "asset.png",
         mimeType: "image/png",
@@ -227,7 +224,6 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({
-        tenantId,
         folderId: null,
         filename: "tx.png",
         mimeType: "image/png",
@@ -262,7 +258,6 @@ describe("Files · persistence (Prisma metadata + Local adapter)", () => {
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({
-        tenantId,
         folderId: null,
         filename: "persist.png",
         mimeType: "image/png",

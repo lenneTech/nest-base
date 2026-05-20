@@ -1,5 +1,5 @@
 /**
- * `/dev/coverage` — coverage totals + per-file table. Same data the
+ * `/hub/coverage` — coverage totals + per-file table. Same data the
  * server's `coverage-ui.ts` rendered; the layer is now Tailwind +
  * shadcn primitives.
  */
@@ -46,7 +46,7 @@ interface CoverageReport {
 
 export function CoveragePage(): ReactNode {
   const data = useQuery({
-    queryKey: ["dev", "coverage"],
+    queryKey: ["hub", "coverage"],
     queryFn: () => fetchJson<CoverageReport>("/hub/coverage.json"),
   });
 
