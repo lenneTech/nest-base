@@ -182,7 +182,8 @@ describe("Problem-Details exception filter", () => {
     expect(response.body).toMatchObject({
       code: "CORE_VALIDATION",
       title: "Tenant Context Required",
-      detail: "No active organization for this request — activate one via POST /api/auth/organization/set-active",
+      detail:
+        "No active organization for this request — activate one via POST /api/auth/organization/set-active",
       status: 400,
     });
     // The raw internal exception.message must NOT leak verbatim into the body.

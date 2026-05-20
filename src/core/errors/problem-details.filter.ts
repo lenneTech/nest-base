@@ -72,7 +72,8 @@ export class ProblemDetailsExceptionFilter implements ExceptionFilter {
         code: CORE_ERROR_CODES.VALIDATION,
         status: HttpStatus.BAD_REQUEST,
         title: "Tenant Context Required",
-        detail: "No active organization for this request — activate one via POST /api/auth/organization/set-active",
+        detail:
+          "No active organization for this request — activate one via POST /api/auth/organization/set-active",
         instance: req.originalUrl ?? req.url,
       });
       return { ...detail, ...correlation };
