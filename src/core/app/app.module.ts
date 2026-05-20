@@ -168,8 +168,8 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     EmailModule,
     // Admin surface for email-outbox operator actions (issue #91).
     EmailOutboxAdminModule,
-    TenantSelfServiceModule,
-    TenantAdminModule,
+    ...conditionalImport(features, "multiTenancy", TenantSelfServiceModule),
+    ...conditionalImport(features, "multiTenancy", TenantAdminModule),
     ApiKeyModule,
     SessionsAdminModule,
     UserAdminModule,
