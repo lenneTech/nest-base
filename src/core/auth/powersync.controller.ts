@@ -10,6 +10,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 
+import { loadFeatures } from "../features/features.js";
 import { getCurrentTenantId } from "../multi-tenancy/tenant-context.js";
 import { Can } from "../permissions/can.guard.js";
 
@@ -20,6 +21,7 @@ import {
   type PowerSyncRowSnapshot,
   type PowerSyncStore,
 } from "./powersync-store.js";
+import { resolveEffectivePowerSyncTenantId } from "./powersync-tenant.js";
 import { parsePowerSyncCrudBatch, type PowerSyncCrudBatch } from "./powersync-upload.js";
 
 interface StoreRow {
@@ -60,10 +62,16 @@ export class PowerSyncController {
   @Post("crud")
   @HttpCode(HttpStatus.NO_CONTENT)
   async crud(@Body() body: unknown): Promise<{ rejected?: unknown[] }> {
-    // Use the tenant already validated and set by TenantInterceptor via
-    // AsyncLocalStorage (MIN-5). Tenant scope comes from the session
-    // activeOrganizationId set by TenantInterceptor (set-active).
-    const tenantId = getCurrentTenantId();
+    // Resolve the effective tenant. With multiTenancy ON the value comes
+    // from the session-scoped TenantInterceptor (AsyncLocalStorage, MIN-5)
+    // and a missing tenant is still a hard 401. With multiTenancy OFF the
+    // TenantInterceptor isn't even registered, so we bucket under the
+    // single-tenant sentinel instead of rejecting the request.
+    const multiTenancyEnabled = loadFeatures(process.env).multiTenancy.enabled;
+    const tenantId = resolveEffectivePowerSyncTenantId({
+      multiTenancyEnabled,
+      tenantId: getCurrentTenantId(),
+    });
     if (!tenantId) {
       throw new UnauthorizedException("no active tenant");
     }
