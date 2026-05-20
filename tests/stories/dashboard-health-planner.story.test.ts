@@ -25,6 +25,7 @@ const healthy: DashboardHealthInput = {
   geoIpEnabled: true,
   geoIpInstalled: true,
   allMigrationsApplied: true,
+  multiTenancyEnabled: true,
   rlsActive: true,
 };
 
@@ -49,9 +50,55 @@ describe("buildDashboardStatusGroups", () => {
   });
 
   it("RLS inactive → database group warn", () => {
-    const groups = buildDashboardStatusGroups({ ...healthy, rlsActive: false });
+    // When multi-tenancy is ON and RLS is OFF, it is a real misconfiguration → warn
+    const groups = buildDashboardStatusGroups({
+      ...healthy,
+      multiTenancyEnabled: true,
+      rlsActive: false,
+    });
     const db = groups.find((g) => g.id === "database");
     expect(db?.status).toBe("warn");
+  });
+
+  // Regression · Bug 1 — RLS false-positive warning when multiTenancy is OFF
+  // Previously: rlsActive=false always produced "warn" regardless of multiTenancy setting.
+  // After fix: when multiTenancy is disabled, RLS inactive is expected → status "ok".
+  it("RLS inactive + multiTenancy OFF → database group ok (no false-positive warn)", () => {
+    const groups = buildDashboardStatusGroups({
+      ...healthy,
+      multiTenancyEnabled: false,
+      rlsActive: false,
+    });
+    const db = groups.find((g) => g.id === "database");
+    expect(db?.status).toBe("ok");
+    const rlsItem = db?.items.find((i) => i.label === "Row-Level Security");
+    expect(rlsItem?.value).toBe("not required");
+    expect(rlsItem?.status).toBe("ok");
+  });
+
+  it("RLS active + multiTenancy ON → database group ok", () => {
+    const groups = buildDashboardStatusGroups({
+      ...healthy,
+      multiTenancyEnabled: true,
+      rlsActive: true,
+    });
+    const db = groups.find((g) => g.id === "database");
+    expect(db?.status).toBe("ok");
+    const rlsItem = db?.items.find((i) => i.label === "Row-Level Security");
+    expect(rlsItem?.value).toBe("active");
+    expect(rlsItem?.status).toBe("ok");
+  });
+
+  it("RLS inactive + multiTenancy ON → RLS item value is 'inactive'", () => {
+    const groups = buildDashboardStatusGroups({
+      ...healthy,
+      multiTenancyEnabled: true,
+      rlsActive: false,
+    });
+    const db = groups.find((g) => g.id === "database");
+    const rlsItem = db?.items.find((i) => i.label === "Row-Level Security");
+    expect(rlsItem?.value).toBe("inactive");
+    expect(rlsItem?.status).toBe("warn");
   });
 
   it("pending jobs > 0 → async group warn", () => {

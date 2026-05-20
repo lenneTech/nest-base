@@ -284,6 +284,7 @@ export class HubController {
       geoIpEnabled: Boolean(features.geoIp?.enabled),
       geoIpInstalled: asyncMetrics.geoIpInstalled,
       allMigrationsApplied,
+      multiTenancyEnabled: Boolean(features.multiTenancy?.enabled),
       rlsActive: Boolean(features.multiTenancy?.enabled),
     });
 

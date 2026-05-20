@@ -60,14 +60,34 @@ describe("Story · dashboard metrics loader", () => {
       expect(metrics.webhookSuccessRate).toBe(0.9);
     });
 
-    it("sums pending job states when jobs are enabled", async () => {
+    it("sums pending job states (created + active only) when jobs are enabled", async () => {
+      // Regression · Bug 2 — retry/delayed must NOT be counted as pending.
+      // BullMQ puts scheduled cron jobs in "delayed" state between firings; that
+      // maps to the `retry` bucket in StateCounts.  Counting retry caused a
+      // permanent pendingJobCount=4 from the 4 repeat jobs, triggering a constant
+      // "warn" on the dashboard.  Only created (backlog) + active (running) are
+      // genuine health signals.
       const features = FeaturesSchema.parse({ jobs: { enabled: true } });
       const metrics = await loadDashboardAsyncMetrics({
         prisma: fakePrisma(() => []),
         jobs: fakeJobs({ created: 2, active: 3, retry: 1 }),
         features,
       });
-      expect(metrics.pendingJobCount).toBe(6);
+      // After fix: only created + active = 5 (retry excluded)
+      expect(metrics.pendingJobCount).toBe(5);
+    });
+
+    it("loadPendingJobCount excludes retry/delayed — all-retry queue appears empty", async () => {
+      // Regression · Bug 2 — the 4 scheduled repeat jobs are always in delayed/retry
+      // state between cron firings.  With only cron jobs in the queue, pendingJobCount
+      // must be 0 (not 4) so the dashboard shows "ok" rather than a permanent "warn".
+      const features = FeaturesSchema.parse({ jobs: { enabled: true } });
+      const metrics = await loadDashboardAsyncMetrics({
+        prisma: fakePrisma(() => []),
+        jobs: fakeJobs({ created: 0, active: 0, retry: 4 }),
+        features,
+      });
+      expect(metrics.pendingJobCount).toBe(0);
     });
   });
 
