@@ -53,6 +53,19 @@ describe("Tenant Guard", () => {
     },
   );
 
+  // The Hub login SPA bundle is served at /hub/static/* and must load
+  // before any tenant exists — otherwise the login page (which is how a
+  // user activates an organization in the first place) can never boot.
+  // It is exempt in jwt-/session-/ability-middleware; the tenant guard
+  // must agree or the page renders blank with 400 "Tenant Header Required".
+  it.each(["/hub/static/main.js", "/hub/static/main.css", "/hub/static/tokens.css"])(
+    "treats %s as tenant-exempt (public Hub SPA assets)",
+    (path) => {
+      expect(isTenantExempt(path)).toBe(true);
+      expect(requiresTenant(path)).toBe(false);
+    },
+  );
+
   it("rejects empty input defensively", () => {
     expect(() => requiresTenant("")).toThrow();
   });
