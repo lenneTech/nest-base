@@ -55,6 +55,12 @@ const STATIC_EXEMPT_PREFIXES = [
   "/health/",
   "/docs/",
   "/errors/",
+  // Hub login SPA bundle (JS/CSS). Served before any tenant exists —
+  // the login page is how a user activates an organization, so its
+  // assets cannot require a tenant. `/hub/*` (non-static) stays
+  // tenant-required; this prefix is more specific and wins. Matches the
+  // exemption already present in jwt-/session-/ability-middleware.
+  "/hub/static/",
   "/api/me/",
   "/api/tenants/",
   // Share-token endpoints — the token's HMAC envelope encodes the
