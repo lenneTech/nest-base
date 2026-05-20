@@ -78,8 +78,8 @@ describe("Story · Scalar API-UI config", () => {
 
   describe("mount path", () => {
     it("returns the configured mountPath as a sibling field", () => {
-      const cfg = buildScalarConfig(input({ mountPath: "/dev/api" }));
-      expect(cfg.mountPath).toBe("/dev/api");
+      const cfg = buildScalarConfig(input({ mountPath: "/api/docs/custom" }));
+      expect(cfg.mountPath).toBe("/api/docs/custom");
     });
 
     it("defaults mountPath to /api/docs", () => {

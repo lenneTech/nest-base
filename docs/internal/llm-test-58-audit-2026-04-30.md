@@ -1,5 +1,8 @@
 # LLM-Test 58-failure audit · 2026-04-30
 
+> **Historical note (2026-05-19):** Spec paths below cite `tests/dev-hub.e2e-spec.ts`
+> and `/dev/static/*`; the live suite is `tests/hub.e2e-spec.ts` and `/hub/static/*`.
+
 The friction log from the LLM-test run (2026-05-02-18-44-43) reported
 `Test Files 12 failed | 233 passed (245)` and
 `Tests 58 failed | 2305 passed (2363)` on a fresh
@@ -28,8 +31,8 @@ already fixed the other 56.
 
 | # | Spec | Test | Failing assertion | Class | Resolution |
 |---|---|---|---|---|---|
-| 1 | `tests/dev-hub.e2e-spec.ts` | `GET /dev/static/main.js serves the bundled SPA entry as JavaScript` | `expect(404).toBe(200)` | `missing-fixture` | Build the SPA bundle on demand from `tests/global-setup.ts` |
-| 2 | `tests/dev-hub.e2e-spec.ts` | `GET /dev/static/tokens.css serves the design-token CSS` | `expect(404).toBe(200)` | `missing-fixture` | Same fix — `dist/dev-portal/tokens.css` is emitted alongside `main.js` |
+| 1 | `tests/hub.e2e-spec.ts` (was `dev-hub`) | `GET /hub/static/main.js` serves the bundled SPA entry as JavaScript | `expect(404).toBe(200)` | `missing-fixture` | Build the SPA bundle on demand from `tests/global-setup.ts` |
+| 2 | `tests/hub.e2e-spec.ts` (was `dev-hub`) | `GET /hub/static/tokens.css` serves the design-token CSS | `expect(404).toBe(200)` | `missing-fixture` | Same fix — `dist/dev-portal/tokens.css` is emitted alongside `main.js` |
 
 ### Class breakdown
 
