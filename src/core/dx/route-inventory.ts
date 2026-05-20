@@ -26,6 +26,13 @@ export interface RouteInput {
   handler: string;
   /** Set when the handler carries a @Can() decorator. */
   canMetadata?: RouteCanMetadata;
+  /**
+   * Set when the handler (or its controller class) carries a @Public()
+   * decorator — explicit consent that the route serves anonymous traffic
+   * by design. Lower precedence than @Can() and the dev-only allowlist,
+   * higher than the `unguarded` fallback (see classifyGuards).
+   */
+  isPublic?: boolean;
 }
 
 export type RouteGuard =
@@ -120,12 +127,23 @@ function normaliseAllowlist(
 }
 
 function classifyGuards(route: RouteInput, allowlist: AllowlistEntry[]): RouteGuard[] {
+  // Precedence (most specific signal wins):
+  //   1. @Can() metadata          → an explicit permission gate.
+  //   2. allowlist prefix match   → subsystem-wide intent; keeps /admin and
+  //      /hub routes classified `dev-only` even when they carry a class-level
+  //      @Public() (the SPA-shell controllers do) — the allowlist must win so
+  //      those stay honestly labelled dev-only, not public.
+  //   3. @Public() decorator      → per-route consent for anonymous traffic.
+  //   4. nothing                  → `unguarded` (a genuine audit finding).
   if (route.canMetadata) {
     return [{ kind: "can", action: route.canMetadata.action, subject: route.canMetadata.subject }];
   }
   const match = allowlist.find((entry) => route.path.startsWith(entry.prefix));
   if (match) {
     return [{ kind: match.kind }];
+  }
+  if (route.isPublic) {
+    return [{ kind: "public" }];
   }
   return [{ kind: "unguarded" }];
 }

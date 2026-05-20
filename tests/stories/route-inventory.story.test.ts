@@ -231,4 +231,88 @@ describe("Story · buildRouteInventory", () => {
       expect(inventory.routes[0]?.guards).toEqual([{ kind: "public" }]);
     });
   });
+
+  describe("@Public() decorator signal (isPublic)", () => {
+    // Why: the Hub route walker reads the `@Public()` decorator and forwards
+    // it as `isPublic: true`. A `@Public()` route outside the allowlist
+    // prefixes used to be reported as `unguarded` (a false positive in the
+    // Hub developer dashboard) — these tests lock in that it's now `public`.
+    it("classifies an isPublic route (no Can, no allowlist match) as `public`", () => {
+      const stack = [
+        {
+          method: "GET",
+          path: "/metrics",
+          controller: "MetricsController",
+          handler: "expose",
+          isPublic: true,
+        },
+      ];
+      const inventory = buildRouteInventory({ routes: stack });
+      expect(inventory.routes[0]?.guards).toEqual([{ kind: "public" }]);
+    });
+
+    it("counts isPublic routes under summary.public and keeps summary.unguarded at 0", () => {
+      const stack = [
+        { method: "GET", path: "/metrics", controller: "M", handler: "expose", isPublic: true },
+        { method: "GET", path: "/", controller: "Root", handler: "root", isPublic: true },
+      ];
+      const inventory = buildRouteInventory({ routes: stack });
+      expect(inventory.summary).toEqual({
+        total: 2,
+        guarded: 0,
+        public: 2,
+        devOnly: 0,
+        unguarded: 0,
+      });
+    });
+
+    it("lets the dev-only allowlist win over isPublic (class-@Public admin/hub SPA shells stay dev-only)", () => {
+      const stack = [
+        {
+          method: "GET",
+          path: "/admin/audit",
+          controller: "AdminSpaController",
+          handler: "audit",
+          isPublic: true,
+        },
+        {
+          method: "GET",
+          path: "/hub/x",
+          controller: "HubController",
+          handler: "x",
+          isPublic: true,
+        },
+      ];
+      const inventory = buildRouteInventory({
+        routes: stack,
+        publicAllowlist: [
+          { prefix: "/admin", kind: "dev-only" },
+          { prefix: "/hub", kind: "dev-only" },
+        ],
+      });
+      expect(inventory.routes.find((r) => r.path === "/admin/audit")?.guards).toEqual([
+        { kind: "dev-only" },
+      ]);
+      expect(inventory.routes.find((r) => r.path === "/hub/x")?.guards).toEqual([
+        { kind: "dev-only" },
+      ]);
+    });
+
+    it("lets canMetadata win over isPublic (an explicitly gated route stays `can`)", () => {
+      const stack = [
+        {
+          method: "GET",
+          path: "/projects",
+          controller: "P",
+          handler: "list",
+          canMetadata: { action: "read", subject: "Project" },
+          isPublic: true,
+        },
+      ];
+      const inventory = buildRouteInventory({ routes: stack });
+      expect(inventory.routes[0]?.guards).toEqual([
+        { kind: "can", action: "read", subject: "Project" },
+      ]);
+    });
+  });
 });

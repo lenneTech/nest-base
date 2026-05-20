@@ -4,6 +4,7 @@ import { PATH_METADATA, METHOD_METADATA } from "@nestjs/common/constants.js";
 import { RequestMethod } from "@nestjs/common";
 
 import { CAN_METADATA_KEY, type CanMetadata } from "../permissions/can.guard.js";
+import { PUBLIC_ROUTE_METADATA_KEY } from "../permissions/public.decorator.js";
 import { buildRouteInventory, type RouteInput, type RouteInventory } from "./route-inventory.js";
 
 /**
@@ -56,6 +57,11 @@ export class RouteInventoryService {
           const canMetadata = Reflect.getMetadata(CAN_METADATA_KEY, target) as
             | CanMetadata
             | undefined;
+          // @Public() can sit on the method OR on the controller class
+          // (e.g. AdminSpaController applies it at class level), so check both.
+          const publicMeta =
+            Reflect.getMetadata(PUBLIC_ROUTE_METADATA_KEY, target) ??
+            Reflect.getMetadata(PUBLIC_ROUTE_METADATA_KEY, ctor as object);
           routes.push({
             method: httpMethod,
             path: fullPath,
@@ -69,6 +75,7 @@ export class RouteInventoryService {
                   },
                 }
               : {}),
+            ...(publicMeta ? { isPublic: true } : {}),
           });
         }
       }

@@ -274,6 +274,22 @@ describe("Hub · GET /hub", () => {
       );
       expect(devRoute).toBeDefined();
     });
+
+    it("classifies a method-level @Public() route outside the allowlist as `public`, not `unguarded`", async () => {
+      // Regression: the Hub route walker used to ignore the @Public()
+      // decorator, so GET /metrics (method-level @Public, no allowlist
+      // prefix) was falsely reported as `unguarded`. It must now be
+      // `public` and contribute 0 to summary.unguarded.
+      const res = await hub.get("/hub/routes.json");
+      expect(res.status).toBe(200);
+      const metrics = res.body.routes.find(
+        (r: { path: string; method: string }) => r.path === "/metrics" && r.method === "GET",
+      );
+      expect(metrics).toBeDefined();
+      expect(metrics.guards).toEqual([{ kind: "public" }]);
+      // The whole point of the fix: no genuinely-public route lingers as unguarded.
+      expect(res.body.summary.unguarded).toBe(0);
+    });
   });
 
   describe("outside development mode", () => {
