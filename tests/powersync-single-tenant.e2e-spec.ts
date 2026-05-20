@@ -2,10 +2,7 @@ import type { INestApplication } from "@nestjs/common";
 import type { Agent } from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import {
-  POWER_SYNC_STORE,
-  type PowerSyncStore,
-} from "../src/core/auth/powersync-store.js";
+import { POWER_SYNC_STORE, type PowerSyncStore } from "../src/core/auth/powersync-store.js";
 import { SINGLE_TENANT_ID } from "../src/core/auth/powersync-tenant.js";
 import { createApiTestSession, withApiTestAbility } from "./helpers/api-request.js";
 
