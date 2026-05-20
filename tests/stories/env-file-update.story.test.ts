@@ -21,18 +21,18 @@ describe("Story · ENV-File Update Planner", () => {
       value: "true",
     });
     expect(r.action).toBe("appended");
-    expect(r.next).toContain("# Managed by /dev/features");
+    expect(r.next).toContain("# Managed by /hub/features");
     expect(r.next).toContain("FEATURE_X_ENABLED=true");
   });
 
   it("nutzt den Marker beim zweiten Append nicht doppelt", () => {
-    const start = "FOO=1\n\n# Managed by /dev/features\nFEATURE_A_ENABLED=true\n";
+    const start = "FOO=1\n\n# Managed by /hub/features\nFEATURE_A_ENABLED=true\n";
     const r = planEnvFileUpdate({
       current: start,
       key: "FEATURE_B_ENABLED",
       value: "true",
     });
-    const markers = r.next.match(/# Managed by \/dev\/features/g) ?? [];
+    const markers = r.next.match(/# Managed by \/hub\/features/g) ?? [];
     expect(markers).toHaveLength(1);
     expect(r.next).toContain("FEATURE_B_ENABLED=true");
   });

@@ -40,7 +40,7 @@ Every helper that touches I/O is split:
 - `src/core/throttler/throttler.ts` (planner; takes `now: () => number`) +
   Postgres adapter (runner)
 - `src/core/dx/env-file-update.ts` (planner) +
-  `dev-hub.controller.ts:toggleFeature()` (runner with `readFile`/`writeFile`)
+  `hub.controller.ts:toggleFeature()` (runner with `readFile`/`writeFile`)
 - `src/core/dx/coverage-report.ts` (planner: parsed JSON → report) +
   controller (runner: reads `coverage/coverage-summary.json`)
 
@@ -107,7 +107,7 @@ files.
 Every developer-facing HTML surface — `/hub/*`, `/admin/*`, `/errors`,
 `/openapi` — is served by a single React 19 SPA bundled by
 `bun build` and emitted to `dist/dev-portal/`. The Nest controllers
-(`dev-hub.controller.ts`, `admin-spa.controller.ts`,
+(`hub.controller.ts`, `admin-spa.controller.ts`,
 `error-code.controller.ts`, the `/openapi` mount in
 `bootstrap.ts`) all return the same thin HTML shell
 (`renderDevPortalShell`); React + react-router decides what to render.
@@ -129,7 +129,7 @@ clients/                  ← React 19 SPA source (TypeScript + shadcn/ui + Tail
 └── styles/               ← tokens.css (brand-aware vars) + globals.css (Tailwind 4 + @theme bridge)
 
 dev-portal-shell.ts       ← server-side shell renderer (`<div id="root">`)
-dev-hub.controller.ts     ← /hub/* SPA shell + JSON sidecars
+hub.controller.ts     ← /hub/* SPA shell + JSON sidecars
 admin-spa.controller.ts   ← /admin/* SPA shell + JSON sidecars
 ```
 
@@ -172,17 +172,22 @@ The admin UI for testing rules is at `/admin/permissions/test`.
 
 ## Multi-tenancy
 
-`x-tenant-id` header (UUID) carried via `AsyncLocalStorage` in
-`src/core/multi-tenancy/tenant.interceptor.ts`. The interceptor
-attaches the tenant to the request context, the Prisma extension
-(`SET LOCAL app.tenant_id`) makes RLS see it.
+Tenant scope comes from Better-Auth **`session.activeOrganizationId`**
+(set via `POST /api/auth/organization/set-active`). The
+`TenantInterceptor` resolves the org id per request and stores it in
+`AsyncLocalStorage`; `PrismaService.runWithRlsTenant()` sets
+`app.tenant_id` for Postgres RLS. Stray `x-tenant-id` headers are
+**ignored** on `/api/*`, `/admin/*`, and `/hub/*`.
 
-Public routes (`/`, `/health/*`, `/api/auth/*`, `/hub/*`, `/admin/*`,
-`/errors/*`) are exempt — see `tenant-guard.ts:isTenantExempt`.
-Query strings + fragments are stripped before matching.
+Policy: `src/core/multi-tenancy/tenant-resolution-policy.ts`.
+Resolver: `resolveRequestTenantId()`.
+
+Bootstrap routes (`GET /api/me/tenants`, `POST /api/tenants`) are
+exempt — no active org yet. Path allowlists for auth/health/hub shells
+live in `tenant-guard.ts` and `jwt-middleware.ts`.
 
 Multi-tenancy is a feature flag — when off, the interceptor is not
-registered, no header required.
+registered.
 
 ---
 
@@ -219,6 +224,20 @@ Implications:
 - CI must run `prepare:schema && prisma:generate` before any test or build
 
 See skill `working-with-prisma` for the full migration + concat workflow.
+
+---
+
+## First-time bring-up
+
+```bash
+bun install
+bun run setup    # .env + docker (postgres/redis) + prepare:schema + migrate + seed
+bun run dev      # sign in at / → /hub (see docs/hub/login.md)
+```
+
+Flags: `--bootstrap` (DB only), `--skip-bootstrap`, `--skip-docker`,
+`--no-seed`. After toggling features in `/hub/features`, re-run
+`bun run prepare:schema` (then migrate if new SQL shipped).
 
 ---
 
@@ -264,7 +283,7 @@ here:
 - `startup-banner.ts` — terminal banner after boot
 
 Most of these are pure planners with story tests. The runners live
-in `dev-hub.controller.ts` or `bootstrap.ts`.
+in `hub.controller.ts` or `bootstrap.ts`.
 
 ---
 

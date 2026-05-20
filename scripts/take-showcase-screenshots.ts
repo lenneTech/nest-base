@@ -93,9 +93,9 @@ interface PageSpec {
 // 1:1 correspondence so a new route can't ship without a screenshot
 // entry.
 const PAGES: PageSpec[] = [
+  { slug: "hub-login", path: "/", waitFor: ["Sign in", "Dev Portal"] },
   // Dev portal
   { slug: "hub-landing", path: "/hub", waitFor: ["Hub", "Cockpit"] },
-  { slug: "hub-components", path: "/hub/components", waitFor: ["Components", "shadcn"] },
   { slug: "hub-features", path: "/hub/features", waitFor: ["Multi-Tenancy", "Feature flags"] },
   { slug: "hub-brand", path: "/hub/brand", waitFor: ["Brand"] },
   { slug: "hub-coverage", path: "/hub/coverage", waitFor: ["Coverage", "no run yet", "Lines"] },
@@ -106,17 +106,19 @@ const PAGES: PageSpec[] = [
   { slug: "hub-queries", path: "/hub/queries", waitFor: ["Queries"] },
   { slug: "hub-migrations", path: "/hub/migrations", waitFor: ["Migrations", "Status"] },
   { slug: "hub-jobs", path: "/hub/jobs", waitFor: ["Jobs", "Queues"] },
+  { slug: "admin-jobs-redirect", path: "/admin/jobs", waitFor: ["Jobs", "Queues"] },
   { slug: "hub-routes", path: "/hub/routes", waitFor: ["Routes"] },
   { slug: "hub-erd", path: "/hub/erd", waitFor: ["ERD"] },
+  { slug: "hub-emails", path: "/hub/emails", waitFor: ["Emails", "Templates"] },
   {
-    slug: "hub-email-preview",
+    slug: "hub-email-preview-redirect",
     path: "/hub/email-preview",
-    waitFor: ["Email Preview", "verification"],
+    waitFor: ["Emails", "Templates"],
   },
   {
-    slug: "hub-email-builder",
+    slug: "hub-email-builder-redirect",
     path: "/hub/email-builder",
-    waitFor: ["Email Builder", "Templates"],
+    waitFor: ["Emails", "Templates"],
   },
   { slug: "hub-postgrest-parse", path: "/hub/postgrest-parse", waitFor: ["PostgREST"] },
   { slug: "hub-json", path: "/hub/json", waitFor: ["JSON Viewer"] },
@@ -146,7 +148,7 @@ const PAGES: PageSpec[] = [
     requiresAuth: true,
   },
   { slug: "admin-sessions", path: "/admin/sessions", waitFor: ["Sessions"], requiresAuth: true },
-  { slug: "admin-jobs", path: "/admin/jobs", waitFor: ["Jobs"], requiresAuth: true },
+  { slug: "jobs", path: "/hub/jobs", waitFor: ["Jobs"], requiresAuth: true },
   {
     slug: "admin-webhooks",
     path: "/admin/webhooks",

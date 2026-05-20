@@ -35,7 +35,6 @@ describe("Story · Feature-flag surface contract (SC.BOOT.04)", () => {
     // Better-Auth plugin surface (CF.AUTH.05–09)
     "magicLink",
     "adminPlugin",
-    "organization",
     "oneTap",
     "openAPI",
     // Geo / GeoIP / Devices
@@ -77,7 +76,7 @@ describe("Story · Feature-flag surface contract (SC.BOOT.04)", () => {
     // The schema has since grown: passwordPolicy and filesMimeStrict were
     // added in the H2 fix (iter-216 review), bringing the total to 25.
     // The meaningful contract is the named key set above, not the count.
-    expect(Object.keys(features).length).toBe(25);
+    expect(Object.keys(features).length).toBe(24);
   });
 
   it("counts auth-method sub-flags toward the broader feature breadth", () => {

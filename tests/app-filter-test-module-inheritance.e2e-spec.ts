@@ -1,10 +1,12 @@
 import { Controller, Get, type INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
-import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { z } from "zod";
 
 import { Public } from "../src/core/permissions/public.decorator.js";
+import { hubReqScoped, pinHubTestAuthEnv } from "./helpers/hub-request.js";
+
+const TENANT = "11111111-1111-1111-1111-111111111111";
 
 /**
  * E2E · `Test.createTestingModule({ imports: [AppModule] })` inherits
@@ -53,15 +55,12 @@ class ZodBoomController {
 
 describe("E2E · APP_FILTER inheritance via Test.createTestingModule({ imports: [AppModule] })", () => {
   let app: INestApplication;
+  let hub: Awaited<ReturnType<typeof hubReqScoped>>;
   const originalSecret = process.env.BETTER_AUTH_SECRET;
   const originalBaseUrl = process.env.APP_BASE_URL;
 
   beforeAll(async () => {
-    // Better-Auth boots eagerly when AppModule loads — give it the
-    // bare-minimum env so its config validation passes.
-    process.env.BETTER_AUTH_SECRET =
-      "test-better-auth-secret-for-testing-purposes-only-1234567890abcd";
-    process.env.APP_BASE_URL = "http://localhost:3000";
+    pinHubTestAuthEnv();
     const { AppModule } = await import("../src/core/app/app.module.js");
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
@@ -79,13 +78,12 @@ describe("E2E · APP_FILTER inheritance via Test.createTestingModule({ imports: 
         "errors",
         "errors/(.*)",
         "openapi",
-        "hub/login",
-        "hub/logout",
         "health",
         "health/(.*)",
       ],
     });
     await app.init();
+    hub = await hubReqScoped(app, TENANT);
   });
 
   afterAll(async () => {
@@ -97,7 +95,7 @@ describe("E2E · APP_FILTER inheritance via Test.createTestingModule({ imports: 
   });
 
   it("returns 400 + CORE_VALIDATION + problem+json content-type for an in-handler ZodError", async () => {
-    const res = await request(app.getHttpServer()).get("/hub/filter-inheritance-probe/zod");
+    const res = await hub.get("/hub/filter-inheritance-probe/zod");
     // Was 500 + plain JSON before the AppModule APP_FILTER edit.
     expect(res.status).toBe(400);
     expect(res.headers["content-type"]).toMatch(/application\/problem\+json/);

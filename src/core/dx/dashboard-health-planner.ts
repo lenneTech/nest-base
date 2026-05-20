@@ -32,12 +32,14 @@ export interface DashboardHealthInput {
   bunVersion: string;
   pendingJobCount: number;
   deadLetterCount: number;
-  /** 0..1, last hour; 1 = 100 % success */
-  webhookSuccessRate: number;
+  /** 0..1 over the last 24 h; `null` = no deliveries or webhooks disabled */
+  webhookSuccessRate: number | null;
   emailEnabled: boolean;
   storageDriverName: string;
-  /** Age of the GeoIP database file in days (0 = freshly downloaded) */
-  geoIpAgeDays: number;
+  /** Age of the GeoIP `.mmdb` in days; `null` = feature off or file missing */
+  geoIpAgeDays: number | null;
+  geoIpEnabled: boolean;
+  geoIpInstalled: boolean;
   allMigrationsApplied: boolean;
   /** Whether row-level security is active on the DB */
   rlsActive: boolean;
@@ -57,73 +59,91 @@ function buildDatabaseGroup(input: DashboardHealthInput): DashboardStatusGroup {
 
   const items: DashboardStatusItem[] = [
     {
-      label: "Migrationen",
-      value: input.allMigrationsApplied ? "aktuell" : "ausstehend",
+      label: "Migrations",
+      value: input.allMigrationsApplied ? "up to date" : "pending",
       status: migrationsStatus,
     },
     {
       label: "Row-Level Security",
-      value: input.rlsActive ? "aktiv" : "inaktiv",
+      value: input.rlsActive ? "active" : "inactive",
       status: rlsStatus,
     },
   ];
 
-  return { id: "database", label: "Datenbankstatus", status: worstOf(items), items };
+  return { id: "database", label: "Database", status: worstOf(items), items };
 }
 
 function buildAsyncGroup(input: DashboardHealthInput): DashboardStatusGroup {
   // Dead letters always → error regardless of success rate
   const deadLetterStatus: StatusLevel = input.deadLetterCount > 0 ? "error" : "ok";
 
-  // Webhook success-rate thresholds: ≥0.95 ok, 0.8–0.95 warn, <0.8 error
-  const webhookStatus: StatusLevel =
-    input.webhookSuccessRate >= 0.95 ? "ok" : input.webhookSuccessRate >= 0.8 ? "warn" : "error";
+  const webhookItem: DashboardStatusItem =
+    input.webhookSuccessRate === null
+      ? {
+          label: "Webhook success rate",
+          value: "no deliveries (24 h)",
+          status: "unknown",
+        }
+      : (() => {
+          const rate = input.webhookSuccessRate;
+          const webhookStatus: StatusLevel = rate >= 0.95 ? "ok" : rate >= 0.8 ? "warn" : "error";
+          return {
+            label: "Webhook success rate",
+            value: `${(rate * 100).toFixed(0)} %`,
+            status: webhookStatus,
+          };
+        })();
 
   const items: DashboardStatusItem[] = [
     {
       label: "Dead-Letter-Queue",
-      value: input.deadLetterCount === 0 ? "leer" : `${input.deadLetterCount} Einträge`,
+      value: input.deadLetterCount === 0 ? "empty" : `${input.deadLetterCount} entries`,
       status: deadLetterStatus,
     },
+    webhookItem,
     {
-      label: "Webhook-Erfolgsrate",
-      value: `${(input.webhookSuccessRate * 100).toFixed(0)} %`,
-      status: webhookStatus,
-    },
-    {
-      label: "Offene Jobs",
-      value: input.pendingJobCount === 0 ? "keine" : String(input.pendingJobCount),
-      status: "ok",
+      label: "Pending jobs",
+      value: input.pendingJobCount === 0 ? "none" : String(input.pendingJobCount),
+      status: input.pendingJobCount === 0 ? "ok" : input.pendingJobCount > 100 ? "error" : "warn",
     },
   ];
 
-  return { id: "async", label: "Async-Dienste", status: worstOf(items), items };
+  return { id: "async", label: "Async services", status: worstOf(items), items };
 }
 
 function buildExternalGroup(input: DashboardHealthInput): DashboardStatusGroup {
-  // GeoIP database is "stale" after 30 days — the free MaxMind DB
-  // updates weekly; warn if the operator forgot to refresh it.
-  const geoIpStatus: StatusLevel = input.geoIpAgeDays > 30 ? "warn" : "ok";
+  const geoIpItem: DashboardStatusItem = !input.geoIpEnabled
+    ? { label: "GeoIP database", value: "disabled", status: "unknown" }
+    : !input.geoIpInstalled || input.geoIpAgeDays === null
+      ? {
+          label: "GeoIP database",
+          value: "not installed",
+          status: "warn",
+        }
+      : {
+          label: "GeoIP database",
+          value:
+            input.geoIpAgeDays > 30
+              ? `${input.geoIpAgeDays} days old`
+              : `${input.geoIpAgeDays} days`,
+          status: input.geoIpAgeDays > 30 ? "warn" : "ok",
+        };
 
   const items: DashboardStatusItem[] = [
     {
-      label: "E-Mail-Dienst",
-      value: input.emailEnabled ? "aktiv" : "deaktiviert",
+      label: "Email service",
+      value: input.emailEnabled ? "active" : "disabled",
       status: input.emailEnabled ? "ok" : "warn",
     },
     {
-      label: "Speicher-Driver",
+      label: "Storage driver",
       value: input.storageDriverName,
       status: "ok",
     },
-    {
-      label: "GeoIP-Datenbank",
-      value: input.geoIpAgeDays > 30 ? `${input.geoIpAgeDays} Tage alt` : "aktuell",
-      status: geoIpStatus,
-    },
+    geoIpItem,
   ];
 
-  return { id: "external", label: "Externe Dienste", status: worstOf(items), items };
+  return { id: "external", label: "External services", status: worstOf(items), items };
 }
 
 function buildRuntimeGroup(input: DashboardHealthInput): DashboardStatusGroup {
@@ -136,28 +156,28 @@ function buildRuntimeGroup(input: DashboardHealthInput): DashboardStatusGroup {
 
   const items: DashboardStatusItem[] = [
     {
-      label: "Heap-Speicher",
+      label: "Heap memory",
       value: `${input.heapUsedMb.toFixed(0)} MB`,
       status: heapStatus,
     },
     {
-      label: "RSS-Speicher",
+      label: "RSS memory",
       value: `${input.rssMb.toFixed(0)} MB`,
       status: rssStatus,
     },
     {
-      label: "Laufzeit",
+      label: "Uptime",
       value: `${Math.floor(input.uptime / 3600)} h ${Math.floor((input.uptime % 3600) / 60)} min`,
       status: "ok",
     },
     {
-      label: "Bun-Version",
-      value: input.bunVersion || "unbekannt",
+      label: "Bun version",
+      value: input.bunVersion || "unknown",
       status: "ok",
     },
   ];
 
-  return { id: "runtime", label: "Laufzeit", status: worstOf(items), items };
+  return { id: "runtime", label: "Runtime", status: worstOf(items), items };
 }
 
 /**
@@ -165,10 +185,11 @@ function buildRuntimeGroup(input: DashboardHealthInput): DashboardStatusGroup {
  * snapshot. Pure — no side-effects, no async.
  */
 export function buildDashboardStatusGroups(input: DashboardHealthInput): DashboardStatusGroup[] {
+  // Order: data integrity → queues/webhooks → process health → integrations.
   return [
     buildDatabaseGroup(input),
     buildAsyncGroup(input),
-    buildExternalGroup(input),
     buildRuntimeGroup(input),
+    buildExternalGroup(input),
   ];
 }

@@ -18,7 +18,7 @@
  * Watch mode: pass `--watch`. Re-runs on file change. `scripts/dev.ts`
  * launches us in `--watch` so the SPA stays in sync with edits.
  */
-import { existsSync, mkdirSync, watch as watchFs, copyFileSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, watch as watchFs, copyFileSync, statSync, rmSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 import tailwindPlugin from "bun-plugin-tailwind";
@@ -36,7 +36,17 @@ if (!existsSync(entry)) {
 
 mkdirSync(outdir, { recursive: true });
 
+/** Drop stale hashed chunks so lazy imports never 404 or load old code. */
+function cleanOutdir(): void {
+  if (!existsSync(outdir)) return;
+  for (const name of readdirSync(outdir)) {
+    rmSync(resolve(outdir, name), { recursive: true, force: true });
+  }
+}
+
 async function buildOnce(label: string) {
+  cleanOutdir();
+  mkdirSync(outdir, { recursive: true });
   const started = Date.now();
   const result = await Bun.build({
     entrypoints: [entry],

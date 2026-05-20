@@ -3,7 +3,7 @@
  * with before / after diffs.
  */
 import { useQuery } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 
 import { Badge } from "../components/ui/badge.js";
@@ -22,6 +22,7 @@ import {
 import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson } from "../lib/api.js";
+import { bootstrapHubOperatorSession } from "../lib/hub-session-bootstrap.js";
 
 interface AuditLogEntry {
   id: string;
@@ -57,16 +58,32 @@ export function AuditBrowserPage(): ReactNode {
     if (v) filter[key] = v;
   }
 
+  const [tenantId, setTenantId] = useState("");
+  const [tenantBootstrapDone, setTenantBootstrapDone] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const bootstrapped = await bootstrapHubOperatorSession();
+      if (!cancelled && bootstrapped) setTenantId(bootstrapped);
+      if (!cancelled) setTenantBootstrapDone(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const url = `/admin/audit.json?${params.toString()}`;
   const data = useQuery({
-    queryKey: ["admin", "audit", url],
+    queryKey: ["admin", "audit", url, tenantId],
     queryFn: () => fetchJson<AuditBrowserResponse>(url),
+    enabled: tenantBootstrapDone && tenantId.trim().length > 0,
   });
 
   return (
     <AdminShell
       title="Audit Browser"
-      subtitle="Filter and inspect tenant-scoped audit-log entries with diffs."
+      subtitle="Filter tenant-scoped audit entries and show diffs."
       currentNav="audit"
     >
       <div className="flex flex-col gap-6">
@@ -111,7 +128,12 @@ export function AuditBrowserPage(): ReactNode {
             <CardTitle>Entries</CardTitle>
           </CardHeader>
           <CardContent>
-            <EntriesTable entries={data.data?.entries} isError={data.isError} />
+            <EntriesTable
+              entries={data.data?.entries}
+              isError={data.isError}
+              tenantMissing={tenantBootstrapDone && tenantId.trim().length === 0}
+              tenantLoading={!tenantBootstrapDone}
+            />
           </CardContent>
         </Card>
       </div>
@@ -143,61 +165,74 @@ function FilterField({
 function EntriesTable({
   entries,
   isError,
+  tenantMissing,
+  tenantLoading,
 }: {
   entries: AuditLogEntry[] | undefined;
   isError: boolean;
+  tenantMissing: boolean;
+  tenantLoading: boolean;
 }): ReactNode {
+  if (tenantLoading) {
+    return <PageLoading>Loading tenant from session…</PageLoading>;
+  }
+  if (tenantMissing) {
+    return (
+      <PageError>
+        No active organization in session. Sign in to the Hub and call set-active, or pick a default
+        org via bootstrap.
+      </PageError>
+    );
+  }
   if (isError) return <PageError>Failed to load audit entries.</PageError>;
   if (!entries) return <PageLoading>Loading…</PageLoading>;
   if (entries.length === 0)
     return <PageEmpty>No audit entries match the current filter.</PageEmpty>;
   return (
-    <div className="max-h-[65dvh] min-h-56 overflow-auto">
-      <Table data-audit-entries="true">
-        <TableHeader>
-          <TableRow>
-            <TableHead>When</TableHead>
-            <TableHead>Action</TableHead>
-            <TableHead>Resource</TableHead>
-            <TableHead>ID</TableHead>
-            <TableHead>Actor</TableHead>
-            <TableHead>Diff</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {entries.map((entry) => {
-            const tone =
-              entry.action === "delete"
-                ? "err"
-                : entry.action === "create"
-                  ? "ok"
-                  : entry.action === "update"
-                    ? "info"
-                    : "secondary";
-            return (
-              <TableRow key={entry.id} data-action={entry.action}>
-                <TableCell className="font-mono text-[0.7rem] text-fg-muted">
-                  {entry.occurredAt}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={tone}>{entry.action}</Badge>
-                </TableCell>
-                <TableCell className="font-mono text-xs">{entry.resource}</TableCell>
-                <TableCell className="font-mono text-[0.7rem] text-fg-muted">
-                  {entry.resourceId ?? ""}
-                </TableCell>
-                <TableCell className="font-mono text-[0.7rem] text-fg-muted">
-                  {entry.actorUserId ?? ""}
-                </TableCell>
-                <TableCell>
-                  <DiffCell before={entry.before} after={entry.after} />
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </div>
+    <Table data-audit-entries="true">
+      <TableHeader>
+        <TableRow>
+          <TableHead>When</TableHead>
+          <TableHead>Action</TableHead>
+          <TableHead>Resource</TableHead>
+          <TableHead>ID</TableHead>
+          <TableHead>Actor</TableHead>
+          <TableHead>Diff</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {entries.map((entry) => {
+          const tone =
+            entry.action === "delete"
+              ? "err"
+              : entry.action === "create"
+                ? "ok"
+                : entry.action === "update"
+                  ? "info"
+                  : "secondary";
+          return (
+            <TableRow key={entry.id} data-action={entry.action}>
+              <TableCell className="font-mono text-[0.7rem] text-fg-muted">
+                {entry.occurredAt}
+              </TableCell>
+              <TableCell>
+                <Badge variant={tone}>{entry.action}</Badge>
+              </TableCell>
+              <TableCell className="font-mono text-xs">{entry.resource}</TableCell>
+              <TableCell className="font-mono text-[0.7rem] text-fg-muted">
+                {entry.resourceId ?? ""}
+              </TableCell>
+              <TableCell className="font-mono text-[0.7rem] text-fg-muted">
+                {entry.actorUserId ?? ""}
+              </TableCell>
+              <TableCell>
+                <DiffCell before={entry.before} after={entry.after} />
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
   );
 }
 

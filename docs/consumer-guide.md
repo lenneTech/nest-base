@@ -13,18 +13,21 @@ keep the upstream link via [Template-Update-Workflow](./template-update-workflow
 
 ## Setup wizard
 
-Once the repo exists, run the setup wizard. It writes a typed `features.ts`,
-generates `.env.example`, and prepares the schema concatenation:
+Once the repo exists, run the setup wizard. On a fresh checkout it writes
+`.env` from `.env.example` (random secrets), starts Postgres + Redis via
+docker compose, concatenates feature schemas, applies migrations, and seeds
+demo operator accounts:
 
 ```bash
+bun install
 bun run setup
 ```
 
-The wizard asks one question per feature flag (multi-tenancy, mobile/PowerSync,
-search, MCP, realtime, field encryption, email provider) so you don't have to
-read every architecture section before starting. The output is fully
-reproducible — run it twice with the same answers and you get byte-identical
-files.
+Flags: `--bootstrap` (DB bring-up on an existing `.env`), `--skip-bootstrap`
+(env file only), `--skip-docker`, `--no-seed`. Feature toggles live in
+`src/config/features.ts` (edit + `bun run prepare:schema` when you add
+feature-gated Prisma models). The env writer is idempotent — it refuses to
+overwrite an existing `.env`.
 
 ## Environment contract
 

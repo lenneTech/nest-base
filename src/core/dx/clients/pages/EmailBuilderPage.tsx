@@ -1,5 +1,5 @@
 /**
- * `/dev/email-builder` — Layout-Designer + Children-Composer (Issue #9).
+ * `/hub/emails` — Layout-Designer + Children-Composer (Issue #9).
  *
  * Two top-level views:
  *   1. Gallery — lists every discovered template; "New" creates a draft.
@@ -36,7 +36,7 @@ import {
 } from "../components/ui/select.js";
 import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
-import { fetchJson } from "../lib/api.js";
+import { fetchJson, needsAdminAuthHint } from "../lib/api.js";
 import { cn } from "../lib/utils.js";
 
 interface DiscoveredTemplate {
@@ -46,6 +46,8 @@ interface DiscoveredTemplate {
   source: "core" | "module";
   subject?: string;
   error?: string;
+  /** Gallery thumbnail vars: latest outbox send or brand appName only. */
+  previewPayloadSource?: "outbox" | "brand";
   /** Module-overlay row that shadows a same-named core template. */
   overridesCore?: boolean;
   /** Core row whose name + locale also has a module overlay. */
@@ -139,18 +141,17 @@ export function EmailBuilderPage(): ReactNode {
 
   const templates = useQuery({
     queryKey: ["dev", "email-builder", "templates"],
-    queryFn: () =>
-      fetchJson<{ templates: DiscoveredTemplate[] }>("/hub/email-builder/templates.json"),
+    queryFn: () => fetchJson<{ templates: DiscoveredTemplate[] }>("/hub/emails/templates.json"),
   });
 
   const blocks = useQuery({
     queryKey: ["dev", "email-builder", "blocks"],
-    queryFn: () => fetchJson<BlocksResponse>("/hub/email-builder/blocks.json"),
+    queryFn: () => fetchJson<BlocksResponse>("/hub/emails/blocks.json"),
   });
 
   const queryClient = useQueryClient();
 
-  // The "Anpassen" action: fetch composition.json for the picked
+  // The "Customize" action: fetch composition.json for the picked
   // template and either pre-fill the composer or fall back to the
   // source-view when the source is outside the composer grammar.
   const customize = useMutation({
@@ -190,9 +191,10 @@ export function EmailBuilderPage(): ReactNode {
       const params = new URLSearchParams();
       if (tpl.locale) params.set("locale", tpl.locale);
       const qs = params.toString();
-      const url = `/hub/email-builder/templates/${encodeURIComponent(tpl.name)}/override${qs ? `?${qs}` : ""}`;
+      const url = `/hub/emails/templates/${encodeURIComponent(tpl.name)}/override${qs ? `?${qs}` : ""}`;
       const res = await fetch(url, {
         method: "DELETE",
+        credentials: "include",
         headers: { accept: "application/json" },
       });
       if (!res.ok) {
@@ -213,7 +215,7 @@ export function EmailBuilderPage(): ReactNode {
     : "Loading…";
 
   return (
-    <AdminShell title="Email Builder" subtitle={subtitle} currentNav="email-builder">
+    <AdminShell title="Emails" subtitle={subtitle} currentNav="emails">
       {editLoadError ? (
         <Card className="mb-4 border-err/40 bg-err/10" role="alert">
           <CardContent className="p-3 text-sm">
@@ -226,6 +228,7 @@ export function EmailBuilderPage(): ReactNode {
           templates={templates.data?.templates ?? []}
           isLoading={templates.isLoading}
           isError={templates.isError}
+          loadError={templates.error}
           isCustomizing={customize.isPending}
           onNew={() => {
             setDraft(emptyDraft());
@@ -275,13 +278,14 @@ function buildCompositionUrl(tpl: DiscoveredTemplate): string {
   const params = new URLSearchParams();
   if (tpl.locale) params.set("locale", tpl.locale);
   const qs = params.toString();
-  return `/hub/email-builder/templates/${encodeURIComponent(tpl.name)}/composition.json${qs ? `?${qs}` : ""}`;
+  return `/hub/emails/templates/${encodeURIComponent(tpl.name)}/composition.json${qs ? `?${qs}` : ""}`;
 }
 
 interface GalleryProps {
   templates: DiscoveredTemplate[];
   isLoading: boolean;
   isError: boolean;
+  loadError: unknown;
   isCustomizing: boolean;
   onNew: () => void;
   onDuplicate: (tpl: DiscoveredTemplate) => void;
@@ -293,6 +297,7 @@ function GalleryView({
   templates,
   isLoading,
   isError,
+  loadError,
   isCustomizing,
   onNew,
   onDuplicate,
@@ -300,7 +305,14 @@ function GalleryView({
   onReset,
 }: GalleryProps): ReactNode {
   if (isLoading) return <PageLoading>Loading email templates…</PageLoading>;
-  if (isError) return <PageError>Failed to load /dev/email-builder/templates.json</PageError>;
+  if (isError) {
+    const detail = loadError instanceof Error ? loadError.message : "";
+    return (
+      <PageError showAuthHint={needsAdminAuthHint(loadError)}>
+        Failed to load /hub/emails/templates.json{detail ? ` — ${detail}` : ""}
+      </PageError>
+    );
+  }
   // Hide redundant rows: a module overlay shadows the same-named core
   // template at runtime, so we only render the "Core (overridden)"
   // row in the gallery and surface the customise / reset buttons there.
@@ -382,6 +394,11 @@ function TemplateCard({
         </div>
         <p className="min-h-[2em] text-xs text-fg-muted">
           {tpl.error ? `⚠ ${tpl.error}` : (tpl.subject ?? "")}
+          {!tpl.error && tpl.previewPayloadSource === "brand" ? (
+            <span className="mt-1 block text-fg-muted">
+              Preview uses brand name only — send via outbox for real vars.
+            </span>
+          ) : null}
         </p>
       </CardHeader>
       <CardContent className="flex flex-wrap gap-2">
@@ -393,7 +410,7 @@ function TemplateCard({
           data-eb-action="customize"
           aria-label={`Customize ${tpl.name}`}
         >
-          Anpassen
+          Customize
         </Button>
         <Button size="sm" variant="outline" onClick={onDuplicate} data-eb-action="duplicate">
           Duplicate
@@ -538,6 +555,11 @@ function ComposerView({
   const [selectedBlock, setSelectedBlock] = useState<number | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  const brand = useQuery({
+    queryKey: ["dev", "brand"],
+    queryFn: () => fetchJson<{ name: string }>("/hub/brand.json"),
+  });
+
   const referencedVars = useMemo(() => collectVars(draft), [draft]);
   const [vars, setVars] = useState<Record<string, string>>({});
 
@@ -547,19 +569,20 @@ function ComposerView({
       let changed = false;
       for (const v of referencedVars) {
         if (next[v] === undefined) {
-          next[v] = defaultVarValue(v);
+          next[v] = defaultVarValue(v, brand.data?.name);
           changed = true;
         }
       }
       return changed ? next : prev;
     });
-  }, [referencedVars]);
+  }, [referencedVars, brand.data?.name]);
 
   const preview = useQuery({
     queryKey: ["dev", "email-builder", "preview", draft, vars],
     queryFn: async () => {
-      const res = await fetch("/hub/email-builder/preview.json", {
+      const res = await fetch("/hub/emails/preview.json", {
         method: "POST",
+        credentials: "include",
         headers: { "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify({ composition: draft, vars }),
       });
@@ -574,8 +597,9 @@ function ComposerView({
   const save = useMutation({
     mutationFn: async () => {
       setSaveError(null);
-      const res = await fetch("/hub/email-builder/save", {
+      const res = await fetch("/hub/emails/save", {
         method: "POST",
+        credentials: "include",
         headers: { "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify({ slug, composition: draft }),
       });
@@ -996,15 +1020,7 @@ function scanForVars(value: string, target: Set<string>): void {
   }
 }
 
-function defaultVarValue(name: string): string {
-  const seeds: Record<string, string> = {
-    recipientName: "Alice Example",
-    senderName: "Bob Example",
-    appName: "nest-base",
-    verificationUrl: "https://example.test/verify",
-    resetUrl: "https://example.test/reset",
-    acceptUrl: "https://example.test/accept",
-    ctaUrl: "https://example.test/start",
-  };
-  return seeds[name] ?? `<${name}>`;
+function defaultVarValue(name: string, brandName?: string): string {
+  if (name === "appName" && brandName) return brandName;
+  return `<${name}>`;
 }

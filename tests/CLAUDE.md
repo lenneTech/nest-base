@@ -182,6 +182,30 @@ describe("GET /widgets", () => {
 E2E specs are slower than story tests; reach for the story first
 whenever the surface can be exercised without HTTP.
 
+### Hub and admin E2E (`/hub/*`, `/admin/*`)
+
+Use `hubReqScoped` — never bare `request()` on gated hub routes (you get
+**400** without tenant context, not the status you expect).
+
+```typescript
+import { hubReqScoped, pinHubTestAuthEnv } from "./helpers/hub-request.js";
+
+const TENANT = "11111111-1111-1111-1111-111111111111";
+
+beforeAll(async () => {
+  pinHubTestAuthEnv();
+  app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
+  hub = await hubReqScoped(app, TENANT);
+});
+
+const res = await hub.get("/hub/dashboard.json");
+```
+
+`pinHubTestAuthEnv()` must run **before** `bootstrap()` so Better-Auth
+and feature gates are configured. Production-mode blocks that expect
+`assertDev()` **404** also use `hubReqScoped`, not unauthenticated
+`request()`.
+
 ## Type tests
 
 `tests/types/*.type-test.ts` use `tsc --noEmit` to assert TypeScript

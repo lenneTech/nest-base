@@ -1,187 +1,122 @@
 # Hub Dashboard
 
-**Route:** `/hub` (root — served by `@Get()` on `DevHubController`)
-**Issue:** #88
-**Backend path:** `src/core/dx/dev-hub.controller.ts`
-**Frontend path:** `src/core/dx/clients/pages/DevHubLandingPage.tsx`
+**Route:** `/hub` (React SPA — `HubLandingPage`)
+**Backend:** `src/core/dx/hub.controller.ts` (`dashboardJson`)
+**Frontend:** `src/core/dx/clients/pages/HubLandingPage.tsx`
 
 ---
 
 ## Overview
 
-The Hub dashboard is the operator landing page after login. It provides a
-real-time cockpit for every sub-system of the server: service health,
-request traffic, active sessions, coverage, test results, feature flags,
-and live log preview — all on a single page.
+The Hub dashboard is the **operator cockpit** after login. It surfaces
+live runtime health — not CI artefacts. Coverage and test summaries live
+on their own pages (`/hub/coverage`, `/hub/tests`).
 
-Data comes from a single aggregated endpoint:
+Primary data source:
 
 ```
-GET /api/hub/dashboard.json
+GET /hub/dashboard.json
 ```
 
-This endpoint is re-polled every 5 seconds (`refetchInterval: 5_000`).
-Service probes within the **Services** strip are additionally re-polled
-every 4 seconds via `GET /api/hub/status.json` so the coloured status
-dots update without a full dashboard reload.
+Polled every 5 seconds. Service probes refresh separately via
+`GET /hub/status.json` (4 s interval) so probe dots update without
+reloading the full dashboard payload.
 
 ---
 
 ## Layout (top to bottom)
 
-### Hero — overall health + runtime metrics
+### Hero — overall health
 
-A full-width card whose border colour reflects the worst-case state:
+Border colour reflects operational state derived from probes, status
+groups, slow queries, and error-level logs — **not** coverage or test
+counts.
 
-| State | Colour | Trigger |
-|-------|--------|---------|
-| `OK` | green | All probes up, all tests pass, coverage gates pass |
-| `WARN` | yellow | Coverage below threshold |
-| `ERR` | red | At least one probe down, or test suite failing |
-
-Four metric tiles appear to the right of the state label:
-
-| Tile | Source |
-|------|--------|
-| **Uptime** | `dashboard.uptimeMs` |
-| **Heap** | `dashboard.memory.heapUsed / heapTotal` |
-| **Node / Bun** | `dashboard.process.bun` or `dashboard.process.node` |
-| **Base URL** | `dashboard.baseUrl` |
-
-### Operator status groups
-
-Four coloured cards, each linking to a detail page:
-
-| Group ID | Label | Links to |
-|----------|-------|----------|
-| `database` | Database | `/hub/migrations` |
-| `async` | Async / Queue | `/hub/jobs` |
-| `external` | External Services | `/hub/diagnostics` |
-| `runtime` | Runtime | `/hub/diagnostics` |
-
-Each card shows a dot-per-item breakdown (label + value + green/yellow/red dot).
-The group's overall status badge (`OK` / `Warnung` / `Fehler` / `Unbekannt`)
-is derived from the worst item within the group.
-
-### Charts row
-
-Two side-by-side charts using Recharts:
-
-**Requests / min — last 24 hours** (spans 2 of 3 columns):
-- Stacked area chart with three series: `2xx` (green), `4xx` (yellow),
-  `5xx` (red)
-- Buckets are 5-minute intervals; X-axis shows hourly ticks
-- Source: `dashboard.requestsChart.buckets[]`
-
-**Sessions** (1 of 3 columns):
-- Line chart with two series: `Aktiv` (lime) and `Neue Logins` (green)
-- Source: `dashboard.sessionsChart.buckets[]`
-
-Both charts show an empty state when no data has been collected yet.
-
-### Geographic request distribution
-
-A table of the top countries by request volume:
-
-| Column | Source |
-|--------|--------|
-| Country code + name | `geoTopCountries.countries[].country` |
-| Request count | `.requests` |
-| Share (%) | computed: requests / total |
-
-Requires the GeoIP database to be installed and the request log active.
-Shows an empty state otherwise.
-
-### Stats grid
-
-Five stat tiles that link to deeper pages:
-
-| Tile | Value | Badge |
-|------|-------|-------|
-| **Coverage** | `cov.total.lines.pct %` | `✓ Gates OK` / `unter Schwellwert` / `kein Run` |
-| **Tests** | `passed / total` | `✓ alle grün` / `N fehlgeschlagen` / `kein Run` |
-| **Features** | `active / total` | count of available (disabled) features |
-| **Aktuelle Logs** | ring-buffer count | error/warn badge or `sauber` |
-| **DB-Abfragen** | total query count | `alle schnell` / slow count / critical count |
-
-### Cloudflare Tunnel card
-
-Shown only when `dashboard.tunnel.active === true`. Displays the public
-tunnel URL with a copy button and an external link. A warning note
-reminds operators not to expose real user data via the tunnel.
+| State | Colour | Typical trigger |
+|-------|--------|-----------------|
+| `OK` | green | Probes up, status groups green, no critical log noise |
+| `WARN` | yellow | Pending jobs, slow queries, or warn-level log pressure |
+| `ERR` | red | Probe down, failed migrations, dead-letter jobs, error logs |
 
 ### Services strip
 
-A grid of service probe cards, re-polled every 4 s:
+Grid of HTTP probes (Postgres, Mailpit, Scalar, …). Re-polled via
+`/hub/status.json`. Green / red / grey dots with latency labels.
 
-- **Green dot + glow** — probe returned 2xx within the last poll
-- **Red dot + glow** — probe returned non-2xx or timed out
-- **Grey dot** — status unknown (first poll not yet complete)
+### Operator status groups
 
-Each card shows: name, probe URL (monospace), status label, and latency.
+Four cards (order: database → async → runtime → external):
 
-### Live-Logs preview
+| Group ID | Label | Detail page |
+|----------|-------|-------------|
+| `database` | Database | `/hub/migrations` |
+| `async` | Async / Queue | `/hub/jobs` |
+| `runtime` | Runtime | `/hub/diagnostics` |
+| `external` | External Services | `/hub/diagnostics` |
 
-Last 10 log records from the in-memory ring buffer, newest first.
-Columns: time (HH:MM:SS), level badge (`fatal` / `error` / `warn` /
-`info`), context tag, message. A link to `/hub/logs` navigates to the
-full log page.
+Each item shows label, value, and per-item status dot. Group badge is
+the worst item in the group (`buildDashboardStatusGroups` in
+`dashboard-health-planner.ts`).
 
-### Feature overview
+### Ops metrics row
 
-A 2-column list of all feature flags from the catalog.
-Active flags have a lime background; inactive flags have a muted
-background. A progress bar shows active / total ratio. A link leads to
-`/hub/features` for toggling.
+Four tiles for day-to-day operations:
 
-### Quick navigation
+| Tile | Source |
+|------|--------|
+| **Pending jobs** | `asyncMetrics.pendingJobCount` |
+| **Dead letters** | `asyncMetrics.deadLetterCount` |
+| **Slow queries** | `queries.slow` from query buffer |
+| **Error logs** | recent ring-buffer entries at error/fatal level |
 
-A grid of 11 direct links to the most-used Hub and admin tools:
+### Cloudflare Tunnel
 
-- Scalar API Reference → `/api/docs`
-- OpenAPI-Spec → `/openapi`
-- Permission Tester → `/admin/permissions/test`
-- Webhook Inspector → `/admin/webhooks`
-- Realtime Inspector → `/admin/realtime`
-- Audit Browser → `/admin/audit`
-- Search Tester → `/admin/search`
-- Mandantenverwaltung → `/admin/tenants`
-- Fehlerkatalog → `/errors`
-- PostgREST Parser → `/hub/postgrest-parse`
-- Diagnose → `/hub/diagnostics`
+Shown when `tunnel.active === true` (from `tunnel.json` lock file written
+by `bun run dev --tunnel`).
+
+### Activity charts (optional)
+
+Rendered only when data is available — no empty chart placeholders.
+
+| Chart | Field | Notes |
+|-------|-------|-------|
+| Requests / min | `requestsChart` | Stacked 2xx / 4xx / 5xx; hidden when `available: false` |
+| Sessions | `sessionsChart` | Active + new logins from Prisma session table |
+| Geo top countries | `geoTopCountries` | Requires GeoIP feature + database installed |
+
+### Logs preview + features + quick links
+
+- **Logs** — last records from the in-memory ring buffer; link to `/hub/logs`
+- **Features** — catalog snapshot with active/total ratio; link to `/hub/features`
+- **Quick navigation** — filtered by `hub-nav-planner.ts` + enabled feature flags
 
 ---
 
 ## Backend aggregation
 
-`GET /api/hub/dashboard.json` is served by
-`DevHubController.dashboardJson()`. It assembles the `DashboardJson`
-object from several sub-services:
+`HubController.dashboardJson()` builds the payload from runtime sources:
 
 | Field | Provider |
 |-------|----------|
-| `statusGroups` | `StatusGroupService` — probes database, queue, and external deps |
-| `requestsChart` | `RequestLogService` — 5-minute buckets over the last 24 hours |
-| `sessionsChart` | `SessionLogService` — hourly login + active counts |
-| `geoTopCountries` | `GeoLogService` — requires MaxMind GeoIP |
-| `probes` | `ServiceProbeService` — per-service HTTP checks |
-| `coverage` | reads `reports/coverage/coverage-summary.json` if present |
-| `tests` | reads `reports/tests/test-results.json` if present |
-| `logs` | `LogRingBuffer` — in-memory ring, capacity configurable via ENV |
-| `queries` | `QueryInstrumentService` — Prisma query metrics |
-| `tunnel` | `TunnelService` — Cloudflare Tunnel state |
-| `features` | `FeaturesService` — current feature flag values |
-| `catalog` | `FeatureCatalogService` — static metadata |
+| `statusGroups` | `buildDashboardStatusGroups()` + `loadDashboardAsyncMetrics()` |
+| `probes` | `probeServices(planServiceCandidates(...))` |
+| `sessionsChart` | `loadDashboardSessionsChart(prisma)` |
+| `requestsChart` | placeholder `{ available: false }` until request logging ships |
+| `geoTopCountries` | placeholder `{ available: false }` until geo aggregation ships |
+| `logs` | `getLogBuffer().recent(50)` |
+| `queries` | `getQueryBuffer().summary()` |
+| `tunnel` | `readTunnelState()` |
+| `features` / `catalog` | feature schema + static catalog |
 
-The endpoint is path-allowlisted under `/hub/` and requires the operator
-to be logged in (Hub login at `/`).
+Coverage and test JSON are **not** included in `dashboard.json`; use
+`/hub/coverage.json` and `/hub/tests.json` on their dedicated pages.
 
 ---
 
-## Security
+## Auth + tenancy
 
-The Hub serves on the `/hub/*` path prefix which is a dev-only
-allowlist (`DevHubController` returns 404 outside `NODE_ENV=development`).
-All Hub pages require the operator to authenticate via the login page at
-`/`; the session is validated by the NestJS JWT middleware on the Hub
-controller before any data is returned.
+- **Login:** Better-Auth session (see [`login.md`](./login.md)).
+- **Tenant scope:** `POST /api/auth/organization/set-active` →
+  `session.activeOrganizationId`. The `x-tenant-id` header is ignored.
+- **Dev gate:** `assertDev()` — routes return **404** outside
+  `NODE_ENV=development`.

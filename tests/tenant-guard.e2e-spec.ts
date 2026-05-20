@@ -6,8 +6,8 @@ import { isTenantExempt, requiresTenant } from "../src/core/multi-tenancy/tenant
  * Adapted from nest-server `tenant-guard.e2e-spec.ts`.
  *
  * Path-level guard rules:
- *   - public paths (/health/*, /, /api/auth/*, /hub/*) are exempt from
- *     the tenant header check
+ *   - public paths (/health/*, /, /api/auth/*) are exempt from tenant scope
+ *   - `/hub/*` and `/admin/*` require `session.activeOrganizationId`
  *   - everything else requires the tenant header to be present + valid
  *
  * Issue #83: all domain API routes are now under `/api/*`. The
@@ -45,10 +45,13 @@ describe("Tenant Guard", () => {
     expect(isTenantExempt(path)).toBe(true);
   });
 
-  // Hub paths are exempt (no tenant needed for the Hub SPA).
-  it.each(["/hub/login", "/hub/logout"])("treats %s as tenant-exempt (Hub SPA)", (path) => {
-    expect(isTenantExempt(path)).toBe(true);
-  });
+  it.each(["/hub", "/hub/dashboard.json", "/hub/portal-access.json", "/admin/tenants/list.json"])(
+    "treats %s as tenant-required (session active org)",
+    (path) => {
+      expect(requiresTenant(path)).toBe(true);
+      expect(isTenantExempt(path)).toBe(false);
+    },
+  );
 
   it("rejects empty input defensively", () => {
     expect(() => requiresTenant("")).toThrow();
@@ -60,8 +63,7 @@ describe("Tenant Guard", () => {
     expect(isTenantExempt("/api/errors?format=json")).toBe(true);
     expect(isTenantExempt("/health/live?ts=1")).toBe(true);
     expect(isTenantExempt("/api/auth/sign-in?next=/x")).toBe(true);
-    // Hub SPA now lives at /hub/* (no /api prefix).
-    expect(isTenantExempt("/hub?source=banner")).toBe(true);
+    expect(requiresTenant("/hub/dashboard.json?refresh=1")).toBe(true);
   });
 
   it("strips fragments before matching", () => {

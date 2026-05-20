@@ -59,7 +59,7 @@ export function SearchTesterPage(): ReactNode {
   return (
     <AdminShell
       title="Search Tester"
-      subtitle="Cross-resource full-text search with parsed tsquery diagnostics."
+      subtitle="Full-text search across resources with tsquery diagnostics."
       currentNav="search"
     >
       <div className="flex flex-col gap-6">

@@ -1,11 +1,11 @@
 /**
  * `/admin/policies` — Prisma-backed Policy CRUD (CF.MTPERM, iter-128).
- * Enhanced in Issue #84 with a "Verwendung" column: a "Rollen anzeigen"
+ * Enhanced in Issue #84 with a "Usage" column: a "Show roles"
  * button per policy row fetches `GET /admin/policies/:id/roles` on
  * demand and shows the results in a Dialog.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
 import { Button } from "../components/ui/button.js";
@@ -14,6 +14,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "../components/ui/dialog.js";
@@ -28,8 +29,10 @@ import {
   TableRow,
 } from "../components/ui/table.js";
 import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
+import { SortableTableHead } from "../components/SortableTableHead.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson } from "../lib/api.js";
+import { useTableSort } from "../lib/use-table-sort.js";
 
 interface PermissionLite {
   id: string;
@@ -58,8 +61,7 @@ interface RolePolicyLink {
 
 export function PoliciesAdminPage(): ReactNode {
   const qc = useQueryClient();
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
   const [usagePolicy, setUsagePolicy] = useState<PolicyRecord | null>(null);
 
   const list = useQuery({
@@ -68,19 +70,18 @@ export function PoliciesAdminPage(): ReactNode {
   });
 
   const create = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (payload: { name: string; description: string }) => {
       const res = await fetch("/admin/policies", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, description: description || null }),
+        body: JSON.stringify({ name: payload.name, description: payload.description || null }),
       });
       if (!res.ok) throw new Error(`policy create failed (${res.status})`);
       return res.json();
     },
-    onSuccess: () => {
-      toast.success(`Policy "${name}" angelegt.`);
-      setName("");
-      setDescription("");
+    onSuccess: (_data, payload) => {
+      toast.success(`Policy "${payload.name}" created.`);
+      setCreateOpen(false);
       qc.invalidateQueries({ queryKey: ["admin", "policies"] });
     },
     onError: (err: Error) => toast.error(err.message),
@@ -93,118 +94,137 @@ export function PoliciesAdminPage(): ReactNode {
       return res.json();
     },
     onSuccess: () => {
-      toast.success("Policy gelöscht.");
+      toast.success("Policy deleted.");
       qc.invalidateQueries({ queryKey: ["admin", "policies"] });
     },
     onError: (err: Error) => toast.error(err.message),
   });
 
-  return (
-    <AdminShell title="Policies" subtitle="Permission-bundle administration" currentNav="policies">
-      <div className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Neue Policy</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form
-              className="flex flex-wrap items-end gap-3"
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (name.trim()) create.mutate();
-              }}
-            >
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="policy-name">Name</Label>
-                <Input
-                  id="policy-name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-72"
-                />
-              </div>
-              <div className="flex flex-1 flex-col gap-1">
-                <Label htmlFor="policy-description">Beschreibung</Label>
-                <Input
-                  id="policy-description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-              </div>
-              <Button
-                type="submit"
-                disabled={create.isPending || !name.trim()}
-                data-action="create-policy"
-              >
-                {create.isPending ? "Anlegen…" : "Anlegen"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+  const policies = list.data ?? [];
+  const {
+    sortedRows: sortedPolicies,
+    sortKey,
+    sortDirection,
+    toggleSort,
+  } = useTableSort(policies, {
+    getValue: (row, key) => {
+      if (key === "permissions") return row.permissions?.length ?? 0;
+      return (row as Record<string, unknown>)[key];
+    },
+  });
 
+  return (
+    <AdminShell
+      title="Policies"
+      subtitle="Manage permission bundles and assign roles"
+      currentNav="policies"
+    >
+      <div className="space-y-4">
         {list.isPending ? (
-          <PageLoading>Lade Policies…</PageLoading>
+          <PageLoading>Loading policies…</PageLoading>
         ) : list.isError ? (
-          <PageError>Konnte /admin/policies nicht laden.</PageError>
-        ) : (list.data ?? []).length === 0 ? (
-          <PageEmpty>Noch keine Policies angelegt.</PageEmpty>
+          <PageError>Could not load /admin/policies.</PageError>
         ) : (
           <Card>
             <CardHeader>
-              <CardTitle>Policies ({list.data?.length ?? 0})</CardTitle>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <CardTitle>Policies ({policies.length})</CardTitle>
+                <Button
+                  size="sm"
+                  onClick={() => setCreateOpen(true)}
+                  data-action="create-policy-open"
+                >
+                  New policy
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Beschreibung</TableHead>
-                    <TableHead>Permissions</TableHead>
-                    <TableHead>Verwendung</TableHead>
-                    <TableHead className="text-right">Aktion</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {list.data?.map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-mono text-xs">{p.id.slice(0, 8)}…</TableCell>
-                      <TableCell>{p.name}</TableCell>
-                      <TableCell className="text-xs text-fg-muted">
-                        {p.description ?? "—"}
-                      </TableCell>
-                      <TableCell className="text-xs">{p.permissions?.length ?? 0}</TableCell>
-                      <TableCell>
-                        <Button variant="outline" size="sm" onClick={() => setUsagePolicy(p)}>
-                          Rollen anzeigen
-                        </Button>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          disabled={remove.isPending}
-                          onClick={() => {
-                            if (
-                              typeof window !== "undefined" &&
-                              !window.confirm(`Policy "${p.name}" löschen?`)
-                            )
-                              return;
-                            remove.mutate(p.id);
-                          }}
-                          data-action="delete-policy"
-                        >
-                          Löschen
-                        </Button>
-                      </TableCell>
+              {policies.length === 0 ? (
+                <PageEmpty>No policies created yet.</PageEmpty>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <SortableTableHead
+                        label="ID"
+                        sortKey="id"
+                        activeSortKey={sortKey}
+                        sortDirection={sortDirection}
+                        onSort={toggleSort}
+                      />
+                      <SortableTableHead
+                        label="Name"
+                        sortKey="name"
+                        activeSortKey={sortKey}
+                        sortDirection={sortDirection}
+                        onSort={toggleSort}
+                      />
+                      <SortableTableHead
+                        label="Description"
+                        sortKey="description"
+                        activeSortKey={sortKey}
+                        sortDirection={sortDirection}
+                        onSort={toggleSort}
+                      />
+                      <SortableTableHead
+                        label="Permissions"
+                        sortKey="permissions"
+                        activeSortKey={sortKey}
+                        sortDirection={sortDirection}
+                        onSort={toggleSort}
+                      />
+                      <TableHead>Usage</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedPolicies.map((p) => (
+                      <TableRow key={p.id}>
+                        <TableCell className="font-mono text-xs">{p.id.slice(0, 8)}…</TableCell>
+                        <TableCell>{p.name}</TableCell>
+                        <TableCell className="text-xs text-fg-muted">
+                          {p.description ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-xs">{p.permissions?.length ?? 0}</TableCell>
+                        <TableCell>
+                          <Button variant="outline" size="sm" onClick={() => setUsagePolicy(p)}>
+                            Show roles
+                          </Button>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            disabled={remove.isPending}
+                            onClick={() => {
+                              if (
+                                typeof window !== "undefined" &&
+                                !window.confirm(`Policy "${p.name}" delete?`)
+                              )
+                                return;
+                              remove.mutate(p.id);
+                            }}
+                            data-action="delete-policy"
+                          >
+                            Delete
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         )}
       </div>
+
+      <CreatePolicyDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        isPending={create.isPending}
+        onCreate={(payload) => create.mutate(payload)}
+      />
 
       <Dialog
         open={usagePolicy !== null}
@@ -214,9 +234,9 @@ export function PoliciesAdminPage(): ReactNode {
       >
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Rollen für Policy „{usagePolicy?.name}"</DialogTitle>
+            <DialogTitle>Roles for policy „{usagePolicy?.name}"</DialogTitle>
             <DialogDescription>
-              Diese Rollen verwenden die Richtlinie direkt über einen RolePolicy-Eintrag.
+              These roles use the policy directly via a RolePolicy entry.
             </DialogDescription>
           </DialogHeader>
           {usagePolicy ? <PolicyRolesPanel policyId={usagePolicy.id} /> : null}
@@ -226,27 +246,115 @@ export function PoliciesAdminPage(): ReactNode {
   );
 }
 
+interface CreatePolicyDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  isPending: boolean;
+  onCreate: (payload: { name: string; description: string }) => void;
+}
+
+function CreatePolicyDialog({
+  open,
+  onOpenChange,
+  isPending,
+  onCreate,
+}: CreatePolicyDialogProps): ReactNode {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+
+  useEffect(() => {
+    if (!open) {
+      setName("");
+      setDescription("");
+    }
+  }, [open]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>New policy</DialogTitle>
+          <DialogDescription>
+            Creates a permission bundle that can be attached to roles.
+          </DialogDescription>
+        </DialogHeader>
+        <form
+          className="space-y-4 py-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (name.trim()) onCreate({ name: name.trim(), description: description.trim() });
+          }}
+        >
+          <div className="space-y-1">
+            <Label htmlFor="policy-name">Name</Label>
+            <Input
+              id="policy-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="policy-description">Description</Label>
+            <Input
+              id="policy-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isPending || !name.trim()} data-action="create-policy">
+              {isPending ? "Creating…" : "Create"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function PolicyRolesPanel({ policyId }: { policyId: string }): ReactNode {
   const roles = useQuery({
     queryKey: ["admin", "policies", policyId, "roles"],
     queryFn: () => fetchJson<RolePolicyLink[]>(`/admin/policies/${policyId}/roles`),
   });
+  const { sortedRows, sortKey, sortDirection, toggleSort } = useTableSort(roles.data ?? [], {
+    getValue: (row, key) => {
+      if (key === "name") return row.role.name;
+      if (key === "tenantId") return row.role.tenantId;
+      return (row as Record<string, unknown>)[key];
+    },
+  });
 
-  if (roles.isPending) return <PageLoading>Lade Rollen…</PageLoading>;
-  if (roles.isError) return <PageError>Konnte Rollen nicht laden.</PageError>;
-  if ((roles.data ?? []).length === 0)
-    return <PageEmpty>Keine Rollen verwenden diese Policy.</PageEmpty>;
+  if (roles.isPending) return <PageLoading>Loading roles…</PageLoading>;
+  if (roles.isError) return <PageError>Could not load roles.</PageError>;
+  if ((roles.data ?? []).length === 0) return <PageEmpty>No roles use this policy.</PageEmpty>;
 
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead>Tenant</TableHead>
+          <SortableTableHead
+            label="Name"
+            sortKey="name"
+            activeSortKey={sortKey}
+            sortDirection={sortDirection}
+            onSort={toggleSort}
+          />
+          <SortableTableHead
+            label="Tenant"
+            sortKey="tenantId"
+            activeSortKey={sortKey}
+            sortDirection={sortDirection}
+            onSort={toggleSort}
+          />
         </TableRow>
       </TableHeader>
       <TableBody>
-        {roles.data?.map((rp) => (
+        {sortedRows.map((rp) => (
           <TableRow key={rp.roleId}>
             <TableCell>{rp.role.name}</TableCell>
             <TableCell className="font-mono text-xs text-fg-muted">

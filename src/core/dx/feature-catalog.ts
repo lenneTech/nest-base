@@ -22,11 +22,20 @@ export interface FeatureMeta {
 export const FEATURE_CATALOG: readonly FeatureMeta[] = [
   {
     key: "multiTenancy",
-    label: "Multi-Tenancy",
-    description: "Tenant isolation via x-tenant-id header + Postgres RLS. Adds tenant guard.",
+    label: "Tenancy (Organizations + RLS)",
+    description:
+      "Single tenant mode: Better-Auth Organizations (members, invites, session.activeOrganizationId via set-active) plus Postgres RLS. Disable for single-tenant apps.",
     envKey: "FEATURE_MULTI_TENANCY_ENABLED",
     category: "infrastructure",
-    exposes: ["x-tenant-id header", "RLS guards", "/tenant-members"],
+    exposes: [
+      "/api/auth/organization/*",
+      "session.activeOrganizationId",
+      "Session activeOrganizationId",
+      "Postgres RLS",
+      "GET /me/tenants",
+      "POST /tenants",
+      "/admin/tenants",
+    ],
   },
   {
     key: "files",
@@ -83,25 +92,6 @@ export const FEATURE_CATALOG: readonly FeatureMeta[] = [
     envKey: "FEATURE_MCP_ENABLED",
     category: "integration",
     exposes: ["McpModule", "@McpTool", "@McpResource"],
-  },
-  {
-    key: "organization",
-    label: "BA Organizations (Tenants)",
-    // Default-on (issue #118): Better-Auth Organizations replace the
-    // legacy Tenant/TenantMember tables as the canonical tenant layer.
-    // The feature flag stays opt-out so projects that migrated can
-    // disable the BA plugin while keeping the legacy tables.
-    description:
-      "Better-Auth Organizations plugin as canonical tenant layer. Enables /api/auth/organization/* routes + session.activeOrganizationId fallback. Default ON — disable via FEATURE_ORGANIZATION_ENABLED=false.",
-    envKey: "FEATURE_ORGANIZATION_ENABLED",
-    category: "infrastructure",
-    exposes: [
-      "/api/auth/organization/create",
-      "/api/auth/organization/invite-member",
-      "/api/auth/organization/set-active",
-      "session.activeOrganizationId",
-      "BA member table",
-    ],
   },
   {
     key: "fieldEncryption",

@@ -18,6 +18,11 @@ runtime module activation. Every conditional module reads it. The
 `src/core/dx/feature-catalog.ts`. Toggling a card writes to `.env`,
 the dev runner respawns, the feature lights up.
 
+**Environment:** do not wire flags via an interactive `bun run setup`
+questionnaire — edit `src/config/features.ts` (or `/hub/features`).
+Fresh machine: `bun install && bun run setup`; after schema work:
+`bun run prepare:schema` (or `bun run setup --bootstrap`).
+
 ## Required reading before you start
 
 Open these in order:

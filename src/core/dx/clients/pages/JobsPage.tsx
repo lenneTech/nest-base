@@ -35,7 +35,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs.js";
 import { PageEmpty, PageError, PageLoading, StatTile } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
-import { fetchJson, formatMs } from "../lib/api.js";
+import { fetchJson, formatMs, needsAdminAuthHint } from "../lib/api.js";
 
 interface StateCounts {
   created: number;
@@ -397,7 +397,8 @@ function JobDrawer({ id, onClose }: { id: string; onClose: () => void }): ReactN
     mutationFn: async () => {
       const res = await fetch(`/hub/jobs/jobs/${encodeURIComponent(id)}/retry`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        credentials: "include",
+        headers: { accept: "application/json", "content-type": "application/json" },
       });
       if (!res.ok) {
         const text = await res.text().catch(() => "");
@@ -467,7 +468,10 @@ function JobDrawer({ id, onClose }: { id: string; onClose: () => void }): ReactN
             ) : null}
           </div>
         ) : detail.isError ? (
-          <PageError>Failed to load job.</PageError>
+          <PageError showAuthHint={needsAdminAuthHint(detail.error)}>
+            Failed to load job.
+            {detail.error instanceof Error ? ` — ${detail.error.message}` : ""}
+          </PageError>
         ) : (
           <PageLoading>Loading job…</PageLoading>
         )}

@@ -9,38 +9,13 @@ import {
   ImpersonationController,
 } from "./impersonation.controller.js";
 import { DefaultSessionRevokeAuditSink } from "./session-revoke.audit-sink.js";
+import { PrismaSessionRevokeStorage } from "./prisma-session-revoke.storage.js";
 import {
   SESSION_REVOKE_AUDIT_SINK,
   SESSION_REVOKE_STORAGE,
-  type SessionRevokeStorage,
   SessionsAdminController,
 } from "./sessions-admin.controller.js";
 import { BetterAuthModule } from "./better-auth.module.js";
-
-/**
- * SessionsAdminModule — wires the `/admin/sessions/*` and
- * `/admin/impersonation/*` controllers (CF.AUTH.SESSIONS +
- * CF.AUTH.IMPERSONATION). The session-revoke storage and
- * impersonation teardown are abstracted behind tokens; the default
- * factories return no-op sentinels so the module mounts cleanly
- * out-of-the-box. Production code overrides the providers in its
- * bootstrap to wire Better-Auth's Prisma-backed session storage +
- * the audit-log writer.
- */
-
-const noopRevokeStorage: SessionRevokeStorage = {
-  listAllSessions: async (_tenantId?: string) => [],
-  revokeSession: async (_sessionId: string) => {
-    // Fail loudly rather than silently swallowing the revoke request.
-    // A project that calls revokeSession without wiring a real storage
-    // adapter would otherwise appear to succeed while doing nothing —
-    // a silent security-critical no-op (M3 fix).
-    throw new Error(
-      "revokeSession: no SessionRevokeStorage bound — wire SESSION_REVOKE_STORAGE " +
-        "in your AppModule to a Better-Auth Prisma adapter or equivalent implementation.",
-    );
-  },
-};
 
 const noopImpersonationTeardown: ImpersonationSessionTeardown = {
   endImpersonation: async () => {
@@ -49,13 +24,25 @@ const noopImpersonationTeardown: ImpersonationSessionTeardown = {
   },
 };
 
+/**
+ * SessionsAdminModule — wires the `/admin/sessions/*` and
+ * `/admin/impersonation/*` controllers (CF.AUTH.SESSIONS +
+ * CF.AUTH.IMPERSONATION). Session inventory + revoke use Prisma by
+ * default (same source as `/admin/users` session counts). Projects
+ * may override `SESSION_REVOKE_STORAGE` when they bind a remote store.
+ */
+
 @Module({
   // BetterAuthModule exports BETTER_AUTH_INSTANCE so SessionsAdminController
   // can look up the verified session id for the revokeOthers endpoint (MAJ-4).
   imports: [BetterAuthModule],
   controllers: [SessionsAdminController, ImpersonationController],
   providers: [
-    { provide: SESSION_REVOKE_STORAGE, useValue: noopRevokeStorage },
+    {
+      provide: SESSION_REVOKE_STORAGE,
+      useFactory: (prisma: PrismaService) => new PrismaSessionRevokeStorage(prisma),
+      inject: [PrismaService],
+    },
     // SessionRevokeAuditSink default writes REVOKE rows to the
     // `audit_log` table (CF.AUTH.SESSIONS, iter-90). Parallel to
     // the impersonation sink — projects override the binding to

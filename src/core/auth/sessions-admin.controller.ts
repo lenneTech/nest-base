@@ -42,10 +42,10 @@ import {
  * to the Better-Auth Prisma adapter, story tests pass an in-memory
  * fake.
  *
- * RBAC:
- *   - `delete:Session` is required for every endpoint. The
- *     CASL `Administrator` role grants it via `manage all`; member-
- *     scoped roles never satisfy it (no impersonate/admin power).
+ * JSON / action routes are gated by `@Can('delete', 'Session')`. The HTML
+ * shell is `@Public()` so the React bundle loads; operators sign in via
+ * Better-Auth (session cookie) and need `delete:Session` (system-admin
+ * seed role has `manage:all`).
  *
  * Audit:
  *   - The runner emits an audit row per revoked session via the
@@ -108,17 +108,8 @@ export class SessionsAdminController {
 
   /**
    * `GET /admin/sessions` — Sessions admin SPA HTML shell.
-   *
-   * `@Public()` here is intentional: the HTML shell is a static React
-   * SPA container that carries no sensitive data — it is equivalent to
-   * loading a static `.html` file. All data-bearing endpoints that
-   * follow (`sessionsListJson`, `revokeSingle`, `revokeBulkByUser`,
-   * `revokeOthers`) are individually gated by `@Can("delete",
-   * "Session")`. The same pattern is used by `/admin/users`,
-   * `/admin/realtime`, and all dev-hub shells (H4: confirmed
-   * intentional — security review 2026-05).
    */
-  @Public("dev-portal SPA shell — every interactive payload below is gated separately")
+  @Public("dev-portal SPA shell — each JSON sidecar below is gated separately")
   @Get()
   @Header("content-type", "text/html; charset=utf-8")
   sessionsAdminPage(): string {
@@ -136,13 +127,23 @@ export class SessionsAdminController {
    */
   @Can("delete", "Session")
   @Get("list.json")
-  async sessionsListJson(
-    @Req() req: AuthedRequest,
-  ): Promise<{ sessions: readonly SessionRecord[] }> {
-    // Scope to the requesting admin's tenant so cross-tenant session
-    // enumeration is impossible (H3 fix).
+  async sessionsListJson(@Req() req: AuthedRequest): Promise<{
+    sessions: ReadonlyArray<{
+      id: string;
+      userId: string;
+      createdAt: string;
+      tenantId: string;
+    }>;
+  }> {
     const sessions = await this.storage.listAllSessions(req.user?.tenantId);
-    return { sessions };
+    return {
+      sessions: sessions.map((s) => ({
+        id: s.id,
+        userId: s.userId,
+        tenantId: s.tenantId,
+        createdAt: new Date(s.createdAt).toISOString(),
+      })),
+    };
   }
 
   /**
@@ -156,7 +157,6 @@ export class SessionsAdminController {
     @Param("sessionId") sessionId: string,
     @Req() req: AuthedRequest,
   ): Promise<{ revoked: number; sessionIds: readonly string[] }> {
-    if (!req.user) throw new ForbiddenException("authentication required");
     return this.executeRevoke(req, { kind: "single", sessionId });
   }
 
@@ -171,7 +171,6 @@ export class SessionsAdminController {
     @Body() body: { userId?: unknown },
     @Req() req: AuthedRequest,
   ): Promise<{ revoked: number; sessionIds: readonly string[] }> {
-    if (!req.user) throw new ForbiddenException("authentication required");
     if (!body || typeof body.userId !== "string" || body.userId.length === 0) {
       throw new BadRequestException("userId (non-empty string) is required");
     }
@@ -195,7 +194,12 @@ export class SessionsAdminController {
   async revokeOthers(
     @Req() req: AuthedRequest,
   ): Promise<{ revoked: number; sessionIds: readonly string[] }> {
-    if (!req.user) throw new ForbiddenException("authentication required");
+    const actor = this.resolveActor(req);
+    if (!actor.fromSession) {
+      throw new ForbiddenException(
+        "authentication required — revoke-others needs a Better-Auth session",
+      );
+    }
 
     // Resolve the current session id from the verified Better-Auth session.
     // Falls back to a 401 when the auth subsystem is not wired so we never
@@ -215,18 +219,30 @@ export class SessionsAdminController {
 
     return this.executeRevoke(req, {
       kind: "bulk-by-user-except-current",
-      userId: req.user.id,
+      userId: actor.id,
       currentSessionId,
     });
+  }
+
+  private resolveActor(req: AuthedRequest): {
+    id: string;
+    tenantId?: string;
+    fromSession: boolean;
+  } {
+    if (!req.user) {
+      throw new UnauthorizedException("authentication required");
+    }
+    return { id: req.user.id, tenantId: req.user.tenantId, fromSession: true };
   }
 
   private async executeRevoke(
     req: AuthedRequest,
     strategy: SessionRevokeStrategy,
   ): Promise<{ revoked: number; sessionIds: readonly string[] }> {
+    const actor = this.resolveActor(req);
     // Pass the tenant id so only the current tenant's sessions are candidates
     // for revocation — cross-tenant revoke is not possible (H3 fix).
-    const sessions = await this.storage.listAllSessions(req.user?.tenantId);
+    const sessions = await this.storage.listAllSessions(actor.tenantId);
     const plan = planSessionRevoke({ sessions, strategy });
     if (plan.sessionIds.length === 0) {
       throw new NotFoundException("no matching sessions to revoke");
@@ -234,14 +250,14 @@ export class SessionsAdminController {
     const now = Date.now();
     // Use "UNKNOWN" instead of "" so audit logs contain a diagnosable
     // placeholder when tenantId is missing — easier to triage than empty string.
-    const tenantId = req.user?.tenantId ?? "UNKNOWN";
+    const tenantId = actor.tenantId ?? "UNKNOWN";
     for (const sessionId of plan.sessionIds) {
       await this.storage.revokeSession(sessionId);
       await this.audit.emit({
         action: "REVOKE",
         resource: "Session",
         resourceId: sessionId,
-        actorUserId: req.user!.id,
+        actorUserId: actor.id,
         tenantId,
         occurredAt: now,
         metadata: { kind: "SESSION_REVOKED", strategy: strategy.kind },

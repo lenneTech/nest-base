@@ -186,21 +186,19 @@ const TOGGLEABLE_FEATURES: ToggleableFeatureKey[] = [
 
 Then add `prisma/features/notifications.prisma` with the model.
 
-### 9. Setup wizard (optional) — `src/core/setup/setup-wizard.ts`
+### 9. Feature toggle surface — `src/config/features.ts`
 
-If `bun run setup` should ask about your feature:
+`bun run setup` writes `.env` and bootstraps the DB; it does **not** run an
+interactive feature questionnaire. Enable the flag in
+`src/config/features.ts` (or flip it in `/hub/features`), then
+`bun run prepare:schema` so `prisma/features/<feature>.prisma` is included.
+
+If the feature needs new env vars, add them to `buildDefaultEnvExample()` in
+`src/core/setup/setup-wizard.ts` so fresh `bun run setup` runs include them:
 
 ```typescript
-export interface WizardAnswers {
-  // ... existing
-  notifications: boolean;
-}
-
-// in planSetup():
-features.notifications = { enabled: answers.notifications };
-
-// in renderEnvExample() — if your feature requires runtime config:
-if (answers.notifications) {
+// in buildDefaultEnvExample() / env example — when your feature needs runtime config:
+if (features.notifications.enabled) {
   lines.push("NOTIFICATIONS_WEBHOOK_URL=");
 }
 ```
@@ -219,7 +217,7 @@ bun run scripts/regen-env-example.ts   # if that script exists
 | `tests/stories/features.story.test.ts`        | Default value + ENV override case                |
 | `tests/stories/feature-catalog.story.test.ts` | Already covers the envKey roundtrip — just rerun |
 | `tests/stories/diagnostics.story.test.ts`     | New field in the features-section assertion      |
-| `tests/stories/dev-hub.story.test.ts`         | If you added a navigation link                   |
+| `tests/stories/hub.story.test.ts`         | If you added a navigation link                   |
 | `tests/stories/schema-concat.story.test.ts`   | If you added a Prisma model                      |
 
 ### 11. Quality gates
@@ -240,7 +238,7 @@ All six must pass before commit.
 
 ## Verifying live in the dev hub
 
-1. `bun run dev` — Dev Hub opens at `/dev`
+1. `bun run dev` — Hub opens at `/dev`
 2. Sidebar → **Features** → your card should appear under its category
    with the OFF chip, full description, and the `FEATURE_*_ENABLED`
    env-var hint
@@ -279,7 +277,7 @@ A feature toggle that's `enabled: false` produces **no** runtime cost:
 - Module not imported → no DI overhead, no boot time
 - ENV vars not required → setup wizard skips them
 - Schema not concatenated → no Prisma migrations needed
-- Dev-Hub link absent → no UI clutter
+- Hub link absent → no UI clutter
 - Service-status tile absent → no probe traffic
 
 If your feature still costs CPU/memory when off, you've wired it

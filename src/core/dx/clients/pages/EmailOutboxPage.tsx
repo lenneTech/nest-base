@@ -52,7 +52,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs.
 import { Textarea } from "../components/ui/textarea.js";
 import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
-import { fetchJson } from "../lib/api.js";
+import { adminFetch, fetchJson, needsAdminAuthHint } from "../lib/api.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -117,7 +117,7 @@ function DetailPanel({ id, onClose }: { id: string; onClose: () => void }): Reac
 
   const retry = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/admin/email-outbox/${encodeURIComponent(id)}/retry`, {
+      const res = await adminFetch(`/admin/email-outbox/${encodeURIComponent(id)}/retry`, {
         method: "POST",
         headers: { "content-type": "application/json" },
       });
@@ -136,7 +136,7 @@ function DetailPanel({ id, onClose }: { id: string; onClose: () => void }): Reac
 
   const cancel = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/admin/email-outbox/${encodeURIComponent(id)}/cancel`, {
+      const res = await adminFetch(`/admin/email-outbox/${encodeURIComponent(id)}/cancel`, {
         method: "POST",
         headers: { "content-type": "application/json" },
       });
@@ -154,7 +154,13 @@ function DetailPanel({ id, onClose }: { id: string; onClose: () => void }): Reac
   });
 
   if (detail.isPending) return <PageLoading>Loading record…</PageLoading>;
-  if (detail.isError) return <PageError>Failed to load record detail.</PageError>;
+  if (detail.isError) {
+    return (
+      <PageError showAuthHint={needsAdminAuthHint(detail.error)}>
+        Failed to load record detail.
+      </PageError>
+    );
+  }
 
   const { record, payload } = detail.data;
 
@@ -259,7 +265,7 @@ function DetailPanel({ id, onClose }: { id: string; onClose: () => void }): Reac
                   // sandbox="" prevents the rendered email from executing
                   // scripts or navigating — the preview is read-only.
                   sandbox=""
-                  src={`/hub/email-preview/${encodeURIComponent(record.template)}.html`}
+                  src={`/hub/emails/templates/${encodeURIComponent(record.template)}/preview.html`}
                   className="w-full h-[60dvh] border border-border rounded"
                   title={`Preview: ${record.template}`}
                 />
@@ -334,7 +340,7 @@ function TestSendModal(): ReactNode {
       } catch {
         throw new Error("vars must be valid JSON");
       }
-      const res = await fetch("/admin/email-outbox/test-send", {
+      const res = await adminFetch("/admin/email-outbox/test-send", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ template, locale, recipient, vars: parsedVars }),
@@ -457,7 +463,7 @@ export function EmailOutboxPage(): ReactNode {
 
   if (selectedId) {
     return (
-      <AdminShell title="Email Outbox" subtitle="Record detail" currentNav="email-outbox">
+      <AdminShell title="Email Outbox" subtitle="Entry details" currentNav="email-outbox">
         <DetailPanel id={selectedId} onClose={() => setSelectedId(null)} />
       </AdminShell>
     );
@@ -466,7 +472,7 @@ export function EmailOutboxPage(): ReactNode {
   return (
     <AdminShell
       title="Email Outbox"
-      subtitle="Operator view — inspect and act on outbox rows"
+      subtitle="View outbox headers and run actions"
       currentNav="email-outbox"
     >
       <div className="space-y-4">
@@ -527,7 +533,10 @@ export function EmailOutboxPage(): ReactNode {
         {list.isPending ? (
           <PageLoading>Loading email-outbox rows…</PageLoading>
         ) : list.isError ? (
-          <PageError>Failed to load outbox list. Check your permissions.</PageError>
+          <PageError showAuthHint={needsAdminAuthHint(list.error)}>
+            Failed to load outbox list
+            {list.error instanceof Error ? `: ${list.error.message}` : "."}
+          </PageError>
         ) : (
           <Card>
             <CardHeader>

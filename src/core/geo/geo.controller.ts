@@ -1,23 +1,13 @@
-import { BadRequestException, Body, Controller, Get, Headers, Post, Query } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Post, Query } from "@nestjs/common";
 
 import { Can } from "../permissions/can.guard.js";
+import { getCurrentTenantId } from "../multi-tenancy/tenant-context.js";
 import { GeocodeQuerySchema, PlacesNearbySchema, ReverseGeocodeQuerySchema } from "./geo-dtos.js";
 import { GeoService, buildFindNearbyQuery } from "./geo-service.js";
 import type { GeocodingResult } from "./geocoding-providers.js";
 
 const UUID_PATTERN =
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-
-function requireTenantHeader(tenantHeader: string | undefined): string {
-  const tenantId = tenantHeader?.trim() ?? "";
-  if (tenantId.length === 0) {
-    throw new BadRequestException("x-tenant-id header is required");
-  }
-  if (!UUID_PATTERN.test(tenantId)) {
-    throw new BadRequestException("x-tenant-id header must be a valid UUID");
-  }
-  return tenantId;
-}
 
 /**
  * `/geo/*` and `/places/nearby` HTTP surface.
@@ -54,15 +44,15 @@ export class GeoController {
 
   @Can("read", "Geo")
   @Post("places/nearby")
-  async placesNearby(
-    @Headers("x-tenant-id") tenantHeader: string | undefined,
-    @Body() body: unknown,
-  ): Promise<{ sql: string }> {
-    // Iter-205 reviewer-G5 closure: require the operator's tenant on
-    // every nearby query so the emitted SQL is tenant-bound at the
-    // helper layer, defense-in-depth alongside the new RLS policy on
-    // `addresses` (iter-204 migration).
-    const tenantId = requireTenantHeader(tenantHeader);
+  async placesNearby(@Body() body: unknown): Promise<{ sql: string }> {
+    // Iter-205 reviewer-G5 closure: tenant-bound SQL (session or operator header).
+    const tenantId = getCurrentTenantId();
+    if (!tenantId) {
+      throw new BadRequestException("tenant context is required");
+    }
+    if (!UUID_PATTERN.test(tenantId)) {
+      throw new BadRequestException("tenant context must be a valid UUID");
+    }
     const parsed = PlacesNearbySchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.message);
     // Surface the SQL builder output so callers see the query that

@@ -226,7 +226,9 @@ describe("Story · Email-Builder", () => {
       expect(source).toContain("AUTO-GENERATED");
       // Imports — Barebone layout, the blocks the composition uses,
       // BrandConfig type from the email module.
-      expect(source).toContain('import { Barebone } from "../../core/email/layouts/Barebone.js";');
+      expect(source).toContain(
+        'import { Barebone } from "../../../core/email/layouts/Barebone.js";',
+      );
       expect(source).toContain("Greeting");
       expect(source).toContain("Paragraph");
       expect(source).toContain("CTA");
@@ -275,6 +277,7 @@ describe("Story · Email-Builder", () => {
       expect(source).toMatch(/recipientName: string/);
       expect(source).toMatch(/appName: string/);
       expect(source).toMatch(/verificationUrl: string/);
+      expect(source).toMatch(/preheader=\{`[^`]*\$\{props\.appName\}/);
     });
 
     it("escapes raw text content so quotes don't break the source", () => {
@@ -425,28 +428,58 @@ describe("Story · Email-Builder", () => {
       ]);
     });
 
-    it("returns decomposable=false on hand-rolled templates with non-grammar JSX", () => {
-      // invitation.tsx uses <strong style={{ color: ... }}> inside a
-      // Paragraph — that's outside the composer's flat block grammar.
+    it("decomposes the shipped invitation.tsx core template", () => {
       const source = readFileSync(
         resolve(process.cwd(), "src/core/email/templates/invitation.tsx"),
         "utf8",
       );
       const result = decomposeTemplateSource(source);
-      expect(result.decomposable).toBe(false);
-      if (!result.decomposable) {
-        expect(typeof result.reason).toBe("string");
-      }
+      expect(result.decomposable).toBe(true);
+      if (!result.decomposable) return;
+      expect(result.composition.children.map((c) => c.type)).toEqual([
+        "greeting",
+        "paragraph",
+        "paragraph",
+        "cta",
+        "footer",
+      ]);
     });
 
-    it("returns decomposable=false for templates with conditional JSX (new-device.tsx)", () => {
-      // new-device.tsx uses ternary + <br/> + Fragment — non-decomposable.
+    it("decomposes the shipped new-device.tsx core template", () => {
       const source = readFileSync(
         resolve(process.cwd(), "src/core/email/templates/new-device.tsx"),
         "utf8",
       );
       const result = decomposeTemplateSource(source);
-      expect(result.decomposable).toBe(false);
+      expect(result.decomposable).toBe(true);
+      if (!result.decomposable) return;
+      expect(result.composition.children.map((c) => c.type)).toEqual([
+        "greeting",
+        "paragraph",
+        "paragraph",
+        "paragraph",
+        "paragraph",
+        "paragraph",
+        "paragraph",
+        "cta",
+        "footer",
+      ]);
+    });
+
+    it("decomposes the shipped api-key-expiring.tsx template", () => {
+      const source = readFileSync(
+        resolve(process.cwd(), "src/core/email/templates/api-key-expiring.tsx"),
+        "utf8",
+      );
+      const result = decomposeTemplateSource(source);
+      expect(result.decomposable).toBe(true);
+      if (!result.decomposable) return;
+      expect(result.composition.children.map((c) => c.type)).toEqual([
+        "greeting",
+        "paragraph",
+        "cta",
+        "footer",
+      ]);
     });
 
     it("returns decomposable=false for source missing a Barebone layout", () => {

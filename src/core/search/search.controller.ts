@@ -1,8 +1,14 @@
-import { BadRequestException, Controller, Get, Headers, Query } from "@nestjs/common";
+import { BadRequestException, Controller, Get, Query, Req } from "@nestjs/common";
+import type { Request } from "express";
 
 import { Can } from "../permissions/can.guard.js";
+import { getCurrentTenantId } from "../multi-tenancy/tenant-context.js";
 import { type SearchHit } from "./cross-resource-search.js";
 import { SearchService } from "./search.service.js";
+
+interface AuthenticatedRequest extends Request {
+  user?: { activeOrganizationId?: string | null };
+}
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -15,9 +21,9 @@ const MAX_LIMIT = 100;
  * executor, sorts by `ts_rank` descending. With no executors
  * registered (current default), returns an empty array.
  *
- * MAJ-4 fix: the `x-tenant-id` header is required so executors can
- * scope their queries to the requesting tenant — without it, FTS
- * queries would return rows from ALL tenants (cross-tenant PII leak).
+ * MAJ-4 fix: tenant scope is required so executors cannot leak
+ * cross-tenant PII. App clients use session `set-active`; operators
+ * use the same session `set-active` tenant as `/api/*` (see TenantInterceptor).
  */
 @Controller("search")
 export class SearchController {
@@ -26,10 +32,10 @@ export class SearchController {
   @Can("read", "Search")
   @Get()
   async search(
+    @Req() req: AuthenticatedRequest,
     @Query("q") q: string | undefined,
     @Query("limit") limit: string | undefined,
     @Query("only") only: string | undefined,
-    @Headers("x-tenant-id") tenantHeader: string | undefined,
   ): Promise<{ hits: SearchHit[]; total: number }> {
     if (!q || q.trim() === "") {
       throw new BadRequestException("query parameter `q` is required");
@@ -38,10 +44,10 @@ export class SearchController {
     if (!Number.isFinite(parsedLimit) || parsedLimit <= 0) {
       throw new BadRequestException("limit must be a positive integer");
     }
-    // Require a tenant context — cross-tenant search would leak PII.
-    const tenantId = tenantHeader?.trim() ?? "";
+    // Tenant scope comes from session `set-active` (TenantInterceptor ALS).
+    const tenantId = getCurrentTenantId() ?? req.user?.activeOrganizationId ?? null;
     if (!tenantId) {
-      throw new BadRequestException("x-tenant-id header is required");
+      throw new BadRequestException("tenant context is required");
     }
     const tables = only
       ? only

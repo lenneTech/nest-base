@@ -2,23 +2,109 @@
  * Tiny `fetch` wrapper used by every page's react-query loader.
  *
  * Centralises the Accept header (forces server-side `*.json`
- * branches when a controller checks for it) and the error message
+ * branches when a controller checks for it), session cookies
+ * (`credentials: 'include'` for Better-Auth), and the error message
  * shape so an offline endpoint surfaces the same way across pages.
  */
 
-export async function fetchJson<T>(url: string): Promise<T> {
-  const res = await fetch(url, {
+/** True when the server rejected the call for missing/insufficient auth. */
+export function isAdminAuthStatus(status: number): boolean {
+  return status === 401 || status === 403;
+}
+
+const ADMIN_FETCH_INIT: RequestInit = {
+  credentials: "include",
+  cache: "no-store",
+};
+
+/** Shared fetch for admin SPA mutations (POST/PUT/DELETE). */
+export async function adminFetch(url: string, init?: RequestInit): Promise<Response> {
+  return fetch(url, {
+    ...ADMIN_FETCH_INIT,
+    ...init,
+    headers: {
+      accept: "application/json",
+      ...(init?.headers ?? {}),
+    },
+  });
+}
+
+export class AdminFetchError extends Error {
+  constructor(
+    readonly url: string,
+    readonly status: number,
+    detail = "",
+  ) {
+    super(`${url} → ${status}${detail ? `: ${detail.slice(0, 200)}` : ""}`);
+    this.name = "AdminFetchError";
+  }
+
+  get needsSignIn(): boolean {
+    return isAdminAuthStatus(this.status);
+  }
+}
+
+/** Use with `<PageError showAuthHint={needsAdminAuthHint(query.error)} />`. */
+export function needsAdminAuthHint(error: unknown): boolean {
+  return error instanceof AdminFetchError && error.needsSignIn;
+}
+
+async function readAdminFetchError(url: string, res: Response): Promise<AdminFetchError> {
+  let detail = "";
+  try {
+    detail = await res.text();
+  } catch {
+    /* swallow — the status alone is sufficient signal */
+  }
+  return new AdminFetchError(url, res.status, detail);
+}
+
+export class SignInError extends Error {
+  constructor(readonly status: number) {
+    super(
+      status === 401 || status === 403
+        ? "Invalid email or password."
+        : `Sign-in failed (${status}).`,
+    );
+    this.name = "SignInError";
+  }
+}
+
+/** Better-Auth sign-out — clears the session cookie for Hub + admin. */
+export async function signOut(): Promise<void> {
+  const res = await fetch("/api/auth/sign-out", {
+    method: "POST",
+    credentials: "include",
     headers: { accept: "application/json" },
-    cache: "no-store",
   });
   if (!res.ok) {
-    let detail = "";
-    try {
-      detail = await res.text();
-    } catch {
-      /* swallow — the status alone is sufficient signal */
-    }
-    throw new Error(`${url} → ${res.status}${detail ? `: ${detail.slice(0, 200)}` : ""}`);
+    throw new SignInError(res.status);
+  }
+}
+
+/** Better-Auth email/password sign-in for Hub + admin operator surfaces. */
+export async function signInWithEmail(email: string, password: string): Promise<void> {
+  const res = await fetch("/api/auth/sign-in/email", {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      accept: "application/json",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    throw new SignInError(res.status);
+  }
+}
+
+export async function fetchJson<T>(url: string): Promise<T> {
+  const res = await fetch(url, {
+    ...ADMIN_FETCH_INIT,
+    headers: { accept: "application/json" },
+  });
+  if (!res.ok) {
+    throw await readAdminFetchError(url, res);
   }
   return (await res.json()) as T;
 }

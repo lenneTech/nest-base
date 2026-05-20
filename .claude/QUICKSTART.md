@@ -27,23 +27,32 @@ This card gets you productive in 60 seconds. Read it top-to-bottom
 5. **ESM with `.js` import suffix** in TypeScript source. `import
 { x } from "./foo.js"` even when the file is `foo.ts`.
 
-## Boot the project (2 commands)
+## First-time setup (before `dev`)
 
 ```bash
-docker compose up -d postgres   # boot Postgres only (others optional)
-bun run dev                     # auto-spawns Prisma Studio + opens /
+bun install
+bun run setup                   # .env + docker + schema + migrate + seed (one shot)
+# Re-run DB only: bun run setup --bootstrap
+# Env file only:  bun run setup --skip-bootstrap
 ```
 
-After `bun run prisma:migrate && bun run seed` you have 3 demo users.
-Log in at the Hub (`/`):
+## Daily boot
 
-| Email | Password | Role |
-|---|---|---|
-| `system-admin@lenne.tech` | `system-admin` | System Admin (full bypass) |
-| `admin@lenne.tech` | `admin` | Admin (manage tenant resources) |
-| `user@lenne.tech` | `user` | User (read tenant, update own profile) |
+```bash
+bun run dev                     # boots Postgres if needed, Prisma Studio, opens Hub
+```
 
-> To reset a password from the CLI: `bun run hub:reset-password`.
+After `seed`, open `/` and sign in (Better-Auth) — required for `/hub/*` and `/admin/*`
+(see [`docs/hub/login.md`](../docs/hub/login.md)). Demo credentials are printed by
+`bun run seed` in the terminal only (never in the Hub UI).
+
+| Role | Hub `/hub/*` | Admin `/admin/*` |
+| --- | --- | --- |
+| System Admin | yes | yes |
+| Admin | no | yes |
+| User | no | no |
+
+> Re-run `bun run prepare:schema` after flipping features in `/hub/features`.
 
 > **Fresh `lt fullstack init --next` workspace?** Run `bun run setup`
 > first — the CLI ships the API `.env` template but does NOT invoke
@@ -52,7 +61,7 @@ Log in at the Hub (`/`):
 > literal) has not fired yet. `bun run setup` is idempotent: it
 > refuses to overwrite an existing `.env` but still runs the bridge.
 
-> **Recover from a stale Postgres volume?** `docker compose down -v && docker compose up -d postgres` followed by `bun run prisma:migrate`. Don't delete `.env` first — the existing password initialises the recreated volume.
+> **Recover from a stale Postgres volume?** `docker compose down -v`, then `bun run setup --bootstrap`. Don't delete `.env` first — the existing password initialises the recreated volume.
 
 Server is at the URL the dev runner prints — `https://api.nest-base.localhost`
 if you have [portless](https://github.com/portless/portless) installed,
@@ -61,7 +70,7 @@ free, a dynamic fallback like `:4266` when it isn't). Always trust the
 printed URL over a hard-coded `localhost:3000` — concurrent runs and
 test suites can shift the port. Hub at `/`.
 
-If `bun install` hasn't run: `bun install && bun run prisma:generate`.
+If `bun install` hasn't run: `bun install && bun run setup --bootstrap`.
 
 ## Where to look first
 

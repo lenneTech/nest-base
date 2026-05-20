@@ -75,7 +75,7 @@ describe("Story · Startup-Banner", () => {
     });
 
     expect(plan.text).toContain("\x1b[");
-    expect(plan.text).toContain("Server erfolgreich gestartet");
+    expect(plan.text).toContain("Server started successfully");
     expect(plan.variant).toBe("hero");
   });
 
@@ -98,7 +98,7 @@ describe("Story · Startup-Banner", () => {
       expect(plan.text).toContain("12:34:56");
       expect(plan.text).toContain("http://localhost:3000");
       // Hero-Banner-Wording fehlt in der kompakten Variante.
-      expect(plan.text).not.toContain("Server erfolgreich gestartet");
+      expect(plan.text).not.toContain("Server started successfully");
     });
 
     it('rendert ".env change"-Banner bei variant="restart-env"', () => {

@@ -25,11 +25,11 @@ import { uuidV7 } from "../src/core/uuid/uuid-v7.js";
  *     `tenantId == $CURRENT_TENANT` condition.
  *   - Net result: 201 Created, foreign-tenant write.
  *
- * After the fix (this PR):
- *   - Both layers go through `resolveRequestTenantId(req, prisma)`,
- *     which checks for an ACTIVE TenantMember row when a header is
- *     present and throws `ForbiddenException` if none exists.
- *   - Bob hits 403; nothing lands in Alice's tenant.
+ * After session-first policy (app `/api/*`):
+ *   - Stray `x-tenant-id` on `/api/examples` is ignored; scope comes
+ *     from `session.activeOrganizationId` (Better-Auth set-active).
+ *   - Bob's write lands in his own tenant (or fails without an active
+ *     org) — never in Alice's tenant via header override.
  */
 describe("E2E · Cross-tenant write breach", () => {
   let app: INestApplication;
@@ -57,7 +57,7 @@ describe("E2E · Cross-tenant write breach", () => {
     // routes (e.g. /api/auth/sign-up/email) are reachable without
     // bootstrap(). Hub + health paths stay at root.
     app.setGlobalPrefix("api", {
-      exclude: ["/", "hub/login", "hub/logout", "health", "health/(.*)"],
+      exclude: ["/", "health", "health/(.*)"],
     });
     await app.init();
     prisma = app.get(PrismaService);
@@ -146,7 +146,7 @@ describe("E2E · Cross-tenant write breach", () => {
     else process.env.APP_BASE_URL = originalBaseUrl;
   });
 
-  it("Bob (no membership in Alice's tenant) is REJECTED when targeting it via x-tenant-id", async () => {
+  it("Bob cannot write into Alice's tenant by sending her id in x-tenant-id on /api/*", async () => {
     // Sign up Bob — Better-Auth creates the User row.
     const agent = request.agent(app.getHttpServer());
     const signUp = await agent
@@ -170,7 +170,6 @@ describe("E2E · Cross-tenant write breach", () => {
       },
     });
 
-    // Re-sign-in so the session payload sees `tenantId = bobTenantId`.
     const bobAgent = request.agent(app.getHttpServer());
     const signIn = await bobAgent
       .post("/api/auth/sign-in/email")
@@ -178,15 +177,20 @@ describe("E2E · Cross-tenant write breach", () => {
       .send({ email: bobEmail, password });
     expect(signIn.status, JSON.stringify(signIn.body)).toBe(200);
 
-    // The attack: Bob targets Alice's tenant via header.
+    const setActive = await bobAgent
+      .post("/api/auth/organization/set-active")
+      .set("content-type", "application/json")
+      .send({ organizationId: bobTenantId });
+    expect(setActive.status, JSON.stringify(setActive.body)).toBe(200);
+
     const breachAttempt = await bobAgent
       .post("/api/examples")
       .set("content-type", "application/json")
       .set("x-tenant-id", aliceTenantId)
       .send({ name: "cross-tenant breach", status: "draft" });
 
-    // Critical: must be 403. Before the fix this returned 201.
-    expect(breachAttempt.status, JSON.stringify(breachAttempt.body)).toBe(403);
+    // Header ignored — write succeeds in Bob's session tenant, not Alice's.
+    expect(breachAttempt.status, JSON.stringify(breachAttempt.body)).toBe(201);
 
     // Defense in depth: even if the status code were misreported, NO
     // row may have landed in Alice's tenant. Query the DB directly
@@ -206,10 +210,14 @@ describe("E2E · Cross-tenant write breach", () => {
       .send({ email: bobEmail, password });
     expect(signIn.status, JSON.stringify(signIn.body)).toBe(200);
 
+    await bobAgent
+      .post("/api/auth/organization/set-active")
+      .set("content-type", "application/json")
+      .send({ organizationId: bobTenantId });
+
     const ok = await bobAgent
       .post("/api/examples")
       .set("content-type", "application/json")
-      .set("x-tenant-id", bobTenantId)
       .send({ name: "legit write", status: "draft" });
 
     expect(ok.status, JSON.stringify(ok.body)).toBe(201);

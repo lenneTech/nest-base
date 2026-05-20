@@ -116,7 +116,7 @@ export function serializeCsp(directives: CspDirectives): string {
  *      is a pre-response signal we can rely on without inspecting
  *      the response body.
  *
- * The dev-hub HTML pages live under `/dev/` and `/admin/` — those
+ * The hub HTML pages live under `/dev/` and `/admin/` — those
  * routes also expose a `*.json` companion, so we ALSO match
  * `*.json` suffixes so JSON companions of HTML pages get the strict
  * CSP without needing to wait for the response Content-Type.
@@ -137,9 +137,13 @@ export function isJsonShapedResponse(input: PathAwareCspInput): boolean {
   // `/api/*` paths are exclusively JSON API surface and always carry
   // the strict CSP.
   if (path.startsWith("/api/")) {
+    // Scalar API reference is HTML + CDN assets; strict CSP blocks its bundle.
+    if (path === "/api/docs" || path.startsWith("/api/docs/")) {
+      return false;
+    }
     return true;
   }
-  // `/hub/*` and `/admin/*` paths are HTML pages in the dev-hub SPA
+  // `/hub/*` and `/admin/*` paths are HTML pages in the Hub SPA
   // (they return the shell HTML, not JSON). The bare `/hub` and `/admin`
   // roots are also HTML. Their `*.json` companion paths fall through to
   // the `.json` suffix branch below and get the strict CSP via that path.

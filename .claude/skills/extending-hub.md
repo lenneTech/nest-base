@@ -55,19 +55,28 @@ If the page is dev-only or public, add the path to:
 
 ### E2E test
 
+Hub and admin specs use a Better-Auth session with `set-active`:
+
 ```typescript
-it("returns the SPA shell for browsers", async () => {
-  const res = await request(app.getHttpServer()).get("/things").set("Accept", "text/html");
-  expect(res.headers["content-type"]).toMatch(/text\/html/);
-  expect(res.text).toContain('<div id="root"></div>');
-  expect(res.text).toContain("Things — nest-server");
+import { hubReqScoped, pinHubTestAuthEnv } from "../helpers/hub-request.js";
+
+const TENANT = "11111111-1111-1111-1111-111111111111";
+
+beforeAll(async () => {
+  pinHubTestAuthEnv();
+  app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
+  hub = await hubReqScoped(app, TENANT);
 });
 
-it("returns JSON when Accept: application/json", async () => {
-  const res = await request(app.getHttpServer()).get("/things").set("Accept", "application/json");
-  expect(res.headers["content-type"]).toMatch(/application\/json/);
+it("returns the SPA shell for browsers", async () => {
+  const res = await hub.get("/hub/things").set("Accept", "text/html");
+  expect(res.headers["content-type"]).toMatch(/text\/html/);
+  expect(res.text).toContain('<div id="root"></div>');
 });
 ```
+
+Public JSON-only routes (`/errors`, `/api/openapi.json`) may still use
+plain `request(app.getHttpServer())`.
 
 ---
 
@@ -100,7 +109,7 @@ Every page is a **React component** that:
 ### Add the controller route + JSON sidecar
 
 ```typescript
-// In dev-hub.controller.ts (for /hub/* surfaces) or admin-spa.controller.ts (for /admin/*)
+// In hub.controller.ts (for /hub/* surfaces) or admin-spa.controller.ts (for /admin/*)
 @Get("things")
 @Header("content-type", "text/html; charset=utf-8")
 thingsPage(): string {
@@ -180,9 +189,8 @@ text-fg-muted`, …). No more named `.admin-empty` / `.admin-grid`
 classes — they were folded into the deleted `admin-layout.css`.
 
 To add a new primitive, run `bunx shadcn@latest add <name>` from the
-worktree root and re-export it from `components/ui/`. Document every
-new variant in `pages/ComponentShowcasePage.tsx` — the showcase is
-the source of truth for what's available.
+worktree root and re-export it from `components/ui/`. Use it on the Hub
+page that needs it — there is no separate component showcase route.
 
 ### Coverage exclusion
 
@@ -220,12 +228,11 @@ the JSON sidecar consume the planner.
   through the SPA shell + a `*.json` sidecar.
 - **Don't hard-code colours.** Use the CSS variables.
 - **Don't use emojis as icons** — SVG only (see `clients/layout/icons.tsx`).
-- **Don't pull external CSS frameworks.** The dev-portal is intentionally
-  zero-build (~25KB tokens + admin-layout CSS), no Tailwind, no CSS-in-JS.
+- **Don't pull ad-hoc CSS frameworks beside the stack.** Use Tailwind 4 +
+  shadcn/ui tokens from `clients/styles/` — no extra Bootstrap/MUI layers.
 - **Don't skip the story test.** Even when the React page is mostly
   glue, the route ↔ sidebar ↔ JSON-endpoint contract must be pinned in
   `tests/stories/dev-portal-pages.story.test.ts`.
-- **Don't add Hub pages under `/hub/*` or `/admin/*` without
-  authentication.** Hub operator pages at `/hub/*` require a login
-  session; admin CRUD pages at `/admin/*` require
-  `@Can('manage', 'Subject')`.
+- **Don't add Hub pages without Better-Auth + `read Hub`.** `/hub/*` and
+  `/admin/*` require a session; seed operators need the `Hub` permission.
+  Admin JSON still uses `@Can()` on each controller. See `docs/hub/login.md`.

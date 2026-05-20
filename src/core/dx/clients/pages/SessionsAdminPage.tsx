@@ -1,14 +1,14 @@
 /**
  * `/admin/sessions` — Sessions admin (CF.AUTH.SESSIONS). Lists every
  * session known to the wired storage adapter with single-revoke and
- * bulk-by-user actions. The interactive payloads route through the
- * existing DELETE / POST endpoints, so the page never bypasses the
- * `delete:Session` CASL gate.
+ * bulk-by-user actions via `/admin/sessions/*` dev-operator endpoints
+ * (CASL `delete:Session` — sign in via Better-Auth first).
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
+import { SortableTableHead } from "../components/SortableTableHead.js";
 import { Button } from "../components/ui/button.js";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
 import { Input } from "../components/ui/input.js";
@@ -23,7 +23,8 @@ import {
 } from "../components/ui/table.js";
 import { PageEmpty, PageError, PageLoading } from "../components/PageState.js";
 import { AdminShell } from "../layout/AdminShell.js";
-import { fetchJson } from "../lib/api.js";
+import { adminFetch, fetchJson, needsAdminAuthHint } from "../lib/api.js";
+import { useTableSort } from "../lib/use-table-sort.js";
 
 interface SessionRecord {
   id: string;
@@ -32,18 +33,18 @@ interface SessionRecord {
 }
 
 async function deleteSession(id: string): Promise<void> {
-  const res = await fetch(`/admin/sessions/${encodeURIComponent(id)}`, { method: "DELETE" });
+  const res = await adminFetch(`/admin/sessions/${encodeURIComponent(id)}`, { method: "DELETE" });
   if (!res.ok) throw new Error(`revoke failed with status ${res.status}`);
 }
 
 async function bulkRevokeByUser(userId: string): Promise<{ revoked: number }> {
-  const res = await fetch("/admin/sessions/revoke-bulk-by-user", {
+  const res = await adminFetch("/admin/sessions/revoke-bulk-by-user", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ userId }),
   });
   if (!res.ok) throw new Error(`bulk-revoke failed with status ${res.status}`);
-  return res.json();
+  return res.json() as Promise<{ revoked: number }>;
 }
 
 export function SessionsAdminPage(): ReactNode {
@@ -64,6 +65,9 @@ export function SessionsAdminPage(): ReactNode {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const sessions = query.data?.sessions ?? [];
+  const { sortedRows: sortedSessions, sortKey, sortDirection, toggleSort } = useTableSort(sessions);
+
   const bulk = useMutation({
     mutationFn: bulkRevokeByUser,
     onSuccess: (data) => {
@@ -75,7 +79,7 @@ export function SessionsAdminPage(): ReactNode {
   });
 
   return (
-    <AdminShell title="Sessions" subtitle="Active session inventory" currentNav="sessions">
+    <AdminShell title="Sessions" subtitle="View and end active sign-ins" currentNav="sessions">
       <div className="space-y-4">
         <Card>
           <CardHeader>
@@ -108,7 +112,9 @@ export function SessionsAdminPage(): ReactNode {
         {query.isPending ? (
           <PageLoading>Loading sessions…</PageLoading>
         ) : query.isError ? (
-          <PageError>Failed to load /admin/sessions/list.json</PageError>
+          <PageError showAuthHint={needsAdminAuthHint(query.error)}>
+            Failed to load /admin/sessions/list.json
+          </PageError>
         ) : (query.data?.sessions ?? []).length === 0 ? (
           <PageEmpty>No active sessions returned by the storage adapter.</PageEmpty>
         ) : (
@@ -120,21 +126,39 @@ export function SessionsAdminPage(): ReactNode {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Session ID</TableHead>
-                    <TableHead>User ID</TableHead>
-                    <TableHead>Created</TableHead>
+                    <SortableTableHead
+                      label="Session ID"
+                      sortKey="id"
+                      activeSortKey={sortKey}
+                      sortDirection={sortDirection}
+                      onSort={toggleSort}
+                    />
+                    <SortableTableHead
+                      label="User ID"
+                      sortKey="userId"
+                      activeSortKey={sortKey}
+                      sortDirection={sortDirection}
+                      onSort={toggleSort}
+                    />
+                    <SortableTableHead
+                      label="Created"
+                      sortKey="createdAt"
+                      activeSortKey={sortKey}
+                      sortDirection={sortDirection}
+                      onSort={toggleSort}
+                    />
                     <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {query.data?.sessions.map((s) => (
+                  {sortedSessions.map((s) => (
                     <TableRow key={s.id}>
                       <TableCell className="font-mono text-xs">{s.id}</TableCell>
                       <TableCell className="font-mono text-xs">{s.userId}</TableCell>
                       <TableCell className="text-xs text-fg-muted">{s.createdAt ?? "—"}</TableCell>
                       <TableCell className="text-right">
                         <Button
-                          variant="destructive"
+                          variant="danger"
                           size="sm"
                           disabled={revoke.isPending}
                           onClick={() => revoke.mutate(s.id)}

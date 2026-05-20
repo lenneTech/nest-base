@@ -26,15 +26,22 @@ describe("Story · Better-Auth JWT middleware", () => {
     "/errors/CORE_NOT_FOUND",
     "/openapi",
     "/api/openapi.json",
-    "/hub/login",
-    "/hub/logout",
-    "/hub",
   ];
+
+  const hubProtectedPaths = ["/hub", "/hub/features", "/admin/users"];
 
   // Tests run with NODE_ENV=test which resolves to "not production", so
   // OPENAPI_REQUIRE_AUTH defaults to false and OpenAPI paths remain public.
   it.each(publicPaths)("treats %s as public (no JWT required) in dev/test mode", (path) => {
     expect(isPathProtected(path)).toBe(false);
+  });
+
+  it.each(hubProtectedPaths)("treats %s as protected (session required)", (path) => {
+    expect(isPathProtected(path)).toBe(true);
+  });
+
+  it("treats /hub/static/* as public for SPA assets", () => {
+    expect(isPathProtected("/hub/static/main.js")).toBe(false);
   });
 
   it("treats the resource API path as protected", () => {
@@ -78,7 +85,7 @@ describe("Story · Better-Auth JWT middleware", () => {
       process.env.OPENAPI_REQUIRE_AUTH = "true";
       expect(isPathProtected("/health/live")).toBe(false);
       expect(isPathProtected("/errors")).toBe(false);
-      expect(isPathProtected("/hub/login")).toBe(false);
+      expect(isPathProtected("/hub/static/main.js")).toBe(false);
     });
   });
 });

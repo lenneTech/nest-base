@@ -1,63 +1,80 @@
-# Hub Login
+# Hub authentication (Better-Auth only)
 
-The Hub is the developer and operator cockpit for nest-base. It is
-served as a React 19 SPA at `/` in every stage (development, staging,
-production) — there is no separate `/dev` path anymore.
+The operator cockpit (`/`, `/hub/*`, `/admin/*`) uses **one** auth system:
+[Better-Auth](https://better-auth.com) email/password sessions — the same as the
+rest of the API.
 
----
-
-## Demo logins
-
-After `bun run prisma:migrate && bun run seed` you have three ready-to-use
-accounts in the `lenne` tenant:
-
-| Email | Password | Role |
-|---|---|---|
-| `system-admin@lenne.tech` | `system-admin` | System Admin — CASL full bypass |
-| `admin@lenne.tech` | `admin` | Admin — `manage` on every resource in the tenant |
-| `user@lenne.tech` | `user` | User — `read` on tenant resources, `update` own profile |
-
-The seed is **fully idempotent** — running it again never creates duplicates.
+There is **no** separate Hub operator password or `hub.session` cookie anymore.
 
 ---
 
-## New-device confirmation flow
+## Sign-in flow
 
-Better-Auth enforces a **new-device email confirmation** step. On the
-first sign-in from an unfamiliar browser:
+1. Open `/` (or any protected `/hub/*` / `/admin/*` URL — you are redirected to `/`).
+2. Sign in with email + password (`POST /api/auth/sign-in/email`, session cookie).
+3. The SPA calls `bootstrapHubOperatorSession()` (Better-Auth `set-active`
+   for the operator's organization) when multi-tenancy is enabled.
+4. The SPA checks `GET /hub/portal-access.json` (`hub` + `tenantAdmin` flags).
+5. On success you land on `/hub` (system admin) or `/admin/*` (tenant admin).
 
-1. The sign-in attempt succeeds in the API but the session is marked
-   `pending-device-verification`.
-2. Better-Auth sends a confirmation link to the account's email.
-3. The user must click the link before the Hub grants full access.
+**After setup** (`bun run setup` runs migrate + seed by default), demo accounts are
+created with deterministic roles. **`bun run seed` prints emails and passwords to the
+terminal only** — the Hub login screen and error pages never name accounts (defense
+against account enumeration).
 
-In local development `docker compose up -d mailpit` exposes a catch-all
-inbox at `http://localhost:8025` — all outbound mail is captured there
-so you never need a real email address for dev logins.
+| Capability | Who (role) |
+| --- | --- |
+| Hub (`/hub/*`) | System Admin (`manage:all`) |
+| Admin panel (`/admin/*`) | System Admin or tenant Admin |
+| Neither | demo User (app tenant) |
 
 ---
 
-## Resetting a password
+## CASL subjects
 
-Use the CLI helper to reset a Hub user's password without going through
-the email flow:
+| Subject | Typical use |
+| --- | --- |
+| `Hub` | `/hub/*` cockpit, diagnostics, feature toggles, logs, … |
+| `User`, `TenantAdmin`, `Role`, … | `/admin/*` CRUD and inspectors |
+
+Rules are seeded in `src/core/setup/seed-plan.ts`.
+
+After permission changes, run `bun run seed` (or `bun run reset`) and restart
+`bun run dev` so in-memory CASL caches refresh.
+
+---
+
+## Development vs production
+
+| Surface | `NODE_ENV=development` | Other environments |
+| --- | --- | --- |
+| Better-Auth sign-in | required for `/hub/*`, `/admin/*` | same |
+| Hub JSON/HTML routes | `assertDev()` — **404** outside development | 404 |
+| `/errors`, `/openapi` | public per existing policy | per `OPENAPI_REQUIRE_AUTH` |
+
+Local `bun run dev` behaves like staging regarding **login** — you always sign in
+with a seed operator account. Only the dev-only route surface stays development-gated.
+
+---
+
+## Mail / new device
+
+Better-Auth may require device confirmation on first login from a new browser.
+Capture mail locally:
 
 ```bash
-bun run hub:reset-password
+docker compose up -d mailpit
 ```
 
-The script (`scripts/hub-reset-password.ts`) prompts for the email
-address and the new password, then hashes and persists it directly via
-the Prisma adapter — no email round-trip required.
+Inbox: `http://localhost:8025`
 
 ---
 
-## Security notes
+## Sidebar layout
 
-- Sessions are `httpOnly` + `Secure` + `SameSite=Lax` cookies signed by
-  `BETTER_AUTH_SECRET`.
-- The Hub login page itself (`/`) is a public route; every page behind it
-  (`/hub/*`, `/admin/*`) requires an active session.
-- In production, set `NODE_ENV=production` — this 404s all
-  developer-only routes (`/hub/*` sidecars, `/admin/*` mutation
-  endpoints) while leaving `/` and `/errors` reachable.
+1. **Übersicht** — cockpit, diagnostics, features, brand, coverage, tests  
+2. **Laufzeit** — logs, traces, queries, migrations, jobs, cron, email outbox  
+3. **API & Docs** — Scalar, OpenAPI, routes, errors, ERD, email tools, Prisma Studio  
+4. **Admin** — users, tenants, RBAC, inspectors, file manager  
+
+`/admin/jobs` redirects to `/hub/jobs`.

@@ -196,8 +196,8 @@ lands the EmailModule wires `resolveBrandConfig()` with no overrides.
 
 2. Add a snapshot/story test under `tests/stories/email-templates-react.story.test.ts`
    (or a sibling file) to lock the rendered HTML.
-3. If the template needs a sample payload in `/dev/email-preview`, extend
-   `buildEmailPreviewCatalog()` in `src/core/dx/email-preview.ts`.
+3. Hub previews resolve payloads from the latest `email_outbox` row per
+   template, else brand `appName` only — see `email-preview-payload-loader.ts`.
 
 ## Why two renderers coexist
 

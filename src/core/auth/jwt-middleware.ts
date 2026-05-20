@@ -69,9 +69,8 @@ function resolveOpenapiRequireAuth(): boolean {
 const BASE_STATIC_PUBLIC_PREFIXES = [
   "/health/",
   "/docs/",
-  // Hub and admin SPA pages at root level (no /api prefix).
-  "/hub/",
-  "/admin/",
+  // Hub SPA static assets only — HTML/JSON under /hub/* require a session.
+  "/hub/static/",
   "/errors/",
   // HMAC-signed share links — the token is the auth.
   "/api/files/share/",
@@ -92,9 +91,6 @@ const BASE_PUBLIC_EXACT = new Set([
   "/errors",
   // Legacy /api/errors — kept public so cached SDK calls still work.
   "/api/errors",
-  "/hub/login",
-  "/hub/logout",
-  "/hub",
 ]);
 
 const OPENAPI_PUBLIC_EXACT = new Set(["/openapi", "/api-docs-json"]);

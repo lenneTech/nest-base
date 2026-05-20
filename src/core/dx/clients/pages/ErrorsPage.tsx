@@ -25,7 +25,7 @@ export function ErrorsPage(): ReactNode {
   })();
 
   return (
-    <AdminShell title="Error Catalog" subtitle={subtitle} currentNav="errors">
+    <AdminShell title="Error catalog" subtitle={subtitle} currentNav="errors">
       {data.data ? (
         <JsonViewer value={data.data} rawJsonHref="/errors?format=json" />
       ) : data.isError ? (

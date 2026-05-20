@@ -1,6 +1,7 @@
 import type { INestApplication } from "@nestjs/common";
-import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+import { hubReqScoped, pinHubTestAuthEnv } from "./helpers/hub-request.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
 const TENANT = "11111111-1111-1111-1111-111111111111";
@@ -67,13 +68,16 @@ const JSON_ENDPOINTS: Array<{ url: string; assert: (body: unknown) => void }> = 
 describe("Admin SPA · /admin/* shell + JSON sidecars", () => {
   describe("in development mode", () => {
     let app: INestApplication;
+    let hub: Awaited<ReturnType<typeof hubReqScoped>>;
     let previousNodeEnv: string | undefined;
 
     beforeAll(async () => {
       previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "development";
+      pinHubTestAuthEnv();
       const { bootstrap } = await import("../src/core/app/bootstrap.js");
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
+      hub = await hubReqScoped(app, TENANT);
     });
 
     afterAll(async () => {
@@ -84,7 +88,7 @@ describe("Admin SPA · /admin/* shell + JSON sidecars", () => {
 
     for (const page of SPA_PAGES) {
       it(`GET ${page.url} returns the SPA shell with <title>${page.title}</title>`, async () => {
-        const res = await request(app.getHttpServer()).get(page.url).set("x-tenant-id", TENANT);
+        const res = await hub.get(page.url);
         expect(res.status).toBe(200);
         expect(res.headers["content-type"]).toMatch(/text\/html/);
         expect(res.text).toContain('<div id="root"></div>');
@@ -95,7 +99,7 @@ describe("Admin SPA · /admin/* shell + JSON sidecars", () => {
 
     for (const endpoint of JSON_ENDPOINTS) {
       it(`GET ${endpoint.url} returns the structured JSON read model`, async () => {
-        const res = await request(app.getHttpServer()).get(endpoint.url).set("x-tenant-id", TENANT);
+        const res = await hub.get(endpoint.url);
         expect(res.status).toBe(200);
         expect(res.headers["content-type"]).toMatch(/application\/json/);
         endpoint.assert(res.body);
@@ -103,17 +107,13 @@ describe("Admin SPA · /admin/* shell + JSON sidecars", () => {
     }
 
     it("GET /admin/permissions/test.json with userId+tenantId returns a report", async () => {
-      const res = await request(app.getHttpServer())
-        .get("/admin/permissions/test.json?userId=u1&tenantId=t1")
-        .set("x-tenant-id", TENANT);
+      const res = await hub.get("/admin/permissions/test.json?userId=u1&tenantId=t1");
       expect(res.status).toBe(200);
       expect(res.body.report).toMatchObject({ userId: "u1", tenantId: "t1", byResource: {} });
     });
 
     it("GET /admin/webhooks.json?status=DELIVERED echoes the filter", async () => {
-      const res = await request(app.getHttpServer())
-        .get("/admin/webhooks.json?status=DELIVERED")
-        .set("x-tenant-id", TENANT);
+      const res = await hub.get("/admin/webhooks.json?status=DELIVERED");
       expect(res.status).toBe(200);
       expect(res.body.filter.status).toBe("DELIVERED");
     });
@@ -121,13 +121,16 @@ describe("Admin SPA · /admin/* shell + JSON sidecars", () => {
 
   describe("outside development mode", () => {
     let app: INestApplication;
+    let hub: Awaited<ReturnType<typeof hubReqScoped>>;
     let previousNodeEnv: string | undefined;
 
     beforeAll(async () => {
       previousNodeEnv = process.env.NODE_ENV;
+      pinHubTestAuthEnv();
       process.env.NODE_ENV = "production";
       const { bootstrap } = await import("../src/core/app/bootstrap.js");
       app = await bootstrap({ listen: false, logger: SILENT_LOGGER });
+      hub = await hubReqScoped(app, TENANT);
     });
 
     afterAll(async () => {
@@ -137,16 +140,12 @@ describe("Admin SPA · /admin/* shell + JSON sidecars", () => {
     });
 
     it("GET /admin/permissions/test 404s in production", async () => {
-      const res = await request(app.getHttpServer())
-        .get("/admin/permissions/test")
-        .set("x-tenant-id", TENANT);
+      const res = await hub.get("/admin/permissions/test");
       expect(res.status).toBe(404);
     });
 
     it("GET /admin/webhooks.json 404s in production", async () => {
-      const res = await request(app.getHttpServer())
-        .get("/admin/webhooks.json")
-        .set("x-tenant-id", TENANT);
+      const res = await hub.get("/admin/webhooks.json");
       expect(res.status).toBe(404);
     });
   });

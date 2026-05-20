@@ -4,7 +4,6 @@ import {
   Controller,
   Delete,
   Get,
-  Headers,
   Inject,
   NotFoundException,
   Optional,
@@ -13,6 +12,7 @@ import {
 } from "@nestjs/common";
 
 import { FieldEncryptionService } from "../encryption/field-encryption.service.js";
+import { requireTenantContext } from "../multi-tenancy/require-tenant-context.js";
 import { Can } from "../permissions/can.guard.js";
 import { ADDRESS_STORAGE, type AddressRecord, type AddressStorage } from "./address-storage.js";
 import { CreateAddressSchema } from "./geo-dtos.js";
@@ -31,24 +31,10 @@ import { decryptAddress, encryptAddress } from "./address-pii-encryption.js";
  * Storage is injected via the `ADDRESS_STORAGE` token. Production
  * binds the Prisma-backed adapter (`PrismaAddressStorage`); story
  * tests pass an in-memory adapter (`InMemoryAddressStorage`).
+ *
+ * Tenant scope comes from session `set-active` (TenantInterceptor ALS).
+ * Defense-in-depth alongside RLS on `addresses`.
  */
-// Iter-204 reviewer-G1+G2 closure: every read/write requires
-// `x-tenant-id` and threads the tenant scope through to storage.
-// Defense-in-depth alongside the new RLS migration on `addresses`.
-const UUID_PATTERN =
-  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-
-function requireTenantHeader(tenantHeader: string | undefined): string {
-  const tenantId = tenantHeader?.trim() ?? "";
-  if (tenantId.length === 0) {
-    throw new BadRequestException("x-tenant-id header is required");
-  }
-  if (!UUID_PATTERN.test(tenantId)) {
-    throw new BadRequestException("x-tenant-id header must be a valid UUID");
-  }
-  return tenantId;
-}
-
 @Controller("addresses")
 export class AddressController {
   constructor(
@@ -58,26 +44,21 @@ export class AddressController {
 
   @Can("read", "Address")
   @Get()
-  async list(@Headers("x-tenant-id") tenantHeader: string | undefined): Promise<AddressRecord[]> {
-    const tenantId = requireTenantHeader(tenantHeader);
+  async list(): Promise<AddressRecord[]> {
+    const tenantId = requireTenantContext();
     const rows = await this.storage.list(tenantId);
     return rows.map((r) => this.decryptIfEnabled(r));
   }
 
   @Can("create", "Address")
   @Post()
-  async create(
-    @Headers("x-tenant-id") tenantHeader: string | undefined,
-    @Body() body: unknown,
-  ): Promise<AddressRecord> {
-    const tenantId = requireTenantHeader(tenantHeader);
+  async create(@Body() body: unknown): Promise<AddressRecord> {
+    const tenantId = requireTenantContext();
     const parsed = CreateAddressSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.message);
-    // If the body carries a tenantId, it MUST match the header — never
-    // trust the body to escape the operator's scope.
     const bodyTenantId = (body as { tenantId?: unknown })?.tenantId;
     if (typeof bodyTenantId === "string" && bodyTenantId.length > 0 && bodyTenantId !== tenantId) {
-      throw new BadRequestException("body.tenantId must match the x-tenant-id header");
+      throw new BadRequestException("body.tenantId must match the active tenant context");
     }
     const id = crypto.randomUUID();
     const record: AddressRecord = {
@@ -91,11 +72,8 @@ export class AddressController {
 
   @Can("read", "Address")
   @Get(":id")
-  async get(
-    @Headers("x-tenant-id") tenantHeader: string | undefined,
-    @Param("id") id: string,
-  ): Promise<AddressRecord> {
-    const tenantId = requireTenantHeader(tenantHeader);
+  async get(@Param("id") id: string): Promise<AddressRecord> {
+    const tenantId = requireTenantContext();
     const r = await this.storage.findById(id, tenantId);
     if (!r) throw new NotFoundException("address not found");
     return this.decryptIfEnabled(r);
@@ -103,11 +81,8 @@ export class AddressController {
 
   @Can("delete", "Address")
   @Delete(":id")
-  async remove(
-    @Headers("x-tenant-id") tenantHeader: string | undefined,
-    @Param("id") id: string,
-  ): Promise<{ removed: boolean }> {
-    const tenantId = requireTenantHeader(tenantHeader);
+  async remove(@Param("id") id: string): Promise<{ removed: boolean }> {
+    const tenantId = requireTenantContext();
     return { removed: await this.storage.delete(id, tenantId) };
   }
 

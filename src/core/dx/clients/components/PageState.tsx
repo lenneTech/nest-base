@@ -25,16 +25,31 @@ export function PageLoading({ className, children }: BaseProps) {
   );
 }
 
+/** Hint when admin JSON endpoints return 401/403 (missing Better-Auth session). */
+export function AdminAuthHint(): ReactNode {
+  return (
+    <p className="mt-3 max-w-xl text-center text-sm text-fg-muted">
+      Sign in via Better Auth (session cookie). This page requires a valid operator session with the
+      right permissions.
+    </p>
+  );
+}
+
 /** Card-shaped fallback shown when an endpoint failed. */
-export function PageError({ className, children }: BaseProps) {
+export function PageError({
+  className,
+  children,
+  showAuthHint = false,
+}: BaseProps & { showAuthHint?: boolean }) {
   return (
     <div
       className={cn(
-        "flex min-h-[6rem] items-center justify-center rounded-lg border border-err/40 bg-err/10 p-6 text-sm text-err",
+        "flex min-h-[6rem] flex-col items-center justify-center rounded-lg border border-err/40 bg-err/10 p-6 text-sm text-err",
         className,
       )}
     >
       {children ?? "Failed to load."}
+      {showAuthHint ? <AdminAuthHint /> : null}
     </div>
   );
 }

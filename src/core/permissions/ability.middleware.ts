@@ -1,6 +1,8 @@
 import { Injectable, type NestMiddleware } from "@nestjs/common";
 import type { NextFunction, Request, Response } from "express";
 
+import { resolveHubOperatorTenantId } from "../hub/hub-operator-tenant.js";
+import { isHubPortalProtectedPath, isHubPortalStaticAsset } from "../hub/hub-portal-paths.js";
 import { resolveRequestTenantId } from "../multi-tenancy/resolve-request-tenant.js";
 import { isTenantExempt } from "../multi-tenancy/tenant-guard.js";
 import { PrismaService } from "../prisma/prisma.service.js";
@@ -15,7 +17,7 @@ interface AuthenticatedRequest extends Request {
      * Projected by `BetterAuthSessionMiddleware`; undefined when the
      * org plugin is off or no org has been activated this session.
      * `resolveRequestTenantId` reads this as the preferred fallback
-     * when no `x-tenant-id` header is present.
+     * from Better-Auth `set-active` (session-only tenant resolution).
      */
     activeOrganizationId?: string | null;
     /** Present when the request is authenticated via a scoped API key. */
@@ -87,7 +89,7 @@ export class AbilityMiddleware implements NestMiddleware {
     }
 
     // Tenant-exempt paths (`/`, `/health/*`, `/api/auth/*`, `/me/*`,
-    // `/admin/*`, `/dev/*`, `/docs/*`, `/tenants/*`) DO NOT take a
+    // `/docs/*`, `/hub/static/*`, …) DO NOT take a
     // tenant header — they scope by `req.user.id` (or are public). The
     // resolver MUST NOT raise on them just because the client happens
     // to send a header (e.g. a frontend that forwards x-tenant-id on
@@ -99,14 +101,20 @@ export class AbilityMiddleware implements NestMiddleware {
     // originalUrl/url and want the resolver to run unconditionally.
     const path = (req.originalUrl ?? req.url) as string | undefined;
     if (path && isTenantExempt(path)) {
-      req.ability = buildAbility([]);
+      if (req.user && isHubOperatorAbilityPath(path)) {
+        await this.attachAbilityForUser(req, () =>
+          resolveHubOperatorTenantId(req.user!, this.prisma),
+        );
+      } else {
+        req.ability = buildAbility([]);
+      }
       next();
       return;
     }
 
     let tenantId: string | null;
     try {
-      tenantId = await resolveRequestTenantId(req, this.prisma);
+      tenantId = await resolveRequestTenantId(req, this.prisma, path !== undefined ? { path } : {});
     } catch {
       // The resolver throws ForbiddenException / BadRequestException
       // for security-relevant input (header for a tenant the user
@@ -125,26 +133,56 @@ export class AbilityMiddleware implements NestMiddleware {
       return;
     }
 
-    if (!tenantId) {
-      // No identity / no tenant scope — empty ability. Routes
-      // without `@Can()` still pass; routes with it 403 (matches the
-      // previous interceptor-only behaviour for anonymous-but-routed
-      // requests).
+    await this.attachAbilityForUser(req, async () => {
+      if (tenantId) return tenantId;
+      const purePath = stripQuery(path ?? "/");
+      if (req.user && isHubPortalProtectedPath(purePath)) {
+        return resolveHubOperatorTenantId(req.user, this.prisma);
+      }
+      return null;
+    });
+    next();
+  }
+
+  private async attachAbilityForUser(
+    req: AuthenticatedRequest,
+    resolveTenantId: () => Promise<string | null>,
+  ): Promise<void> {
+    if (!req.user) {
       req.ability = buildAbility([]);
-      next();
       return;
     }
-
+    let tenantId: string | null;
+    try {
+      tenantId = await resolveTenantId();
+    } catch {
+      req.ability = buildAbility([]);
+      return;
+    }
+    if (!tenantId) {
+      req.ability = buildAbility([]);
+      return;
+    }
     try {
       req.ability = await this.permissions.abilityFor(req.user.id, tenantId, {
         scopes: req.user.scopes,
       });
     } catch {
-      // Storage failure must not 500 the request — fall back to an
-      // empty ability so the request fails closed (403) rather than
-      // open (500 → noise in error budgets).
       req.ability = buildAbility([]);
     }
-    next();
   }
+}
+
+/** `/hub/*` JSON/HTML uses `@Can(Hub)` with hub-operator tenant fallback. */
+function isHubOperatorAbilityPath(path: string): boolean {
+  const pure = stripQuery(path);
+  if (isHubPortalStaticAsset(pure)) return false;
+  return pure === "/hub" || pure.startsWith("/hub/");
+}
+
+function stripQuery(path: string): string {
+  const queryAt = path.indexOf("?");
+  const hashAt = path.indexOf("#");
+  const cut = Math.min(...[queryAt, hashAt].filter((i) => i >= 0), path.length);
+  return path.slice(0, cut);
 }

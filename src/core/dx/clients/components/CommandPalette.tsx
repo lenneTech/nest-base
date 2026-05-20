@@ -193,8 +193,8 @@ export function CommandPalette(): ReactNode {
         <div className="flex items-center gap-0.5 border-b border-line px-3 pt-2">
           {(
             [
-              { key: "seiten", label: "Seiten" },
-              { key: "zuletzt", label: "Zuletzt besucht" },
+              { key: "seiten", label: "Pages" },
+              { key: "zuletzt", label: "Recent" },
             ] as const
           ).map((t) => (
             <button
@@ -215,13 +215,13 @@ export function CommandPalette(): ReactNode {
         {tab === "seiten" && (
           <>
             <CommandInput
-              placeholder={`Seiten durchsuchen… (${isMac ? "⌘K" : "Ctrl+K"} zum Schließen)`}
+              placeholder={`Search pages… (${isMac ? "⌘K" : "Ctrl+K"} to close)`}
               value={query}
               onValueChange={setQuery}
             />
             <CommandList>
               {grouped.length === 0 ? (
-                <CommandEmpty>Keine Ergebnisse für „{query}"</CommandEmpty>
+                <CommandEmpty>No results for "{query}"</CommandEmpty>
               ) : (
                 grouped.map(({ category, items }, idx) => (
                   <div key={category}>
@@ -251,15 +251,15 @@ export function CommandPalette(): ReactNode {
         {tab === "zuletzt" && (
           <>
             <CommandInput
-              placeholder="Zuletzt besuchte Seiten…"
+              placeholder="Recently visited pages…"
               value={query}
               onValueChange={setQuery}
             />
             <CommandList>
               {recents.length === 0 ? (
-                <CommandEmpty>Noch keine besuchten Seiten.</CommandEmpty>
+                <CommandEmpty>No visited pages yet.</CommandEmpty>
               ) : (
-                <CommandGroup heading="Zuletzt besucht">
+                <CommandGroup heading="Recent">
                   {recents
                     .filter(
                       (r) =>
@@ -287,17 +287,17 @@ export function CommandPalette(): ReactNode {
         <div className="flex items-center gap-4 border-t border-line px-4 py-2 text-[0.65rem] text-fg-faint">
           <span>
             <kbd className="rounded border border-line bg-surface-2 px-1 py-0.5 font-mono">↑↓</kbd>{" "}
-            Navigieren
+            Navigate
           </span>
           <span>
             <kbd className="rounded border border-line bg-surface-2 px-1 py-0.5 font-mono">
               Enter
             </kbd>{" "}
-            Öffnen
+            Open
           </span>
           <span>
             <kbd className="rounded border border-line bg-surface-2 px-1 py-0.5 font-mono">Esc</kbd>{" "}
-            Schließen
+            Close
           </span>
         </div>
       </CommandDialog>
@@ -351,7 +351,7 @@ function CategoryIcon({ category }: { category: string }): ReactNode {
       </svg>
     );
   }
-  // Default: Übersicht / other
+  // Default: Overview / other
   return (
     <svg
       className="h-3.5 w-3.5 shrink-0 text-fg-muted"

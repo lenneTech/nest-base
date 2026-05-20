@@ -66,6 +66,8 @@ export interface SeedUser {
   email: string;
   name: string;
   emailVerified: boolean;
+  /** Better-Auth admin plugin `users.role` (ban/create-user permissions). */
+  authRole: "admin" | "user";
   /** Plain-text password. The runner hashes it before writing to the DB. */
   password: string;
   createdAt: Date;
@@ -214,15 +216,71 @@ export function buildSeedPlan(input: SeedPlanInput = {}): SeedPlan {
   ];
 
   // Admin: manage on each project resource, scoped to $CURRENT_TENANT
-  const adminPermissions: SeedPermission[] = PROJECT_RESOURCES.map((resource) => ({
-    id: seededUuidV7(`perm:admin:manage:${resource}`, now),
-    policyId: adminPolicy.id,
-    resource,
-    action: "MANAGE" as SeedPermissionAction,
-    itemFilter: { tenantId: { _eq: "$CURRENT_TENANT" } },
-    fields: [],
-    createdAt: now,
-  }));
+  const adminPermissions: SeedPermission[] = [
+    ...PROJECT_RESOURCES.map((resource) => ({
+      id: seededUuidV7(`perm:admin:manage:${resource}`, now),
+      policyId: adminPolicy.id,
+      resource,
+      action: "MANAGE" as SeedPermissionAction,
+      itemFilter: { tenantId: { _eq: "$CURRENT_TENANT" } },
+      fields: [],
+      createdAt: now,
+    })),
+    {
+      id: seededUuidV7(`perm:admin:manage:User`, now),
+      policyId: adminPolicy.id,
+      resource: "User",
+      action: "MANAGE",
+      itemFilter: { tenantId: { _eq: "$CURRENT_TENANT" } },
+      fields: [],
+      createdAt: now,
+    },
+    {
+      id: seededUuidV7(`perm:admin:manage:TenantAdmin`, now),
+      policyId: adminPolicy.id,
+      resource: "TenantAdmin",
+      action: "MANAGE",
+      itemFilter: { tenantId: { _eq: "$CURRENT_TENANT" } },
+      fields: [],
+      createdAt: now,
+    },
+    {
+      id: seededUuidV7(`perm:admin:manage:Role`, now),
+      policyId: adminPolicy.id,
+      resource: "Role",
+      action: "MANAGE",
+      itemFilter: { tenantId: { _eq: "$CURRENT_TENANT" } },
+      fields: [],
+      createdAt: now,
+    },
+    {
+      id: seededUuidV7(`perm:admin:manage:Policy`, now),
+      policyId: adminPolicy.id,
+      resource: "Policy",
+      action: "MANAGE",
+      itemFilter: { tenantId: { _eq: "$CURRENT_TENANT" } },
+      fields: [],
+      createdAt: now,
+    },
+    {
+      id: seededUuidV7(`perm:admin:manage:Permission`, now),
+      policyId: adminPolicy.id,
+      resource: "Permission",
+      action: "MANAGE",
+      itemFilter: { tenantId: { _eq: "$CURRENT_TENANT" } },
+      fields: [],
+      createdAt: now,
+    },
+    {
+      id: seededUuidV7(`perm:admin:manage:EmailOutboxAdmin`, now),
+      policyId: adminPolicy.id,
+      resource: "EmailOutboxAdmin",
+      action: "MANAGE",
+      itemFilter: { tenantId: { _eq: "$CURRENT_TENANT" } },
+      fields: [],
+      createdAt: now,
+    },
+  ];
 
   // User: READ on each project resource (tenant-scoped)
   //       + UPDATE on User / UserProfile (user-scoped)
@@ -265,12 +323,22 @@ export function buildSeedPlan(input: SeedPlanInput = {}): SeedPlan {
 
   // Users — password = local-part of email (hashed by the runner)
   const userSpecs = [
-    { localPart: "system-admin", role: "System Admin", displayName: "System Administrator" },
-    { localPart: "admin", role: "Admin", displayName: "Tenant Administrator" },
-    { localPart: "user", role: "User", displayName: "Demo User" },
+    {
+      localPart: "system-admin",
+      role: "System Admin",
+      displayName: "System Administrator",
+      authRole: "admin" as const,
+    },
+    {
+      localPart: "admin",
+      role: "Admin",
+      displayName: "Tenant Administrator",
+      authRole: "admin" as const,
+    },
+    { localPart: "user", role: "User", displayName: "Demo User", authRole: "user" as const },
   ] as const;
 
-  const users: SeedUser[] = userSpecs.map(({ localPart, displayName: _ }) => ({
+  const users: SeedUser[] = userSpecs.map(({ localPart, displayName: _, authRole }) => ({
     id: seededUuidV7(`user:${TENANT_SLUG}:${localPart}`, now),
     email: `${localPart}@${TENANT_SLUG}.tech`,
     name: localPart
@@ -278,6 +346,7 @@ export function buildSeedPlan(input: SeedPlanInput = {}): SeedPlan {
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(" "),
     emailVerified: true,
+    authRole,
     password: localPart,
     createdAt: now,
   }));

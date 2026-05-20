@@ -122,7 +122,7 @@ export class PrismaUserSearchExecutor implements ResourceSearchExecutor {
         // `ts_headline` wraps match tokens in `<b>…</b>` — those tags are the
         // ONLY HTML we want to pass through. All other characters (including
         // user-controlled email / name content) are escaped to prevent stored
-        // XSS in the dev-hub Search Tester (M2 fix).
+        // XSS in the hub Search Tester (M2 fix).
         highlight: sanitizeHighlight(row.highlight),
       }),
     );

@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  WebhookInspectorBuffer,
-  buildDemoDeliveries,
-} from "../../src/core/webhooks/inspector-store.js";
+import { WebhookInspectorBuffer } from "../../src/core/webhooks/inspector-store.js";
 
 /**
  * Story · In-memory inspector buffer.
@@ -93,22 +90,6 @@ describe("Story · WebhookInspectorBuffer", () => {
     buf.record(makeDelivery("a"));
     buf.clear();
     expect(buf.size()).toBe(0);
-  });
-});
-
-describe("Story · demo delivery seed", () => {
-  it("returns at least one delivery and at least two endpoints", () => {
-    const demo = buildDemoDeliveries({ now: Date.parse("2026-01-15T12:00:00Z") });
-    expect(demo.length).toBeGreaterThan(0);
-    const endpoints = new Set(demo.map((d) => d.endpointId));
-    expect(endpoints.size).toBeGreaterThanOrEqual(2);
-  });
-
-  it("includes both DELIVERED and FAILED records to demo all UI states", () => {
-    const demo = buildDemoDeliveries({ now: Date.parse("2026-01-15T12:00:00Z") });
-    const statuses = new Set(demo.map((d) => d.status));
-    expect(statuses.has("DELIVERED")).toBe(true);
-    expect(statuses.has("FAILED")).toBe(true);
   });
 });
 

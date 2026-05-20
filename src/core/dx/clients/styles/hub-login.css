@@ -1,0 +1,268 @@
+/**
+ * Hub login page — animated backdrop + card chrome.
+ * Imported only from HubLoginPage.tsx so the rest of the portal stays static.
+ */
+
+@keyframes hub-login-aurora-a {
+  0%,
+  100% {
+    transform: translate(-10%, -8%) scale(1);
+  }
+  50% {
+    transform: translate(18%, 12%) scale(1.15);
+  }
+}
+
+@keyframes hub-login-aurora-b {
+  0%,
+  100% {
+    transform: translate(12%, 18%) scale(1.05);
+  }
+  50% {
+    transform: translate(-16%, -14%) scale(1.2);
+  }
+}
+
+@keyframes hub-login-aurora-c {
+  0%,
+  100% {
+    transform: translate(40%, -20%) scale(0.9);
+  }
+  50% {
+    transform: translate(-8%, 22%) scale(1.1);
+  }
+}
+
+@keyframes hub-login-grid-drift {
+  0% {
+    background-position:
+      0 0,
+      0 0;
+  }
+  100% {
+    background-position:
+      64px 64px,
+      64px 64px;
+  }
+}
+
+@keyframes hub-login-beam-sweep {
+  0% {
+    transform: translateX(-120%) skewX(-18deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.55;
+  }
+  85% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: translateX(120%) skewX(-18deg);
+    opacity: 0;
+  }
+}
+
+@keyframes hub-login-pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(197, 251, 69, 0.28);
+  }
+  70% {
+    box-shadow: 0 0 0 56px rgba(197, 251, 69, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 56px rgba(197, 251, 69, 0);
+  }
+}
+
+@keyframes hub-login-float-particle {
+  0%,
+  100% {
+    transform: translateY(0) translateX(0);
+    opacity: 0.15;
+  }
+  50% {
+    transform: translateY(-28px) translateX(8px);
+    opacity: 0.55;
+  }
+}
+
+@keyframes hub-login-border-spin {
+  to {
+    --hub-login-angle: 360deg;
+  }
+}
+
+@keyframes hub-login-card-breathe {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(197, 251, 69, 0.12),
+      0 0 48px rgba(197, 251, 69, 0.08),
+      0 24px 64px rgba(0, 0, 0, 0.55);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(197, 251, 69, 0.35),
+      0 0 80px rgba(197, 251, 69, 0.22),
+      0 28px 72px rgba(0, 0, 0, 0.6);
+  }
+}
+
+@property --hub-login-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.hub-login-scene {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background: #020203;
+}
+
+.hub-login-backdrop {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.hub-login-backdrop__vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 70% 60% at 50% 45%, transparent 0%, #020203 72%);
+  z-index: 4;
+}
+
+.hub-login-backdrop__grid {
+  position: absolute;
+  inset: -20%;
+  opacity: 0.45;
+  background-image:
+    linear-gradient(rgba(197, 251, 69, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(197, 251, 69, 0.07) 1px, transparent 1px);
+  background-size: 64px 64px;
+  animation: hub-login-grid-drift 22s linear infinite;
+  mask-image: radial-gradient(ellipse 85% 75% at 50% 40%, black 15%, transparent 70%);
+}
+
+.hub-login-backdrop__orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  will-change: transform;
+}
+
+.hub-login-backdrop__orb--a {
+  top: -12%;
+  left: -8%;
+  width: min(52vw, 520px);
+  height: min(52vw, 520px);
+  background: rgba(197, 251, 69, 0.28);
+  animation: hub-login-aurora-a 18s ease-in-out infinite;
+}
+
+.hub-login-backdrop__orb--b {
+  right: -10%;
+  bottom: -18%;
+  width: min(48vw, 480px);
+  height: min(48vw, 480px);
+  background: rgba(120, 200, 80, 0.18);
+  animation: hub-login-aurora-b 24s ease-in-out infinite;
+}
+
+.hub-login-backdrop__orb--c {
+  top: 35%;
+  left: 42%;
+  width: min(36vw, 360px);
+  height: min(36vw, 360px);
+  background: rgba(197, 251, 69, 0.14);
+  animation: hub-login-aurora-c 20s ease-in-out infinite reverse;
+}
+
+.hub-login-backdrop__beam {
+  position: absolute;
+  top: -20%;
+  left: 0;
+  width: 55%;
+  height: 140%;
+  background: linear-gradient(
+    105deg,
+    transparent 42%,
+    rgba(197, 251, 69, 0.12) 48%,
+    rgba(197, 251, 69, 0.28) 50%,
+    rgba(197, 251, 69, 0.12) 52%,
+    transparent 58%
+  );
+  animation: hub-login-beam-sweep 9s ease-in-out infinite;
+  z-index: 2;
+}
+
+.hub-login-backdrop__ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(90vmin, 720px);
+  height: min(90vmin, 720px);
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(197, 251, 69, 0.22);
+  border-radius: 9999px;
+  animation: hub-login-pulse-ring 5s ease-out infinite;
+  z-index: 1;
+}
+
+.hub-login-backdrop__ring--delay {
+  animation-delay: 2.5s;
+}
+
+.hub-login-backdrop__particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 9999px;
+  background: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+  animation: hub-login-float-particle 6s ease-in-out infinite;
+}
+
+.hub-login-card-shell {
+  position: relative;
+  z-index: 10;
+  border-radius: 1.25rem;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--hub-login-angle),
+    transparent 0deg,
+    rgba(197, 251, 69, 0.15) 60deg,
+    rgba(197, 251, 69, 0.85) 120deg,
+    rgba(197, 251, 69, 0.2) 200deg,
+    transparent 300deg
+  );
+  animation: hub-login-border-spin 6s linear infinite;
+}
+
+.hub-login-card-inner {
+  border-radius: calc(1.25rem - 1px);
+  background: rgba(6, 7, 10, 0.82);
+  backdrop-filter: blur(20px) saturate(1.2);
+  animation: hub-login-card-breathe 4s ease-in-out infinite;
+}
+
+.hub-login-logo-glow {
+  animation: hub-login-card-breathe 4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub-login-backdrop__grid,
+  .hub-login-backdrop__orb,
+  .hub-login-backdrop__beam,
+  .hub-login-backdrop__ring,
+  .hub-login-backdrop__particle,
+  .hub-login-card-shell,
+  .hub-login-card-inner,
+  .hub-login-logo-glow {
+    animation: none !important;
+  }
+}

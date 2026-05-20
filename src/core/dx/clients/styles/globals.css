@@ -139,6 +139,10 @@
     line-height: 1.55;
     font-size: 14px;
   }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
   ::selection {
     background: var(--accent-soft);
     color: var(--fg);

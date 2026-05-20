@@ -113,7 +113,6 @@ describe("Story · TUS upload client (dev-portal SPA)", () => {
     const result = await tusUpload({
       endpoint: `${baseUrl}/api/files/upload`,
       file,
-      headers: { "x-tenant-id": "abc" },
       metadata: { folderId: "f-1" },
       onProgress: (sent, total) => progressTicks.push({ sent, total }),
     });
@@ -122,7 +121,6 @@ describe("Story · TUS upload client (dev-portal SPA)", () => {
     const last = created[created.length - 1]!;
     expect(last.headers["upload-length"]).toBe("5");
     expect(last.headers["tus-resumable"]).toBe("1.0.0");
-    expect(last.headers["x-tenant-id"]).toBe("abc");
     // Upload-Metadata is `key base64(value),...`.
     const meta = String(last.headers["upload-metadata"]);
     expect(meta).toContain("filename ");

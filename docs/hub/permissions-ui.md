@@ -17,8 +17,8 @@
 
 The Permissions admin UI has two linked pages:
 
-1. **`/admin/permissions`** — view the full permission matrix and create /
-   delete `Permission` records (raw CASL rules stored in Postgres).
+1. **`/admin/permissions`** — edit the Berechtigungsmatrix (checkboxes per
+   role × resource × action).
 2. **`/admin/permissions/test`** — resolve the effective CASL ability
    for a given `(userId, tenantId)` pair so operators can diagnose 403s.
 
@@ -30,55 +30,38 @@ restricts access to `NODE_ENV=development`.
 
 ## Permission matrix — `/admin/permissions`
 
-### Matrix card (collapsible)
+Single-page **Berechtigungsmatrix** (no separate list or manual create form).
 
-The top card shows a `resource × role` table fetched from:
+Data from:
 
 ```
 GET /api/admin/permissions/matrix.json
 ```
 
-with the `x-tenant-id` request header set to the UUID the operator enters
-in the **Tenant-UUID** input.
+with Better-Auth session cookies and an active organization from
+`POST /api/auth/organization/set-active` (via `bootstrapHubOperatorSession` on
+page load). The **Tenant-UUID** field appears only when bootstrap could not
+resolve a default org.
 
 **Matrix structure:**
 
-| | Role A | Role B | … |
-|---|---|---|---|
-| Resource X | READ, UPDATE | — | … |
-| Resource Y | CREATE, READ | SHARE | … |
+- **Rows** = canonical CASL subjects from `buildAbilitySubjectCatalogFromRepo()`
+  (route-gating audit `@Can` subjects + member defaults + framework admin
+  subjects), merged with any resource that already has permission rows.
+  The wildcard subject `all` is excluded from the grid.
+- **Columns** = each role in the tenant (`roleIds`), with a sub-header per
+  action: C/R/U/D/S (`CREATE`, `READ`, `UPDATE`, `DELETE`, `SHARE`).
+- **Cells** = checkboxes. Checked when the role’s attached policies grant
+  that action on the resource (`MANAGE` checks all five).
+- **Toggle grant** — `POST /admin/permissions` on the role’s primary policy
+  (first `role_policies` link; auto-creates `Matrix — {role}` policy +
+  attach when missing).
+- **Toggle revoke** — `DELETE /admin/permissions/:id` using `grants` metadata
+  in the matrix payload; revoking one action under a `MANAGE` row splits
+  into explicit per-action permissions for the remaining actions.
 
-- Rows = every distinct resource string found in the `permissions` table
-- Columns = every `roleId` that has at least one permission
-- Cell = comma-separated list of actions (`CREATE`, `READ`, `UPDATE`,
-  `DELETE`, `SHARE`) or `—` if the role has no grant for that resource
-- Role names are resolved from `GET /api/admin/roles` via a `roleId → name`
-  map; truncated UUID is shown as fallback
-
-The card is expanded by default; clicking **Einklappen** collapses it to
-save vertical space.
-
-### Create permission form
-
-A five-field inline form below the matrix:
-
-| Field | Type | Notes |
-|-------|------|-------|
-| **Policy-ID** | text | UUID of the CASL policy this permission attaches to |
-| **Resource** | text | CASL subject string (e.g. `Project`, `File`) |
-| **Action** | select | `CREATE`, `READ`, `UPDATE`, `DELETE`, `SHARE` |
-| **Fields (CSV)** | text | Comma-separated field names; empty = all fields |
-| Submit | button | Disabled when Policy-ID or Resource is empty |
-
-`POST /api/admin/permissions` creates the record. On success, the
-permission list below refreshes and a toast confirms the action.
-
-### Permission list table
-
-A table of all `Permission` rows from `GET /api/admin/permissions`.
-Columns: truncated ID, truncated Policy-ID, Resource, Action, Fields.
-Each row has a **Löschen** button that calls `DELETE /api/admin/permissions/:id`
-after a `window.confirm()` guard.
+Optional **Ressource filtern** narrows rows client-side. Role names come from
+`GET /api/admin/roles`.
 
 ---
 

@@ -17,7 +17,7 @@ const ROOT = resolve(import.meta.dirname, "..", "..");
 /**
  * Story · Tenant-Interceptor + RLS-Setup
  *
- * The interceptor reads the tenant header on every request and runs the
+ * The interceptor reads the session tenant on every request and runs the
  * handler inside a tenant-scoped AsyncLocalStorage. Domain code reads
  * the tenant via `getCurrentTenantId()` (no parameter threading), and
  * the Prisma extension that stamps `SET app.tenant_id = $1` on every
@@ -70,10 +70,25 @@ describe("Story · Tenant-Interceptor + RLS", () => {
       } as unknown as ExecutionContext;
     }
 
-    it("parses the tenant header and exposes it via getCurrentTenantId() during the handler", async () => {
-      const tenantId = "0af76519-16cd-43dd-8448-eb211c80319c";
-      const interceptor = new TenantInterceptor();
-      const ctx = makeContext({ "x-tenant-id": tenantId });
+    it("ignores x-tenant-id on /admin/* when session.activeOrganizationId is set", async () => {
+      const sessionTenant = "0af76519-16cd-43dd-8448-eb211c80319c";
+      const headerTenant = "11111111-1111-1111-1111-111111111111";
+      const fakePrisma = { member: { findFirst: async () => null } };
+      const interceptor = new TenantInterceptor(fakePrisma as never);
+      const req = {
+        headers: { "x-tenant-id": headerTenant },
+        originalUrl: "/admin/users",
+        url: "/admin/users",
+        user: { id: "u1", activeOrganizationId: sessionTenant },
+      };
+      const ctx = {
+        switchToHttp: () => ({
+          getRequest: () => req,
+          getResponse: () => ({}),
+          getNext: () => null,
+        }),
+        getType: () => "http",
+      } as unknown as ExecutionContext;
       let observed: string | undefined;
       const result$ = interceptor.intercept(ctx, {
         handle: () => {
@@ -82,7 +97,7 @@ describe("Story · Tenant-Interceptor + RLS", () => {
         },
       });
       await lastValueFrom(await Promise.resolve(result$));
-      expect(observed).toBe(tenantId);
+      expect(observed).toBe(sessionTenant);
     });
 
     it("skips the tenant requirement on exempt paths", async () => {
@@ -99,18 +114,32 @@ describe("Story · Tenant-Interceptor + RLS", () => {
       expect(observed).toBeUndefined();
     });
 
-    it("rejects requests to a tenant-required path that lack the header", async () => {
+    it("rejects unauthenticated requests on tenant-required paths", async () => {
       const interceptor = new TenantInterceptor();
       const ctx = makeContext({}, "/api/users");
       const result = interceptor.intercept(ctx, { handle: () => of("ok") });
       await expect(Promise.resolve(result).then((r) => lastValueFrom(r))).rejects.toThrow(
-        /tenant header/i,
+        /tenant/i,
       );
     });
 
-    it("rejects malformed tenant headers (non-UUID)", async () => {
-      const interceptor = new TenantInterceptor();
-      const ctx = makeContext({ "x-tenant-id": "not-a-uuid" }, "/api/users");
+    it("rejects authenticated requests without activeOrganizationId", async () => {
+      const fakePrisma = { member: { findFirst: async () => null } };
+      const interceptor = new TenantInterceptor(fakePrisma as never);
+      const req = {
+        headers: { "x-tenant-id": "not-a-uuid" },
+        originalUrl: "/admin/users",
+        url: "/admin/users",
+        user: { id: "u1", activeOrganizationId: null },
+      };
+      const ctx = {
+        switchToHttp: () => ({
+          getRequest: () => req,
+          getResponse: () => ({}),
+          getNext: () => null,
+        }),
+        getType: () => "http",
+      } as unknown as ExecutionContext;
       const result = interceptor.intercept(ctx, { handle: () => of("ok") });
       await expect(Promise.resolve(result).then((r) => lastValueFrom(r))).rejects.toThrow();
     });
@@ -161,8 +190,22 @@ describe("Story · Tenant-Interceptor + RLS", () => {
 
     it("integrates with request-context — tenant is visible alongside requestId/traceId", async () => {
       const tenantId = "0af76519-16cd-43dd-8448-eb211c80319c";
-      const interceptor = new TenantInterceptor();
-      const ctx = makeContext({ "x-tenant-id": tenantId });
+      const fakePrisma = { member: { findFirst: async () => null } };
+      const interceptor = new TenantInterceptor(fakePrisma as never);
+      const req = {
+        headers: {},
+        originalUrl: "/admin/users",
+        url: "/admin/users",
+        user: { id: "u1", activeOrganizationId: tenantId },
+      };
+      const ctx = {
+        switchToHttp: () => ({
+          getRequest: () => req,
+          getResponse: () => ({}),
+          getNext: () => null,
+        }),
+        getType: () => "http",
+      } as unknown as ExecutionContext;
       let observed: { tenant?: string; requestId?: string } = {};
       await runWithRequestContext(
         { requestId: "req-1", traceId: "t1", parentId: "p1", sampled: true },

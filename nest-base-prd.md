@@ -4,7 +4,7 @@
 
 nest-base is a production-grade NestJS starter that ships you a server you can run on day one plus a full-blown developer cockpit at /dev that knows what's running, what's failing, and what's available to switch on. 23 feature-toggleable subsystems — multi-tenancy with Postgres RLS, TUS uploads across 4 storage adapters, 9 Better-Auth plugins (incl. organisations, magic-link, passkeys, impersonation), AES-256-GCM field encryption with KEK rotation and blind index, PostGIS-backed geo, pg-boss queues, FTS search, HMAC webhooks, MCP, GDPR export & 30-day-grace deletion — each one off-by-default with zero runtime cost when disabled, each one surfaces and toggles from the cockpit. Built strict-TDD (six quality gates per commit), with AI-first tooling (skills, slash commands, autonomous Ralph loop) and a hard src/core/ ↔ src/modules/ boundary so consuming projects pull upstream improvements without losing their domain code. MIT-licensed.
 
-This PRD describes a fusion: the existing nest-base repo (Prisma 7, Postgres 18, React 19 SPA Dev Hub, Vitest 4, AI-first tooling) is the target, and the best implementations from nest-base-alternative (9 Better-Auth plugins fully wired, 4-stage output pipeline with secret safety net, 7 stacked Prisma extensions, AES-256-GCM with KEK rotation, PostGIS ST_DWithin, pg-boss webhook outbox, audit-log + audit-stamp extensions, RustFS adapter, antivirus scanner, prom-client metrics, custom span buffer, and more) are ported into it.
+This PRD describes a fusion: the existing nest-base repo (Prisma 7, Postgres 18, React 19 SPA Hub, Vitest 4, AI-first tooling) is the target, and the best implementations from nest-base-alternative (9 Better-Auth plugins fully wired, 4-stage output pipeline with secret safety net, 7 stacked Prisma extensions, AES-256-GCM with KEK rotation, PostGIS ST_DWithin, pg-boss webhook outbox, audit-log + audit-stamp extensions, RustFS adapter, antivirus scanner, prom-client metrics, custom span buffer, and more) are ported into it.
 
 ## Core Features
 
@@ -27,7 +27,7 @@ This PRD describes a fusion: the existing nest-base repo (Prisma 7, Postgres 18,
 - Route audit: every handler must be @Can() / @Public() / allow-listed; CI fails on gaps
 - 4-stage output pipeline: Translate → CASL Field Whitelist → Filter Service → Secret Safety Net (with regex pattern detection for JWT, Stripe sk_live, AWS access keys, OpenAI keys)
 - Permission tester (resolve ability for User × Tenant, inspect resource × actions matrix)
-- Admin CRUD for Roles / Policies / Permissions in Dev Hub
+- Admin CRUD for Roles / Policies / Permissions in Hub
 
 ### Data & Persistence
 - Prisma 7 driver-adapter mode + PrismaService
@@ -138,7 +138,7 @@ This PRD describes a fusion: the existing nest-base repo (Prisma 7, Postgres 18,
 - Offline OpenAPI snapshot (docs/openapi.snapshot.json) for SDK consumers
 - CI snapshot drift check + SDK drift check
 
-### Dev Hub & DX
+### Hub & DX
 - React 19 SPA shell (shadcn/ui · Radix · Tailwind 4 · lucide-react · sonner · TanStack Query · React Router 7)
 - Cockpit (/dev): health verdict, 4-tile summary, probes, log preview, feature matrix, quick nav
 - Feature toggles (/dev/features): flip → patch .env → restart → reload
@@ -173,7 +173,7 @@ This PRD describes a fusion: the existing nest-base repo (Prisma 7, Postgres 18,
 
 ## Technical Requirements
 
-### Frontend (Dev Hub SPA only — no separate consumer frontend)
+### Frontend (Hub SPA only — no separate consumer frontend)
 - TypeScript 6 strict (exactOptionalPropertyTypes, nodenext)
 - React 19 + react-dom
 - React Router 7
@@ -402,7 +402,7 @@ This PRD describes a fusion: the existing nest-base repo (Prisma 7, Postgres 18,
    - Custom span buffer for /dev/traces
    - Ability cache in CASL resolver
 
-3. **Phase 3 — Dev Hub completeness + docs + AI tooling**:
+3. **Phase 3 — Hub completeness + docs + AI tooling**:
    - SPA pages ported from alt's SSR: /admin/audit (with diff viz), /admin/jobs (retry-failed), /admin/roles + /policies + /permissions CRUD, /admin/sessions, /dev/cron
    - Permission tester resource × actions matrix view
    - Webhook inspector enhancements (delivery history, re-deliver button)

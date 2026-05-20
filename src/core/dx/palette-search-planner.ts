@@ -3,7 +3,7 @@
  *
  * Accepts a list of registered Hub pages and a freeform query string,
  * returning a ranked, capped list of matching pages. No I/O, no
- * side-effects — the thin runner in `dev-hub.controller.ts` is the
+ * side-effects — the thin runner in `hub.controller.ts` is the
  * only caller that touches the network.
  *
  * Ranking (highest score → lowest):
@@ -17,7 +17,7 @@ export interface PalettePageEntry {
   id: string;
   title: string;
   href: string;
-  /** Extra keywords ("Protokolle" aliases "Logs"). */
+  /** Extra keywords ("protocols" aliases "Logs"). */
   aliases: string[];
   category: string;
 }

@@ -9,7 +9,7 @@ import { buildErdFromSchema, type ErdPlan } from "./erd-builder.js";
  * when the generated file is absent) and hands it to the planner.
  *
  * Errors land as a synthetic ErdPlan with an empty diagram so the
- * dev-hub page renders gracefully — we'd rather show "0 models" than
+ * Hub page renders gracefully — we'd rather show "0 models" than
  * crash the page.
  */
 export function buildErdForProject(projectRoot: string = process.cwd()): ErdPlan {

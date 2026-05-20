@@ -14,7 +14,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { filterUsers } from "../../src/core/dx/user-admin-planner.js";
+import { filterUsers, rolesForUser } from "../../src/core/dx/user-admin-planner.js";
 
 const USERS = [
   { id: "1", email: "alice@example.com", name: "Alice Archer", banned: false },
@@ -95,5 +95,21 @@ describe("Story · user-admin-planner · filterUsers", () => {
     }));
     const result = filterUsers({ query: "", users: manyUsers });
     expect(result).toHaveLength(50);
+  });
+});
+
+describe("Story · user-admin-planner · rolesForUser", () => {
+  const members = [
+    { userId: "1", role: "Admin" },
+    { userId: "1", role: "User" },
+    { userId: "2", role: "User" },
+  ] as const;
+
+  it("returns sorted unique role names for the user", () => {
+    expect(rolesForUser(members, "1")).toEqual(["Admin", "User"]);
+  });
+
+  it("returns empty array when the user has no memberships", () => {
+    expect(rolesForUser(members, "missing")).toEqual([]);
   });
 });

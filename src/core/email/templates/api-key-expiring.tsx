@@ -27,9 +27,7 @@ export interface ApiKeyExpiringVars {
 export const apiKeyExpiringMeta = {
   name: "api-key-expiring",
   subject: (vars: ApiKeyExpiringVars): string =>
-    `API key "${vars.keyName}" expires in ${vars.daysUntilExpiry} day${
-      vars.daysUntilExpiry === 1 ? "" : "s"
-    }`,
+    `API key "${vars.keyName}" expires in ${vars.daysUntilExpiry} days`,
 };
 
 export interface ApiKeyExpiringProps extends ApiKeyExpiringVars {
@@ -37,19 +35,15 @@ export interface ApiKeyExpiringProps extends ApiKeyExpiringVars {
 }
 
 export default function ApiKeyExpiring(props: ApiKeyExpiringProps): React.ReactElement {
-  const dayWord = props.daysUntilExpiry === 1 ? "day" : "days";
   return (
     <Barebone
       brand={props.brand}
-      preheader={`Your ${props.appName} API key "${props.keyName}" expires in ${props.daysUntilExpiry} ${dayWord}`}
+      preheader={`Your ${props.appName} API key "${props.keyName}" expires in ${props.daysUntilExpiry} days`}
     >
       <Greeting brand={props.brand}>Hello {props.recipientName},</Greeting>
       <Paragraph brand={props.brand}>
-        Your {props.appName} API key <strong>{props.keyName}</strong> expires in{" "}
-        <strong>
-          {props.daysUntilExpiry} {dayWord}
-        </strong>{" "}
-        (on {props.expiresAt}). Rotate it now to avoid breaking integrations that depend on it.
+        Your {props.appName} API key {props.keyName} expires in {props.daysUntilExpiry} days (on{" "}
+        {props.expiresAt}). Rotate it now to avoid breaking integrations that depend on it.
       </Paragraph>
       <CTA brand={props.brand} href={props.manageUrl}>
         Manage API keys

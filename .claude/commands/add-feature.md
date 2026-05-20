@@ -1,5 +1,5 @@
 ---
-description: Add a new toggleable feature flag end-to-end (schema → catalog → wiring → tests → dev-hub).
+description: Add a new toggleable feature flag end-to-end (schema → catalog → wiring → tests → hub).
 allowed-tools:
   - Read
   - Edit

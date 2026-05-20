@@ -304,18 +304,18 @@ Used by the autonomous loop in `nest-base-loop-prompt.md`.
 | CF.OAS.10 | CI snapshot drift check | ✅ | scripts/dump-openapi.ts (--check) + tests/stories/openapi-snapshot.story.test.ts | tests/stories/openapi-snapshot.story.test.ts (3/3 iter-8) | drift gate exits non-zero |
 | CF.OAS.11 | CI SDK drift check | ✅ | scripts/sdk-check.ts (iter-4) + kubb-config.story | tests/stories/sdk-check.story.test.ts (3/3 iter-4) + tests/stories/kubb-config.story.test.ts (11/11 iter-8) | kubb-consumability gate |
 
-### CF.DH — Dev Hub & DX
+### CF.DH — Hub & DX
 
 | ID | Requirement | Status | File:Line | Test | Evidence |
 |---|---|---|---|---|---|
-| CF.DH.01 | React 19 SPA shell | ✅ | src/core/dx/clients/ + src/core/dx/dev-portal-shell.ts | tests/stories/dev-portal-shell.story.test.ts (12/12) + tests/stories/dev-hub.story.test.ts (16/16) + tests/stories/dev-portal-pages.story.test.ts (144/144 iter-9) | SPA shell mounts every dev/admin page |
+| CF.DH.01 | React 19 SPA shell | ✅ | src/core/dx/clients/ + src/core/dx/dev-portal-shell.ts | tests/stories/dev-portal-shell.story.test.ts (12/12) + tests/stories/hub.story.test.ts (16/16) + tests/stories/dev-portal-pages.story.test.ts (144/144 iter-9) | SPA shell mounts every hub/admin page |
 | CF.DH.02 | shadcn/ui (Radix primitives) | ✅ | package.json @radix-ui/react-* (12 components) + src/core/dx/clients/ | static introspection iter-15 (TR.FE.04) + tests/stories/dev-portal-pages.story.test.ts (144/144 iter-9) | shadcn shell |
 | CF.DH.03 | Tailwind CSS 4 | ✅ | package.json tailwindcss ^4 + bun-plugin-tailwind | static introspection iter-15 (TR.FE.05) | Tailwind 4 |
 | CF.DH.04 | lucide-react icons | ✅ | package.json lucide-react ^1.14.0 + src/core/dx/clients/ icons.tsx | static introspection iter-15 (TR.FE.07) + tests/stories/dev-portal-pages.story.test.ts (iter-9 — icons.tsx COMMON tests) | lucide-react with stroke=currentColor pin |
 | CF.DH.05 | sonner toasts | ✅ | package.json sonner ^2.0.7 | static introspection iter-15 (TR.FE.08) | sonner toast library |
 | CF.DH.06 | TanStack Query 5 | ✅ | package.json @tanstack/react-query ^5 | static introspection iter-15 (TR.FE.09) | TanStack Query 5 |
 | CF.DH.07 | React Router 7 | ✅ | package.json react-router-dom ^7 + src/core/dx/clients/ App.tsx | static introspection iter-15 (TR.FE.03) + tests/stories/dev-portal-pages.story.test.ts (iter-9 — Route declarations) | React Router 7 |
-| CF.DH.08 | Cockpit (/dev): health verdict | ✅ | src/core/dx/clients/ + src/core/dx/dev-hub.ts | tests/stories/dev-portal-pages.story.test.ts (144/144 iter-9) + tests/stories/dev-hub.story.test.ts (16/16 iter-9) | cockpit page mounted with health verdict panel |
+| CF.DH.08 | Cockpit (/hub): health verdict | ✅ | src/core/dx/clients/ + src/core/dx/hub.ts | tests/stories/dev-portal-pages.story.test.ts (144/144 iter-9) + tests/stories/hub.story.test.ts (16/16 iter-9) | cockpit page mounted with health verdict panel |
 | CF.DH.09 | Cockpit: 4-tile summary | ✅ | src/core/dx/clients/ | tests/stories/dev-portal-pages.story.test.ts (144/144 iter-9) | tile structure verified by SPA route + nav test |
 | CF.DH.10 | Cockpit: probes panel | ✅ | src/core/dx/diagnostics.ts (probe data) | tests/stories/diagnostics.story.test.ts (14/14 iter-9) + tests/stories/dev-portal-pages.story.test.ts (iter-9) | probe data wired |
 | CF.DH.11 | Cockpit: log preview | ✅ | src/core/dx/log-buffer.ts | tests/stories/log-buffer.story.test.ts (6/6 iter-10) + tests/stories/dev-portal-pages.story.test.ts (iter-9) | log preview panel sourced from buffer |
@@ -409,7 +409,7 @@ Used by the autonomous loop in `nest-base-loop-prompt.md`.
 
 ## TR — Technical Requirements
 
-### TR.FE — Frontend (Dev Hub SPA only)
+### TR.FE — Frontend (Hub SPA only)
 
 | ID | Requirement | Status | File:Line | Test | Evidence |
 |---|---|---|---|---|---|

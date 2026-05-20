@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { Can } from "../src/core/permissions/can.guard.js";
 import { PrismaService } from "../src/core/prisma/prisma.service.js";
+import { setActiveOrganization } from "./helpers/tenant-session.js";
 
 interface AuthenticatedRequest extends Request {
   user?: { id: string; tenantId: string | null };
@@ -62,7 +63,7 @@ describe("Better-Auth · Session middleware (req.user)", () => {
     // Mirror bootstrap.ts: set the global /api/ prefix so BetterAuth
     // routes and probe controllers register under /api/... .
     app.setGlobalPrefix("api", {
-      exclude: ["/", "hub/login", "hub/logout", "health", "health/(.*)"],
+      exclude: ["/", "health", "health/(.*)"],
     });
     await app.init();
     prisma = app.get(PrismaService);
@@ -81,15 +82,10 @@ describe("Better-Auth · Session middleware (req.user)", () => {
     else process.env.APP_BASE_URL = originalBaseUrl;
   });
 
-  // The tenant interceptor still requires `x-tenant-id` on
-  // non-exempt paths. Any UUID works for these probe routes — the
-  // middleware doesn't read it, only the interceptor does.
-  const TENANT_HEADER = "00000000-0000-7000-8000-000000000000";
+  const TENANT_ID = "00000000-0000-7000-8000-000000000000";
 
   it("anonymous request to a protected route → 401 (auth required) — not 403 / not 200", async () => {
-    const res = await request(app.getHttpServer())
-      .get("/api/test-session/me")
-      .set("x-tenant-id", TENANT_HEADER);
+    const res = await request(app.getHttpServer()).get("/api/test-session/me");
     expect(res.status).toBe(401);
   });
 
@@ -115,12 +111,12 @@ describe("Better-Auth · Session middleware (req.user)", () => {
     // Provision a BA organization + member row so the unified resolver
     // accepts the x-tenant-id header (presence of member row = ACTIVE).
     await prisma.organization.upsert({
-      where: { id: TENANT_HEADER },
+      where: { id: TENANT_ID },
       update: {},
       create: {
-        id: TENANT_HEADER,
+        id: TENANT_ID,
         name: `session-${Date.now()}`,
-        slug: `session-${TENANT_HEADER}`,
+        slug: `session-${TENANT_ID}`,
         createdAt: new Date(),
       },
     });
@@ -133,16 +129,18 @@ describe("Better-Auth · Session middleware (req.user)", () => {
         create: {
           id: memberId,
           userId: initialUser.id,
-          organizationId: TENANT_HEADER,
+          organizationId: TENANT_ID,
           role: "member",
           createdAt: new Date(),
         },
       });
     }
 
-    // 2. probe `/test-session/me` with the same agent — the cookie
-    //    rides on the request.
-    const me = await agent.get("/api/test-session/me").set("x-tenant-id", TENANT_HEADER);
+    const cookies = signUp.headers["set-cookie"] as string[] | undefined;
+    const sessionCookie = cookies?.map((c) => c.split(";")[0]).join("; ") ?? "";
+    await setActiveOrganization(app.getHttpServer(), sessionCookie, TENANT_ID);
+
+    const me = await agent.get("/api/test-session/me");
     expect(me.status, JSON.stringify(me.body)).toBe(200);
     expect(me.body.user).toBeDefined();
     expect(me.body.user.id).toBeTruthy();
@@ -156,13 +154,9 @@ describe("Better-Auth · Session middleware (req.user)", () => {
   it("authenticated user without policy → @Can() denies with 403 (anonymous on the same route is 401)", async () => {
     // First confirm the anonymous case still 401s (auth-required
     // before guard).
-    const anon = await request(app.getHttpServer())
-      .get("/api/test-session/can-restricted")
-      .set("x-tenant-id", TENANT_HEADER);
+    const anon = await request(app.getHttpServer()).get("/api/test-session/can-restricted");
     expect(anon.status).toBe(401);
 
-    // Now sign in with the user we created earlier and hit the
-    // guarded route — no policy matches, so CASL denies with 403.
     const agent = request.agent(app.getHttpServer());
     const signIn = await agent
       .post("/api/auth/sign-in/email")
@@ -170,9 +164,11 @@ describe("Better-Auth · Session middleware (req.user)", () => {
       .send({ email, password });
     expect(signIn.status, JSON.stringify(signIn.body)).toBe(200);
 
-    const res = await agent
-      .get("/api/test-session/can-restricted")
-      .set("x-tenant-id", TENANT_HEADER);
+    const signInCookies = signIn.headers["set-cookie"] as string[] | undefined;
+    const sessionCookie = signInCookies?.map((c) => c.split(";")[0]).join("; ") ?? "";
+    await setActiveOrganization(app.getHttpServer(), sessionCookie, TENANT_ID);
+
+    const res = await agent.get("/api/test-session/can-restricted");
     expect(res.status).toBe(403);
   });
 });

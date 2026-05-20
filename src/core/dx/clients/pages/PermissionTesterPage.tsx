@@ -57,7 +57,7 @@ export function PermissionTesterPage(): ReactNode {
   return (
     <AdminShell
       title="Permission Tester"
-      subtitle="Resolve effective CASL ability for a user/tenant pair."
+      subtitle="Check effective CASL permissions for user and tenant."
       currentNav="permissions"
     >
       <div className="flex flex-col gap-6">

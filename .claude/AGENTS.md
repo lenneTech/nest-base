@@ -28,7 +28,7 @@ spelunking through the directory tree.
 
 | User intent                                                | Primitive                                                                            |
 | ---------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| "I just opened the repo, where do I start?"                | [`QUICKSTART.md`](QUICKSTART.md)                                                     |
+| "I just opened the repo, where do I start?"                | [`QUICKSTART.md`](QUICKSTART.md) — `bun install && bun run setup && bun run dev`     |
 | "Why is X structured this way?"                            | skill: `understanding-the-architecture.md`                                           |
 | "I keep hitting a weird error"                             | skill: `avoiding-common-pitfalls.md`                                                 |
 | "How do I write a story test?"                             | skill: `writing-story-tests.md`                                                      |
@@ -97,7 +97,7 @@ appear as `/<name>` in the chat.
 | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/add-module <name> [--feature-flag <key>]`        | Scaffold a project-owned resource under `src/modules/` (controller + service + DTO + module + tenant-aware tests). Bread-and-butter command for business logic. Reference module lives at `src/modules/example/`. Shell-callable equivalent: `bun run add:module <name>` (`scripts/add-module.ts` driving the same `src/core/dx/scaffold-module-planner.ts`). |
 | `/add-feature <key> "<description>"`               | Add a new toggleable feature flag end-to-end. Sequences the workflow under TDD discipline.                                                                                                                        |
-| `/add-page <slug> "<title>" [json-viewer\|custom]` | Add a new dev-hub or admin page using the shared dark-mode shell.                                                                                                                                                 |
+| `/add-page <slug> "<title>" [json-viewer\|custom]` | Add a new hub or admin page using the shared dark-mode shell.                                                                                                                                                 |
 | `/upstream-pr [<commit-range>]`                    | Cherry-pick recent `src/core/` changes onto a fresh upstream-template branch, run upstream's six gates, push to your fork, and open a PR. Reads `.claude/upstream.json`.                                          |
 | `/llm-test [<minutes>\|pilot\|full]`               | Run the LLM-driven feature smoke (`bun run llm-test`), wait for the autonomous Claude session to finish, classify the friction log, and report concrete fix recommendations. Default 90 min; `pilot` = 15 min.    |
 

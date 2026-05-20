@@ -10,6 +10,7 @@ import { Module } from "@nestjs/common";
 
 import { BetterAuthModule } from "../auth/better-auth.module.js";
 import { ConfigModule } from "../config/config.module.js";
+import { PermissionsModule } from "../permissions/permissions.module.js";
 import { UserAdminController } from "./user-admin.controller.js";
 
 @Module({
@@ -23,6 +24,7 @@ import { UserAdminController } from "./user-admin.controller.js";
     // can read server.env and server.baseUrl without re-parsing process.env
     // via Zod on every request (MIN-2 fix).
     ConfigModule.forRoot(),
+    PermissionsModule,
   ],
   controllers: [UserAdminController],
 })

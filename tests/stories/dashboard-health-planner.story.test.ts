@@ -22,6 +22,8 @@ const healthy: DashboardHealthInput = {
   emailEnabled: true,
   storageDriverName: "local",
   geoIpAgeDays: 5,
+  geoIpEnabled: true,
+  geoIpInstalled: true,
   allMigrationsApplied: true,
   rlsActive: true,
 };
@@ -30,7 +32,7 @@ describe("buildDashboardStatusGroups", () => {
   it("returns four groups with deterministic IDs", () => {
     const groups = buildDashboardStatusGroups(healthy);
     const ids = groups.map((g) => g.id);
-    expect(ids).toEqual(["database", "async", "external", "runtime"]);
+    expect(ids).toEqual(["database", "async", "runtime", "external"]);
   });
 
   it("all healthy inputs → all groups ok", () => {
@@ -52,6 +54,13 @@ describe("buildDashboardStatusGroups", () => {
     expect(db?.status).toBe("warn");
   });
 
+  it("pending jobs > 0 → async group warn", () => {
+    const groups = buildDashboardStatusGroups({ ...healthy, pendingJobCount: 12 });
+    const async_ = groups.find((g) => g.id === "async");
+    const pending = async_?.items.find((i) => i.label === "Pending jobs");
+    expect(pending?.status).toBe("warn");
+  });
+
   it("dead letters > 0 → async group error", () => {
     const groups = buildDashboardStatusGroups({ ...healthy, deadLetterCount: 3 });
     const async_ = groups.find((g) => g.id === "async");
@@ -68,6 +77,42 @@ describe("buildDashboardStatusGroups", () => {
     const groups = buildDashboardStatusGroups({ ...healthy, webhookSuccessRate: 0.7 });
     const async_ = groups.find((g) => g.id === "async");
     expect(async_?.status).toBe("error");
+  });
+
+  it("null webhook success rate → async item unknown (no deliveries)", () => {
+    const groups = buildDashboardStatusGroups({ ...healthy, webhookSuccessRate: null });
+    const async_ = groups.find((g) => g.id === "async");
+    const webhookItem = async_?.items.find((i) => i.label === "Webhook success rate");
+    expect(webhookItem?.value).toBe("no deliveries (24 h)");
+    expect(webhookItem?.status).toBe("unknown");
+    expect(async_?.status).toBe("unknown");
+  });
+
+  it("geoIP disabled → external item unknown", () => {
+    const groups = buildDashboardStatusGroups({
+      ...healthy,
+      geoIpEnabled: false,
+      geoIpInstalled: false,
+      geoIpAgeDays: null,
+    });
+    const ext = groups.find((g) => g.id === "external");
+    const geoItem = ext?.items.find((i) => i.label === "GeoIP database");
+    expect(geoItem?.value).toBe("disabled");
+    expect(geoItem?.status).toBe("unknown");
+  });
+
+  it("geoIP enabled but not installed → external item warn", () => {
+    const groups = buildDashboardStatusGroups({
+      ...healthy,
+      geoIpEnabled: true,
+      geoIpInstalled: false,
+      geoIpAgeDays: null,
+    });
+    const ext = groups.find((g) => g.id === "external");
+    const geoItem = ext?.items.find((i) => i.label === "GeoIP database");
+    expect(geoItem?.value).toBe("not installed");
+    expect(geoItem?.status).toBe("warn");
+    expect(ext?.status).toBe("warn");
   });
 
   it("geoIP age > 30 days → external group item warn (group stays ok otherwise)", () => {
@@ -107,7 +152,7 @@ describe("buildDashboardStatusGroups", () => {
   });
 
   it("M6 regression — storageDriverName must come from features.files.storageDefault", () => {
-    // The dev-hub controller previously read (features as any).storageDefault which
+    // The hub controller previously read (features as any).storageDefault which
     // always returns undefined (wrong path). The correct path is features.files.storageDefault.
     const features = FeaturesSchema.parse({ files: { storageDefault: "s3" } });
     // Verify the typed path is accessible and carries the expected value.

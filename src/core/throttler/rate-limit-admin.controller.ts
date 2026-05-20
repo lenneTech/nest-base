@@ -203,15 +203,7 @@ export class RateLimitAdminController {
     const whereConditions: Record<string, unknown> = {};
     if (endpoint) whereConditions.endpoint = endpoint;
     if (decision === "allow" || decision === "block") whereConditions.decision = decision;
-    if (cursor) {
-      const ts = new Date(cursor);
-      // Silently ignore invalid cursors (e.g. "foo", "Infinity") — passing
-      // an Invalid Date to Prisma would throw a runtime error. Starting from
-      // the beginning is the safest degradation for a malformed pagination token.
-      if (!isNaN(ts.getTime())) {
-        whereConditions.ts = { lt: ts };
-      }
-    }
+    if (cursor) whereConditions.ts = { lt: new Date(cursor) };
 
     const [items, total] = await Promise.all([
       this.prisma.rateLimitDecision.findMany({

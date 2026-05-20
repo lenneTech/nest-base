@@ -1,31 +1,27 @@
 /**
- * AdminShell — shadcn / Tailwind shell rendered for every dev-portal route.
+ * AdminShell — page chrome API for the dev-portal SPA.
  *
- * Replaces the legacy `admin-layout.css` chrome with Tailwind utility
- * classes that resolve to the dev-portal design tokens (see
- * `styles/globals.css#@theme`). The visual identity (dark near-black
- * surface, electric-lime accent, dense sidebar) is preserved; the
- * underlying layer is now Tailwind utilities + shadcn primitives.
- *
- * The `currentNav` prop drives the active-nav highlight independent
- * of the URL because some pages override the highlight to keep the
- * visual grouping consistent (e.g. `/dev/postgrest-parse` highlights
- * nothing).
+ * The persistent sidebar + header live in `AdminPortalLayout.tsx` so
+ * react-router navigations do not remount the sidebar (scroll reset).
+ * Each page still wraps its body in `<AdminShell …>` to set title /
+ * subtitle / active nav via context.
  */
 import type { ReactNode } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useOutletContext } from "react-router-dom";
+import { toast } from "sonner";
 
+import type { HubPortalAccess } from "../components/HubPortalGate.js";
+import { signOut } from "../lib/api.js";
 import { cn } from "../lib/utils.js";
 
-import { CommandPalette, pushRecentItem } from "../components/CommandPalette.js";
+import { pushRecentItem } from "../components/CommandPalette.js";
+import { useAdminShell, type AdminShellState } from "./admin-shell-context.js";
 import { BRAND_LOGO, ICONS } from "./icons.js";
-import { isSpaRoute, NAV_SECTIONS } from "./nav.js";
+import { LEGACY_HUB_NAV_FEATURES_FALLBACK } from "../../hub-nav-planner.js";
+import { isSpaRoute, navSectionsForPortalAccess } from "./nav.js";
 
 /**
  * Brand snapshot inlined by the server shell into `window.__BRAND__`.
- * The shape mirrors the central `BrandConfig` (only the fields the SPA
- * actually reads). Falling back to "nest-server" keeps the SPA usable
- * in test fixtures that hydrate the bundle without the shell.
  */
 interface RuntimeBrand {
   name?: string;
@@ -38,26 +34,11 @@ declare global {
   }
 }
 
-function getBrandName(): string {
-  if (typeof window !== "undefined" && window.__BRAND__?.name) {
-    return window.__BRAND__.name;
-  }
-  return "nest-server";
-}
-
-export interface AdminShellProps {
-  /** Page heading and `<title>`. */
-  title: string;
-  /** Optional subheading rendered under the title. */
-  subtitle?: ReactNode;
-  /** Sidebar id used for the active-state highlight. */
-  currentNav: string;
-  /** Page body. */
+export interface AdminShellProps extends AdminShellState {
   children: ReactNode;
-  /** Optional toolbar rendered next to the title (e.g. action buttons). */
-  toolbar?: ReactNode;
 }
 
+/** Sets layout chrome for the current route; renders page body only. */
 export function AdminShell({
   title,
   subtitle,
@@ -65,58 +46,46 @@ export function AdminShell({
   children,
   toolbar,
 }: AdminShellProps): ReactNode {
-  // Update <title> exactly the way the server shell does — keeps the
-  // browser tab honest as the user navigates between SPA pages.
-  // Brand sourced from window.__BRAND__ (server-injected) so the title
-  // suffix matches the dev-portal shell on the same request.
-  if (typeof document !== "undefined") {
-    document.title = `${title} — ${getBrandName()}`;
-  }
-
-  return (
-    <div className="flex min-h-screen w-full bg-background text-foreground">
-      {/* Cmd+K palette — mounted once per shell instance, available on all pages */}
-      <CommandPalette />
-      <Sidebar currentNav={currentNav} />
-      <main className="flex min-h-screen flex-1 flex-col">
-        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-line bg-surface-1/60 px-8 py-5">
-          <div className="min-w-0">
-            <h1 className="m-0 text-xl font-semibold tracking-tight text-fg">{title}</h1>
-            {subtitle ? <p className="mt-1 max-w-3xl text-sm text-fg-muted">{subtitle}</p> : null}
-          </div>
-          <div className="flex items-center gap-3">
-            {toolbar}
-            <span className="inline-flex items-center gap-2 rounded-full border border-ok/40 bg-ok/10 px-3 py-1 text-xs font-medium text-ok">
-              <span className="h-1.5 w-1.5 rounded-full bg-ok shadow-[0_0_8px_var(--ok)]" />
-              online
-            </span>
-          </div>
-        </header>
-        <section className="flex-1 px-8 py-6">{children}</section>
-      </main>
-    </div>
-  );
+  useAdminShell({ title, subtitle, currentNav, toolbar });
+  return children;
 }
 
-interface SidebarProps {
+/** Shared height for sidebar brand bar + main page header (title, subtitle, padding). */
+export const PORTAL_TOP_CHROME_ROW = "flex h-[5.75rem] shrink-0 items-center border-b border-line";
+
+export interface AdminSidebarProps {
   currentNav: string;
 }
 
-function Sidebar({ currentNav }: SidebarProps): ReactNode {
+/** Sidebar — exported for `AdminPortalLayout` only. */
+export function AdminSidebar({ currentNav }: AdminSidebarProps): ReactNode {
   const location = useLocation();
+  const portalAccess = useOutletContext<HubPortalAccess | undefined>();
+  const sections = navSectionsForPortalAccess({
+    hub: portalAccess?.hub ?? false,
+    tenantAdmin: portalAccess?.tenantAdmin ?? false,
+    navFeatures: portalAccess?.features ?? LEGACY_HUB_NAV_FEATURES_FALLBACK,
+  });
+
+  async function onSignOut(): Promise<void> {
+    try {
+      await signOut();
+      window.location.assign("/");
+    } catch {
+      toast.error("Sign out failed.");
+    }
+  }
+
   return (
     <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r border-line bg-surface-1">
       <NavItemBrand />
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
-        {NAV_SECTIONS.map((section) => (
+      <nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Hub navigation">
+        {sections.map((section) => (
           <div key={section.title} className="mb-5 last:mb-0">
             <h3 className="mb-2 px-3 text-[0.65rem] font-semibold uppercase tracking-widest text-fg-faint">
               {section.title}
             </h3>
             {section.items.map((item) => {
-              // Active when explicitly addressed by the page OR when the
-              // SPA URL itself matches the link (defends against pages
-              // that forget to set `currentNav`).
               const active = item.id === currentNav || location.pathname === item.href;
               const className = cn(
                 "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
@@ -125,7 +94,6 @@ function Sidebar({ currentNav }: SidebarProps): ReactNode {
                   : "text-fg-muted hover:bg-surface-hover hover:text-fg",
               );
               const icon = ICONS[item.icon] ?? null;
-              // Track every nav-link click in the palette recents list.
               const handleClick = () =>
                 pushRecentItem({
                   id: item.id,
@@ -143,8 +111,6 @@ function Sidebar({ currentNav }: SidebarProps): ReactNode {
                   </Link>
                 );
               }
-              // Server / external — full reload (matches the server-HTML
-              // sidebar exactly).
               const external = !item.href.startsWith("/");
               return (
                 <a
@@ -165,41 +131,24 @@ function Sidebar({ currentNav }: SidebarProps): ReactNode {
         ))}
       </nav>
       <div className="border-t border-line px-4 py-3 space-y-1">
-        {/* Cmd+K palette hint — clicking it opens the palette for mouse users */}
-        <PaletteHint />
-        <a
-          href="https://docs.nestjs.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-between rounded-md px-2 py-1.5 text-xs text-fg-muted hover:text-accent"
+        <button
+          type="button"
+          onClick={() => void onSignOut()}
+          className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs text-fg-muted hover:bg-surface-hover hover:text-fg transition-colors"
         >
-          <span>NestJS Docs</span>
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M7 17L17 7M17 7H8M17 7v9" />
-          </svg>
-        </a>
+          Sign out
+        </button>
+        <PaletteHint />
       </div>
     </aside>
   );
 }
 
-/**
- * Small keyboard shortcut hint in the sidebar footer. Clicking it
- * dispatches a synthetic Cmd+K event so mouse users can open the palette
- * without knowing the shortcut.
- */
 function PaletteHint(): ReactNode {
   const isMac =
     typeof navigator !== "undefined" && /mac/i.test(navigator.platform || navigator.userAgent);
 
-  function openPalette() {
+  function openPalette(): void {
     window.dispatchEvent(
       new KeyboardEvent("keydown", { key: "k", metaKey: isMac, ctrlKey: !isMac, bubbles: true }),
     );
@@ -210,9 +159,9 @@ function PaletteHint(): ReactNode {
       type="button"
       onClick={openPalette}
       className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs text-fg-muted hover:bg-surface-hover hover:text-fg transition-colors"
-      title="Befehlspalette öffnen"
+      title="Open command palette"
     >
-      <span>Suchen</span>
+      <span>Search</span>
       <span className="flex items-center gap-1 font-mono text-[0.6rem] text-fg-faint">
         <kbd className="rounded border border-line bg-surface-2 px-1 py-0.5">
           {isMac ? "⌘" : "Ctrl"}
@@ -224,11 +173,11 @@ function PaletteHint(): ReactNode {
 }
 
 function NavItemBrand(): ReactNode {
+  const brandName =
+    typeof window !== "undefined" && window.__BRAND__?.name ? window.__BRAND__.name : "nest-server";
+
   return (
-    <Link
-      to="/hub"
-      className="flex items-center gap-3 border-b border-line px-4 py-4 text-fg hover:text-accent"
-    >
+    <Link to="/hub" className={cn(PORTAL_TOP_CHROME_ROW, "gap-3 px-4 text-fg hover:text-accent")}>
       <span
         className="flex h-9 w-9 items-center justify-center rounded-md bg-accent text-accent-foreground shadow-[0_0_24px_var(--accent-glow)]"
         aria-hidden="true"
@@ -236,7 +185,7 @@ function NavItemBrand(): ReactNode {
         {BRAND_LOGO}
       </span>
       <div className="flex flex-col">
-        <span className="text-sm font-semibold leading-tight">{getBrandName()}</span>
+        <span className="text-sm font-semibold leading-tight">{brandName}</span>
         <span className="flex items-center gap-1.5 text-[0.7rem] text-fg-dim">
           <span className="h-1.5 w-1.5 rounded-full bg-ok" />
           development

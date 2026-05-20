@@ -172,7 +172,7 @@ interface SpawnPlan {
 }
 
 // Persist a session lock that survives `bun --watch` re-execs so the
-// Dev Hub opens once per `bun run dev`, not once per file save.
+// Hub opens once per `bun run dev`, not once per file save.
 startDevSession(process.cwd());
 
 // Lifted-up state — both the tunnel block and the .env-watch /

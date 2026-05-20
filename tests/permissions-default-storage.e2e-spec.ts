@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { Can } from "../src/core/permissions/can.guard.js";
 import { PrismaService } from "../src/core/prisma/prisma.service.js";
+import { setActiveOrganization } from "./helpers/tenant-session.js";
 
 @Controller("perm-default-probe")
 class ProbeController {
@@ -51,7 +52,7 @@ describe("Permissions · default Prisma storage end-to-end", () => {
     // Mirror bootstrap.ts: set the global /api/ prefix so BetterAuth
     // routes and probe controllers register under /api/... .
     app.setGlobalPrefix("api", {
-      exclude: ["/", "hub/login", "hub/logout", "health", "health/(.*)"],
+      exclude: ["/", "health", "health/(.*)"],
     });
     await app.init();
     prisma = app.get(PrismaService);
@@ -125,14 +126,16 @@ describe("Permissions · default Prisma storage end-to-end", () => {
       .send({ email, password });
     expect(signIn.status, JSON.stringify(signIn.body)).toBe(200);
 
+    const cookies = signIn.headers["set-cookie"] as string[] | undefined;
+    const sessionCookie = cookies?.map((c) => c.split(";")[0]).join("; ") ?? "";
+    await setActiveOrganization(app.getHttpServer(), sessionCookie, tenant.id);
+
     // 5. Hit the protected route with the member agent. The
     //    PermissionInterceptor resolves the user's ability via
     //    PrismaPermissionStorage; the synthesized "Member" rule
     //    grants `manage:Example` for the user's tenant — `manage`
     //    covers `read`, so CanGuard passes.
-    const res = await memberAgent
-      .get("/api/perm-default-probe/members-only")
-      .set("x-tenant-id", tenant.id);
+    const res = await memberAgent.get("/api/perm-default-probe/members-only");
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body).toEqual({ status: "ok" });
 

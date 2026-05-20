@@ -49,3 +49,21 @@ function matchesUser(user: { email: string; name: string | null }, needle: strin
   if (user.name !== null && user.name.toLowerCase().includes(needle)) return true;
   return false;
 }
+
+export interface UserMemberRoleRow {
+  userId: string;
+  role: string;
+}
+
+/**
+ * Collects unique CASL role names for a user from membership rows.
+ * Used by the list view so operators see assignments without opening
+ * the detail sheet.
+ */
+export function rolesForUser(
+  members: ReadonlyArray<UserMemberRoleRow>,
+  userId: string,
+): readonly string[] {
+  const names = members.filter((m) => m.userId === userId).map((m) => m.role.trim());
+  return [...new Set(names.filter((name) => name.length > 0))].sort((a, b) => a.localeCompare(b));
+}

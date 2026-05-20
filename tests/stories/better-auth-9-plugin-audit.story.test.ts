@@ -17,7 +17,7 @@ import { FeaturesSchema } from "../../src/core/features/features.js";
  *   2. twoFactor (TOTP)        — gated by features.authMethods.twoFactor
  *   3. passkey (WebAuthn)      — gated by features.authMethods.passkey
  *   4. admin (impersonation)   — gated by features.adminPlugin (CF.AUTH.05 iter-41)
- *   5. organization            — gated by features.organization
+ *   5. organization            — gated by features.multiTenancy (tenancy)
  *   6. magicLink (5-min link)  — gated by features.magicLink
  *   7. oneTap (Google chooser) — gated by features.oneTap
  *   8. openAPI (auth/reference) — gated by features.openAPI
@@ -39,7 +39,7 @@ describe("Story · 9 Better-Auth plugins audit", () => {
     email: { enabled: false },
     magicLink: { enabled: false },
     adminPlugin: { enabled: false },
-    organization: { enabled: false },
+    multiTenancy: { enabled: false },
     oneTap: { enabled: false },
     openAPI: { enabled: false },
   };
@@ -55,7 +55,7 @@ describe("Story · 9 Better-Auth plugins audit", () => {
     email: { enabled: true },
     magicLink: { enabled: true },
     adminPlugin: { enabled: true },
-    organization: { enabled: true },
+    multiTenancy: { enabled: true },
     oneTap: { enabled: true },
     openAPI: { enabled: true },
   };

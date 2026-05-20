@@ -59,8 +59,13 @@ the schema concatenation and migrations:
 
 ```bash
 bun run prepare:schema
-bunx prisma migrate deploy
+bun run prisma:generate
+bun run prisma:migrate
 ```
+
+Or one shot when `.env` already exists: `bun run setup --bootstrap`
+(runs prepare + migrate + seed — skip seed with `--no-seed` if you only
+need schema).
 
 Then your usual quality gates:
 

@@ -107,54 +107,43 @@ function TestsBody({ report }: { report: TestSummary }): ReactNode {
           {report.files.length === 0 ? (
             <PageEmpty>No file-level data in summary.</PageEmpty>
           ) : (
-            <div className="max-h-[65dvh] min-h-56 overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Status</TableHead>
-                    <TableHead>File</TableHead>
-                    <TableHead>Pass</TableHead>
-                    <TableHead>Fail</TableHead>
-                    <TableHead>Skip</TableHead>
-                    <TableHead>Duration</TableHead>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Status</TableHead>
+                  <TableHead>File</TableHead>
+                  <TableHead>Pass</TableHead>
+                  <TableHead>Fail</TableHead>
+                  <TableHead>Skip</TableHead>
+                  <TableHead>Duration</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {report.files.map((file) => (
+                  <TableRow key={file.path} className={cn(file.status === "failed" && "bg-err/5")}>
+                    <TableCell>
+                      <Badge variant={file.status === "passed" ? "ok" : "err"}>{file.status}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <code className="font-mono text-xs">{file.path}</code>
+                      {file.failureSnippet ? (
+                        <pre className="mt-2 rounded bg-surface-3 p-2 text-[0.7rem] text-err whitespace-pre-wrap">
+                          {file.failureSnippet}
+                        </pre>
+                      ) : null}
+                    </TableCell>
+                    <TableCell className="font-mono tabular-nums text-ok">{file.passed}</TableCell>
+                    <TableCell className="font-mono tabular-nums text-err">{file.failed}</TableCell>
+                    <TableCell className="font-mono tabular-nums text-fg-muted">
+                      {file.skipped}
+                    </TableCell>
+                    <TableCell className="font-mono tabular-nums">
+                      {formatTestDuration(file.durationMs)}
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {report.files.map((file) => (
-                    <TableRow
-                      key={file.path}
-                      className={cn(file.status === "failed" && "bg-err/5")}
-                    >
-                      <TableCell>
-                        <Badge variant={file.status === "passed" ? "ok" : "err"}>
-                          {file.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <code className="font-mono text-xs">{file.path}</code>
-                        {file.failureSnippet ? (
-                          <pre className="mt-2 rounded bg-surface-3 p-2 text-[0.7rem] text-err whitespace-pre-wrap">
-                            {file.failureSnippet}
-                          </pre>
-                        ) : null}
-                      </TableCell>
-                      <TableCell className="font-mono tabular-nums text-ok">
-                        {file.passed}
-                      </TableCell>
-                      <TableCell className="font-mono tabular-nums text-err">
-                        {file.failed}
-                      </TableCell>
-                      <TableCell className="font-mono tabular-nums text-fg-muted">
-                        {file.skipped}
-                      </TableCell>
-                      <TableCell className="font-mono tabular-nums">
-                        {formatTestDuration(file.durationMs)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>

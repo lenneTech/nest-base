@@ -62,14 +62,10 @@ describe("M3 · noopRevokeStorage.revokeSession throws rather than no-op", () =>
     );
   });
 
-  it("listAllSessions() still returns empty array (safe default for list)", async () => {
-    const noop = {
-      listAllSessions: async () => [],
-      revokeSession: async (_sessionId: string) => {
-        throw new Error("not bound");
-      },
-    };
-    await expect(noop.listAllSessions()).resolves.toEqual([]);
+  it("listAllSessions() is provided by PrismaSessionRevokeStorage in the default module", async () => {
+    const { PrismaSessionRevokeStorage } =
+      await import("../../src/core/auth/prisma-session-revoke.storage.js");
+    expect(typeof PrismaSessionRevokeStorage.prototype.listAllSessions).toBe("function");
   });
 });
 

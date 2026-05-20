@@ -34,6 +34,12 @@ const AuthMethodsSchema = z.object({
   passkey: z.boolean().default(true),
   apiKeys: z.boolean().default(true),
 });
+/**
+ * Single tenant feature: Better-Auth Organizations (membership,
+ * invitations, `session.activeOrganizationId`) plus request-scoped
+ * isolation (`x-tenant-id`, Postgres RLS). Disable via
+ * `FEATURE_MULTI_TENANCY_ENABLED=false`.
+ */
 const MultiTenancySchema = z.object({
   enabled: z.boolean().default(true),
   rls: z.boolean().default(true),
@@ -94,9 +100,6 @@ const Mcp = togglableDefault(false);
 const FieldEncryption = togglableDefault(false);
 const MagicLink = togglableDefault(false);
 const AdminPlugin = togglableDefault(false);
-// Organization is on by default (issue #118): the BA organization plugin
-// is now the canonical tenant layer. Opt out via FEATURE_ORGANIZATION_ENABLED=false.
-const Organization = togglableDefault(true);
 const OneTap = togglableDefault(false);
 const OpenAPI = togglableDefault(false);
 const RateLimit = togglableDefault(true);
@@ -125,7 +128,6 @@ export const FeaturesSchema = z.object({
   fieldEncryption: FieldEncryption.default(() => FieldEncryption.parse({})),
   magicLink: MagicLink.default(() => MagicLink.parse({})),
   adminPlugin: AdminPlugin.default(() => AdminPlugin.parse({})),
-  organization: Organization.default(() => Organization.parse({})),
   oneTap: OneTap.default(() => OneTap.parse({})),
   openAPI: OpenAPI.default(() => OpenAPI.parse({})),
   geo: GeoSchema.default(() => GeoSchema.parse({})),
@@ -162,7 +164,6 @@ export type ToggleableFeatureKey =
   | "fieldEncryption"
   | "magicLink"
   | "adminPlugin"
-  | "organization"
   | "oneTap"
   | "openAPI"
   | "geo"
@@ -216,7 +217,6 @@ const SECTION_KEYS = new Set([
   "MAGIC_LINK",
   "ADMINPLUGIN",
   "ADMIN_PLUGIN",
-  "ORGANIZATION",
   "ONETAP",
   "ONE_TAP",
   "OPENAPI",
@@ -253,7 +253,6 @@ const SECTION_TO_KEY: Record<string, FeatureKey> = {
   MAGIC_LINK: "magicLink",
   ADMINPLUGIN: "adminPlugin",
   ADMIN_PLUGIN: "adminPlugin",
-  ORGANIZATION: "organization",
   ONETAP: "oneTap",
   ONE_TAP: "oneTap",
   OPENAPI: "openAPI",

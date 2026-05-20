@@ -78,15 +78,31 @@ describe("Story · buildSeedPlan", () => {
     expect(bypassPerm!.itemFilter).toBeNull();
   });
 
-  it("Admin policy has manage permissions on project resources scoped to $CURRENT_TENANT", () => {
+  it("Admin policy grants tenant-admin CASL subjects but not Hub", () => {
     const plan = buildSeedPlan();
     const adminRole = plan.roles.find((r) => r.name === "Admin")!;
     const rp = plan.rolePolicies.find((rp) => rp.roleId === adminRole.id)!;
     const policy = plan.policies.find((p) => p.id === rp.policyId)!;
     const perms = plan.permissions.filter((p) => p.policyId === policy.id);
+    const resources = perms.map((p) => `${p.action}:${p.resource}`).sort();
+    expect(resources).not.toContain("READ:Hub");
+    expect(resources).toContain("MANAGE:User");
+    expect(resources).toContain("MANAGE:TenantAdmin");
+    expect(resources).toContain("MANAGE:Role");
+    expect(resources).toContain("MANAGE:Policy");
+    expect(resources).toContain("MANAGE:Permission");
+  });
+
+  it("Admin policy has manage permissions on project resources scoped to $CURRENT_TENANT", () => {
+    const plan = buildSeedPlan();
+    const adminRole = plan.roles.find((r) => r.name === "Admin")!;
+    const rp = plan.rolePolicies.find((rp) => rp.roleId === adminRole.id)!;
+    const policy = plan.policies.find((p) => p.id === rp.policyId)!;
+    const perms = plan.permissions.filter(
+      (p) => p.policyId === policy.id && p.action === "MANAGE" && p.resource !== "Hub",
+    );
     expect(perms.length).toBeGreaterThan(0);
     for (const perm of perms) {
-      expect(perm.action).toBe("MANAGE");
       expect(perm.itemFilter).toMatchObject({ tenantId: { _eq: "$CURRENT_TENANT" } });
     }
   });

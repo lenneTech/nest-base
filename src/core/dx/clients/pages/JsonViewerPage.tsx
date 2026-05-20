@@ -24,17 +24,6 @@ import { Label } from "../components/ui/label.js";
 import { Textarea } from "../components/ui/textarea.js";
 import { AdminShell } from "../layout/AdminShell.js";
 
-const SAMPLE_JSON = `{
-  "user": {
-    "id": "u_01HW...",
-    "email": "alice@example.com",
-    "tenants": [
-      { "id": "t_01HW...", "role": "owner" }
-    ]
-  },
-  "createdAt": "2026-05-05T12:00:00.000Z"
-}`;
-
 export function JsonViewerPage(): ReactNode {
   const [input, setInput] = useState("");
   const [submitted, setSubmitted] = useState<string | null>(null);
@@ -74,17 +63,11 @@ export function JsonViewerPage(): ReactNode {
                 className="font-mono text-xs"
                 aria-label="JSON document input"
               />
+              <p className="text-xs text-fg-muted">
+                Paste JSON from API responses, logs, or outbox detail — nothing is pre-filled.
+              </p>
               <div className="flex gap-2">
                 <Button onClick={() => setSubmitted(input)}>Parse</Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setInput(SAMPLE_JSON);
-                    setSubmitted(SAMPLE_JSON);
-                  }}
-                >
-                  Load example
-                </Button>
                 <Button
                   variant="secondary"
                   onClick={() => {

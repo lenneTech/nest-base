@@ -25,11 +25,14 @@ import { type Ability, type AbilityRule, buildAbility } from "./casl-ability.js"
  * malformed JSON, non-array payload). The runner never throws.
  */
 
-export function parseTestAbilityHeader(
-  rawHeader: string | string[] | undefined,
-  nodeEnv: string,
-): Ability | null {
-  if (nodeEnv !== "test") return null;
+function isTestAbilityHatchEnabled(nodeEnv: string): boolean {
+  if (nodeEnv === "test") return true;
+  // Vitest workers may flip `NODE_ENV` to `development` before bootstrap
+  // so `assertDev()` passes — the hatch must stay active for the whole run.
+  return process.env.VITEST === "true" || process.env.VITEST === "1";
+}
+
+function parseTestAbilityHeaderValue(rawHeader: string | string[] | undefined): Ability | null {
   const value = Array.isArray(rawHeader) ? rawHeader[0] : rawHeader;
   if (!value) return null;
 
@@ -51,6 +54,15 @@ export function parseTestAbilityHeader(
     rules.push(entry);
   }
   return buildAbility(rules);
+}
+
+export function parseTestAbilityHeader(
+  rawHeader: string | string[] | undefined,
+  nodeEnv: string,
+): Ability | null {
+  // Explicit env argument — used by story tests for production-safety cases.
+  if (nodeEnv !== "test") return null;
+  return parseTestAbilityHeaderValue(rawHeader);
 }
 
 function isAbilityRule(value: unknown): value is AbilityRule {
@@ -93,5 +105,6 @@ const MODULE_LOAD_NODE_ENV = process.env.NODE_ENV ?? "";
 export function parseTestAbilityHeaderForRequest(
   rawHeader: string | string[] | undefined,
 ): Ability | null {
-  return parseTestAbilityHeader(rawHeader, MODULE_LOAD_NODE_ENV);
+  if (!isTestAbilityHatchEnabled(MODULE_LOAD_NODE_ENV)) return null;
+  return parseTestAbilityHeaderValue(rawHeader);
 }

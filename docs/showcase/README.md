@@ -16,7 +16,7 @@ sonner toasts + TanStack Query — vendored under
 
 | Page                                                                                | Desktop (1440 × 900)                                                                                 | Mobile (390 × 844)                                                                                |
 | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| [`/hub`](../../src/core/dx/clients/pages/DevHubLandingPage.tsx) — Cockpit landing   | [![dev landing desktop](screenshots/dev-landing-desktop.png)](screenshots/dev-landing-desktop.png)   | [![dev landing mobile](screenshots/dev-landing-mobile.png)](screenshots/dev-landing-mobile.png)   |
+| [`/hub`](../../src/core/dx/clients/pages/HubLandingPage.tsx) — Cockpit landing   | [![dev landing desktop](screenshots/dev-landing-desktop.png)](screenshots/dev-landing-desktop.png)   | [![dev landing mobile](screenshots/dev-landing-mobile.png)](screenshots/dev-landing-mobile.png)   |
 | [`/hub/features`](../../src/core/dx/clients/pages/FeaturesPage.tsx) — toggles       | [![features desktop](screenshots/dev-features-desktop.png)](screenshots/dev-features-desktop.png)    | [![features mobile](screenshots/dev-features-mobile.png)](screenshots/dev-features-mobile.png)    |
 | [`/hub/coverage`](../../src/core/dx/clients/pages/CoveragePage.tsx) — Vitest report | [![coverage desktop](screenshots/dev-coverage-desktop.png)](screenshots/dev-coverage-desktop.png)    | [![coverage mobile](screenshots/dev-coverage-mobile.png)](screenshots/dev-coverage-mobile.png)    |
 | [`/hub/jobs`](../../src/core/dx/clients/pages/JobsPage.tsx) — queues + jobs         | [![jobs desktop](screenshots/dev-jobs-desktop.png)](screenshots/dev-jobs-desktop.png)                | [![jobs mobile](screenshots/dev-jobs-mobile.png)](screenshots/dev-jobs-mobile.png)                |
@@ -48,11 +48,10 @@ binary blobs that don't belong in every PR. Re-run only when the UI
 has visibly moved.
 
 ```bash
-# 1. boot Postgres (once per machine)
-docker compose up -d postgres
+# 1. first-time (or re-bootstrap DB)
+bun run setup --bootstrap
 
-# 2. run migrations + start the dev server in another shell
-bun run prisma:migrate
+# 2. start the dev server
 bun run dev
 
 # 3. one-time Playwright install (Chromium ~150 MB)

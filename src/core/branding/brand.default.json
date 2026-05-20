@@ -1,7 +1,7 @@
 {
   "name": "nest-server",
   "shortName": "nest",
-  "tagline": "Template-fähiger NestJS-Server",
+  "tagline": "Template-ready NestJS server",
   "primaryColor": "#c5fb45",
   "primaryColorInk": "#0a0a0a",
   "backgroundColor": "#020203",

@@ -10,6 +10,9 @@ import {
 import { fromNodeHeaders } from "better-auth/node";
 import type { NextFunction, Request, Response } from "express";
 
+import { prefersHubPortalLoginRedirect } from "../hub/hub-portal-paths.js";
+import type { Ability } from "../permissions/casl-ability.js";
+import { parseTestAbilityHeaderForRequest } from "../permissions/test-ability.js";
 import { isPathProtected } from "./jwt-middleware.js";
 import { BETTER_AUTH_INSTANCE, type BetterAuthInstance } from "./better-auth.token.js";
 import { getRequestContext } from "../request-context/request-context.js";
@@ -32,8 +35,7 @@ export interface AuthenticatedRequest extends Request {
      * Projected from the session's `activeOrganizationId` field;
      * undefined when the org plugin is disabled or no org has been
      * activated for this session. Used by `resolveRequestTenantId` as
-     * the preferred tenant fallback when no `x-tenant-id` header is
-     * present (issue #103).
+     * the sole tenant source for `resolveRequestTenantId` (issue #103).
      */
     activeOrganizationId?: string | null;
     /**
@@ -49,6 +51,8 @@ export interface AuthenticatedRequest extends Request {
      */
     scopes?: string[];
   };
+  /** Pre-seeded by `X-Test-Ability` in vitest or by `AbilityMiddleware`. */
+  ability?: Ability;
 }
 
 /**
@@ -82,15 +86,16 @@ export class BetterAuthSessionMiddleware implements NestMiddleware {
     private readonly auth: BetterAuthInstance | null = null,
   ) {}
 
-  async use(req: AuthenticatedRequest, _res: Response, next: NextFunction): Promise<void> {
-    // In test environments, x-test-ability header signals that TestAbilityMiddleware
-    // will seed req.ability from a pre-built CASL ability — no session is needed.
-    // Skip session resolution entirely so the BA cookie check can't 401 the request
-    // before the test bypass takes effect. NODE_ENV guard keeps this dead code in
-    // production builds (tree-shaker removes it because the branch is a compile-time
-    // constant via the string literal comparison).
-    if (process.env.NODE_ENV === "test" && req.headers["x-test-ability"]) {
-      return next();
+  async use(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    // `X-Test-Ability` pre-seeds CASL in vitest (module-load NODE_ENV guard in
+    // `parseTestAbilityHeaderForRequest`). Pre-seed CASL from the header but still resolve the Better-Auth session so
+    // `HubPortalMiddleware` and tenant scoping see `req.user` — specs that flip
+    // `process.env.NODE_ENV` to `development` mid-suite must not lose the hatch.
+    const testAbility = parseTestAbilityHeaderForRequest(req.headers["x-test-ability"]);
+    if (testAbility) {
+      req.ability = testAbility;
+      // Keep going: resolve the real Better-Auth session so `req.user` and
+      // `activeOrganizationId` are available to TenantInterceptor on `/api/*`.
     }
 
     const path = (req.originalUrl ?? req.url ?? "/") as string;
@@ -129,8 +134,7 @@ export class BetterAuthSessionMiddleware implements NestMiddleware {
         tenantId: extractTenantId(session.user),
         // Project the Better-Auth organization plugin's `activeOrganizationId`
         // from the session row onto req.user so `resolveRequestTenantId` can
-        // use it as a per-request tenant fallback without requiring clients to
-        // send `x-tenant-id` on every request (issue #103).
+        // use it as the per-request tenant scope (session-only; issue #103).
         activeOrganizationId: extractActiveOrganizationId(session),
       };
       // CRIT-1: Propagate the authenticated user id into the
@@ -149,6 +153,19 @@ export class BetterAuthSessionMiddleware implements NestMiddleware {
     }
 
     if (protectedPath) {
+      const acceptHeader = Array.isArray(req.headers.accept)
+        ? req.headers.accept[0]
+        : req.headers.accept;
+      if (
+        prefersHubPortalLoginRedirect({
+          path: stripQuery(path),
+          method: req.method,
+          acceptHeader,
+        })
+      ) {
+        res.redirect(302, "/");
+        return;
+      }
       throw new UnauthorizedException("Authentication required.");
     }
     next();

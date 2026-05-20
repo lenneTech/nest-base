@@ -209,6 +209,17 @@ try {
   }
   console.log(`[seed]   permissions: ${plan.permissions.length} (expanded to DB enum rows)`);
 
+  const adminPolicyId = plan.policies.find((p) => p.name === "Admin")!.id;
+  const removedHub = await prisma.permission.deleteMany({
+    where: {
+      policyId: adminPolicyId,
+      resource: { in: ["Hub", "DevHub"] },
+    },
+  });
+  if (removedHub.count > 0) {
+    console.log(`[seed]   removed ${removedHub.count} legacy Hub permission row(s) from Admin policy`);
+  }
+
   // Users
   for (const user of plan.users) {
     await prisma.user.upsert({
@@ -218,9 +229,11 @@ try {
         email: user.email,
         name: user.name,
         emailVerified: user.emailVerified,
+        role: user.authRole,
+        banned: false,
         createdAt: user.createdAt,
       },
-      update: { email: user.email, name: user.name },
+      update: { email: user.email, name: user.name, role: user.authRole, banned: false },
     });
   }
   console.log(`[seed]   users:       ${plan.users.length}`);

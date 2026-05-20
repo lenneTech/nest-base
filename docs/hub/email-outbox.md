@@ -132,7 +132,7 @@ with no DB dependency, fully covered by story tests in
 ## Security
 
 Routes are gated by `@Can('manage', 'EmailOutboxAdmin')`.  
-The `/admin/` prefix is also in the dev-hub allowlist (404 in
+The `/admin/` prefix is also in the hub allowlist (404 in
 production outside `NODE_ENV=development`).
 
 The iframe preview uses `sandbox=""` to prevent rendered email

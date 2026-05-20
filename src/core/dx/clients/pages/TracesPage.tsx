@@ -158,42 +158,40 @@ function TracesBody({ initial }: { initial: TracesResponse }): ReactNode {
           <span className="text-fg-dim">{statusText}</span>
         </div>
         <CardContent className="p-0">
-          <div className="max-h-[65dvh] min-h-56 overflow-auto">
-            <Table>
-              <TableHeader className="sticky top-0 z-10 bg-surface-2">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-28">Time</TableHead>
+                <TableHead className="w-20">Method</TableHead>
+                <TableHead>Path</TableHead>
+                <TableHead className="w-20">Status</TableHead>
+                <TableHead className="w-24">Duration</TableHead>
+                <TableHead className="w-32">Request-Id</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {traces.length === 0 ? (
                 <TableRow>
-                  <TableHead className="w-28">Time</TableHead>
-                  <TableHead className="w-20">Method</TableHead>
-                  <TableHead>Path</TableHead>
-                  <TableHead className="w-20">Status</TableHead>
-                  <TableHead className="w-24">Duration</TableHead>
-                  <TableHead className="w-32">Request-Id</TableHead>
+                  <TableCell colSpan={6} className="text-center text-fg-muted">
+                    No traces yet — make a request to populate.
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {traces.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center text-fg-muted">
-                      No traces yet — make a request to populate.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  traces.map((t) => (
-                    <Fragment key={t.requestId}>
-                      <TraceRow
-                        trace={t}
-                        expanded={expanded.has(t.requestId)}
-                        onToggle={() => void toggleRow(t.requestId)}
-                      />
-                      {expanded.has(t.requestId) ? (
-                        <DrillRow queries={drillCache[t.requestId]} />
-                      ) : null}
-                    </Fragment>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+              ) : (
+                traces.map((t) => (
+                  <Fragment key={t.requestId}>
+                    <TraceRow
+                      trace={t}
+                      expanded={expanded.has(t.requestId)}
+                      onToggle={() => void toggleRow(t.requestId)}
+                    />
+                    {expanded.has(t.requestId) ? (
+                      <DrillRow queries={drillCache[t.requestId]} />
+                    ) : null}
+                  </Fragment>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>

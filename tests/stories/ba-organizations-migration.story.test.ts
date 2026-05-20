@@ -18,10 +18,9 @@ const ROOT = resolve(import.meta.dirname, "..", "..");
  * Story · BA Organizations Migration (issue #118)
  *
  * Validates that:
- *   1. The `organization` feature flag defaults to `true`.
+ *   1. The `multiTenancy` feature flag defaults to `true` (tenancy on).
  *   2. The two migration SQL files exist and are idempotent.
- *   3. The TenantInterceptor resolution order: x-tenant-id header wins
- *      over session.activeOrganizationId (explicit override beats implicit).
+ *   3. Tenant resolution: session.activeOrganizationId only (set-active).
  *   4. The seed plan includes BA Organization + Member rows for each
  *      seeded user.
  */
@@ -29,20 +28,15 @@ const ROOT = resolve(import.meta.dirname, "..", "..");
 describe("Story · BA Organizations Migration", () => {
   // ---------- Test 1: feature flag default ----------
 
-  describe("Organization feature flag", () => {
+  describe("Tenancy feature flag (multiTenancy)", () => {
     it("defaults to enabled=true when no env vars override it", () => {
       const features = loadFeatures({});
-      expect(features.organization.enabled).toBe(true);
+      expect(features.multiTenancy.enabled).toBe(true);
     });
 
-    it("can be disabled via FEATURE_ORGANIZATION_ENABLED=false", () => {
-      const features = loadFeatures({ FEATURE_ORGANIZATION_ENABLED: "false" });
-      expect(features.organization.enabled).toBe(false);
-    });
-
-    it("can be explicitly enabled via FEATURE_ORGANIZATION_ENABLED=true", () => {
-      const features = loadFeatures({ FEATURE_ORGANIZATION_ENABLED: "true" });
-      expect(features.organization.enabled).toBe(true);
+    it("can be disabled via FEATURE_MULTI_TENANCY_ENABLED=false", () => {
+      const features = loadFeatures({ FEATURE_MULTI_TENANCY_ENABLED: "false" });
+      expect(features.multiTenancy.enabled).toBe(false);
     });
   });
 
@@ -156,13 +150,14 @@ describe("Story · BA Organizations Migration", () => {
       return { ctx, fakePrisma };
     }
 
-    it("x-tenant-id header wins over session.activeOrganizationId", async () => {
+    it("session.activeOrganizationId wins over stray x-tenant-id on /admin/*", async () => {
       const headerTenant = "00000000-0000-7000-a000-000000000010";
       const sessionTenant = "00000000-0000-7000-a000-000000000020";
 
       const { ctx, fakePrisma } = makeAuthenticatedContext({
         headerTenantId: headerTenant,
         activeOrganizationId: sessionTenant,
+        path: "/admin/users",
       });
 
       const interceptor = new TenantInterceptor(fakePrisma as never);
@@ -174,8 +169,29 @@ describe("Story · BA Organizations Migration", () => {
         },
       });
       await lastValueFrom(await Promise.resolve(result$));
-      // The header value must win, not the session's activeOrganizationId
-      expect(observed).toBe(headerTenant);
+      expect(observed).toBe(sessionTenant);
+    });
+
+    it("session.activeOrganizationId wins over x-tenant-id on /api/*", async () => {
+      const headerTenant = "00000000-0000-7000-a000-000000000010";
+      const sessionTenant = "00000000-0000-7000-a000-000000000020";
+
+      const { ctx, fakePrisma } = makeAuthenticatedContext({
+        headerTenantId: headerTenant,
+        activeOrganizationId: sessionTenant,
+        path: "/api/users",
+      });
+
+      const interceptor = new TenantInterceptor(fakePrisma as never);
+      let observed: string | undefined;
+      const result$ = interceptor.intercept(ctx, {
+        handle: () => {
+          observed = getCurrentTenantId();
+          return of("ok");
+        },
+      });
+      await lastValueFrom(await Promise.resolve(result$));
+      expect(observed).toBe(sessionTenant);
     });
 
     it("falls back to session.activeOrganizationId when no header is present", async () => {

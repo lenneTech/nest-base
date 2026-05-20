@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bootstrap } from "../src/core/app/bootstrap.js";
 import { PrismaService } from "../src/core/prisma/prisma.service.js";
 import { uuidV7 } from "../src/core/uuid/uuid-v7.js";
+import { setActiveOrganization } from "./helpers/tenant-session.js";
 import { emerald8x8Png } from "./lib/png-fixture.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
@@ -103,12 +104,12 @@ describe("Asset · IPX endpoint", () => {
         createdAt: new Date(),
       },
     });
+    await setActiveOrganization(app.getHttpServer(), sessionCookie, tenantId);
 
     // Upload a fixture PNG once for all subsequent IPX queries.
     const bytes = emerald8x8Png();
     const upload = await request(app.getHttpServer())
       .post("/api/files/upload")
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({
@@ -145,7 +146,6 @@ describe("Asset · IPX endpoint", () => {
   it("GET /_ipx/<modifiers>/<key> returns the transformed image", async () => {
     const res = await request(app.getHttpServer())
       .get(`/_ipx/w_4,f_webp/${storageKey}`)
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
     expect(res.status, JSON.stringify(res.body)).toBe(200);
@@ -160,7 +160,6 @@ describe("Asset · IPX endpoint", () => {
     // the response is the source format (PNG).
     const res = await request(app.getHttpServer())
       .get(`/_ipx/_/${storageKey}`)
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
     expect(res.status).toBe(200);
@@ -169,7 +168,6 @@ describe("Asset · IPX endpoint", () => {
   it("GET /_ipx/w_4/files/missing returns 404", async () => {
     const res = await request(app.getHttpServer())
       .get(`/_ipx/w_4/files/${tenantId}/does-not-exist.png`)
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
     expect(res.status).toBe(404);
@@ -178,7 +176,6 @@ describe("Asset · IPX endpoint", () => {
   it("GET /_ipx/preset_thumbnail/<key> resolves the preset to width/format/etc", async () => {
     const res = await request(app.getHttpServer())
       .get(`/_ipx/preset_thumbnail/${storageKey}`)
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
     expect(res.status, JSON.stringify(res.body)).toBe(200);
@@ -188,7 +185,6 @@ describe("Asset · IPX endpoint", () => {
   it("GET /assets/:key?width=4&format=webp keeps the legacy URL contract", async () => {
     const res = await request(app.getHttpServer())
       .get(`/api/assets/${encodeURIComponent(storageKey)}?width=4&format=webp`)
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
     expect(res.status, JSON.stringify(res.body)).toBe(200);
@@ -201,14 +197,12 @@ describe("Asset · IPX endpoint", () => {
     // cache; see asset.controller comments).
     await request(app.getHttpServer())
       .get(`/api/assets/${encodeURIComponent(storageKey)}?width=4&format=webp`)
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .expect(200);
 
     const res = await request(app.getHttpServer())
       .delete(`/_ipx/cache/${encodeURIComponent(storageKey)}`)
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
     expect(res.status, JSON.stringify(res.body)).toBe(200);
@@ -224,7 +218,6 @@ describe("Asset · IPX endpoint", () => {
     const siblingBytes = emerald8x8Png();
     const siblingUpload = await request(app.getHttpServer())
       .post("/api/files/upload")
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({
@@ -243,7 +236,6 @@ describe("Asset · IPX endpoint", () => {
     for (const key of [storageKey, siblingKey]) {
       await request(app.getHttpServer())
         .get(`/api/assets/${encodeURIComponent(key)}?width=4&format=webp`)
-        .set("x-tenant-id", tenantId)
         .set("cookie", sessionCookie)
         .set("x-test-ability", "full")
         .expect(200);
@@ -252,7 +244,6 @@ describe("Asset · IPX endpoint", () => {
     // Targeted invalidation of the original source only.
     const res = await request(app.getHttpServer())
       .delete(`/_ipx/cache/${encodeURIComponent(storageKey)}`)
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
     expect(res.status).toBe(200);
@@ -263,7 +254,6 @@ describe("Asset · IPX endpoint", () => {
     // cascade had wiped everything, we'd see MISS instead.
     const siblingHit = await request(app.getHttpServer())
       .get(`/api/assets/${encodeURIComponent(siblingKey)}?width=4&format=webp`)
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
     expect(siblingHit.status).toBe(200);
@@ -272,7 +262,6 @@ describe("Asset · IPX endpoint", () => {
     // The original source MUST report MISS (next request re-renders).
     const originalMiss = await request(app.getHttpServer())
       .get(`/api/assets/${encodeURIComponent(storageKey)}?width=4&format=webp`)
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
     expect(originalMiss.status).toBe(200);

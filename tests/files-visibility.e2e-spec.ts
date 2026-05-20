@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bootstrap } from "../src/core/app/bootstrap.js";
 import { PrismaService } from "../src/core/prisma/prisma.service.js";
 import { uuidV7 } from "../src/core/uuid/uuid-v7.js";
+import { setActiveOrganization } from "./helpers/tenant-session.js";
 import { emerald8x8Png } from "./lib/png-fixture.js";
 
 const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {} };
@@ -91,11 +92,11 @@ describe("Files · visibility toggle", () => {
         createdAt: new Date(),
       },
     });
+    await setActiveOrganization(app.getHttpServer(), sessionCookie, tenantId);
 
     const bytes = emerald8x8Png();
     const upload = await request(app.getHttpServer())
       .post("/api/files/upload")
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({
@@ -132,7 +133,6 @@ describe("Files · visibility toggle", () => {
   it("uploads default to PRIVATE visibility", async () => {
     const res = await request(app.getHttpServer())
       .get(`/api/files/${fileId}`)
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
     expect(res.status).toBe(200);
@@ -142,7 +142,6 @@ describe("Files · visibility toggle", () => {
   it("PATCH /files/:id/visibility flips PRIVATE → PUBLIC", async () => {
     const res = await request(app.getHttpServer())
       .patch(`/api/files/${fileId}/visibility`)
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({ visibility: "PUBLIC" });
@@ -151,7 +150,6 @@ describe("Files · visibility toggle", () => {
 
     const after = await request(app.getHttpServer())
       .get(`/api/files/${fileId}`)
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full");
     expect(after.body.visibility).toBe("PUBLIC");
@@ -160,7 +158,6 @@ describe("Files · visibility toggle", () => {
   it("rejects an unknown visibility value with 400", async () => {
     const res = await request(app.getHttpServer())
       .patch(`/api/files/${fileId}/visibility`)
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({ visibility: "WORLD" });
@@ -170,7 +167,6 @@ describe("Files · visibility toggle", () => {
   it("PATCH on an unknown file id returns 404", async () => {
     const res = await request(app.getHttpServer())
       .patch(`/api/files/00000000-0000-0000-0000-000000000999/visibility`)
-      .set("x-tenant-id", tenantId)
       .set("cookie", sessionCookie)
       .set("x-test-ability", "full")
       .send({ visibility: "PUBLIC" });

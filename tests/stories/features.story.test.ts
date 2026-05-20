@@ -155,6 +155,11 @@ describe("Story · Feature-Flag-System", () => {
       const features = loadFeatures({ FEATURE_AUTH_METHODS_SOCIAL_PROVIDERS: "google,github" });
       expect(features.authMethods.socialProviders).toEqual(["google", "github"]);
     });
+
+    it("ignores removed FEATURE_ORGANIZATION_ENABLED (use FEATURE_MULTI_TENANCY_*)", () => {
+      const features = loadFeatures({ FEATURE_ORGANIZATION_ENABLED: "false" });
+      expect(features.multiTenancy.enabled).toBe(true);
+    });
   });
 
   describe("validateFeatureDependencies()", () => {

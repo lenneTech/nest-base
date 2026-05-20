@@ -47,19 +47,10 @@ export default function NewDevice(props: NewDeviceProps): React.ReactElement {
         We noticed a new sign-in to your {props.appName} account. If this was you, no further action
         is needed.
       </Paragraph>
-      <Paragraph brand={props.brand}>
-        <strong>Device:</strong> {props.deviceLabel}
-        <br />
-        <strong>Location:</strong> {props.location}
-        {props.ipAddress ? (
-          <>
-            <br />
-            <strong>IP address:</strong> {props.ipAddress}
-          </>
-        ) : null}
-        <br />
-        <strong>Time:</strong> {props.signedInAt}
-      </Paragraph>
+      <Paragraph brand={props.brand}>Device: {props.deviceLabel}</Paragraph>
+      <Paragraph brand={props.brand}>Location: {props.location}</Paragraph>
+      <Paragraph brand={props.brand}>IP address: {props.ipAddress}</Paragraph>
+      <Paragraph brand={props.brand}>Time: {props.signedInAt}</Paragraph>
       <Paragraph brand={props.brand}>
         If you did not sign in, revoke this session immediately and change your password.
       </Paragraph>

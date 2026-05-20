@@ -241,37 +241,46 @@ be removed once the upstream fix
 ([lenneTech/nuxt-base-starter#13](https://github.com/lenneTech/nuxt-base-starter/issues/13))
 has propagated to all consumer workspaces.
 
-## Multi-tenancy
+## Multi-tenancy (single feature: `multiTenancy`)
 
-Two-layer isolation:
+Tenants are **Better-Auth Organizations** (`organization` / `member` /
+`invitation` tables). One feature flag (`FEATURE_MULTI_TENANCY_ENABLED`)
+turns on the full stack: BA org plugin, session `activeOrganizationId`,
+session `activeOrganizationId`, and Postgres RLS.
 
-- **App layer** — a request-scoped interceptor reads `tenantId` from
-  the session/JWT/API-key and stores it in `AsyncLocalStorage`. Every
-  CASL filter that includes `$CURRENT_TENANT` substitutes it from the
-  context.
-- **DB layer** — Postgres RLS policies enforce `tenant_id = current_setting('app.tenant_id')`.
-  `PrismaService` sets the session variable on every connection check-out.
+### How tenant scope is resolved
+
+| Surface | Mechanism |
+|---|---|
+| **All gated routes** (`/api/*`, `/admin/*`, `/hub/*`) | `POST /api/auth/organization/set-active` → `session.activeOrganizationId`. Stray `x-tenant-id` headers are **ignored**. |
+| **Hub HTML (no session org yet)** | `resolveHubOperatorTenantId` may pick a default membership for shell render only. |
+| **Bootstrap** | `GET /api/me/tenants`, `POST /api/tenants` — exempt from tenant scope (no active org yet). |
+
+Policy: `src/core/multi-tenancy/tenant-resolution-policy.ts`. Resolver:
+`resolveRequestTenantId(req, prisma, { path })`.
+
+### Two-layer data isolation
+
+- **App layer** — `TenantInterceptor` + CASL `$CURRENT_TENANT` from the
+  resolved org id (`AsyncLocalStorage`).
+- **DB layer** — Postgres RLS via `SET LOCAL app.tenant_id` in
+  `PrismaService.runWithRlsTenant()`.
 
 If app code forgets to scope a query, RLS denies the rows. If RLS is
-misconfigured, CASL still denies the rows. Both layers must fail open
-for a tenant leak to occur.
+misconfigured, CASL still denies the rows. Both layers must fail for a
+tenant leak to occur.
 
 ### Tenant self-service surface
 
-Three HTTP routes let a signed-up user discover or create their first
-tenant without going through the system-setup wizard:
-
-| Route | Purpose | Auth | Tenant header |
+| Route | Purpose | Auth | Tenant scope |
 |---|---|---|---|
-| `GET /me/tenants` | List the joined tenant + membership rows for the authenticated caller | required | exempt |
-| `POST /tenants` | Create a Tenant + an ACTIVE owner membership for the caller, atomically | required | exempt |
-| `*` (everything else) | Domain endpoints | required | required (UUID) |
+| `GET /api/me/tenants` | List memberships for the caller | required | exempt |
+| `POST /api/tenants` | Create org + owner membership | required | exempt |
+| `/api/*` (domain) | CRUD | required | session active org |
+| `/admin/*`, `/hub/*` | Operator tools | required | header or session |
 
-`/me/*` and `/tenants` live on `tenant-guard.ts`'s `EXEMPT_PREFIXES`
-list — they operate on `req.user.id`, not on a specific tenant, so
-the bootstrap step does not (and cannot) require an `x-tenant-id`
-header. The Better-Auth session middleware still gates anonymous
-access (401). See `src/core/multi-tenancy/tenant-self-service.module.ts`.
+See `src/core/multi-tenancy/tenant-self-service.module.ts` and
+`tenant-guard.ts` exempt lists.
 
 ## Cross-cutting subsystems
 
@@ -360,7 +369,8 @@ in any environment because frontends + SDK generators read them.
 | Shell renderer (planner) | `src/core/dx/dev-portal-shell.ts` | Pure function: title + script URL + token CSS URL → static HTML5 skeleton with `<div id="root">` |
 | SPA source tree | `src/core/dx/clients/` | Browser-only: `main.tsx` (entry), `App.tsx` (router), `layout/`, `pages/`, `components/`, `lib/`, `styles/` |
 | Layout shell | `src/core/dx/clients/layout/AdminShell.tsx` + `nav.ts` + `icons.tsx` | Sidebar + header + SVG icons + active-state highlight |
-| Pages | `src/core/dx/clients/pages/` | One component per route: `DevHubLandingPage` (`/`), `FeaturesPage`, `CoveragePage`, `TestsPage`, `DiagnosticsPage`, `LogsPage`, `TracesPage`, `QueriesPage`, `RoutesPage`, `ErdPage`, `EmailPreviewPage`, `PostgrestParsePage`, `ComponentShowcasePage`, `PermissionTesterPage`, `WebhookInspectorPage`, `RealtimeInspectorPage`, `AuditBrowserPage`, `SearchTesterPage`, `ErrorsPage`, `OpenApiPage`, `UsersAdminPage`, `TenantsAdminPage`, `PermissionsAdminPage`, `EmailOutboxPage` — each lazy-loaded via `React.lazy` |
+| Pages | `src/core/dx/clients/pages/` | One component per route: `HubLoginPage` (`/`, Better-Auth email/password), `HubLandingPage` (`/hub`), `FeaturesPage`, … — each lazy-loaded via `React.lazy` |
+| Hub portal auth | `src/core/hub/hub-portal-paths.ts`, `hub-portal.middleware.ts`, `hub-portal-access.ts`, `bootstrap.ts` `GET /` | Better-Auth session required for `/hub/*` and `/admin/*` (except `/hub/static/*`); `read Hub` CASL subject; login at `/` via `HubLoginPage` |
 | UI primitives | `src/core/dx/clients/components/ui/` | **shadcn/ui** components vendored under this tree (badge, button, card, checkbox, dialog, dropdown-menu, input, label, progress, radio-group, select, separator, sheet, sonner, switch, table, tabs, textarea, tooltip), built on **Radix UI**. To add a primitive: copy the canonical source from <https://ui.shadcn.com/docs/components>, retarget imports to `../../lib/utils.js`, append the `.js` suffix to every relative import. |
 | Custom components | `src/core/dx/clients/components/` | `JsonViewer` (reused by `/errors`, `/openapi`, `/hub/postgrest-parse`), `PageState` (Loading / Error / Empty / StatTile helpers), `Sparkline` (Webhook-Inspector trends) |
 | Icons | `src/core/dx/clients/layout/icons.tsx` | Sidebar + page icons via **lucide-react** — single import, tree-shaken to ~3 KB gzipped, consistent stroke-width 1.75 |
@@ -368,9 +378,9 @@ in any environment because frontends + SDK generators read them.
 | Styling stack | `src/core/dx/clients/styles/globals.css` | **Tailwind CSS 4** with the CSS-first `@theme` config — `@import "tailwindcss"` + `@theme inline { --color-background: var(--bg); … }`. Built via `bun-plugin-tailwind`, hot-reloaded by the dev-portal watcher. |
 | Design tokens | `src/core/dx/clients/styles/tokens.css` | `:root` custom properties (electric-lime accent, near-black surfaces) — declared once, overridden at runtime by `brand.json` (Issue #5), aliased into Tailwind utilities through the `@theme` bridge above |
 | Build script | `scripts/build-dev-portal.ts` | `Bun.build({ target: "browser", splitting: true, minify: true })` → `dist/dev-portal/` |
-| `/api/hub/*` JSON sidecars | `dev-hub.controller.ts` | `dashboard.json`, `feature-catalog.json`, `coverage.json`, `tests.json`, `diagnostics.json`, `logs.json`, `traces.json`, `queries.json`, `routes.json`, `erd.json`, `email-preview.json`, `email-builder/templates.json` (with `overridesCore`/`overrideExists` flags), `email-builder/blocks.json`, `email-builder/templates/:name/composition.json` (Issue #49 — decompose `.tsx` source back to JSON composition), `migrations.json` |
-| `/api/hub/email-builder/*` mutating endpoints | `dev-hub.controller.ts` + `src/core/email/email-builder.ts` | `preview.json` (POST — render draft), `save` (POST — codegen `.tsx` to `src/modules/email/templates/`), `templates/:name/override` (DELETE — Issue #49 reset-to-default); defense-in-depth path validation, 404 outside development |
-| `/api/hub/migrations/*` mutating endpoints | `dev-hub.controller.ts` + `migrations/migrations.service.ts` | `deploy`, `apply-one`, `dry-run`, `retry`, `create`, `apply-draft`, `draft/:name` (DELETE) — Postgres advisory-lock-gated, 404 outside development |
+| `/api/hub/*` JSON sidecars | `hub.controller.ts` | `dashboard.json`, `feature-catalog.json`, `coverage.json`, `tests.json`, `diagnostics.json`, `logs.json`, `traces.json`, `queries.json`, `routes.json`, `erd.json`, `email-preview.json`, `email-builder/templates.json` (with `overridesCore`/`overrideExists` flags), `email-builder/blocks.json`, `email-builder/templates/:name/composition.json` (Issue #49 — decompose `.tsx` source back to JSON composition), `migrations.json` |
+| `/api/hub/email-builder/*` mutating endpoints | `hub.controller.ts` + `src/core/email/email-builder.ts` | `preview.json` (POST — render draft), `save` (POST — codegen `.tsx` to `src/modules/email/templates/`), `templates/:name/override` (DELETE — Issue #49 reset-to-default); defense-in-depth path validation, 404 outside development |
+| `/api/hub/migrations/*` mutating endpoints | `hub.controller.ts` + `migrations/migrations.service.ts` | `deploy`, `apply-one`, `dry-run`, `retry`, `create`, `apply-draft`, `draft/:name` (DELETE) — Postgres advisory-lock-gated, 404 outside development |
 | `/api/admin/*` JSON sidecars | `admin-spa.controller.ts` | `permissions/test.json`, `webhooks.json`, `realtime.json`, `realtime/channels.json`, `audit.json`, `search.json` |
 | `/api/admin/*` POST actions | `admin-spa.controller.ts` | `realtime/sockets/:id/disconnect`, `realtime/sockets/:id/send`, `realtime/events/replay` — all dev-only, all 404 in production |
 | Static asset endpoint | `GET /hub/static/:filename` | 404 outside development; allow-list filename, MIME-detect, stream from `dist/dev-portal/` |
@@ -392,8 +402,9 @@ in any environment because frontends + SDK generators read them.
   incremental rebuilds (~80 ms warm). This eliminates the startup
   race where a request to `/hub/static/main.js` could hit a missing
   bundle.
-- `bun run setup` builds the SPA once after `bun install` so
-  `/hub/static/main.js` exists before the first dev start.
+- `bun run setup` writes `.env`, optionally bootstraps Postgres/Redis +
+  schema/migrations/seed (`--skip-bootstrap` to opt out), and builds the
+  SPA once so `/hub/static/main.js` exists before the first dev start.
 
 ### Coverage
 
@@ -416,7 +427,7 @@ the trust boundary (server → browser).
   through the `@theme` bridge in `styles/globals.css` to the
   brand-aware tokens in `styles/tokens.css`. The full inventory of
   available primitives + variants lives in
-  `pages/ComponentShowcasePage.tsx` (`/hub/components`).
+  shadcn/ui primitives under `components/ui/` (no separate showcase route).
 - **No `process.env.*` / Node imports.** This tree is browser-only;
   `tsconfig.client.json` excludes Node types so this fails at compile
   time.
@@ -500,13 +511,8 @@ re-running the seed is fully idempotent — no duplicates accumulate.
 | `Admin` | `false` | `manage` on each project resource, scoped to `$CURRENT_TENANT` |
 | `User` | `false` | `READ` on each project resource (tenant-scoped); `UPDATE` on `User`/`UserProfile` (user-scoped) |
 
-**Users**
-
-| Email | Role | Password |
-|---|---|---|
-| `system-admin@lenne.tech` | System Admin | `system-admin` |
-| `admin@lenne.tech` | Admin | `admin` |
-| `user@lenne.tech` | User | `user` |
+**Users** — three demo accounts (System Admin, Admin, User). Emails and passwords are
+printed by `bun run seed` to the terminal only; the Hub UI never surfaces them.
 
 Passwords are hashed via `better-auth/crypto` `hashPassword` (scrypt)
 — the same function the sign-up flow uses, so `POST /api/auth/sign-in/email`
