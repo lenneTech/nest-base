@@ -70,6 +70,10 @@ export function corsDefaults(
         // to call its own API without a proxy workaround.
         "http://localhost:3001",
         "http://localhost:5173",
+        // Expo web / Metro dev server (React Native projects) — lets the
+        // Expo Web build call the dev API with credentials.
+        "http://localhost:8081",
+        "http://localhost:19006",
         "http://app.nst.localhost",
       ],
       credentials: true,
