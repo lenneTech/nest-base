@@ -162,6 +162,32 @@ describe("Story · setup-wizard runner planner", () => {
       expect(url).not.toContain("change-me-strong-pass");
     });
 
+    it("sanitizes a scoped package name into a valid identifier + host slug (@bpa/api -> bpa-api)", () => {
+      // Regression: a scoped monorepo workspace name leaked `@` and `/`
+      // straight into POSTGRES_USER/POSTGRES_DB/DATABASE_URL (an unparseable
+      // connection string → the server never booted) and the portless host.
+      // The substituted value must be a lowercase alnum/hyphen slug that is
+      // valid both as a Postgres identifier and a hostname label.
+      const example = [
+        "POSTGRES_USER=nest-base",
+        "POSTGRES_DB=nest-base",
+        "POSTGRES_PASSWORD=change-me-strong-pass",
+        "DATABASE_URL=postgresql://nest-base:change-me-strong-pass@localhost:5432/nest-base",
+        "APP_BASE_URL=http://localhost:3000",
+      ].join("\n");
+      const out = planEnvFromExample(example, {
+        randomBytes: deterministicRng(),
+        projectName: "@bpa/api",
+      });
+      expect(out).toMatch(/^POSTGRES_USER=bpa-api$/m);
+      expect(out).toMatch(/^POSTGRES_DB=bpa-api$/m);
+      expect(out).toMatch(/^APP_BASE_URL=https:\/\/api\.bpa-api\.localhost$/m);
+      const url = out.match(/^DATABASE_URL=(.*)$/m)?.[1];
+      expect(url).toMatch(/^postgresql:\/\/bpa-api:.+@localhost:5432\/bpa-api$/);
+      expect(url).not.toContain("@bpa/api");
+      expect(url).not.toContain("bpa/api");
+    });
+
     it("leaves the file untouched when projectName equals the template name (no churn)", () => {
       const example = "APP_BASE_URL=http://localhost:3000\nPOSTGRES_USER=nest-base\n";
       const out = planEnvFromExample(example, {

@@ -36,11 +36,29 @@ export function computeComposeProjectName(input: ComposeProjectNameInput): strin
     throw new Error("computeComposeProjectName: workspacePath is required");
   }
 
+  // docker compose project names must be lowercase, contain only
+  // [a-z0-9_-], and start with a letter or number. A scoped workspace
+  // name like "@bpa/api" would otherwise produce an invalid
+  // "@bpa/api-<hash>" (the `@` and `/` are rejected). Strip the scope
+  // marker, replace illegal runs with a single hyphen, and trim.
+  const safeName = input.projectName
+    .toLowerCase()
+    .replace(/^@/, "")
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/^[^a-z0-9]+/, "")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  if (safeName.length === 0) {
+    throw new Error(
+      `computeComposeProjectName: projectName "${input.projectName}" has no docker-compatible characters`,
+    );
+  }
+
   // sha256 truncated to 6 hex chars. We deliberately do NOT normalise
   // the path (no realpath, no lower-casing) — same input → same hash
   // is exactly what we want, and any normalisation would couple this
   // function to a host filesystem's case-sensitivity rules.
   const hash = createHash("sha256").update(input.workspacePath).digest("hex").slice(0, HASH_LENGTH);
 
-  return `${input.projectName}-${hash}`;
+  return `${safeName}-${hash}`;
 }
