@@ -86,6 +86,13 @@ export interface BuildBetterAuthInput {
   /** Optional override; defaults to /api/auth via `resolveBetterAuthMountPath()`. */
   basePath?: string;
   /**
+   * Origins Better-Auth trusts for state-changing requests (its CSRF /
+   * cross-origin guard, separate from CORS). The `baseURL` is always
+   * trusted; pass additional dev/prod frontends (e.g. the Expo web port)
+   * so cross-origin sign-up/sign-in don't fail with "Invalid origin".
+   */
+  trustedOrigins?: string[];
+  /**
    * Optional Prisma client. When supplied, Better-Auth persists
    * users / sessions / accounts / verifications via
    * `better-auth/adapters/prisma`. When omitted, the built-in
@@ -597,6 +604,9 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
     secret: input.secret,
     baseURL: input.baseUrl,
     basePath,
+    ...(input.trustedOrigins && input.trustedOrigins.length > 0
+      ? { trustedOrigins: input.trustedOrigins }
+      : {}),
     emailAndPassword: emailAndPasswordOptions,
     ...(emailVerificationOptions ? { emailVerification: emailVerificationOptions } : {}),
     ...(databaseHooks ? { databaseHooks } : {}),

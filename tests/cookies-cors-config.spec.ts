@@ -109,6 +109,13 @@ describe("Cookie & CORS Config", () => {
       expect(cfg.allowedOrigins).toContain("http://localhost:3001");
     });
 
+    it('corsDefaults("development") includes the Expo web dev port :8081', () => {
+      // Expo Web / Metro serves the React Native app on :8081; the dev API
+      // must allow it so credentialed auth requests pass CORS preflight.
+      const cfg = corsDefaults("development");
+      expect(cfg.allowedOrigins).toContain("http://localhost:8081");
+    });
+
     it('corsDefaults("production") returns no origins (must be configured explicitly)', () => {
       const cfg = corsDefaults("production");
       expect(cfg.allowedOrigins).toEqual([]);

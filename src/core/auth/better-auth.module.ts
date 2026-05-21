@@ -13,6 +13,7 @@ import { EmailService } from "../email/email.service.js";
 import { type Features, loadFeatures } from "../features/features.js";
 import { GeoIpModule } from "../geoip/geoip.module.js";
 import { GeoIpService } from "../geoip/geoip.service.js";
+import { corsDefaults } from "../http/cookie-cors-config.js";
 import { PrismaService } from "../prisma/prisma.service.js";
 import {
   PrismaVerificationStore,
@@ -112,6 +113,10 @@ import { isBetterAuthRateLimitEnabled } from "./rate-limit-flag.js";
         return buildBetterAuth({
           secret,
           baseUrl: cfg.baseUrl,
+          // Trust the configured CORS origins (dev allowlist incl. the Expo
+          // web port) so cross-origin sign-up/sign-in pass Better-Auth's
+          // origin guard. The baseURL is always trusted regardless.
+          trustedOrigins: corsDefaults(cfg.env).allowedOrigins,
           sessionExpiresInSeconds: 60 * 60 * 24 * 7,
           // Audit hook (issue #99): write a CREATE row to audit_log after
           // every user creation, regardless of the creation path. The hook
