@@ -167,15 +167,26 @@ function rewriteComposeProjectName(text: string, name: string): string {
 }
 
 function rewriteProjectScopedVars(text: string, projectName: string): string {
+  // The substituted value lands in POSTGRES_USER / POSTGRES_DB /
+  // DATABASE_URL and the portless host (api.<name>.localhost), so it must
+  // be a valid Postgres identifier AND a valid hostname label. A scoped
+  // workspace name like "@bpa/api" would otherwise leak `@` and `/` into
+  // the DATABASE_URL (breaking the connection) and the host. Sanitize to a
+  // lowercase alnum/hyphen slug: "@bpa/api" → "bpa-api".
+  const slug = projectName
+    .toLowerCase()
+    .replace(/^@/, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
   // Replace every occurrence of the template name. POSTGRES_USER /
   // POSTGRES_DB / DATABASE_URL all carry it; nothing else in
   // .env.example does (comments don't, secrets don't).
-  let out = text.split(TEMPLATE_NAME).join(projectName);
+  let out = text.split(TEMPLATE_NAME).join(slug);
   // APP_BASE_URL: assume portless when a name is given. Local-only devs
   // edit this back to http://localhost:<port> after generation.
   out = out.replace(
     /^APP_BASE_URL=http:\/\/localhost:\d+$/m,
-    `APP_BASE_URL=https://api.${projectName}.localhost`,
+    `APP_BASE_URL=https://api.${slug}.localhost`,
   );
   return out;
 }

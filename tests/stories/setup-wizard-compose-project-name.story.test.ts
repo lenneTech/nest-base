@@ -55,6 +55,23 @@ describe("Story · Setup-Wizard compose-project-name planner", () => {
     expect(a).toBe(b);
   });
 
+  it("sanitizes a scoped package name into a docker-compose-valid project name", () => {
+    // Regression: a monorepo workspace named `@bpa/api` flowed straight into
+    // COMPOSE_PROJECT_NAME as `@bpa/api-<hash>`, which `docker compose`
+    // rejects ("must consist only of lowercase alphanumeric characters,
+    // hyphens, and underscores ... start with a letter or number"). The
+    // scope marker `@` and the `/` separator must be stripped/replaced.
+    const name = computeComposeProjectName({
+      projectName: "@bpa/api",
+      workspacePath: "/srv/bpa/projects/api",
+    });
+    expect(name).toBe(`bpa-api-${name.slice("bpa-api-".length)}`);
+    expect(name).toMatch(/^bpa-api-[0-9a-f]{6}$/);
+    // docker-compose validity: starts with alnum, only [a-z0-9_-] thereafter.
+    expect(name).toMatch(/^[a-z0-9][a-z0-9_-]*$/);
+    expect(name).not.toMatch(/[@/]/);
+  });
+
   it("rejects an empty project name (programmer error)", () => {
     expect(() => computeComposeProjectName({ projectName: "", workspacePath: "/x" })).toThrow(
       /projectName/,
