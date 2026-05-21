@@ -152,6 +152,8 @@
     "zod": "^4.4.3"
   },
   "optionalDependencies": {
+    "@aws-sdk/client-s3": "^3.1051.0",
+    "@aws-sdk/s3-request-presigner": "^3.1051.0",
     "maxmind": "^5.0.6"
   },
   "resolutions": {
