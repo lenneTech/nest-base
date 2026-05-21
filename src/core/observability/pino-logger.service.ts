@@ -22,6 +22,15 @@ export class PinoLoggerService implements LoggerService {
   }
 
   error(message: unknown, stack?: string, context?: string): void {
+    // NestJS' ExceptionHandler passes the thrown Error *object* here on
+    // module/DI/bootstrap failures. `JSON.stringify(error) === "{}"`
+    // (Error's message/stack are non-enumerable), which silently masked
+    // the real cause as `[ExceptionHandler] {}`. Unwrap the Error so its
+    // message becomes the log message and its stack is preserved.
+    if (message instanceof Error) {
+      this.logger.error({ context, stack: stack ?? message.stack }, message.message);
+      return;
+    }
     this.logger.error({ context, stack }, this.format(message));
   }
 
@@ -34,6 +43,14 @@ export class PinoLoggerService implements LoggerService {
   }
 
   private format(message: unknown): string {
-    return typeof message === "string" ? message : JSON.stringify(message);
+    if (typeof message === "string") return message;
+    if (message instanceof Error) return message.message;
+    try {
+      return JSON.stringify(message);
+    } catch {
+      // Circular / BigInt / other non-serialisable payloads must never
+      // crash the logger — fall back to a best-effort string.
+      return String(message);
+    }
   }
 }
