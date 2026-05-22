@@ -70,12 +70,13 @@ describe("Story · Email-Builder", () => {
     });
 
     it("CORE_EMAIL_TEMPLATES catalogues every shipped core template", () => {
-      // The 5 templates that ship under src/core/email/templates/ — must
-      // match the on-disk inventory so the dev-portal "Core (default)"
+      // The transactional templates that ship under src/core/email/templates/
+      // — must match the on-disk inventory so the dev-portal "Core (default)"
       // badge can be derived from this list alone.
       expect([...CORE_EMAIL_TEMPLATES].sort()).toEqual([
         "email-verification",
         "invitation",
+        "magic-link",
         "new-device",
         "password-reset",
         "welcome",

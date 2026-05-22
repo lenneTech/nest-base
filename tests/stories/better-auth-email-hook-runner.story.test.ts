@@ -82,6 +82,26 @@ describe("Story · Better-Auth email hook runner", () => {
     });
   });
 
+  it("sendMagicLink() forwards to the magic-link template", async () => {
+    const sender = fakeSender();
+    const runner = createEmailHookRunner({ sender, appName });
+    await runner.sendMagicLink({
+      user,
+      url: "https://x/auth/magic?t=1",
+      token: "t1",
+    });
+    expect(sender.calls).toHaveLength(1);
+    expect(sender.calls[0]).toMatchObject({
+      template: "magic-link",
+      to: "alice@example.com",
+      vars: {
+        recipientName: "Alice",
+        appName: "Acme",
+        magicLinkUrl: "https://x/auth/magic?t=1",
+      },
+    });
+  });
+
   it("sendWelcome() forwards to the welcome template", async () => {
     const sender = fakeSender();
     const runner = createEmailHookRunner({ sender, appName });

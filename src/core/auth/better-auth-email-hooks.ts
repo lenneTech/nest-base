@@ -39,6 +39,7 @@ export interface BetterAuthEmailUser {
 export type EmailHookKind =
   | "email-verification"
   | "password-reset"
+  | "magic-link"
   | "welcome"
   | "invitation"
   | "new-device";
@@ -55,6 +56,12 @@ interface VerificationHookInput extends BaseHookInput {
 
 interface PasswordResetHookInput extends BaseHookInput {
   kind: "password-reset";
+  url: string;
+}
+
+interface MagicLinkHookInput extends BaseHookInput {
+  kind: "magic-link";
+  /** The one-time sign-in link Better-Auth issued. */
   url: string;
 }
 
@@ -86,6 +93,7 @@ interface NewDeviceHookInput extends BaseHookInput {
 export type EmailHookInput =
   | VerificationHookInput
   | PasswordResetHookInput
+  | MagicLinkHookInput
   | WelcomeHookInput
   | InvitationHookInput
   | NewDeviceHookInput;
@@ -174,6 +182,17 @@ export function buildEmailHookPayload(input: EmailHookInput): EmailHookPayload {
         template: "password-reset",
         to: recipient,
         vars: { recipientName, appName, resetUrl: url },
+      };
+    }
+    case "magic-link": {
+      const url = trim(input.url);
+      if (!url) {
+        throw new Error("better-auth-email-hooks: magic-link hook requires a non-empty url");
+      }
+      return {
+        template: "magic-link",
+        to: recipient,
+        vars: { recipientName, appName, magicLinkUrl: url },
       };
     }
     case "welcome": {
