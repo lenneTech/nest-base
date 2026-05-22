@@ -126,9 +126,9 @@ describe("Story · Better-Auth email hooks (planner)", () => {
     });
 
     it("rejects an empty url for the magic-link hook", () => {
-      expect(() =>
-        buildEmailHookPayload({ kind: "magic-link", user, url: "", appName }),
-      ).toThrow(/url/i);
+      expect(() => buildEmailHookPayload({ kind: "magic-link", user, url: "", appName })).toThrow(
+        /url/i,
+      );
     });
 
     it("maps the post-verification welcome hook to the welcome template", () => {
