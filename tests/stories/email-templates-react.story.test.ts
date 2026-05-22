@@ -90,6 +90,21 @@ describe("Story · React-Email Templates", () => {
       expect(out.text).toContain("https://app.example.test/verify?token=preview");
     });
 
+    it("magic-link template renders the recipient + sign-in URL + appName in the subject", async () => {
+      const renderer = new ReactEmailTemplateRenderer({ brand: defaultBrandConfig() });
+      const out = await renderer.render("magic-link", "en", {
+        recipientName: "Pascal",
+        appName: "Acme",
+        magicLinkUrl: "https://app.example.test/auth/magic?token=preview",
+      });
+      // Subject pulls the appName so it reads natural per-brand.
+      expect(out.subject).toContain("Acme");
+      expect(out.subject).toMatch(/sign-in/i);
+      expect(out.html).toContain("Pascal");
+      expect(out.html).toContain("https://app.example.test/auth/magic?token=preview");
+      expect(out.text).toContain("https://app.example.test/auth/magic?token=preview");
+    });
+
     it("welcome template renders the recipient + appName", async () => {
       const renderer = new ReactEmailTemplateRenderer({ brand: defaultBrandConfig() });
       const out = await renderer.render("welcome", "en", {

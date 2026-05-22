@@ -201,6 +201,10 @@ import { isBetterAuthRateLimitEnabled } from "./rate-limit-flag.js";
           ...(features.authMethods.socialProviders.length > 0
             ? { socialProviders: pickSocialProviders(features) }
             : {}),
+          // Magic-link (passwordless) — when enabled, buildBetterAuth wires
+          // the link delivery through the shared email-hook runner (the
+          // `magic-link` template). No caller closure needed.
+          ...(features.magicLink.enabled ? { magicLink: {} } : {}),
           // PowerSync needs JWT-with-audience + JWKS — Better-Auth's `jwt`
           // plugin auto-exposes `/api/auth/.well-known/jwks` once enabled.
           ...(features.powerSync.enabled ? { jwtPlugin: { audience: "powersync" } } : {}),

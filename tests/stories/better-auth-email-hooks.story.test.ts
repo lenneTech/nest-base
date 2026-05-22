@@ -107,6 +107,30 @@ describe("Story · Better-Auth email hooks (planner)", () => {
       });
     });
 
+    it("maps the magic-link hook to the magic-link template", () => {
+      const out = buildEmailHookPayload({
+        kind: "magic-link",
+        user,
+        url: "https://app.example.com/auth/magic?token=xyz",
+        appName,
+      });
+      expect(out).toEqual({
+        template: "magic-link",
+        to: "a@b.io",
+        vars: {
+          recipientName: "Alice",
+          appName: "Acme",
+          magicLinkUrl: "https://app.example.com/auth/magic?token=xyz",
+        },
+      });
+    });
+
+    it("rejects an empty url for the magic-link hook", () => {
+      expect(() =>
+        buildEmailHookPayload({ kind: "magic-link", user, url: "", appName }),
+      ).toThrow(/url/i);
+    });
+
     it("maps the post-verification welcome hook to the welcome template", () => {
       const out = buildEmailHookPayload({ kind: "welcome", user, appName });
       expect(out).toEqual({

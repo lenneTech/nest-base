@@ -46,7 +46,13 @@ export interface EmailSenderForHooks {
 export interface EmailHookErrorContext {
   template: string;
   to?: string;
-  kind: "email-verification" | "password-reset" | "welcome" | "invitation" | "new-device";
+  kind:
+    | "email-verification"
+    | "password-reset"
+    | "magic-link"
+    | "welcome"
+    | "invitation"
+    | "new-device";
 }
 
 export interface EmailHookRunnerOptions {
@@ -88,6 +94,12 @@ export interface ResetPasswordHookData {
   token: string;
 }
 
+export interface MagicLinkHookData {
+  user: BetterAuthEmailUser;
+  url: string;
+  token: string;
+}
+
 export interface WelcomeHookData {
   user: BetterAuthEmailUser;
 }
@@ -113,6 +125,7 @@ export interface NewDeviceHookData {
 export interface BetterAuthEmailHookRunner {
   sendVerificationEmail(data: VerificationHookData): Promise<void>;
   sendResetPassword(data: ResetPasswordHookData): Promise<void>;
+  sendMagicLink(data: MagicLinkHookData): Promise<void>;
   sendWelcome(data: WelcomeHookData): Promise<void>;
   sendInvitation(data: InvitationHookData): Promise<void>;
   sendNewDevice(data: NewDeviceHookData): Promise<void>;
@@ -191,6 +204,19 @@ export function createEmailHookRunner(options: EmailHookRunnerOptions): BetterAu
         () =>
           buildEmailHookPayload({
             kind: "password-reset",
+            user: data.user,
+            url: data.url,
+            appName: options.appName,
+          }),
+        data.token,
+      );
+    },
+    async sendMagicLink(data) {
+      await send(
+        "magic-link",
+        () =>
+          buildEmailHookPayload({
+            kind: "magic-link",
             user: data.user,
             url: data.url,
             appName: options.appName,

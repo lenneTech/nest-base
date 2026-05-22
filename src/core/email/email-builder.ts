@@ -20,6 +20,7 @@
 export const CORE_EMAIL_TEMPLATES = [
   "email-verification",
   "password-reset",
+  "magic-link",
   "welcome",
   "invitation",
   "new-device",

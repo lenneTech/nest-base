@@ -152,11 +152,12 @@ export interface BuildBetterAuthInput {
   };
   /**
    * Switch on the magic-link plugin (Better-Auth 1.6 plugin slot 6/9
-   * per the PRD). Caller supplies a `sendMagicLink` closure so the
-   * email is delivered through the project's `EmailService`. Defaults
-   * are otherwise Better-Auth's: 5-minute link expiry, single-use.
+   * per the PRD). When `emailHooks` is wired the link is delivered
+   * through the shared email-hook runner (templated `magic-link` mail);
+   * a caller may still supply an explicit `sendMagicLink` closure to
+   * override that. Defaults otherwise: 5-minute link expiry, single-use.
    */
-  magicLink?: { sendMagicLink: MagicLinkSender };
+  magicLink?: { sendMagicLink?: MagicLinkSender };
   /**
    * Switch on the admin plugin (Better-Auth 1.6 plugin slot 4/9).
    * Provides impersonation + ban + role assignment endpoints under
@@ -352,7 +353,7 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
     }
   }
 
-  if (input.magicLink && typeof input.magicLink.sendMagicLink !== "function") {
+  if (input.magicLink?.sendMagicLink && typeof input.magicLink.sendMagicLink !== "function") {
     throw new Error("Better-Auth magicLink.sendMagicLink must be a function");
   }
   if (input.adminPlugin?.adminRoles && input.adminPlugin.adminRoles.length === 0) {
@@ -372,16 +373,8 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
     const rpID = input.passkey.rpID ?? new URL(input.baseUrl).hostname;
     plugins.push(passkey({ rpName: input.passkey.rpName, rpID, origin: input.baseUrl }));
   }
-  if (input.magicLink) {
-    const send = input.magicLink.sendMagicLink;
-    plugins.push(
-      magicLink({
-        sendMagicLink: async ({ email, token, url }) => {
-          await send({ email, token, url });
-        },
-      }),
-    );
-  }
+  // magicLink is registered after `hookRunner` is built (below) so the
+  // send closure can route templated mail through the shared runner.
   if (input.adminPlugin) {
     plugins.push(
       admin({
@@ -428,6 +421,25 @@ export function buildBetterAuth(input: BuildBetterAuthInput): ReturnType<typeof 
           : {}),
       })
     : undefined;
+
+  // Magic-link mail rides the shared hook runner (templated `magic-link`
+  // email) when emailHooks are wired; an explicit caller `sendMagicLink`
+  // still wins. Registered here (after `hookRunner`) so the closure can
+  // reference it.
+  if (input.magicLink) {
+    const explicitSend = input.magicLink.sendMagicLink;
+    plugins.push(
+      magicLink({
+        sendMagicLink: async ({ email, token, url }) => {
+          if (explicitSend) {
+            await explicitSend({ email, token, url });
+          } else if (hookRunner) {
+            await hookRunner.sendMagicLink({ user: { id: "", email }, url, token });
+          }
+        },
+      }),
+    );
+  }
 
   const passwordPolicyInput = input.passwordPolicy;
   // Better-Auth's `password.hash` is the canonical place to gate the
