@@ -143,7 +143,7 @@
     "recharts": "^3.8.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.1",
     "socket.io": "^4.8.3",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",
