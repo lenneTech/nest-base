@@ -8,7 +8,7 @@
         "@better-auth/passkey": "^1.6.11",
         "@bull-board/api": "^7.0.0",
         "@bull-board/express": "^7.0.0",
-        "@bull-board/nestjs": "^7.0.0",
+        "@bull-board/nestjs": "^8.0.0",
         "@casl/ability": "^6.8.1",
         "@casl/prisma": "^1.6.2",
         "@modelcontextprotocol/sdk": "^1.29.0",
@@ -235,7 +235,7 @@
 
     "@bull-board/express": ["@bull-board/express@7.0.0", "", { "dependencies": { "@bull-board/api": "7.0.0", "@bull-board/ui": "7.0.0", "ejs": "^5.0.2", "express": "^5.2.1" } }, "sha512-3Tc/EyU5PQMTcTzcafFSrmRDiEbJBEU/EaVQ5OVYcuJ7DZCp5Pkvm0/2VtaCe2uywdtwn0ZaynlSIpB27FKX6A=="],
 
-    "@bull-board/nestjs": ["@bull-board/nestjs@7.0.0", "", { "peerDependencies": { "@bull-board/api": "^7.0.0", "@nestjs/bull-shared": "^10.0.0 || ^11.0.0", "@nestjs/common": "^9.0.0 || ^10.0.0 || ^11.0.0", "@nestjs/core": "^9.0.0 || ^10.0.0 || ^11.0.0", "reflect-metadata": "^0.1.13 || ^0.2.0", "rxjs": "^7.8.1" } }, "sha512-ypXm0eJHIMQzjN+3fjf84cVxugBg/K4Bpo0eYcV4u/AsteR/dnr6e7F79ICRgg1WWoczqmSMl0JhlmykpyhAMg=="],
+    "@bull-board/nestjs": ["@bull-board/nestjs@8.0.0", "", { "peerDependencies": { "@bull-board/api": "^8.0.0", "@nestjs/bull-shared": "^10.0.0 || ^11.0.0", "@nestjs/common": "^9.0.0 || ^10.0.0 || ^11.0.0", "@nestjs/core": "^9.0.0 || ^10.0.0 || ^11.0.0", "reflect-metadata": "^0.1.13 || ^0.2.0", "rxjs": "^7.8.1" } }, "sha512-oi5aX0yBau05QD8XfRyDrjHaCU1IWGwU9UP4niTVtSWeyPrgJ1S1Zb2vEtG+A2sUs+zc5GVgjmXUszYCWTfitA=="],
 
     "@bull-board/ui": ["@bull-board/ui@7.0.0", "", { "dependencies": { "@bull-board/api": "7.0.0" } }, "sha512-AnKeklpDn0iMFgu4ukDU6uTNmw4oudl07G4k2Fh95SknKDrXSiWRV0N1TGUawMqyfG1Yi5P/W/8d7raBq/Uw6w=="],
 
