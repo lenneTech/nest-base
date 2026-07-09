@@ -1,4 +1,4 @@
-import { Injectable, type NestMiddleware } from "@nestjs/common";
+import { Inject, Injectable, type NestMiddleware, Optional } from "@nestjs/common";
 import type { NextFunction, Request, Response } from "express";
 
 import { resolveHubOperatorTenantId } from "../hub/hub-operator-tenant.js";
@@ -6,6 +6,10 @@ import { isHubPortalProtectedPath, isHubPortalStaticAsset } from "../hub/hub-por
 import { resolveRequestTenantId } from "../multi-tenancy/resolve-request-tenant.js";
 import { isTenantExempt } from "../multi-tenancy/tenant-guard.js";
 import { PrismaService } from "../prisma/prisma.service.js";
+import {
+  AUTHENTICATED_ABILITY_FALLBACK,
+  type AuthenticatedAbilityFallback,
+} from "./authenticated-ability-fallback.js";
 import { type Ability, buildAbility } from "./casl-ability.js";
 import { PermissionService } from "./permission.service.js";
 
@@ -75,6 +79,16 @@ export class AbilityMiddleware implements NestMiddleware {
   constructor(
     private readonly permissions: PermissionService,
     private readonly prisma: PrismaService,
+    /**
+     * Optional project hook. When present, it decides the ability for an
+     * authenticated session the framework could not tenant-scope, in
+     * place of the empty-ability default (the "single-tenant gap" — see
+     * `authenticated-ability-fallback.ts`). Absent by default → behaviour
+     * is byte-identical to before.
+     */
+    @Optional()
+    @Inject(AUTHENTICATED_ABILITY_FALLBACK)
+    private readonly abilityFallback?: AuthenticatedAbilityFallback,
   ) {}
 
   async use(req: AuthenticatedRequest, _res: Response, next: NextFunction): Promise<void> {
@@ -106,7 +120,10 @@ export class AbilityMiddleware implements NestMiddleware {
           resolveHubOperatorTenantId(req.user!, this.prisma),
         );
       } else {
-        req.ability = buildAbility([]);
+        // Tenant-exempt but authenticated (`/me/*`, …): the framework
+        // default is an empty ability. A single-tenant project can
+        // upgrade this via the fallback hook (baseline for app sessions).
+        await this.installEmptyOrFallbackAbility(req);
       }
       next();
       return;
@@ -160,7 +177,10 @@ export class AbilityMiddleware implements NestMiddleware {
       return;
     }
     if (!tenantId) {
-      req.ability = buildAbility([]);
+      // No tenant resolvable for an authenticated user. Framework
+      // default is an empty ability; a project fallback may upgrade it
+      // (single-tenant staff → role ability, app session → baseline).
+      await this.installEmptyOrFallbackAbility(req);
       return;
     }
     try {
@@ -170,6 +190,34 @@ export class AbilityMiddleware implements NestMiddleware {
     } catch {
       req.ability = buildAbility([]);
     }
+  }
+
+  /**
+   * Install the empty-ability default, or — when a project registered
+   * `AUTHENTICATED_ABILITY_FALLBACK` and the request is authenticated —
+   * the ability the fallback resolves. Only ever called at a site that
+   * would otherwise install an empty ability, so it can never widen an
+   * ability the framework already resolved. A throwing fallback degrades
+   * to the empty default (never fails the request).
+   */
+  private async installEmptyOrFallbackAbility(req: AuthenticatedRequest): Promise<void> {
+    const user = req.user;
+    if (user && this.abilityFallback) {
+      const path = (req.originalUrl ?? req.url) as string | undefined;
+      try {
+        const fallbackAbility = await this.abilityFallback.resolve({
+          user,
+          ...(path !== undefined ? { path } : {}),
+        });
+        if (fallbackAbility) {
+          req.ability = fallbackAbility;
+          return;
+        }
+      } catch {
+        // fall through to the empty-ability default
+      }
+    }
+    req.ability = buildAbility([]);
   }
 }
 
