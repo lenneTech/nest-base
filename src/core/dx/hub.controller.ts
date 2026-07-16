@@ -121,6 +121,7 @@ import { ApiTags } from "@nestjs/swagger";
 
 import type { Ability } from "../permissions/casl-ability.js";
 import { buildHubPortalAccessSnapshot } from "../hub/hub-portal-access.js";
+import { resolveHubOperatorTenantId, type HubOperatorUser } from "../hub/hub-operator-tenant.js";
 import { buildHubNavFeatureSnapshot, filterPalettePagesForNavSnapshot } from "./hub-nav-planner.js";
 import { Public } from "../permissions/public.decorator.js";
 import { assertFeatureEnabledFromEnv } from "../features/assert-feature-enabled.js";
@@ -227,6 +228,41 @@ export class HubController {
     this.assertDev();
     const features = this.featuresOnly();
     return buildHubPortalAccessSnapshot(req.ability, buildHubNavFeatureSnapshot(features));
+  }
+
+  /**
+   * `/hub/operator-tenant.json` — the tenant the signed-in operator's Hub
+   * pages should scope to. Single-tenant deployments run the org plugin off,
+   * so `/api/auth/organization/list` 404s and the dev-portal SPA has no
+   * `activeOrganizationId` to seed its tenant-gated admin pages (roles,
+   * policies, tenants). This probe lets the client learn its server-resolved
+   * tenant: the operator's OWN membership org via `resolveHubOperatorTenantId`
+   * (same resolver the single-tenant `HubOperatorTenantInterceptor` uses).
+   *
+   * `@Public` + `assertDev()` mirror `portalAccessJson`: it must be reachable
+   * WITHOUT a tenant context (it is what RESOLVES the tenant). The
+   * `HubOperatorTenantInterceptor` passes tenant-less hub requests through, so
+   * no interceptor 400 blocks this. Returns `{ tenantId: null }` for an
+   * unauthenticated caller or an operator with no membership — no blind
+   * `SINGLE_TENANT_ID` fallback (isolation: only the caller's own membership).
+   *
+   * Upstream candidate (hub.controller.ts — see docs/upstream-drafts/README.md
+   * "Hub tenant-scoped admin routes (roles)"): pairs with the interceptor +
+   * client bootstrap fix so the core Hub admin console works in single-tenant
+   * deployments end-to-end.
+   */
+  @Get("operator-tenant.json")
+  @Public(
+    "client resolves its single-tenant hub scope — reachable before any tenant context exists",
+  )
+  async operatorTenantJson(
+    @Req() req: { user?: HubOperatorUser },
+  ): Promise<{ tenantId: string | null }> {
+    this.assertDev();
+    if (!req.user) {
+      return { tenantId: null };
+    }
+    return { tenantId: await resolveHubOperatorTenantId(req.user, this.prisma) };
   }
 
   @Get("dashboard.json")

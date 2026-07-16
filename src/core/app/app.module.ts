@@ -20,6 +20,7 @@ import { DeviceModule } from "../devices/device.module.js";
 import { HubSpaModule } from "../dx/hub-spa.module.js";
 import { UserAdminModule } from "../dx/user-admin.module.js";
 import { HubModule } from "../hub/hub.module.js";
+import { HubOperatorTenantInterceptor } from "../hub/hub-operator-tenant.interceptor.js";
 import { HubPortalMiddleware } from "../hub/hub-portal.middleware.js";
 import { EmailModule } from "../email/email.module.js";
 import { EmailOutboxModule } from "../email/email-outbox.module.js";
@@ -248,6 +249,15 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     { provide: APP_INTERCEPTOR, useClass: OutputPipelineInterceptor },
     ...(features.multiTenancy.enabled
       ? [{ provide: APP_INTERCEPTOR, useClass: TenantInterceptor }]
+      : []),
+    // Single-tenant deployments never mount `TenantInterceptor` above, so
+    // core Hub/admin routes (`requireTenantContext()`) would have no tenant
+    // in the ALS → 400. This Hub-scoped interceptor resolves the operator's
+    // OWN membership tenant for `/hub/*` + `/admin/*` only; all other paths
+    // (the product `/api/*` surface, which pins its own tenant) pass through
+    // untouched. Mutually exclusive with `TenantInterceptor` by the flag.
+    ...(!features.multiTenancy.enabled
+      ? [{ provide: APP_INTERCEPTOR, useClass: HubOperatorTenantInterceptor }]
       : []),
   ],
 })
