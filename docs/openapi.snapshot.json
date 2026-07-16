@@ -487,6 +487,20 @@
         ]
       }
     },
+    "/hub/operator-tenant.json": {
+      "get": {
+        "operationId": "Hub_operatorTenantJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hub"
+        ]
+      }
+    },
     "/hub/dashboard.json": {
       "get": {
         "operationId": "Hub_dashboardJson",
