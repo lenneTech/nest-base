@@ -133,7 +133,7 @@
     "ipx": "^3.1.1",
     "lucide-react": "^1.14.0",
     "nestjs-pino": "^4.6.1",
-    "nodemailer": "^8.0.7",
+    "nodemailer": "^9.0.3",
     "pg": "^8.20.0",
     "pino": "^10.3.1",
     "prom-client": "^15.1.3",
