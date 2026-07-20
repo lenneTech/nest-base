@@ -79,7 +79,7 @@
   },
   "dependencies": {
     "@better-auth/passkey": "^1.6.11",
-    "@bull-board/api": "^7.0.0",
+    "@bull-board/api": "^8.1.2",
     "@bull-board/express": "^7.0.0",
     "@bull-board/nestjs": "^7.0.0",
     "@casl/ability": "^6.8.1",
