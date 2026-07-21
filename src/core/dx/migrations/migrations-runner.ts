@@ -6,8 +6,10 @@
  * the actual `prisma migrate` toolchain.
  *
  * Production-safety: every public function in this module is gated at
- * the controller layer behind `assertDev()` so the planner-runner pair
- * can never be invoked outside `NODE_ENV=development`.
+ * the controller layer behind the WORKSTATION-tier surface guard
+ * (`hub-surface-policy.ts`) so the planner-runner pair can never be
+ * invoked outside `NODE_ENV=development` — the hub opt-in flag does
+ * not open it.
  *
  * Concurrency: the controller acquires the advisory lock via
  * `withAdvisoryLock(...)`. Two concurrent deploy attempts on the same
