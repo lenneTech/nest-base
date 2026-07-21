@@ -51,6 +51,8 @@ describe("Story · Feature-flag surface contract (SC.BOOT.04)", () => {
     // Opt-in security hardening (H2 fix — routed through features.ts)
     "passwordPolicy",
     "filesMimeStrict",
+    // Operational hub/admin console outside development (opt-in)
+    "hub",
   ];
 
   it("loadFeatures({}) exposes every PRD-tracked toggleable subsystem", () => {
@@ -74,9 +76,10 @@ describe("Story · Feature-flag surface contract (SC.BOOT.04)", () => {
     const features = loadFeatures({});
     // PRD § Phase 1 — MVP scope pinned "23 feature-toggleable subsystems".
     // The schema has since grown: passwordPolicy and filesMimeStrict were
-    // added in the H2 fix (iter-216 review), bringing the total to 25.
+    // added in the H2 fix (iter-216 review), and `hub` (operational
+    // hub/admin console opt-in outside development) landed after that.
     // The meaningful contract is the named key set above, not the count.
-    expect(Object.keys(features).length).toBe(24);
+    expect(Object.keys(features).length).toBe(25);
   });
 
   it("counts auth-method sub-flags toward the broader feature breadth", () => {

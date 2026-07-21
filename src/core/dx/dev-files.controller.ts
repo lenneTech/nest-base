@@ -7,11 +7,16 @@
  *   - `/hub/files/list.json`        — files in the active folder (grid)
  *   - `/hub/files/breadcrumb.json`  — root-to-active path (header)
  *
- * Every endpoint 404s outside `NODE_ENV=development`, identical to
- * the rest of the Hub. The controller is mounted unconditionally
- * by `HubSpaModule` so route discovery (`/hub/routes`) sees it on the
- * inventory. The `assertDev()` short-circuit keeps the surface from
- * leaking in a production build.
+ * Tier: WORKSTATION (see `hub-surface-policy.ts`) — a dev debug view
+ * that lists tenant file/folder rows via `@Public` routes with only
+ * the tenant context as its gate (no per-subject `@Can("File")`
+ * check). Exposing that outside development would sidestep the CASL
+ * model of the product file API, so every endpoint 404s in deployed
+ * environments even when `FEATURE_HUB_ENABLED` opts the operational
+ * hub in. The controller is mounted unconditionally by `HubSpaModule`
+ * so route discovery (`/hub/routes`) sees it on the inventory; the
+ * workstation guard keeps the surface from leaking in a deployed
+ * build.
  *
  * Tenant scoping: session `set-active` (TenantInterceptor ALS). RLS is
  * the last-resort backstop; reads are explicitly scoped by tenant id.
@@ -20,7 +25,7 @@
  * splat-catchall on `HubController` — react-router takes over from
  * the SPA shell.
  */
-import { Controller, Get, Header, NotFoundException, Query } from "@nestjs/common";
+import { Controller, Get, Header, Query } from "@nestjs/common";
 
 import { ApiTags } from "@nestjs/swagger";
 
@@ -35,9 +40,9 @@ import {
 } from "../files/file-manager-breadcrumb.js";
 import { applyFileSearch, type FileSearchSortKey } from "../files/file-manager-search.js";
 import { buildFolderTree, type FolderTreeNode } from "../files/file-manager-tree.js";
+import { assertHubSurfaceAvailable } from "../hub/hub-surface-guard.js";
 import { requireTenantContext } from "../multi-tenancy/require-tenant-context.js";
 import { PrismaService } from "../prisma/prisma.service.js";
-import { serverConfigFromEnv } from "../server/server-config.js";
 
 interface FileListEntry {
   id: string;
@@ -78,7 +83,9 @@ export class DevFilesController {
    * explicitly here means route inventory shows `/hub/files` as a
    * first-class route instead of "covered by splat".
    */
-  @Public("Hub file browser — NODE_ENV=development only; assertDev() rejects production requests")
+  @Public(
+    "Hub file browser — workstation tier, development-only; the surface guard 404s deployed requests",
+  )
   @Get()
   @Header("content-type", "text/html; charset=utf-8")
   page(): string {
@@ -88,7 +95,9 @@ export class DevFilesController {
     );
   }
 
-  @Public("Hub file browser — NODE_ENV=development only; assertDev() rejects production requests")
+  @Public(
+    "Hub file browser — workstation tier, development-only; the surface guard 404s deployed requests",
+  )
   @Get("tree.json")
   async tree(): Promise<FileTreeResponse> {
     this.assertDevFiles();
@@ -101,7 +110,9 @@ export class DevFilesController {
     return { tree };
   }
 
-  @Public("Hub file browser — NODE_ENV=development only; assertDev() rejects production requests")
+  @Public(
+    "Hub file browser — workstation tier, development-only; the surface guard 404s deployed requests",
+  )
   @Get("list.json")
   async list(
     @Query("folderId") folderId: string | undefined,
@@ -182,7 +193,9 @@ export class DevFilesController {
     return { files, totalCount: rows.length };
   }
 
-  @Public("Hub file browser — NODE_ENV=development only; assertDev() rejects production requests")
+  @Public(
+    "Hub file browser — workstation tier, development-only; the surface guard 404s deployed requests",
+  )
   @Get("breadcrumb.json")
   async breadcrumb(@Query("folderId") folderId: string | undefined): Promise<BreadcrumbResponse> {
     this.assertDevFiles();
@@ -198,15 +211,15 @@ export class DevFilesController {
     return { segments: buildFolderBreadcrumb({ activeId, folders }) };
   }
 
-  private assertDev(): void {
-    const cfg = serverConfigFromEnv(process.env);
-    if (cfg.env !== "development") {
-      throw new NotFoundException();
-    }
-  }
-
+  /**
+   * Tier: WORKSTATION for the entire controller (see
+   * `hub-surface-policy.ts`) — `@Public` debug listings over tenant
+   * file rows without per-subject CASL would undercut the product
+   * file API's permission model in a deployed container.
+   * `FEATURE_HUB_ENABLED` does not open it.
+   */
   private assertDevFiles(): void {
-    this.assertDev();
+    assertHubSurfaceAvailable("workstation");
     assertFeatureEnabledFromEnv("files");
   }
 }

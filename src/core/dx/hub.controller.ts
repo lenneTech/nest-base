@@ -122,6 +122,7 @@ import { ApiTags } from "@nestjs/swagger";
 import type { Ability } from "../permissions/casl-ability.js";
 import { buildHubPortalAccessSnapshot } from "../hub/hub-portal-access.js";
 import { resolveHubOperatorTenantId, type HubOperatorUser } from "../hub/hub-operator-tenant.js";
+import { assertHubSurfaceAvailable } from "../hub/hub-surface-guard.js";
 import { buildHubNavFeatureSnapshot, filterPalettePagesForNavSnapshot } from "./hub-nav-planner.js";
 import { Public } from "../permissions/public.decorator.js";
 import { assertFeatureEnabledFromEnv } from "../features/assert-feature-enabled.js";
@@ -152,7 +153,7 @@ export class HubController {
   @Get()
   @Header("content-type", "text/html; charset=utf-8")
   index(): string {
-    this.assertDev();
+    this.assertOperational();
     return renderDevPortalShell(
       buildDevPortalShellInput({ title: "Dev Portal", brand: "central" }),
     );
@@ -160,12 +161,14 @@ export class HubController {
 
   /**
    * `/hub/static/:filename` — serves the bundled SPA assets from
-   * `dist/dev-portal/`. `assertDev()` ensures the route 404s outside
-   * development (no production-leak risk for the source-mapped bundle).
+   * `dist/dev-portal/`. Operational tier: outside development the
+   * surface guard 404s the route unless `FEATURE_HUB_ENABLED=true`
+   * (the login page at `/` needs these assets once the hub is opted
+   * in; without the flag nothing leaks, same as before).
    */
   @Get("static/:filename")
   serveStatic(@Param("filename") filename: string, @Res() res: Response): void {
-    this.assertDev();
+    this.assertOperational();
     if (!isSafeStaticName(filename)) {
       throw new NotFoundException();
     }
@@ -225,7 +228,7 @@ export class HubController {
   portalAccessJson(
     @Req() req: { ability?: Ability },
   ): ReturnType<typeof buildHubPortalAccessSnapshot> {
-    this.assertDev();
+    this.assertOperational();
     const features = this.featuresOnly();
     return buildHubPortalAccessSnapshot(req.ability, buildHubNavFeatureSnapshot(features));
   }
@@ -239,7 +242,7 @@ export class HubController {
    * tenant: the operator's OWN membership org via `resolveHubOperatorTenantId`
    * (same resolver the single-tenant `HubOperatorTenantInterceptor` uses).
    *
-   * `@Public` + `assertDev()` mirror `portalAccessJson`: it must be reachable
+   * `@Public` + the operational surface guard mirror `portalAccessJson`: it must be reachable
    * WITHOUT a tenant context (it is what RESOLVES the tenant). The
    * `HubOperatorTenantInterceptor` passes tenant-less hub requests through, so
    * no interceptor 400 blocks this. Returns `{ tenantId: null }` for an
@@ -258,7 +261,7 @@ export class HubController {
   async operatorTenantJson(
     @Req() req: { user?: HubOperatorUser },
   ): Promise<{ tenantId: string | null }> {
-    this.assertDev();
+    this.assertOperational();
     if (!req.user) {
       return { tenantId: null };
     }
@@ -267,7 +270,7 @@ export class HubController {
 
   @Get("dashboard.json")
   async dashboardJson(): Promise<unknown> {
-    this.assertDev();
+    this.assertOperational();
     const features = this.featuresOnly();
     const cfg = serverConfigFromEnv(process.env);
     const effective = resolveEffectiveBaseUrl({
@@ -368,7 +371,7 @@ export class HubController {
    */
   @Get("tunnel.json")
   tunnelJson(): { active: false } | { active: true; url: string; startedAt: string } {
-    this.assertDev();
+    this.assertWorkstation(); // leaks the workstation tunnel URL
     const state = readTunnelState(process.cwd());
     if (state === null) return { active: false };
     return { active: true, url: state.url, startedAt: state.startedAt };
@@ -384,7 +387,7 @@ export class HubController {
    */
   @Get("brand.json")
   brandJson(): BrandConfig {
-    this.assertDev();
+    this.assertOperational();
     return loadBrandSync(process.cwd());
   }
 
@@ -396,7 +399,7 @@ export class HubController {
   @Get("brand")
   @Header("content-type", "text/html; charset=utf-8")
   brandPage(): string {
-    this.assertDev();
+    this.assertOperational();
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Brand", brand: "central" }));
   }
 
@@ -414,7 +417,7 @@ export class HubController {
   @Post("brand")
   @HttpCode(200)
   async saveBrand(@Body() body: unknown): Promise<{ ok: true; brand: BrandConfig }> {
-    this.assertDev();
+    this.assertWorkstation(); // writes src/modules/branding/brand.json
     let parsed: BrandConfig;
     try {
       parsed = decodeBrand(body);
@@ -440,7 +443,7 @@ export class HubController {
   @Post("brand/reset")
   @HttpCode(200)
   async resetBrand(): Promise<{ ok: true; acted: boolean }> {
-    this.assertDev();
+    this.assertWorkstation(); // deletes the repo brand overlay file
     const paths = resolveBrandPaths(process.cwd());
     let acted = false;
     try {
@@ -457,7 +460,7 @@ export class HubController {
 
   @Get("status.json")
   async statusJson(): Promise<ServiceProbeResult[]> {
-    this.assertDev();
+    this.assertOperational();
     const features = this.featuresOnly();
     const cfg = serverConfigFromEnv(process.env);
     const effective = resolveEffectiveBaseUrl({
@@ -485,7 +488,7 @@ export class HubController {
   @Get("features")
   @Header("content-type", "text/html; charset=utf-8")
   features(): string {
-    this.assertDev();
+    this.assertOperational();
     // SPA shell — the React `/hub/features` page fetches
     // `/hub/feature-catalog.json` and renders the same DOM the
     // legacy `renderFeaturesPage` produced. The legacy renderer
@@ -496,7 +499,7 @@ export class HubController {
 
   @Get("features.json")
   featuresJson(): Features {
-    this.assertDev();
+    this.assertOperational();
     return this.featuresOnly();
   }
 
@@ -509,7 +512,7 @@ export class HubController {
    */
   @Get("feature-catalog.json")
   featureCatalogJson(): { catalog: typeof FEATURE_CATALOG; features: Features } {
-    this.assertDev();
+    this.assertOperational();
     return { catalog: FEATURE_CATALOG, features: this.featuresOnly() };
   }
 
@@ -525,7 +528,7 @@ export class HubController {
   scheduledJobsJson(): {
     jobs: Array<{ name: string; cron: string; source: string }>;
   } {
-    this.assertDevFeature("jobs");
+    this.assertOperationalFeature("jobs");
     const jobs = this.scheduledJobs.list().map((entry) => ({
       name: entry.name,
       cron: entry.cron,
@@ -546,7 +549,7 @@ export class HubController {
    */
   @Get("webhook-events.json")
   webhookEventsJson(): { events: readonly WebhookEventMetadata[] } {
-    this.assertDev();
+    this.assertOperational();
     return { events: getRegisteredWebhookEvents() };
   }
 
@@ -556,7 +559,7 @@ export class HubController {
     @Param("key") key: string,
     @Body() body: { enabled?: unknown },
   ): Promise<{ ok: true; key: string; enabled: boolean; envKey: string; restart: true }> {
-    this.assertDev();
+    this.assertWorkstation(); // writes the .env file on disk
     const meta = FEATURE_CATALOG.find((f) => f.key === key);
     if (!meta) {
       throw new BadRequestException("unknown feature key");
@@ -603,7 +606,7 @@ export class HubController {
     @Headers("accept") accept: string | undefined,
     @Res() res: Response,
   ): void {
-    this.assertDev();
+    this.assertOperational();
     const { format, ...filterQuery } = query;
     const parsed = parsePostgrestQuery(filterQuery);
     const data = { where: parsed, query: filterQuery };
@@ -629,27 +632,27 @@ export class HubController {
   @Get("coverage")
   @Header("content-type", "text/html; charset=utf-8")
   coverage(): string {
-    this.assertDev();
+    this.assertOperational();
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Coverage", brand: "central" }));
   }
 
   /** JSON sibling for the React `/hub/coverage` page. */
   @Get("coverage.json")
   async coverageJson(): Promise<unknown> {
-    this.assertDev();
+    this.assertWorkstation(); // reads coverage artifacts from the checkout
     return this.readCoverageSummary(process.cwd());
   }
 
   @Get("logs")
   @Header("content-type", "text/html; charset=utf-8")
   logsPage(): string {
-    this.assertDev();
+    this.assertOperational();
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Logs", brand: "central" }));
   }
 
   @Get("logs.json")
   logsJson(@Query("since") since: string | undefined): unknown[] {
-    this.assertDev();
+    this.assertOperational();
     const buffer = getLogBuffer();
     const sinceSeq = Number.parseInt(since ?? "0", 10) || 0;
     return [...buffer.since(sinceSeq)];
@@ -658,21 +661,21 @@ export class HubController {
   @Get("tests")
   @Header("content-type", "text/html; charset=utf-8")
   tests(): string {
-    this.assertDev();
+    this.assertOperational();
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Tests", brand: "central" }));
   }
 
   /** JSON sibling for the React `/hub/tests` page. */
   @Get("tests.json")
   async testsJson(): Promise<unknown> {
-    this.assertDev();
+    this.assertWorkstation(); // reads local test-run artifacts
     return this.readTestSummary(process.cwd());
   }
 
   @Get("diagnostics")
   @Header("content-type", "text/html; charset=utf-8")
   diagnostics(): string {
-    this.assertDev();
+    this.assertOperational();
     return renderDevPortalShell(
       buildDevPortalShellInput({ title: "Diagnostics", brand: "central" }),
     );
@@ -680,27 +683,27 @@ export class HubController {
 
   @Get("diagnostics.json")
   diagnosticsJson(): DiagnosticsReport {
-    this.assertDev();
+    this.assertOperational();
     return this.buildDiagnostics();
   }
 
   @Get("routes")
   @Header("content-type", "text/html; charset=utf-8")
   routesPage(): string {
-    this.assertDev();
+    this.assertOperational();
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Routes", brand: "central" }));
   }
 
   @Get("routes.json")
   routesJson(): RouteInventory {
-    this.assertDev();
+    this.assertOperational();
     return this.routes.build();
   }
 
   @Get("erd")
   @Header("content-type", "text/html; charset=utf-8")
   erdPage(): string {
-    this.assertDev();
+    this.assertOperational();
     return renderDevPortalShell(buildDevPortalShellInput({ title: "ERD", brand: "central" }));
   }
 
@@ -714,7 +717,7 @@ export class HubController {
   @Get("json")
   @Header("content-type", "text/html; charset=utf-8")
   jsonViewerPage(): string {
-    this.assertDev();
+    this.assertOperational();
     return renderDevPortalShell(
       buildDevPortalShellInput({ title: "JSON Viewer", brand: "central" }),
     );
@@ -722,14 +725,14 @@ export class HubController {
 
   @Get("erd.json")
   erdJson(): { mermaid: string; modelCount: number; relationCount: number } {
-    this.assertDev();
+    this.assertWorkstation(); // reads prisma/ schema files from the checkout
     return buildErdForProject();
   }
 
   @Get("traces")
   @Header("content-type", "text/html; charset=utf-8")
   tracesPage(): string {
-    this.assertDev();
+    this.assertOperational();
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Traces", brand: "central" }));
   }
 
@@ -741,7 +744,7 @@ export class HubController {
     traces: TraceRecord[];
     summary: TraceSummary;
   } {
-    this.assertDev();
+    this.assertOperational();
     const buffer = getTraceBuffer();
     const filter: { limit?: number; requestId?: string } = {};
     if (limit) {
@@ -755,7 +758,7 @@ export class HubController {
   @Get("queries")
   @Header("content-type", "text/html; charset=utf-8")
   queriesPage(): string {
-    this.assertDev();
+    this.assertOperational();
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Queries", brand: "central" }));
   }
 
@@ -769,7 +772,7 @@ export class HubController {
     topTemplates: TemplateGroup[];
     summary: QuerySummary;
   } {
-    this.assertDev();
+    this.assertOperational();
     const buffer = getQueryBuffer();
     const filter: { limit?: number; requestId?: string } = {};
     if (limit) {
@@ -791,7 +794,7 @@ export class HubController {
     rendered: Record<string, EmailPreviewResult>;
     payloadSources: Record<string, EmailPreviewPayloadSource>;
   }> {
-    this.assertDevFeature("email");
+    this.assertWorkstationFeature("email"); // renders template sources + overrides from the checkout
     // PRD § Out of Scope bans EJS — `/hub/email-preview` runs the
     // ReactEmailTemplateRenderer (the same path production code uses
     // through `EmailService.sendTemplate`) so the preview reflects
@@ -824,7 +827,7 @@ export class HubController {
   @Get("emails")
   @Header("content-type", "text/html; charset=utf-8")
   emailsPage(): string {
-    this.assertDevFeature("email");
+    this.assertOperationalFeature("email");
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Emails" }));
   }
 
@@ -832,7 +835,7 @@ export class HubController {
   @Get("email-builder")
   @Header("content-type", "text/html; charset=utf-8")
   emailBuilderPage(): string {
-    this.assertDevFeature("email");
+    this.assertOperationalFeature("email");
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Emails" }));
   }
 
@@ -843,7 +846,7 @@ export class HubController {
   @Get(["emails/templates/:name/preview.html", "email-builder/templates/:name/preview.html"])
   @Header("content-type", "text/html; charset=utf-8")
   async emailTemplatePreviewHtml(@Param("name") name: string): Promise<string> {
-    this.assertDevFeature("email");
+    this.assertWorkstationFeature("email");
     if (!isValidEmailTemplateSlug(name)) {
       throw new BadRequestException(`Invalid template name: ${name}`);
     }
@@ -888,7 +891,7 @@ export class HubController {
       overrideExists?: boolean;
     }>;
   }> {
-    this.assertDevFeature("email");
+    this.assertWorkstationFeature("email");
     const discovered = await discoverReactEmailTemplates();
     const brand = resolveBrandConfig();
     const renderer = new ReactEmailTemplateRenderer({ brand });
@@ -981,7 +984,7 @@ export class HubController {
     composition?: EmailComposition;
     reason?: string;
   }> {
-    this.assertDevFeature("email");
+    this.assertWorkstationFeature("email");
     if (!isValidEmailTemplateSlug(name)) {
       throw new BadRequestException(`invalid template name: ${name}`);
     }
@@ -1061,7 +1064,7 @@ export class HubController {
     @Param("name") name: string,
     @Query("locale") locale: string | undefined,
   ): Promise<{ ok: true; acted: true; relativePath: string }> {
-    this.assertDevFeature("email");
+    this.assertWorkstationFeature("email"); // deletes template override files
     if (!isValidEmailTemplateSlug(name)) {
       throw new BadRequestException(`invalid template name: ${name}`);
     }
@@ -1115,7 +1118,7 @@ export class HubController {
     }>;
     layouts: Array<{ name: string; description: string }>;
   } {
-    this.assertDevFeature("email");
+    this.assertWorkstationFeature("email");
     return {
       blocks: KNOWN_EMAIL_BLOCKS.map((type) => buildBlockDescriptor(type)),
       layouts: KNOWN_EMAIL_LAYOUTS.map((name) => ({
@@ -1138,7 +1141,7 @@ export class HubController {
     html: string;
     text: string;
   }> {
-    this.assertDevFeature("email");
+    this.assertWorkstationFeature("email");
     const composition = pickComposition(body);
     const validation = validateEmailComposition(composition);
     if (!validation.ok) throw new BadRequestException(validation.error);
@@ -1164,7 +1167,7 @@ export class HubController {
     relativePath: string;
     bytesWritten: number;
   }> {
-    this.assertDevFeature("email");
+    this.assertWorkstationFeature("email"); // writes template override files into src/
     const slug = pickSlug(body);
     const locale = pickLocale(body);
     const composition = pickComposition(body);
@@ -1239,27 +1242,33 @@ export class HubController {
 
   // -----------------------------------------------------------------
   // /hub/migrations · Issue #10 — Migration Handler
+  //
+  // Tier: WORKSTATION for every data/action route below. The runner
+  // reads prisma/migrations from the checkout and mutates the schema —
+  // never eligible outside development, regardless of the hub flag.
+  // Only the SPA shell stays operational chrome (identical to the
+  // `*splat` fallback shell, so it reveals nothing).
   // -----------------------------------------------------------------
 
   /** SPA shell for `/hub/migrations` — React decides which tab to show. */
   @Get("migrations")
   @Header("content-type", "text/html; charset=utf-8")
   migrationsPage(): string {
-    this.assertDev();
+    this.assertOperational();
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Migrations" }));
   }
 
   /** JSON snapshot of applied + pending + failed migrations + drift signal. */
   @Get("migrations.json")
   async migrationsJson(): Promise<unknown> {
-    this.assertDev();
+    this.assertWorkstation();
     return this.migrations.getStatus();
   }
 
   /** Read-only SQL preview of a single migration folder. */
   @Get("migrations/preview/:name")
   migrationsPreview(@Param("name") name: string): { name: string; sql: string } {
-    this.assertDev();
+    this.assertWorkstation();
     try {
       return this.migrations.previewSql(name);
     } catch (err) {
@@ -1270,7 +1279,7 @@ export class HubController {
   /** Schema diff between live DB and `prisma/schema.prisma`. */
   @Get("migrations/diff")
   async migrationsDiff(): Promise<{ sql: string; success: boolean; stderr: string }> {
-    this.assertDev();
+    this.assertWorkstation();
     return this.migrations.getDiff();
   }
 
@@ -1278,7 +1287,7 @@ export class HubController {
   @Post("migrations/deploy")
   @HttpCode(200)
   async migrationsDeploy(): Promise<unknown> {
-    this.assertDev();
+    this.assertWorkstation();
     const r = await this.migrations.deployPending();
     return this.unwrapLock(r);
   }
@@ -1287,7 +1296,7 @@ export class HubController {
   @Post("migrations/apply-one")
   @HttpCode(200)
   async migrationsApplyOne(@Body() body: { name?: unknown }): Promise<unknown> {
-    this.assertDev();
+    this.assertWorkstation();
     const name = assertNonEmptyString(body?.name, "name");
     try {
       const r = await this.migrations.applyOne(name);
@@ -1302,7 +1311,7 @@ export class HubController {
   @Post("migrations/dry-run")
   @HttpCode(200)
   async migrationsDryRun(@Body() body: { name?: unknown }): Promise<unknown> {
-    this.assertDev();
+    this.assertWorkstation();
     const name = assertNonEmptyString(body?.name, "name");
     try {
       const r = await this.migrations.dryRun(name);
@@ -1317,7 +1326,7 @@ export class HubController {
   @Post("migrations/retry")
   @HttpCode(200)
   async migrationsRetry(@Body() body: { name?: unknown }): Promise<unknown> {
-    this.assertDev();
+    this.assertWorkstation();
     const name = assertNonEmptyString(body?.name, "name");
     try {
       const r = await this.migrations.retryFailed(name);
@@ -1332,7 +1341,7 @@ export class HubController {
   @Post("migrations/create")
   @HttpCode(200)
   async migrationsCreate(@Body() body: { name?: unknown }): Promise<unknown> {
-    this.assertDev();
+    this.assertWorkstation();
     const name = assertNonEmptyString(body?.name, "name");
     try {
       const r = await this.migrations.createDraft(name);
@@ -1347,7 +1356,7 @@ export class HubController {
   @Post("migrations/apply-draft")
   @HttpCode(200)
   async migrationsApplyDraft(@Body() body: { name?: unknown }): Promise<unknown> {
-    this.assertDev();
+    this.assertWorkstation();
     const name = assertNonEmptyString(body?.name, "name");
     try {
       const r = await this.migrations.applyDraft(name);
@@ -1364,7 +1373,7 @@ export class HubController {
   async migrationsDiscardDraft(
     @Param("name") name: string,
   ): Promise<{ name: string; deleted: boolean }> {
-    this.assertDev();
+    this.assertWorkstation();
     try {
       return this.migrations.discardDraft(name);
     } catch (err) {
@@ -1390,7 +1399,7 @@ export class HubController {
   @Get("jobs")
   @Header("content-type", "text/html; charset=utf-8")
   jobsPage(): string {
-    this.assertDevFeature("jobs");
+    this.assertOperationalFeature("jobs");
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Jobs" }));
   }
 
@@ -1402,7 +1411,7 @@ export class HubController {
    */
   @Get("jobs/queues.json")
   async jobsQueuesJson(): Promise<unknown> {
-    this.assertDevFeature("jobs");
+    this.assertOperationalFeature("jobs");
     return this.jobs.getAggregates();
   }
 
@@ -1418,7 +1427,7 @@ export class HubController {
     @Query("name") name: string | undefined,
     @Query("limit") limit: string | undefined,
   ): Promise<{ jobs: unknown[] }> {
-    this.assertDevFeature("jobs");
+    this.assertOperationalFeature("jobs");
     const options: ListJobsOptions = {};
     if (state) {
       if (!isJobState(state)) {
@@ -1452,7 +1461,7 @@ export class HubController {
    */
   @Get("jobs/jobs/:id.json")
   async jobDetailJson(@Param("id") id: string): Promise<unknown> {
-    this.assertDevFeature("jobs");
+    this.assertOperationalFeature("jobs");
     if (!isSafeJobId(id)) {
       throw new BadRequestException(`invalid job id`);
     }
@@ -1469,7 +1478,7 @@ export class HubController {
   @Post("jobs/jobs/:id/retry")
   @HttpCode(200)
   async retryJob(@Param("id") id: string): Promise<{ id: string }> {
-    this.assertDevFeature("jobs");
+    this.assertOperationalFeature("jobs");
     if (!isSafeJobId(id)) {
       throw new BadRequestException(`invalid job id`);
     }
@@ -1500,7 +1509,7 @@ export class HubController {
   @Get("email-outbox")
   @Header("content-type", "text/html; charset=utf-8")
   emailOutboxPage(): string {
-    this.assertDevFeature("email");
+    this.assertOperationalFeature("email");
     return renderDevPortalShell(
       buildDevPortalShellInput({ title: "Email Outbox", brand: "central" }),
     );
@@ -1516,13 +1525,13 @@ export class HubController {
   @Get("cron")
   @Header("content-type", "text/html; charset=utf-8")
   cronPage(): string {
-    this.assertDevFeature("jobs");
+    this.assertOperationalFeature("jobs");
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Cron", brand: "central" }));
   }
 
   @Get("outbox.json")
   async outboxJson() {
-    this.assertDevFeature("email");
+    this.assertOperationalFeature("email");
     if (!this.emailOutbox) {
       return {
         enabled: false,
@@ -1557,14 +1566,15 @@ export class HubController {
    * the Cmd+K command palette (Issue #90). Returns matching Hub pages
    * ranked by score (exact > prefix > substring > fuzzy). Marked
    * `@Public` because the dev-portal itself runs without auth and this
-   * endpoint is gated by `assertDev()` — it 404s in production.
+   * endpoint is gated by the operational surface guard — without the
+   * hub opt-in it 404s in production.
    */
   @Get("palette/search.json")
   @Public(
-    "Hub palette search — fuzzy page lookup for Cmd+K. Dev portal only; assertDev() guards production.",
+    "Hub palette search — fuzzy page lookup for Cmd+K. Hub surface guard gates availability outside development.",
   )
   paletteSearchJson(@Query("q") q: string | undefined): { pages: PaletteSearchResult[] } {
-    this.assertDev();
+    this.assertOperational();
     const query = typeof q === "string" ? q.trim() : "";
     const snapshot = buildHubNavFeatureSnapshot(this.featuresOnly());
     const pages = filterPalettePagesForNavSnapshot(buildHubPageCatalog(), snapshot);
@@ -1585,25 +1595,45 @@ export class HubController {
   @Get("*splat")
   @Header("content-type", "text/html; charset=utf-8")
   spaCatchAll(): string {
-    this.assertDev();
+    this.assertOperational();
     return renderDevPortalShell(
       buildDevPortalShellInput({ title: "Dev Portal", brand: "central" }),
     );
   }
 
-  private assertDev(): void {
-    const cfg = serverConfigFromEnv(process.env);
-    if (cfg.env !== "development") {
-      throw new NotFoundException();
-    }
+  /**
+   * OPERATIONAL tier (see `hub-surface-policy.ts`): cockpit pages,
+   * SPA shells/assets, diagnostics buffers (logs/traces/queries),
+   * feature READ views, jobs/outbox dashboards. Development-always;
+   * outside development requires `FEATURE_HUB_ENABLED=true` plus the
+   * CASL wall in `HubPortalMiddleware`.
+   */
+  private assertOperational(): void {
+    assertHubSurfaceAvailable("operational");
+  }
+
+  /**
+   * WORKSTATION tier: routes that read or write the developer's
+   * checkout / process env (migrations runner, `.env` feature toggle,
+   * brand file writes, coverage/test-run artifacts, prisma-schema ERD,
+   * tunnel state, email template builder). Development-only forever —
+   * the flag never opens these.
+   */
+  private assertWorkstation(): void {
+    assertHubSurfaceAvailable("workstation");
   }
 
   private featuresOnly(): Features {
     return loadFeatures(process.env as Record<string, string | undefined>);
   }
 
-  private assertDevFeature(key: ToggleableFeatureKey): void {
-    this.assertDev();
+  private assertOperationalFeature(key: ToggleableFeatureKey): void {
+    this.assertOperational();
+    assertFeatureEnabledFromEnv(key);
+  }
+
+  private assertWorkstationFeature(key: ToggleableFeatureKey): void {
+    this.assertWorkstation();
     assertFeatureEnabledFromEnv(key);
   }
 }

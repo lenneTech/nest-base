@@ -12,9 +12,12 @@ import { RealtimeModule } from "../realtime/realtime.module.js";
 /**
  * HubSpaModule — registers the `/hub` and `/admin` SPA controllers.
  *
- * Loaded unconditionally; both controllers short-circuit to a 404
- * outside `NODE_ENV=development` so they can never leak tool URLs in
- * production.
+ * Loaded unconditionally; every route short-circuits through the
+ * tiered surface guard (`hub-surface-policy.ts`): outside
+ * `NODE_ENV=development` operational surfaces 404 unless
+ * `FEATURE_HUB_ENABLED=true` (plus the CASL wall in
+ * `HubPortalMiddleware`), and workstation surfaces 404 always — tool
+ * URLs can never leak from a deployment that didn't opt in.
  *
  * `DiscoveryModule` is imported so `RouteInventoryService` can walk
  * the registered controllers for `/hub/routes`. `MigrationsService` is

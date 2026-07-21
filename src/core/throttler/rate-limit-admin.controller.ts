@@ -9,10 +9,12 @@
  *       The SPA shell is `@Public(...)` because the React bundle loads the
  *       page skeleton and the individual JSON fetches carry the gate.
  *
- * The controller is dev-portal-only; the `assertDev()` pattern from the hub
- * module is not wired here — the `/admin/` prefix is already in the public
- * allowlist of the route-audit planner and the jwt-middleware, and the CASL
- * `manage:RateLimitAdmin` gate blocks non-admin users.
+ * Tier: OPERATIONAL, without a surface guard — this controller was never
+ * dev-asserted: the CASL `manage:RateLimitAdmin` gate blocks non-admin
+ * users in every environment (pre-existing production behaviour, kept
+ * for backward compatibility). When `FEATURE_HUB_ENABLED=true`,
+ * `HubPortalMiddleware` additionally walls the whole `/admin/*` prefix
+ * behind `canAccessTenantAdmin`.
  */
 
 import {

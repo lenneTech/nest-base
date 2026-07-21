@@ -14,6 +14,7 @@ import {
 } from "@nestjs/common";
 
 import { type AuditBrowserPageInput, type AuditLogEntry } from "./audit-browser-types.js";
+import { assertHubSurfaceAvailable } from "../hub/hub-surface-guard.js";
 import { buildDevPortalShellInput, renderDevPortalShell } from "./dev-portal-shell.js";
 import {
   type ActiveSocketEntry,
@@ -48,7 +49,6 @@ import { requireTenantContext } from "../multi-tenancy/require-tenant-context.js
 import { PrismaService } from "../prisma/prisma.service.js";
 import { RealtimeGateway } from "../realtime/realtime.module.js";
 import { SearchService } from "../search/search.service.js";
-import { serverConfigFromEnv } from "../server/server-config.js";
 import {
   buildPermissionReport,
   type PermissionReport,
@@ -170,7 +170,7 @@ function parseIsoQuery(value: string | undefined): Date | null {
 }
 
 @Public(
-  "Dev-Hub admin SPA JSON sidecars — assertDev() guards production; no CASL login required in local development.",
+  "Dev-Hub admin SPA JSON sidecars — the hub surface guard gates availability; no CASL login required in local development.",
 )
 @ApiTags("Admin")
 @Controller("admin")
@@ -191,7 +191,8 @@ export class AdminSpaController {
   @Get("permissions/test")
   @Header("content-type", "text/html; charset=utf-8")
   permissionsTestPage(): string {
-    this.assertDev();
+    // Tier: WORKSTATION — companion page of the x-test-ability tooling.
+    this.assertWorkstation();
     return renderDevPortalShell(
       buildDevPortalShellInput({ title: "Permission Tester", brand: "central" }),
     );
@@ -212,7 +213,9 @@ export class AdminSpaController {
     report: PermissionReport | null;
     submitted: { userId: string; tenantId: string };
   }> {
-    this.assertDev();
+    // Tier: WORKSTATION — evaluates arbitrary (userId, tenantId) pairs,
+    // a debugging shortcut that must not exist on a deployed surface.
+    this.assertWorkstation();
     const submitted = { userId: userId ?? "", tenantId: tenantId ?? "" };
     if (!userId || !tenantId) {
       return { report: null, submitted };
@@ -238,7 +241,7 @@ export class AdminSpaController {
   @Get("webhooks")
   @Header("content-type", "text/html; charset=utf-8")
   webhookInspectorPage(): string {
-    this.assertDevFeature("webhooks");
+    this.assertOperationalFeature("webhooks");
     return renderDevPortalShell(
       buildDevPortalShellInput({ title: "Webhook Inspector", brand: "central" }),
     );
@@ -255,7 +258,7 @@ export class AdminSpaController {
     @Query("cursor") cursor: string | undefined,
     @Query("limit") limitRaw: string | undefined,
   ): Promise<WebhookInspectorPageInput> {
-    this.assertDevFeature("webhooks");
+    this.assertOperationalFeature("webhooks");
     const limit = clampLimit(limitRaw);
     const filterStatus = normaliseDeliveryStatus(status);
     const filter: InspectorListFilter = { status: filterStatus };
@@ -297,7 +300,7 @@ export class AdminSpaController {
 
   @Get("webhooks/aggregates.json")
   async webhookAggregatesJson(): Promise<WebhookAggregatesResponse> {
-    this.assertDevFeature("webhooks");
+    this.assertOperationalFeature("webhooks");
     const now = Date.now();
     const tenantId = getCurrentTenantId() ?? undefined;
     const all = await loadInspectorDeliveriesFromDb(this.prisma, {
@@ -330,14 +333,14 @@ export class AdminSpaController {
    */
   @Get("webhooks/event-types.json")
   webhookEventTypesJson(): WebhookEventTypesResponse {
-    this.assertDevFeature("webhooks");
+    this.assertOperationalFeature("webhooks");
     const registered = getRegisteredWebhookEvents();
     return { eventTypes: registered.map((m) => m.name) };
   }
 
   @Get("webhooks/:id.json")
   async webhookDeliveryDetailJson(@Param("id") id: string): Promise<WebhookDeliveryDetailResponse> {
-    this.assertDevFeature("webhooks");
+    this.assertOperationalFeature("webhooks");
     const tenantId = getCurrentTenantId() ?? undefined;
     const row = await findInspectorDeliveryById(this.prisma, id, tenantId);
     if (!row) throw new NotFoundException();
@@ -392,7 +395,7 @@ export class AdminSpaController {
     @Param("id") id: string,
     @Body() body: { eventType?: string; payload?: unknown } | undefined,
   ): Promise<WebhookTestEventResponse> {
-    this.assertDevFeature("webhooks");
+    this.assertOperationalFeature("webhooks");
     const eventType = body?.eventType?.trim();
     if (!eventType) {
       throw new BadRequestException("eventType is required");
@@ -461,7 +464,7 @@ export class AdminSpaController {
     @Param("id") id: string,
     @Body() body: { csrfToken?: string } | undefined,
   ): Promise<WebhookRedeliverResponse> {
-    this.assertDevFeature("webhooks");
+    this.assertOperationalFeature("webhooks");
     const token = body?.csrfToken?.trim();
     if (!token) {
       throw new ForbiddenException("missing CSRF token");
@@ -518,7 +521,7 @@ export class AdminSpaController {
   @Get("realtime")
   @Header("content-type", "text/html; charset=utf-8")
   realtimeInspectorPage(): string {
-    this.assertDevFeature("realtime");
+    this.assertOperationalFeature("realtime");
     return renderDevPortalShell(
       buildDevPortalShellInput({ title: "Realtime Inspector", brand: "central" }),
     );
@@ -526,7 +529,7 @@ export class AdminSpaController {
 
   @Get("realtime.json")
   realtimeInspectorJson(): RealtimeInspectorPageInput {
-    this.assertDevFeature("realtime");
+    this.assertOperationalFeature("realtime");
     const snapshot = this.realtime.inspectorSnapshot();
     const sockets: ActiveSocketEntry[] = snapshot.sockets.map((s) => ({
       id: s.id,
@@ -571,7 +574,7 @@ export class AdminSpaController {
 
   @Get("realtime/channels.json")
   realtimeChannelsJson(): RealtimeChannelsPageInput {
-    this.assertDevFeature("realtime");
+    this.assertOperationalFeature("realtime");
     const snapshot = this.realtime.inspectorSnapshot();
     const channels: RealtimeChannelEntry[] = snapshot.channels.map((c) => ({
       name: c.name,
@@ -586,7 +589,7 @@ export class AdminSpaController {
   @Post("realtime/sockets/:id/disconnect")
   @HttpCode(200)
   realtimeDisconnectSocket(@Param("id") id: string): { id: string } {
-    this.assertDevFeature("realtime");
+    this.assertOperationalFeature("realtime");
     const ok = this.realtime.disconnectSocket(id);
     if (!ok) throw new NotFoundException(`unknown socket "${id}"`);
     return { id };
@@ -598,7 +601,7 @@ export class AdminSpaController {
     @Param("id") id: string,
     @Body() body: Partial<RealtimeSendInput>,
   ): { delivered: true } {
-    this.assertDevFeature("realtime");
+    this.assertOperationalFeature("realtime");
     if (!body || typeof body.eventType !== "string" || !body.eventType) {
       throw new BadRequestException("eventType (non-empty string) is required");
     }
@@ -610,7 +613,7 @@ export class AdminSpaController {
   @Post("realtime/events/replay")
   @HttpCode(200)
   realtimeReplayEvent(@Body() body: Partial<RealtimeReplayInput>): { replayed: true } {
-    this.assertDevFeature("realtime");
+    this.assertOperationalFeature("realtime");
     if (
       !body ||
       typeof body.channel !== "string" ||
@@ -629,7 +632,7 @@ export class AdminSpaController {
   @Get("audit")
   @Header("content-type", "text/html; charset=utf-8")
   auditBrowserPage(): string {
-    this.assertDevFeature("audit");
+    this.assertOperationalFeature("audit");
     return renderDevPortalShell(
       buildDevPortalShellInput({ title: "Audit Browser", brand: "central" }),
     );
@@ -643,7 +646,7 @@ export class AdminSpaController {
     @Query("from") from: string | undefined,
     @Query("to") to: string | undefined,
   ): Promise<AuditBrowserPageInput> {
-    this.assertDevFeature("audit");
+    this.assertOperationalFeature("audit");
     const filter: AuditBrowserPageInput["filter"] = {};
     if (action) filter.action = action;
     if (resource) filter.resource = resource;
@@ -692,7 +695,7 @@ export class AdminSpaController {
   @Get("jobs")
   @Header("content-type", "text/html; charset=utf-8")
   adminJobsPage(): string {
-    this.assertDevFeature("jobs");
+    this.assertOperationalFeature("jobs");
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Jobs", brand: "central" }));
   }
 
@@ -701,7 +704,7 @@ export class AdminSpaController {
   @Get("search")
   @Header("content-type", "text/html; charset=utf-8")
   searchTesterPage(): string {
-    this.assertDevFeature("search");
+    this.assertOperationalFeature("search");
     return renderDevPortalShell(
       buildDevPortalShellInput({ title: "Search Tester", brand: "central" }),
     );
@@ -709,7 +712,10 @@ export class AdminSpaController {
 
   @Get("search.json")
   async searchTesterJson(@Query("q") q: string | undefined): Promise<SearchTesterPageInput> {
-    this.assertDevFeature("search");
+    // Tier: WORKSTATION — the tester intentionally searches ACROSS all
+    // tenants (tenantId = "") to verify FTS config; on a deployed
+    // surface that would be a cross-tenant data leak.
+    this.assertWorkstationFeature("search");
     if (q === undefined) {
       return { hits: [] };
     }
@@ -723,8 +729,8 @@ export class AdminSpaController {
     // The search tester is a dev-only admin tool. It intentionally searches
     // across all tenants (tenantId = "" disables the member-EXISTS filter in
     // the Postgres executor) so developers can verify FTS configuration without
-    // needing a specific organization context. The caller already validated that
-    // `NODE_ENV === "development"` via `assertDev()`.
+    // needing a specific organization context. The workstation-tier guard
+    // above already pinned this to `NODE_ENV=development`.
     const rawHits = await this.searchService.search(q, {
       limit: SEARCH_TESTER_PAGE_SIZE,
       tenantId: "",
@@ -744,15 +750,33 @@ export class AdminSpaController {
 
   // ── helpers ─────────────────────────────────────────────────────
 
-  private assertDev(): void {
-    const cfg = serverConfigFromEnv(process.env);
-    if (cfg.env !== "development") {
-      throw new NotFoundException();
-    }
+  /**
+   * OPERATIONAL tier (see `hub-surface-policy.ts`): the admin SPA
+   * shells and their JSON sidecars (webhooks, realtime, audit, jobs)
+   * are operator-console surfaces — development-always, and outside
+   * development available when `FEATURE_HUB_ENABLED=true` behind the
+   * CASL wall in `HubPortalMiddleware`.
+   */
+  private assertOperational(): void {
+    assertHubSurfaceAvailable("operational");
   }
 
-  private assertDevFeature(key: ToggleableFeatureKey): void {
-    this.assertDev();
+  /**
+   * WORKSTATION tier: dev tools that would undercut the permission
+   * model outside a workstation (x-test-ability permission tester,
+   * cross-tenant search tester). Development-only forever.
+   */
+  private assertWorkstation(): void {
+    assertHubSurfaceAvailable("workstation");
+  }
+
+  private assertOperationalFeature(key: ToggleableFeatureKey): void {
+    this.assertOperational();
+    assertFeatureEnabledFromEnv(key);
+  }
+
+  private assertWorkstationFeature(key: ToggleableFeatureKey): void {
+    this.assertWorkstation();
     assertFeatureEnabledFromEnv(key);
   }
 }
