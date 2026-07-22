@@ -62,9 +62,20 @@ describe("Story · Hub outside development (development boot, FEATURE_HUB_ENABLE
       expect(hrefs).toContain("/hub/migrations");
     });
 
-    it("feature READ views respond 200", async () => {
+    it("feature READ views respond 200 (workstation tier is fully open in dev)", async () => {
       const res = await hub.get("/hub/features.json");
       expect(res.status).toBe(200);
+      const catalog = await hub.get("/hub/feature-catalog.json");
+      expect(catalog.status).toBe(200);
+      const page = await hub.get("/hub/features").set("accept", "text/html");
+      expect(page.status).toBe(200);
+    });
+
+    it("palette search keeps the Features page in development", async () => {
+      const res = await hub.get("/hub/palette/search.json?q=features");
+      expect(res.status).toBe(200);
+      const hrefs = (res.body.pages as Array<{ href: string }>).map((p) => p.href);
+      expect(hrefs).toContain("/hub/features");
     });
 
     it("admin CRUD responds 200", async () => {
@@ -93,6 +104,14 @@ describe("Story · Hub outside development (development boot, FEATURE_HUB_ENABLE
     it("ERD responds 200", async () => {
       const res = await hub.get("/hub/erd.json");
       expect(res.status).toBe(200);
+    });
+
+    it("workstation page chunks are served in development (chunk policy is inert here)", async () => {
+      for (const chunk of ["FeaturesPage.js", "CoveragePage.js", "MigrationsPage.js"]) {
+        const res = await hub.get(`/hub/static/${chunk}`);
+        expect(res.status, `${chunk} must stay served on the workstation`).toBe(200);
+        expect(res.headers["content-type"]).toContain("javascript");
+      }
     });
   });
 

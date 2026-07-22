@@ -237,11 +237,25 @@ describe("Story · Hub outside development (production + FEATURE_HUB_ENABLED=tru
       expect(res.status).toBe(200);
     });
 
-    it("operational feature READ views respond 200", async () => {
+    it("the Features surface is workstation tier now — 404 even for the authorized operator", async () => {
+      // Consolidation phase 3 (consumer request): feature toggles are
+      // build/runtime configuration reviewed at deploy time. On a
+      // deployed operator console the page only invites confusion —
+      // the read-only runtime state stays visible via the cockpit
+      // dashboard; the dedicated Features surface is dev-only.
       const features = await operator.agent.get("/hub/features.json");
-      expect(features.status).toBe(200);
+      expect(features.status).toBe(404);
       const catalog = await operator.agent.get("/hub/feature-catalog.json");
-      expect(catalog.status).toBe(200);
+      expect(catalog.status).toBe(404);
+      const page = await operator.agent.get("/hub/features").set("accept", "text/html");
+      expect(page.status).toBe(404);
+    });
+
+    it("palette search omits the Features page (nav parity with the tier)", async () => {
+      const res = await operator.agent.get("/hub/palette/search.json?q=features");
+      expect(res.status).toBe(200);
+      const hrefs = (res.body.pages as Array<{ href: string }>).map((p) => p.href);
+      expect(hrefs).not.toContain("/hub/features");
     });
 
     it("operational diagnostics respond 200 (logs + routes)", async () => {
@@ -340,6 +354,36 @@ describe("Story · Hub outside development (production + FEATURE_HUB_ENABLED=tru
         .get("/hub/admin/search.json?q=probe")
         .set("accept", "application/json");
       expect(res.status).toBe(404);
+    });
+  });
+
+  describe("workstation page chunks are refused — the page code never leaves the workstation", () => {
+    it("workstation page chunks 404 (even for the authorized operator)", async () => {
+      for (const chunk of ["FeaturesPage.js", "CoveragePage.js", "MigrationsPage.js"]) {
+        const res = await operator.agent.get(`/hub/static/${chunk}`);
+        expect(res.status, `${chunk} must not be served outside development`).toBe(404);
+      }
+    });
+
+    it("workstation page chunks 404 anonymously too (static assets skip the session wall)", async () => {
+      const res = await request(httpServer).get("/hub/static/FeaturesPage.js");
+      expect(res.status).toBe(404);
+    });
+
+    it("operational assets stay served — main entry, tokens, and shared chunks", async () => {
+      const main = await request(httpServer).get("/hub/static/main.js");
+      expect(main.status).toBe(200);
+      const tokens = await request(httpServer).get("/hub/static/tokens.css");
+      expect(tokens.status).toBe(200);
+      // Shared/operational chunks keep anonymous content-hashed names —
+      // pick a real one from the build output.
+      const { readdirSync } = await import("node:fs");
+      const { resolve } = await import("node:path");
+      const dist = resolve(process.cwd(), "dist/dev-portal");
+      const shared = readdirSync(dist).find((f) => /^chunk-[a-z0-9]+\.js$/.test(f));
+      expect(shared, "expected at least one shared chunk in dist/dev-portal").toBeDefined();
+      const res = await request(httpServer).get(`/hub/static/${shared}`);
+      expect(res.status).toBe(200);
     });
   });
 });
