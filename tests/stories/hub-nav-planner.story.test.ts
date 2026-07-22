@@ -155,6 +155,9 @@ describe("Story · Hub nav planner (workstation tier)", () => {
   // Pages whose DATA endpoints assert the workstation surface tier
   // (dev-only forever) — mirrors the #186 tier table.
   const workstationPaths = [
+    // Features: reclassified to workstation in the consolidation (phase 3).
+    "/hub/features",
+    "/hub/features/anything",
     "/hub/coverage",
     "/hub/tests",
     "/hub/migrations",
@@ -175,7 +178,6 @@ describe("Story · Hub nav planner (workstation tier)", () => {
   const operationalPaths = [
     "/hub",
     "/hub/diagnostics",
-    "/hub/features",
     "/hub/brand",
     "/hub/logs",
     "/hub/traces",

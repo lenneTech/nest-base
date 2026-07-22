@@ -105,11 +105,16 @@ export function isSpaPathAllowedByFeatures(pathname: string, features: Features)
  * SPA paths whose DATA endpoints are workstation-tier (see
  * `hub-surface-policy.ts` — dev-only forever). Outside development the
  * server 404s their JSON, so nav, quick links, the palette, and the
- * client route gate hide them when `portal-access.json` says
- * `workstation: false`. Page-shell tiers do not matter here — this list
- * classifies what the PAGE needs to function.
+ * SPA route table drop them when `portal-access.json` says
+ * `workstation: false` (`App.tsx` registers the matching routes only
+ * behind that flag; the page chunks themselves are refused by the
+ * static handler — `workstation-page-chunks.ts`).
  */
 export const WORKSTATION_SPA_PATH_PREFIXES: readonly string[] = [
+  // Features moved from operational in the consolidation: toggles are
+  // build/runtime configuration reviewed at deploy time, not an
+  // operator surface (consumer request).
+  "/hub/features",
   "/hub/coverage",
   "/hub/tests",
   "/hub/migrations",

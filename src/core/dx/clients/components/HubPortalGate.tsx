@@ -150,12 +150,18 @@ export function HubPortalGate(): ReactNode {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-bg p-8">
         <PageError>This page is disabled — the related feature flag is off.</PageError>
-        {hasHubPortalAccess(data) ? (
+        {/* Toggling flags is workstation tooling — on a deployed portal
+            the Features page does not exist, so link the cockpit instead. */}
+        {hasHubPortalAccess(data) && hasWorkstationSurfaces(data) ? (
           <a
             href="/hub/features"
             className="text-sm text-accent underline-offset-2 hover:underline"
           >
             Open feature flags
+          </a>
+        ) : hasHubPortalAccess(data) ? (
+          <a href="/hub" className="text-sm text-accent underline-offset-2 hover:underline">
+            Back to the Hub
           </a>
         ) : hasTenantAdminPortalAccess(data) ? (
           <a

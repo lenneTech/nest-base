@@ -12,12 +12,15 @@
  * landing actually uses ship in `main.js`; the rest of the pages
  * land as on-demand chunks).
  */
+import { useQuery } from "@tanstack/react-query";
 import { lazy, Suspense, type ReactNode } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import { DevPortalRouteError } from "./components/DevPortalRouteError.js";
 import { HubPortalGate } from "./components/HubPortalGate.js";
 import { AdminPortalLayout } from "./layout/AdminPortalLayout.js";
+import { fetchJson } from "./lib/api.js";
+import { hasWorkstationSurfaces, type HubPortalAccessPayload } from "./lib/hub-portal-access.js";
 
 const HubLoginPage = lazy(() =>
   import("./pages/HubLoginPage.js").then((m) => ({ default: m.HubLoginPage })),
@@ -122,7 +125,87 @@ function PageFallback(): ReactNode {
   );
 }
 
+/**
+ * SPA not-found view — rendered for portal paths the router does not
+ * know. Outside development that includes every workstation route
+ * (deliberately unregistered), so a deployed deep link answers with an
+ * honest dead end instead of loading dev-only page code.
+ */
+function PortalNotFoundPage(): ReactNode {
+  return (
+    <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 p-8">
+      <p className="text-sm font-semibold text-fg">Page not found</p>
+      <p className="text-xs text-fg-muted">This portal page does not exist on this server.</p>
+      <a href="/hub" className="text-xs text-accent underline-offset-2 hover:underline">
+        Back to the Hub
+      </a>
+    </div>
+  );
+}
+
+/**
+ * WORKSTATION-tier routes — registered ONLY when
+ * `portal-access.json → workstation === true` (i.e. in development).
+ * Outside development the router never learns these paths: deep links
+ * fall through to the `*` not-found route and the page chunks
+ * (`workstation-page-chunks.ts`) are never requested. Keep in
+ * lock-step with `WORKSTATION_SPA_PATH_PREFIXES` (hub-nav-planner.ts).
+ */
+const WORKSTATION_ROUTES: readonly ReactNode[] = [
+  <Route path="/hub/features" key="/hub/features" element={<FeaturesPage />} />,
+  <Route path="/hub/coverage" key="/hub/coverage" element={<CoveragePage />} />,
+  <Route path="/hub/tests" key="/hub/tests" element={<TestsPage />} />,
+  <Route path="/hub/migrations" key="/hub/migrations" element={<MigrationsPage />} />,
+  <Route path="/hub/erd" key="/hub/erd" element={<ErdPage />} />,
+  <Route path="/hub/emails" key="/hub/emails" element={<EmailBuilderPage />} />,
+  <Route
+    path="/hub/email-preview"
+    key="/hub/email-preview"
+    element={<Navigate to="/hub/emails" replace />}
+  />,
+  <Route
+    path="/hub/email-builder"
+    key="/hub/email-builder"
+    element={<Navigate to="/hub/emails" replace />}
+  />,
+  <Route path="/hub/files" key="/hub/files" element={<FileManagerPage />} />,
+  <Route
+    path="/hub/admin/permissions/test"
+    key="/hub/admin/permissions/test"
+    element={<PermissionTesterPage />}
+  />,
+  <Route path="/hub/admin/search" key="/hub/admin/search" element={<SearchTesterPage />} />,
+];
+
+function isPortalPath(pathname: string): boolean {
+  return pathname === "/hub" || pathname.startsWith("/hub/");
+}
+
+/**
+ * Tier signal for route REGISTRATION. Shares the react-query cache
+ * entry with `HubPortalGate` (same key), so exactly one probe request
+ * runs. Until the probe resolves the workstation routes stay
+ * unregistered — the gate renders its loading state for the matching
+ * `*` route meanwhile, so there is no not-found flash and no premature
+ * chunk request.
+ */
+function useWorkstationRoutesEnabled(): boolean {
+  const location = useLocation();
+  const portal = isPortalPath(location.pathname);
+  const accessQuery = useQuery({
+    queryKey: ["hub", "portal-access"],
+    queryFn: () => fetchJson<HubPortalAccessPayload>("/hub/portal-access.json"),
+    retry: false,
+    enabled: portal,
+  });
+  if (!portal) return false;
+  const data = accessQuery.data;
+  if (!data) return false;
+  return hasWorkstationSurfaces(data);
+}
+
 export function App(): ReactNode {
+  const workstationRoutesEnabled = useWorkstationRoutesEnabled();
   return (
     <Suspense fallback={<PageFallback />}>
       <DevPortalRouteError>
@@ -131,24 +214,15 @@ export function App(): ReactNode {
           <Route element={<HubPortalGate />}>
             <Route element={<AdminPortalLayout />}>
               <Route path="/hub" element={<HubLandingPage />} />
-              <Route path="/hub/features" element={<FeaturesPage />} />
               <Route path="/hub/brand" element={<BrandPage />} />
-              <Route path="/hub/coverage" element={<CoveragePage />} />
-              <Route path="/hub/tests" element={<TestsPage />} />
               <Route path="/hub/diagnostics" element={<DiagnosticsPage />} />
               <Route path="/hub/logs" element={<LogsPage />} />
               <Route path="/hub/traces" element={<TracesPage />} />
               <Route path="/hub/queries" element={<QueriesPage />} />
-              <Route path="/hub/migrations" element={<MigrationsPage />} />
               <Route path="/hub/jobs" element={<JobsPage />} />
               <Route path="/hub/routes" element={<RoutesPage />} />
-              <Route path="/hub/erd" element={<ErdPage />} />
-              <Route path="/hub/emails" element={<EmailBuilderPage />} />
-              <Route path="/hub/email-preview" element={<Navigate to="/hub/emails" replace />} />
-              <Route path="/hub/email-builder" element={<Navigate to="/hub/emails" replace />} />
               <Route path="/hub/postgrest-parse" element={<PostgrestParsePage />} />
               <Route path="/hub/json" element={<JsonViewerPage />} />
-              <Route path="/hub/files" element={<FileManagerPage />} />
               <Route path="/hub/email-outbox" element={<EmailOutboxPage />} />
               <Route path="/hub/cron" element={<CronPage />} />
               <Route path="/hub/admin/users" element={<UsersAdminPage />} />
@@ -158,12 +232,12 @@ export function App(): ReactNode {
               <Route path="/hub/admin/roles" element={<RolesAdminPage />} />
               <Route path="/hub/admin/policies" element={<PoliciesAdminPage />} />
               <Route path="/hub/admin/permissions" element={<PermissionsAdminPage />} />
-              <Route path="/hub/admin/permissions/test" element={<PermissionTesterPage />} />
               <Route path="/hub/admin/webhooks" element={<WebhookInspectorPage />} />
               <Route path="/hub/admin/realtime" element={<RealtimeInspectorPage />} />
               <Route path="/hub/admin/audit" element={<AuditBrowserPage />} />
-              <Route path="/hub/admin/search" element={<SearchTesterPage />} />
               <Route path="/hub/admin/rate-limits" element={<RateLimitsAdminPage />} />
+              {workstationRoutesEnabled ? WORKSTATION_ROUTES : null}
+              <Route path="*" element={<PortalNotFoundPage />} />
             </Route>
           </Route>
           <Route path="/errors" element={<ErrorsPage />} />

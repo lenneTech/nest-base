@@ -487,6 +487,8 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
     // plus the Prisma-Studio localhost link. The sidebar model carries
     // the tier tag; the SPA filters on `portal-access.json → workstation`.
     const workstationNavIds = [
+      // Features: reclassified to workstation in the consolidation (phase 3).
+      "features",
       "coverage",
       "tests",
       "migrations",
@@ -503,7 +505,7 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       });
     }
 
-    const operationalNavIds = ["hub", "diagnostics", "features", "brand", "logs", "users"];
+    const operationalNavIds = ["hub", "diagnostics", "brand", "logs", "users"];
     for (const id of operationalNavIds) {
       it(`nav.ts keeps id="${id}" untagged (operational)`, () => {
         expect(NAV_TS).not.toMatch(new RegExp(`id: "${id}",[^}]*tier: "workstation"`, "s"));

@@ -292,7 +292,11 @@ function DashboardBody({ data }: { data: DashboardJson }): ReactNode {
           errorLogs={errorLogs}
           warnLogs={warnLogs}
         />
-        <FeatureOverview features={data.features} catalog={data.catalog} />
+        <FeatureOverview
+          features={data.features}
+          catalog={data.catalog}
+          workstation={workstation}
+        />
       </div>
 
       <QuickLinks features={data.features} workstation={workstation} />
@@ -935,9 +939,11 @@ function LogPreview({
 function FeatureOverview({
   features,
   catalog,
+  workstation,
 }: {
   features: DashboardJson["features"];
   catalog: FeatureMeta[];
+  workstation: boolean;
 }): ReactNode {
   const total = catalog.length;
   const active = catalog.filter((m) => isFeatureActive(features, m.key)).length;
@@ -948,9 +954,12 @@ function FeatureOverview({
         <span className="text-[0.7rem] uppercase tracking-widest text-fg-dim">
           {active} / {total} active
         </span>
-        <Link to="/hub/features" className="text-xs text-fg-dim hover:text-accent">
-          Manage →
-        </Link>
+        {/* Toggling is workstation tooling — the page is absent on a deployed portal. */}
+        {workstation ? (
+          <Link to="/hub/features" className="text-xs text-fg-dim hover:text-accent">
+            Manage →
+          </Link>
+        ) : null}
       </CardHeader>
       <CardContent>
         <Progress className="mb-3" value={total === 0 ? 0 : (active / total) * 100} />

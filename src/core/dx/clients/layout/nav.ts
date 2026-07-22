@@ -43,7 +43,13 @@ export const NAV_SECTIONS: readonly AdminNavSection[] = [
     items: [
       { id: "hub", label: "Hub", href: "/hub", icon: "home" },
       { id: "diagnostics", label: "Diagnostics", href: "/hub/diagnostics", icon: "activity" },
-      { id: "features", label: "Features", href: "/hub/features", icon: "toggle" },
+      {
+        id: "features",
+        label: "Features",
+        href: "/hub/features",
+        icon: "toggle",
+        tier: "workstation",
+      },
       { id: "brand", label: "Brand", href: "/hub/brand", icon: "palette" },
       {
         id: "coverage",

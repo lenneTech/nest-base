@@ -23,11 +23,26 @@ import { resolve } from "node:path";
 
 import tailwindPlugin from "bun-plugin-tailwind";
 
+import { WORKSTATION_PAGE_COMPONENTS } from "../src/core/dx/workstation-page-chunks.js";
+
 const repoRoot = process.cwd();
 const entry = resolve(repoRoot, "src/core/dx/clients/main.tsx");
 const tokenSrc = resolve(repoRoot, "src/core/dx/clients/styles/tokens.css");
 const outdir = resolve(repoRoot, "dist/dev-portal");
 const isWatch = process.argv.includes("--watch");
+
+/**
+ * Workstation-tier pages build as their own NAMED entries
+ * (`CoveragePage.js`, …) instead of anonymous `chunk-<hash>.js` files.
+ * `splitting: true` still dedupes shared code into common chunks, and
+ * Bun rewrites `main.js`'s lazy `import()` calls to point at the entry
+ * outputs — so the chunk↔page mapping is deterministic and the
+ * `/hub/static/:filename` handler can refuse exactly these files
+ * outside development (see `workstation-page-chunks.ts`).
+ */
+const workstationEntries = WORKSTATION_PAGE_COMPONENTS.map((component) =>
+  resolve(repoRoot, `src/core/dx/clients/pages/${component}.tsx`),
+);
 
 if (!existsSync(entry)) {
   console.log(`[build:dev-portal] entry missing — ${entry} (skipping)`);
@@ -49,12 +64,17 @@ async function buildOnce(label: string) {
   mkdirSync(outdir, { recursive: true });
   const started = Date.now();
   const result = await Bun.build({
-    entrypoints: [entry],
+    entrypoints: [entry, ...workstationEntries],
     outdir,
     target: "browser",
     splitting: true,
     minify: !isWatch,
     sourcemap: isWatch ? "inline" : "none",
+    // Flatten entry outputs (`[dir]` would nest pages under `pages/`,
+    // which the flat `/hub/static/:filename` route cannot serve) and
+    // keep the pre-consolidation `chunk-<hash>.js` shape for shared
+    // chunks so the served-name contract stays byte-stable in dev.
+    naming: { entry: "[name].[ext]", chunk: "chunk-[hash].[ext]" },
     plugins: [tailwindPlugin],
   });
 
