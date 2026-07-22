@@ -161,9 +161,7 @@ export class HubController {
   @Header("content-type", "text/html; charset=utf-8")
   index(): string {
     this.assertOperational();
-    return renderDevPortalShell(
-      buildDevPortalShellInput({ title: "Dev Portal", brand: "central" }),
-    );
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Hub", brand: "central" }));
   }
 
   /**
@@ -1614,9 +1612,7 @@ export class HubController {
   @Header("content-type", "text/html; charset=utf-8")
   spaCatchAll(): string {
     this.assertOperational();
-    return renderDevPortalShell(
-      buildDevPortalShellInput({ title: "Dev Portal", brand: "central" }),
-    );
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Hub", brand: "central" }));
   }
 
   /**

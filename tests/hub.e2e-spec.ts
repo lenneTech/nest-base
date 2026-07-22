@@ -45,7 +45,7 @@ describe("Hub · GET /hub", () => {
       expect(res.headers["content-type"]).toMatch(/text\/html/);
     });
 
-    it('serves the SPA shell with a "Dev Portal" title', async () => {
+    it("serves the SPA shell with the Hub title", async () => {
       const res = await hub.get("/hub");
       // The shell renders one HTML5 document with a fixed title and a
       // <div id="root"> mount point — the React bundle hydrates the

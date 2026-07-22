@@ -21,7 +21,7 @@ import {
 describe("Story · Dev-Portal Shell", () => {
   function input(overrides: Partial<DevPortalShellInput> = {}): DevPortalShellInput {
     return {
-      title: "Dev Portal",
+      title: "Hub",
       scriptUrl: "/hub/static/main.js",
       tokenCssUrl: "/hub/static/tokens.css",
       ...overrides,
@@ -95,7 +95,7 @@ describe("Story · Dev-Portal Shell", () => {
 
   it("buildDevPortalShellInput defaults the static base path and title", () => {
     const built = buildDevPortalShellInput({});
-    expect(built.title).toBe("Dev Portal");
+    expect(built.title).toBe("Hub");
     // Issue #83: all API routes (including dev static assets) live under /api/*
     expect(built.scriptUrl).toBe("/hub/static/main.js");
     expect(built.tokenCssUrl).toBe("/hub/static/tokens.css");

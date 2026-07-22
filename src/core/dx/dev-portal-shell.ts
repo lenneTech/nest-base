@@ -31,7 +31,7 @@ import { loadBrandSync } from "../branding/brand-loader.js";
 import { renderBrandCss } from "../branding/brand-css.js";
 
 export interface DevPortalShellInput {
-  /** Page <title> (escaped). Defaults to "Dev Portal" via `buildDevPortalShellInput`. */
+  /** Page <title> (escaped). Defaults to "Hub" via `buildDevPortalShellInput`. */
   title: string;
   /** URL of the bundled main.js (escaped). Loaded as `type="module"`. */
   scriptUrl: string;
@@ -79,7 +79,7 @@ export interface DevPortalShellInputOverrides {
   brandJson?: string;
 }
 
-const DEFAULT_TITLE = "Dev Portal";
+const DEFAULT_TITLE = "Hub";
 // Hub static assets are served at /hub/static/* (no /api prefix — the
 // hub controller is excluded from the global "api" prefix).
 const DEFAULT_SCRIPT_URL = "/hub/static/main.js";

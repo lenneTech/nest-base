@@ -254,10 +254,9 @@ export function HubLoginPage(): ReactNode {
         if (!cancelled && res.ok) {
           const body = (await res.json()) as {
             hub?: boolean;
-            devHub?: boolean;
             tenantAdmin?: boolean;
           };
-          if (!body.hub && !body.devHub && !body.tenantAdmin) return;
+          if (!body.hub && !body.tenantAdmin) return;
           const fromState =
             typeof location.state === "object" &&
             location.state !== null &&
@@ -292,7 +291,6 @@ export function HubLoginPage(): ReactNode {
       }
       const access = (await accessRes.json()) as {
         hub?: boolean;
-        devHub?: boolean;
         tenantAdmin?: boolean;
       };
       persistLoginPrefs(rememberEmail, email);
@@ -348,7 +346,7 @@ export function HubLoginPage(): ReactNode {
               <header className="mb-6">
                 <h2 className="text-2xl font-semibold tracking-tight text-fg">Sign in</h2>
                 <p className="mt-1.5 text-sm text-fg-muted">
-                  Use your operator email and password to open the dev portal.
+                  Use your operator email and password to open the Hub.
                 </p>
               </header>
 

@@ -369,7 +369,7 @@ bun run seed                  # Insert deterministic demo data (2 tenants, 6 use
 bun run sync:from-template    # Pull latest src/core/ from upstream
 bun run sync:to-template      # Contribute changes back upstream
 bun run sdk:generate          # kubb → typed SDK from /api/openapi.json
-bun run docs:screenshots      # Re-shoot every dev-portal page (Playwright,
+bun run docs:screenshots      # Re-shoot every hub page (Playwright,
                               # docs/showcase/screenshots/) — opt-in, see
                               # docs/showcase/README.md
 ```
