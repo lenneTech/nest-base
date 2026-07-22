@@ -1,7 +1,10 @@
 import { NotFoundException } from "@nestjs/common";
 import { describe, expect, it } from "vitest";
 
-import { assertHubSurfaceAvailable } from "../../src/core/hub/hub-surface-guard.js";
+import {
+  assertHubSurfaceAvailable,
+  isHubSurfaceAvailableFromEnv,
+} from "../../src/core/hub/hub-surface-guard.js";
 import {
   evaluateHubPortalRequestOutsideDev,
   isHubSurfaceAvailable,
@@ -159,5 +162,32 @@ describe("hub-surface-guard · assertHubSurfaceAvailable", () => {
         FEATURE_HUB_ENABLED: "true",
       }),
     ).not.toThrow();
+  });
+});
+
+describe("hub-surface-guard · isHubSurfaceAvailableFromEnv", () => {
+  it("development: workstation surfaces available regardless of the flag", () => {
+    expect(isHubSurfaceAvailableFromEnv("workstation", { NODE_ENV: "development" })).toBe(true);
+    expect(
+      isHubSurfaceAvailableFromEnv("workstation", {
+        NODE_ENV: "development",
+        FEATURE_HUB_ENABLED: "false",
+      }),
+    ).toBe(true);
+  });
+
+  it("production + flag: operational true, workstation false — the probe's `workstation` source", () => {
+    const env = { NODE_ENV: "production", FEATURE_HUB_ENABLED: "true" };
+    expect(isHubSurfaceAvailableFromEnv("operational", env)).toBe(true);
+    expect(isHubSurfaceAvailableFromEnv("workstation", env)).toBe(false);
+  });
+
+  it("staging behaves like production for the workstation tier", () => {
+    expect(
+      isHubSurfaceAvailableFromEnv("workstation", {
+        NODE_ENV: "staging",
+        FEATURE_HUB_ENABLED: "true",
+      }),
+    ).toBe(false);
   });
 });

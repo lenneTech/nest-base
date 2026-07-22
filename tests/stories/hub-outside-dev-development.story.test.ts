@@ -46,6 +46,22 @@ describe("Story · Hub outside development (development boot, FEATURE_HUB_ENABLE
       expect(res.status).toBe(200);
     });
 
+    it("the access probe reports workstation:true (flag value irrelevant in dev)", async () => {
+      // Development invariance for the SPA nav: with the flag pinned to
+      // FALSE the probe must still say workstation:true, so the sidebar
+      // renders exactly as today on every developer workstation.
+      const res = await hub.get("/hub/portal-access.json");
+      expect(res.status).toBe(200);
+      expect(res.body.workstation).toBe(true);
+    });
+
+    it("palette search keeps workstation pages in development", async () => {
+      const res = await hub.get("/hub/palette/search.json?q=migrations");
+      expect(res.status).toBe(200);
+      const hrefs = (res.body.pages as Array<{ href: string }>).map((p) => p.href);
+      expect(hrefs).toContain("/hub/migrations");
+    });
+
     it("feature READ views respond 200", async () => {
       const res = await hub.get("/hub/features.json");
       expect(res.status).toBe(200);

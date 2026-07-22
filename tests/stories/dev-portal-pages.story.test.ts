@@ -43,6 +43,10 @@ const FEATURES_PAGE = read("src/core/dx/clients/pages/FeaturesPage.tsx");
 const AUDIT_BROWSER_PAGE = read("src/core/dx/clients/pages/AuditBrowserPage.tsx");
 const API_TS = read("src/core/dx/clients/lib/api.ts");
 const HUB_LOGIN_PAGE = read("src/core/dx/clients/pages/HubLoginPage.tsx");
+const HUB_PORTAL_GATE = read("src/core/dx/clients/components/HubPortalGate.tsx");
+const BRAND_PAGE = read("src/core/dx/clients/pages/BrandPage.tsx");
+const HUB_LANDING_PAGE = read("src/core/dx/clients/pages/HubLandingPage.tsx");
+const HUB_PORTAL_ACCESS_LIB = read("src/core/dx/clients/lib/hub-portal-access.ts");
 
 describe("Story · Dev-Portal SPA route + nav contract", () => {
   describe("admin fetch sends session cookies", () => {
@@ -475,6 +479,72 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
 
     it('nav.ts "permissions-crud" entry has href "/admin/permissions" (exact path)', () => {
       expect(NAV_TS).toMatch(/id: "permissions-crud"[^}]+href: "\/admin\/permissions"/s);
+    });
+  });
+
+  describe("Workstation-tier nav entries hidden outside development (#186 follow-up)", () => {
+    // Pages whose DATA endpoints are workstation-tier (dev-only forever)
+    // plus the Prisma-Studio localhost link. The sidebar model carries
+    // the tier tag; the SPA filters on `portal-access.json → workstation`.
+    const workstationNavIds = [
+      "coverage",
+      "tests",
+      "migrations",
+      "erd",
+      "emails",
+      "prisma-studio",
+      "permissions",
+      "search",
+      "files",
+    ];
+    for (const id of workstationNavIds) {
+      it(`nav.ts tags id="${id}" as workstation tier`, () => {
+        expect(NAV_TS).toMatch(new RegExp(`id: "${id}",[^}]*tier: "workstation"`, "s"));
+      });
+    }
+
+    const operationalNavIds = ["hub", "diagnostics", "features", "brand", "logs", "users"];
+    for (const id of operationalNavIds) {
+      it(`nav.ts keeps id="${id}" untagged (operational)`, () => {
+        expect(NAV_TS).not.toMatch(new RegExp(`id: "${id}",[^}]*tier: "workstation"`, "s"));
+      });
+    }
+
+    it("client portal-access mirror carries the workstation flag + resolver", () => {
+      expect(HUB_PORTAL_ACCESS_LIB).toContain("workstation?: boolean");
+      expect(HUB_PORTAL_ACCESS_LIB).toContain("hasWorkstationSurfaces");
+    });
+
+    it("AdminShell feeds the workstation flag into the nav filter", () => {
+      expect(ADMIN_SHELL).toContain("hasWorkstationSurfaces");
+      expect(ADMIN_SHELL).toMatch(/workstation:/);
+    });
+
+    it("AdminPortalLayout forwards the portal-access outlet context to pages", () => {
+      expect(ADMIN_PORTAL_LAYOUT).toMatch(/<Outlet context=/);
+    });
+
+    it("HubPortalGate blocks workstation SPA deep links outside development", () => {
+      expect(HUB_PORTAL_GATE).toContain("isSpaPathWorkstationOnly");
+      expect(HUB_PORTAL_GATE).toContain("hasWorkstationSurfaces");
+    });
+
+    it("FeaturesPage switches go read-only without workstation surfaces", () => {
+      expect(FEATURES_PAGE).toContain("hasWorkstationSurfaces");
+      expect(FEATURES_PAGE).toMatch(/disabled=\{mutation\.isPending \|\| readOnly\}/);
+    });
+
+    it("BrandPage hides the reset write control without workstation surfaces", () => {
+      expect(BRAND_PAGE).toContain("hasWorkstationSurfaces");
+    });
+
+    it("HubLandingPage quick links respect the workstation tier", () => {
+      expect(HUB_LANDING_PAGE).toContain("isSpaPathWorkstationOnly");
+    });
+
+    it("hub.controller filters palette pages by workstation availability", () => {
+      expect(CONTROLLER).toContain("isSpaPathWorkstationOnly");
+      expect(CONTROLLER).toContain('isHubSurfaceAvailableFromEnv("workstation")');
     });
   });
 });

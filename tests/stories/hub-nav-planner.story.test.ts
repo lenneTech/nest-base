@@ -6,8 +6,10 @@ import {
   isHubQuickLinkVisible,
   isNavItemVisibleForNavSnapshot,
   isSpaPathAllowedByNavSnapshot,
+  isSpaPathWorkstationOnly,
   NAV_ITEM_FEATURE_REQUIREMENTS,
   SPA_ROUTE_FEATURE_REQUIREMENTS,
+  WORKSTATION_SPA_PATH_PREFIXES,
 } from "../../src/core/dx/hub-nav-planner.js";
 import { loadFeatures } from "../../src/core/features/features.js";
 import { NAV_SECTIONS, navSectionsForPortalAccess } from "../../src/core/dx/clients/layout/nav.js";
@@ -100,6 +102,7 @@ describe("Story · Hub nav planner (feature flags)", () => {
       hub: true,
       tenantAdmin: true,
       navFeatures: snapshotWith({ multiTenancy: false }),
+      workstation: true,
     });
     const admin = sections.find((s) => s.title === "Admin");
     expect(admin?.items.some((i) => i.id === "tenants")).toBe(false);
@@ -112,6 +115,7 @@ describe("Story · Hub nav planner (feature flags)", () => {
         hub: true,
         tenantAdmin: true,
         navFeatures: allOn,
+        workstation: true,
       }),
     ).toEqual(NAV_SECTIONS);
   });
@@ -143,6 +147,81 @@ describe("Story · Hub nav planner (feature flags)", () => {
     for (const [itemId, feature] of Object.entries(NAV_ITEM_FEATURE_REQUIREMENTS)) {
       const route = SPA_ROUTE_FEATURE_REQUIREMENTS.find((r) => r.feature === feature);
       expect(route, `nav item "${itemId}" feature "${feature}"`).toBeTruthy();
+    }
+  });
+});
+
+describe("Story · Hub nav planner (workstation tier)", () => {
+  // Pages whose DATA endpoints assert the workstation surface tier
+  // (dev-only forever) — mirrors the #186 tier table.
+  const workstationPaths = [
+    "/hub/coverage",
+    "/hub/tests",
+    "/hub/migrations",
+    "/hub/erd",
+    "/hub/emails",
+    "/hub/emails/templates",
+    "/hub/email-preview",
+    "/hub/email-builder",
+    "/hub/files",
+    "/hub/files/nested/dir",
+    "/admin/permissions/test",
+    "/admin/search",
+    "/admin/search/anything",
+  ];
+
+  // Operator-console pages: their data endpoints are operational tier
+  // and must stay reachable on an opted-in deployment.
+  const operationalPaths = [
+    "/hub",
+    "/hub/diagnostics",
+    "/hub/features",
+    "/hub/brand",
+    "/hub/logs",
+    "/hub/traces",
+    "/hub/queries",
+    "/hub/jobs",
+    "/hub/cron",
+    "/hub/email-outbox",
+    "/hub/routes",
+    "/hub/json",
+    "/hub/postgrest-parse",
+    "/admin/users",
+    "/admin/permissions",
+    "/admin/rate-limits",
+  ];
+
+  it.each(workstationPaths.map((path) => ({ path })))(
+    "$path is a workstation-only SPA path",
+    ({ path }) => {
+      expect(isSpaPathWorkstationOnly(path)).toBe(true);
+    },
+  );
+
+  it.each(operationalPaths.map((path) => ({ path })))(
+    "$path stays an operational SPA path",
+    ({ path }) => {
+      expect(isSpaPathWorkstationOnly(path)).toBe(false);
+    },
+  );
+
+  it("every workstation path prefix is covered by the exported list", () => {
+    expect(WORKSTATION_SPA_PATH_PREFIXES.length).toBeGreaterThan(0);
+    for (const prefix of WORKSTATION_SPA_PATH_PREFIXES) {
+      expect(isSpaPathWorkstationOnly(prefix), prefix).toBe(true);
+    }
+  });
+
+  it("nav tier tags agree with the path classification (cross-lock)", () => {
+    for (const item of NAV_SECTIONS.flatMap((s) => s.items)) {
+      if (item.href.startsWith("http")) {
+        // External links (Prisma Studio → the developer's localhost)
+        // are tagged by hand — the path classifier cannot see them.
+        continue;
+      }
+      expect(isSpaPathWorkstationOnly(item.href), `nav item "${item.id}"`).toBe(
+        item.tier === "workstation",
+      );
     }
   });
 });
