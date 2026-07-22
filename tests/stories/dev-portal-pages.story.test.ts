@@ -207,9 +207,10 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       expect(ADMIN_SPA_CONTROLLER).toContain("requireTenantContext");
     });
 
-    it("AdminSpaController is @Public Hub surface with assertDev()", () => {
-      expect(ADMIN_SPA_CONTROLLER).toMatch(/@Public\([^)]*assertDev\(\)[^)]*local development/);
-      expect(ADMIN_SPA_CONTROLLER).toContain("private assertDev()");
+    it("AdminSpaController is @Public Hub surface behind the tiered surface guard", () => {
+      expect(ADMIN_SPA_CONTROLLER).toMatch(/@Public\([^)]*surface guard[^)]*local development/);
+      expect(ADMIN_SPA_CONTROLLER).toContain("private assertOperational()");
+      expect(ADMIN_SPA_CONTROLLER).toContain("private assertWorkstation()");
     });
   });
 

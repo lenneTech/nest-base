@@ -19,8 +19,8 @@ import type { Response } from "express";
 
 import { buildDevPortalShellInput, renderDevPortalShell } from "../dx/dev-portal-shell.js";
 import { ConfigModule } from "../config/config.module.js";
-import { ConfigService } from "../config/config.service.js";
 
+import { assertHubSurfaceAvailable } from "../hub/hub-surface-guard.js";
 import { requireTenantContext } from "../multi-tenancy/require-tenant-context.js";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { Public } from "./public.decorator.js";
@@ -349,26 +349,35 @@ class PermissionAdminService {
 
 // Iter-202 reviewer feedback: bare non-empty check let `not-a-uuid`
 const DEV_ADMIN_CRUD_PUBLIC_REASON =
-  "Dev-Hub permission CRUD operator API — assertDev() guards production; no CASL login required in local development.";
+  "Dev-Hub permission CRUD operator API — the hub surface guard gates availability; no CASL login required in local development.";
 
-function assertDevPortalOnly(config: ConfigService): void {
-  if (config.server.env !== "development") {
-    throw new NotFoundException();
-  }
+/**
+ * Tier: OPERATIONAL (see `hub-surface-policy.ts`) — role/policy/
+ * permission CRUD is core operator-console functionality. Development-
+ * always; outside development it requires `FEATURE_HUB_ENABLED=true`
+ * AND the tenant-admin CASL wall in `HubPortalMiddleware`.
+ *
+ * Env is read at REQUEST time via the shared guard (the hub controller
+ * convention) instead of the boot-frozen `ConfigService` snapshot the
+ * old `assertDevPortalOnly` used — the snapshot missed runtime
+ * NODE_ENV flips, so these routes stayed open in the production-mode
+ * e2e boots that pin NODE_ENV after module import.
+ */
+function assertOperationalAdminSurface(): void {
+  assertHubSurfaceAvailable("operational");
 }
 
 @Controller("admin/roles")
 class RoleAdminController {
   constructor(
     private readonly service: RoleAdminService,
-    private readonly config: ConfigService,
     @Optional() @Inject(PermissionService) private readonly permissions?: PermissionService,
   ) {}
 
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Get()
   async list(@Headers("accept") accept: string | undefined, @Res() res: Response): Promise<void> {
-    assertDevPortalOnly(this.config);
+    assertOperationalAdminSurface();
     if (wantsHtml(accept)) {
       res.setHeader("content-type", "text/html; charset=utf-8");
       res.send(
@@ -383,7 +392,7 @@ class RoleAdminController {
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Post()
   async create(@Body() body: RoleCreateBody) {
-    assertDevPortalOnly(this.config);
+    assertOperationalAdminSurface();
     const tenantId = requireTenantContext();
     const created = await this.service.create(body, tenantId);
     this.permissions?.invalidateAll();
@@ -392,7 +401,7 @@ class RoleAdminController {
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Get(":id")
   async get(@Param("id") id: string) {
-    assertDevPortalOnly(this.config);
+    assertOperationalAdminSurface();
     const tenantId = requireTenantContext();
     const record = await this.service.get(id, tenantId);
     if (!record) throw new NotFoundException("role not found");
@@ -401,7 +410,7 @@ class RoleAdminController {
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Delete(":id")
   async remove(@Param("id") id: string) {
-    assertDevPortalOnly(this.config);
+    assertOperationalAdminSurface();
     const tenantId = requireTenantContext();
     try {
       await this.service.delete(id, tenantId);
@@ -415,7 +424,7 @@ class RoleAdminController {
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Patch(":id")
   async update(@Param("id") id: string, @Body() body: RolePatchBody) {
-    assertDevPortalOnly(this.config);
+    assertOperationalAdminSurface();
     const tenantId = requireTenantContext();
     const updated = await this.service.update(id, tenantId, body);
     this.permissions?.invalidateAll();
@@ -424,7 +433,7 @@ class RoleAdminController {
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Get(":id/policies")
   async listPolicies(@Param("id") id: string) {
-    assertDevPortalOnly(this.config);
+    assertOperationalAdminSurface();
     const tenantId = requireTenantContext();
     // Verify the role belongs to the operator's tenant before exposing data.
     const role = await this.service.get(id, tenantId);
@@ -437,20 +446,19 @@ class RoleAdminController {
 class PolicyAdminController {
   constructor(
     private readonly service: PolicyAdminService,
-    private readonly config: ConfigService,
     @Optional() @Inject(PermissionService) private readonly permissions?: PermissionService,
   ) {}
 
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Get()
   async list(@Headers("accept") accept: string | undefined, @Res() res: Response): Promise<void> {
-    assertDevPortalOnly(this.config);
+    assertOperationalAdminSurface();
     await negotiate(accept, res, "Policies", () => this.service.list());
   }
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Post()
   async create(@Body() body: PolicyCreateBody) {
-    assertDevPortalOnly(this.config);
+    assertOperationalAdminSurface();
     const created = await this.service.create(body);
     this.permissions?.invalidateAll();
     return created;
@@ -458,7 +466,7 @@ class PolicyAdminController {
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Get(":id")
   async get(@Param("id") id: string) {
-    assertDevPortalOnly(this.config);
+    assertOperationalAdminSurface();
     const record = await this.service.get(id);
     if (!record) throw new NotFoundException("policy not found");
     return record;
@@ -466,7 +474,7 @@ class PolicyAdminController {
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Delete(":id")
   async remove(@Param("id") id: string) {
-    assertDevPortalOnly(this.config);
+    assertOperationalAdminSurface();
     try {
       await this.service.delete(id);
     } catch {
@@ -478,7 +486,7 @@ class PolicyAdminController {
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Get(":id/roles")
   async listRoles(@Param("id") id: string) {
-    assertDevPortalOnly(this.config);
+    assertOperationalAdminSurface();
     const policy = await this.service.get(id);
     if (!policy) throw new NotFoundException("policy not found");
     return this.service.listRoles(id);
@@ -489,20 +497,19 @@ class PolicyAdminController {
 class PermissionAdminController {
   constructor(
     private readonly service: PermissionAdminService,
-    private readonly config: ConfigService,
     @Optional() @Inject(PermissionService) private readonly permissions?: PermissionService,
   ) {}
 
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Get()
   async list(@Headers("accept") accept: string | undefined, @Res() res: Response): Promise<void> {
-    assertDevPortalOnly(this.config);
+    assertOperationalAdminSurface();
     await negotiate(accept, res, "Permissions", () => this.service.list());
   }
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Post()
   async create(@Body() body: PermissionCreateBody) {
-    assertDevPortalOnly(this.config);
+    assertOperationalAdminSurface();
     const created = await this.service.create(body);
     this.permissions?.invalidateAll();
     return created;
@@ -512,7 +519,7 @@ class PermissionAdminController {
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Get("matrix.json")
   async matrix() {
-    assertDevPortalOnly(this.config);
+    assertOperationalAdminSurface();
     const tenantId = requireTenantContext();
     return this.service.buildMatrix(tenantId);
   }
@@ -520,7 +527,7 @@ class PermissionAdminController {
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Get(":id")
   async get(@Param("id") id: string) {
-    assertDevPortalOnly(this.config);
+    assertOperationalAdminSurface();
     const record = await this.service.get(id);
     if (!record) throw new NotFoundException("permission not found");
     return record;
@@ -528,7 +535,7 @@ class PermissionAdminController {
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Delete(":id")
   async remove(@Param("id") id: string) {
-    assertDevPortalOnly(this.config);
+    assertOperationalAdminSurface();
     try {
       await this.service.delete(id);
     } catch {
@@ -541,7 +548,7 @@ class PermissionAdminController {
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Post("attach")
   async attach(@Body() body: RolePolicyAttachBody) {
-    assertDevPortalOnly(this.config);
+    assertOperationalAdminSurface();
     const tenantId = requireTenantContext();
     const link = await this.service.attachToRole(body, tenantId);
     this.permissions?.invalidateAll();
@@ -551,7 +558,7 @@ class PermissionAdminController {
   @Public(DEV_ADMIN_CRUD_PUBLIC_REASON)
   @Delete("attach/:roleId/:policyId")
   async detach(@Param("roleId") roleId: string, @Param("policyId") policyId: string) {
-    assertDevPortalOnly(this.config);
+    assertOperationalAdminSurface();
     const tenantId = requireTenantContext();
     try {
       await this.service.detachFromRole(roleId, policyId, tenantId);
@@ -581,7 +588,7 @@ class PermissionAdminController {
     report: PermissionReport;
     can: boolean;
   }> {
-    assertDevPortalOnly(this.config);
+    assertOperationalAdminSurface();
     // Iter-202 reviewer-flagged: previously the handler resolved an
     // ability for any `body.tenantId` an operator supplied — they
     // could probe permissions for tenants outside their scope. Now

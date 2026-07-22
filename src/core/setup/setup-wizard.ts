@@ -283,6 +283,12 @@ function renderEnvExample(answers: WizardAnswers): string {
   lines.push("# FEATURE_POWERSYNC_ENABLED=false");
   lines.push("# FEATURE_MCP_ENABLED=false");
   lines.push("# FEATURE_FIELD_ENCRYPTION_ENABLED=false");
+  lines.push("#");
+  lines.push("# Operational hub/admin console outside development (staging/production).");
+  lines.push("# Requires an authenticated Better-Auth session whose CASL ability grants");
+  lines.push("# `read Hub` (for /hub/*) resp. tenant-admin subjects (for /admin/*).");
+  lines.push("# Workstation tools (file browser, migrations, .env toggles) stay dev-only.");
+  lines.push("# FEATURE_HUB_ENABLED=false");
   lines.push("");
   lines.push("# Geo (PostGIS, geocoding)");
   lines.push("# FEATURE_GEO_ENABLED=false");

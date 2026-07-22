@@ -112,6 +112,15 @@ const JobsSchema = z.object({
 // authentication / data-mutation surfaces always need audit traces;
 // projects with strict storage budgets opt out via FEATURE_AUDIT_ENABLED=false.
 const Audit = togglableDefault(true);
+// `hub` — opt-in availability of the OPERATIONAL hub/admin operator
+// console outside development (`FEATURE_HUB_ENABLED=true`). Default-off
+// preserves today's behaviour exactly: available in development,
+// 404 in staging/production. The flag is only consulted OUTSIDE
+// development — locally the hub is always on, so flipping it can never
+// lock a developer out of their workstation tooling. Workstation-tier
+// surfaces (file browser, migrations runner, .env writes, …) ignore
+// the flag entirely; see `src/core/hub/hub-surface-policy.ts`.
+const Hub = togglableDefault(false);
 
 export const FeaturesSchema = z.object({
   authMethods: AuthMethodsSchema.default(() => AuthMethodsSchema.parse({})),
@@ -138,6 +147,7 @@ export const FeaturesSchema = z.object({
   audit: Audit.default(() => Audit.parse({})),
   passwordPolicy: PasswordPolicy.default(() => PasswordPolicy.parse({})),
   filesMimeStrict: FilesMimeStrict.default(() => FilesMimeStrict.parse({})),
+  hub: Hub.default(() => Hub.parse({})),
 });
 
 export type Features = z.infer<typeof FeaturesSchema>;
@@ -149,6 +159,11 @@ export type FeatureKey = keyof Features;
  *
  * `authMethods` is intentionally excluded — the auth module is always loaded;
  * only its sub-options (emailPassword, twoFactor, passkey, etc.) vary.
+ *
+ * `hub` is intentionally excluded too: the hub/admin modules must always
+ * load (development needs them without any flag), so the flag must never
+ * feed `conditionalImport()`. It widens RUNTIME availability outside
+ * development only — enforced per request by `hub-surface-policy.ts`.
  */
 export type ToggleableFeatureKey =
   | "multiTenancy"
@@ -233,6 +248,7 @@ const SECTION_KEYS = new Set([
   "PASSWORDPOLICY",
   "FILES_MIME_STRICT",
   "FILESMIMESTRICT",
+  "HUB",
 ]);
 
 const SECTION_TO_KEY: Record<string, FeatureKey> = {
@@ -269,6 +285,7 @@ const SECTION_TO_KEY: Record<string, FeatureKey> = {
   PASSWORDPOLICY: "passwordPolicy",
   FILES_MIME_STRICT: "filesMimeStrict",
   FILESMIMESTRICT: "filesMimeStrict",
+  HUB: "hub",
 };
 
 const FIELD_TO_PROP: Record<string, string> = {
