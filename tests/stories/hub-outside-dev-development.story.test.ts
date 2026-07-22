@@ -68,8 +68,14 @@ describe("Story · Hub outside development (development boot, FEATURE_HUB_ENABLE
     });
 
     it("admin CRUD responds 200", async () => {
-      const res = await hub.get("/admin/roles").set("accept", "application/json");
+      const res = await hub.get("/hub/admin/roles").set("accept", "application/json");
       expect(res.status).toBe(200);
+    });
+
+    it("legacy /admin paths 308 in development too (one redirect story everywhere)", async () => {
+      const res = await hub.get("/admin/roles").set("accept", "application/json");
+      expect(res.status).toBe(308);
+      expect(res.headers.location).toBe("/hub/admin/roles");
     });
   });
 

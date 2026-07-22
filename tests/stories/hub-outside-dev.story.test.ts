@@ -143,6 +143,13 @@ describe("Story · Hub outside development (production + FEATURE_HUB_ENABLED=tru
       const res = await request(httpServer).get("/admin/roles").set("accept", "application/json");
       expect(res.status).toBe(401);
     });
+
+    it("new /hub/admin JSON without a session stays behind the session wall too", async () => {
+      const res = await request(httpServer)
+        .get("/hub/admin/roles")
+        .set("accept", "application/json");
+      expect(res.status).toBe(401);
+    });
   });
 
   describe("authenticated session WITHOUT hub ability", () => {
@@ -158,19 +165,30 @@ describe("Story · Hub outside development (production + FEATURE_HUB_ENABLED=tru
 
     it("tenant-admin JSON responds 404 (masked)", async () => {
       const res = await plainMember.agent
-        .get("/admin/users/list.json")
+        .get("/hub/admin/users/list.json")
         .set("accept", "application/json");
       expect(res.status).toBe(404);
     });
 
     it("admin CRUD responds 404 (masked)", async () => {
-      const res = await plainMember.agent.get("/admin/roles").set("accept", "application/json");
+      const res = await plainMember.agent
+        .get("/hub/admin/roles")
+        .set("accept", "application/json");
       expect(res.status).toBe(404);
     });
 
     it("previously shell-open admin pages are masked too (rate-limits shell)", async () => {
-      const res = await plainMember.agent.get("/admin/rate-limits").set("accept", "text/html");
+      const res = await plainMember.agent
+        .get("/hub/admin/rate-limits")
+        .set("accept", "text/html");
       expect(res.status).toBe(404);
+    });
+
+    it("legacy /admin paths stay masked 404 — the 308 never leaks to unauthorized users", async () => {
+      const json = await plainMember.agent.get("/admin/roles").set("accept", "application/json");
+      expect(json.status).toBe(404);
+      const shell = await plainMember.agent.get("/admin/rate-limits").set("accept", "text/html");
+      expect(shell.status).toBe(404);
     });
 
     it("the access probe stays reachable for any signed-in user and reports no access", async () => {
@@ -238,21 +256,32 @@ describe("Story · Hub outside development (production + FEATURE_HUB_ENABLED=tru
     });
 
     it("tenant-admin CRUD responds 200 (roles list)", async () => {
-      const res = await operator.agent.get("/admin/roles").set("accept", "application/json");
+      const res = await operator.agent.get("/hub/admin/roles").set("accept", "application/json");
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
     });
 
     it("user admin JSON responds 200 (manage User grant)", async () => {
       const res = await operator.agent
-        .get("/admin/users/list.json")
+        .get("/hub/admin/users/list.json")
         .set("accept", "application/json");
       expect(res.status).toBe(200);
     });
 
     it("admin SPA shells behind the CASL wall render (rate-limits shell)", async () => {
-      const res = await operator.agent.get("/admin/rate-limits").set("accept", "text/html");
+      const res = await operator.agent.get("/hub/admin/rate-limits").set("accept", "text/html");
       expect(res.status).toBe(200);
+    });
+
+    it("legacy /admin paths answer 308 to /hub/admin for the authorized operator", async () => {
+      const roles = await operator.agent.get("/admin/roles").set("accept", "application/json");
+      expect(roles.status).toBe(308);
+      expect(roles.headers.location).toBe("/hub/admin/roles");
+      const users = await operator.agent
+        .get("/admin/users/list.json")
+        .set("accept", "application/json");
+      expect(users.status).toBe(308);
+      expect(users.headers.location).toBe("/hub/admin/users/list.json");
     });
   });
 
@@ -276,9 +305,16 @@ describe("Story · Hub outside development (production + FEATURE_HUB_ENABLED=tru
 
     it("x-test-ability tester responds 404", async () => {
       const res = await operator.agent
-        .get("/admin/permissions/test.json")
+        .get("/hub/admin/permissions/test.json")
         .set("accept", "application/json");
       expect(res.status).toBe(404);
+      // The legacy path 308s for the authorized operator, but the
+      // target still refuses the workstation tier — net result 404.
+      const legacy = await operator.agent
+        .get("/admin/permissions/test.json")
+        .set("accept", "application/json");
+      expect(legacy.status).toBe(308);
+      expect(legacy.headers.location).toBe("/hub/admin/permissions/test.json");
     });
 
     it("workstation tunnel state responds 404", async () => {
@@ -305,7 +341,7 @@ describe("Story · Hub outside development (production + FEATURE_HUB_ENABLED=tru
 
     it("cross-tenant search tester responds 404", async () => {
       const res = await operator.agent
-        .get("/admin/search.json?q=probe")
+        .get("/hub/admin/search.json?q=probe")
         .set("accept", "application/json");
       expect(res.status).toBe(404);
     });
