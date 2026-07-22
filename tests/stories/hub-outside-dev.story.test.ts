@@ -178,6 +178,9 @@ describe("Story · Hub outside development (production + FEATURE_HUB_ENABLED=tru
       expect(res.status).toBe(200);
       expect(res.body.hub).toBe(false);
       expect(res.body.tenantAdmin).toBe(false);
+      // Even a no-access probe reports the tier signal, so the SPA never
+      // has to guess the environment.
+      expect(res.body.workstation).toBe(false);
     });
   });
 
@@ -187,6 +190,26 @@ describe("Story · Hub outside development (production + FEATURE_HUB_ENABLED=tru
       expect(res.status).toBe(200);
       expect(res.body.hub).toBe(true);
       expect(res.body.tenantAdmin).toBe(true);
+    });
+
+    it("access probe reports workstation:false so the SPA hides dev-only nav", async () => {
+      // The one signal the SPA was missing: outside development the
+      // workstation tier is never servable, so the sidebar must not
+      // offer Files/Migrations/Coverage/… — their data endpoints 404.
+      const res = await operator.agent.get("/hub/portal-access.json");
+      expect(res.status).toBe(200);
+      expect(res.body.workstation).toBe(false);
+    });
+
+    it("palette search omits workstation-tier pages (nav parity)", async () => {
+      const migrations = await operator.agent.get("/hub/palette/search.json?q=migrations");
+      expect(migrations.status).toBe(200);
+      const migrationHrefs = (migrations.body.pages as Array<{ href: string }>).map((p) => p.href);
+      expect(migrationHrefs).not.toContain("/hub/migrations");
+      const logs = await operator.agent.get("/hub/palette/search.json?q=logs");
+      expect(logs.status).toBe(200);
+      const logHrefs = (logs.body.pages as Array<{ href: string }>).map((p) => p.href);
+      expect(logHrefs).toContain("/hub/logs");
     });
 
     it("hub SPA shell renders (200)", async () => {

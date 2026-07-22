@@ -24,10 +24,23 @@ describe("Story · Hub portal CASL access", () => {
     const ability = buildAbility([{ action: "manage", subject: "all" }]);
     expect(canAccessHub(ability)).toBe(true);
     expect(canAccessTenantAdmin(ability)).toBe(true);
-    expect(buildHubPortalAccessSnapshot(ability, navFeatures)).toEqual({
+    expect(buildHubPortalAccessSnapshot(ability, navFeatures, true)).toEqual({
       hub: true,
       tenantAdmin: true,
       features: navFeatures,
+      workstation: true,
+    });
+  });
+
+  it("workstation availability flows through the snapshot verbatim (deployed = false)", () => {
+    // Ability grants everything — yet outside development the snapshot
+    // must still say workstation:false so the SPA can hide dev-only nav.
+    const ability = buildAbility([{ action: "manage", subject: "all" }]);
+    expect(buildHubPortalAccessSnapshot(ability, navFeatures, false)).toEqual({
+      hub: true,
+      tenantAdmin: true,
+      features: navFeatures,
+      workstation: false,
     });
   });
 
@@ -46,10 +59,11 @@ describe("Story · Hub portal CASL access", () => {
     const ability = buildAbility([{ action: "manage", subject: "User" }]);
     expect(canAccessTenantAdmin(ability)).toBe(true);
     expect(canAccessHub(ability)).toBe(false);
-    expect(buildHubPortalAccessSnapshot(ability, navFeatures)).toEqual({
+    expect(buildHubPortalAccessSnapshot(ability, navFeatures, true)).toEqual({
       hub: false,
       tenantAdmin: true,
       features: navFeatures,
+      workstation: true,
     });
   });
 
@@ -62,10 +76,11 @@ describe("Story · Hub portal CASL access", () => {
       { action: "read", subject: "Hub" },
     ]);
     expect(canAccessTenantAdmin(ability)).toBe(true);
-    expect(buildHubPortalAccessSnapshot(ability, navFeatures)).toEqual({
+    expect(buildHubPortalAccessSnapshot(ability, navFeatures, true)).toEqual({
       hub: true,
       tenantAdmin: true,
       features: navFeatures,
+      workstation: true,
     });
   });
 
@@ -76,10 +91,11 @@ describe("Story · Hub portal CASL access", () => {
       { action: "update", subject: "all" },
       { action: "delete", subject: "all" },
     ]);
-    expect(buildHubPortalAccessSnapshot(ability, navFeatures)).toEqual({
+    expect(buildHubPortalAccessSnapshot(ability, navFeatures, true)).toEqual({
       hub: true,
       tenantAdmin: true,
       features: navFeatures,
+      workstation: true,
     });
   });
 });

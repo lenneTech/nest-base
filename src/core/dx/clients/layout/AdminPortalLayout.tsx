@@ -2,9 +2,10 @@
  * Persistent hub/admin chrome — sidebar + header survive route changes.
  */
 import { useEffect, useLayoutEffect, type ReactNode } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useOutletContext } from "react-router-dom";
 
 import { CommandPalette } from "../components/CommandPalette.js";
+import type { HubPortalAccess } from "../components/HubPortalGate.js";
 import { bootstrapHubOperatorSession } from "../lib/hub-session-bootstrap.js";
 import { AdminShellProvider, useAdminShellContext } from "./admin-shell-context.js";
 import { AdminSidebar, PORTAL_TOP_CHROME_ROW } from "./AdminShell.js";
@@ -19,6 +20,10 @@ function getBrandName(): string {
 function AdminPortalLayoutInner(): ReactNode {
   const { state } = useAdminShellContext();
   const { title, subtitle, currentNav, toolbar } = state;
+  // Re-provide the HubPortalGate outlet context through this layout's
+  // own <Outlet> — otherwise pages below would read `undefined` and
+  // could not see the portal-access snapshot (workstation flag etc.).
+  const portalAccess = useOutletContext<HubPortalAccess | undefined>();
 
   useLayoutEffect(() => {
     if (typeof document !== "undefined") {
@@ -47,7 +52,7 @@ function AdminPortalLayoutInner(): ReactNode {
           </div>
         </header>
         <section className="flex-1 px-8 py-6">
-          <Outlet />
+          <Outlet context={portalAccess} />
         </section>
       </main>
     </div>

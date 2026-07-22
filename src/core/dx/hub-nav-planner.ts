@@ -101,6 +101,34 @@ export function isSpaPathAllowedByFeatures(pathname: string, features: Features)
   return isSpaPathAllowedByNavSnapshot(pathname, buildHubNavFeatureSnapshot(features));
 }
 
+/**
+ * SPA paths whose DATA endpoints are workstation-tier (see
+ * `hub-surface-policy.ts` — dev-only forever). Outside development the
+ * server 404s their JSON, so nav, quick links, the palette, and the
+ * client route gate hide them when `portal-access.json` says
+ * `workstation: false`. Page-shell tiers do not matter here — this list
+ * classifies what the PAGE needs to function.
+ */
+export const WORKSTATION_SPA_PATH_PREFIXES: readonly string[] = [
+  "/hub/coverage",
+  "/hub/tests",
+  "/hub/migrations",
+  "/hub/erd",
+  "/hub/emails",
+  "/hub/email-preview",
+  "/hub/email-builder",
+  "/hub/files",
+  "/admin/permissions/test",
+  "/admin/search",
+];
+
+/** Prefix match, same semantics as `SPA_ROUTE_FEATURE_REQUIREMENTS`. */
+export function isSpaPathWorkstationOnly(pathname: string): boolean {
+  return WORKSTATION_SPA_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
 /** Hub landing quick-links: SPA paths respect flags; `/api/docs` and `/errors` stay visible. */
 export function isHubQuickLinkVisible(href: string, snapshot: HubPortalNavFeatures): boolean {
   const path = href.split("?")[0] ?? href;

@@ -119,7 +119,12 @@ clients/
 1. Add a route to `App.tsx` with `React.lazy`.
 2. Add the corresponding sidebar entry to `layout/nav.ts` (extend
    `NAV_SECTIONS` and add the path to `SPA_ROUTES` so the link uses
-   react-router and not a full reload).
+   react-router and not a full reload). If the page's data endpoints
+   are workstation-tier (dev-only, see `hub-surface-policy.ts`), tag
+   the entry `tier: "workstation"` AND add the path prefix to
+   `WORKSTATION_SPA_PATH_PREFIXES` in `../hub-nav-planner.ts` — that
+   hides it (nav, palette, quick links, deep links) on deployed
+   servers where `portal-access.json` reports `workstation: false`.
 3. Add a `*.json` endpoint in `hub.controller.ts` (for `/hub/*`)
    or `admin-spa.controller.ts` (for `/admin/*`) — the controller does
    the planning, returns JSON, the React page renders.

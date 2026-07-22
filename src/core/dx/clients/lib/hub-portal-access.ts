@@ -17,6 +17,8 @@ export interface HubPortalAccessPayload {
   hub?: boolean;
   tenantAdmin?: boolean;
   features?: HubPortalNavFeatures;
+  /** Workstation-tier surfaces servable (true exactly in development). */
+  workstation?: boolean;
   /** @deprecated Pre-rename API field — remove after all clients refresh. */
   devHub?: boolean;
 }
@@ -28,6 +30,15 @@ export function hasHubPortalAccess(data: HubPortalAccessPayload | undefined): bo
 
 export function hasTenantAdminPortalAccess(data: HubPortalAccessPayload | undefined): boolean {
   return data?.tenantAdmin === true;
+}
+
+/**
+ * Workstation-tier surfaces servable? Only an explicit `false` hides
+ * them — an absent field (server predating the flag) keeps today's
+ * full nav, mirroring `LEGACY_HUB_NAV_FEATURES_FALLBACK` semantics.
+ */
+export function hasWorkstationSurfaces(data: HubPortalAccessPayload | undefined): boolean {
+  return data?.workstation !== false;
 }
 
 /** Post-login / session-restore navigation target from portal-access flags. */

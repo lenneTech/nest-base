@@ -20,6 +20,13 @@ export interface AdminNavItem {
   href: string;
   /** key into `ICONS` from `./icons.tsx`. */
   icon: string;
+  /**
+   * `"workstation"` — the page's data lives on the developer's
+   * workstation (checkout files, .env, localhost tools), so its data
+   * endpoints are dev-only forever (see `hub-surface-policy.ts`).
+   * Hidden when `portal-access.json` reports `workstation: false`.
+   */
+  tier?: "workstation";
 }
 
 export interface AdminNavSection {
@@ -38,8 +45,14 @@ export const NAV_SECTIONS: readonly AdminNavSection[] = [
       { id: "diagnostics", label: "Diagnostics", href: "/hub/diagnostics", icon: "activity" },
       { id: "features", label: "Features", href: "/hub/features", icon: "toggle" },
       { id: "brand", label: "Brand", href: "/hub/brand", icon: "palette" },
-      { id: "coverage", label: "Coverage", href: "/hub/coverage", icon: "chart" },
-      { id: "tests", label: "Tests", href: "/hub/tests", icon: "check" },
+      {
+        id: "coverage",
+        label: "Coverage",
+        href: "/hub/coverage",
+        icon: "chart",
+        tier: "workstation",
+      },
+      { id: "tests", label: "Tests", href: "/hub/tests", icon: "check", tier: "workstation" },
     ],
   },
   {
@@ -48,7 +61,13 @@ export const NAV_SECTIONS: readonly AdminNavSection[] = [
       { id: "logs", label: "Logs", href: "/hub/logs", icon: "terminal" },
       { id: "traces", label: "Traces", href: "/hub/traces", icon: "pulse" },
       { id: "queries", label: "Queries", href: "/hub/queries", icon: "database" },
-      { id: "migrations", label: "Migrations", href: "/hub/migrations", icon: "table" },
+      {
+        id: "migrations",
+        label: "Migrations",
+        href: "/hub/migrations",
+        icon: "table",
+        tier: "workstation",
+      },
       { id: "jobs", label: "Jobs", href: "/hub/jobs", icon: "layers" },
       { id: "cron", label: "Cron", href: "/hub/cron", icon: "clock" },
       { id: "email-outbox", label: "Email Outbox", href: "/hub/email-outbox", icon: "inbox" },
@@ -61,13 +80,16 @@ export const NAV_SECTIONS: readonly AdminNavSection[] = [
       { id: "openapi", label: "OpenAPI Spec", href: "/openapi", icon: "file" },
       { id: "routes", label: "Routes", href: "/hub/routes", icon: "route" },
       { id: "errors", label: "Error Codes", href: "/errors", icon: "bug" },
-      { id: "erd", label: "ERD", href: "/hub/erd", icon: "network" },
-      { id: "emails", label: "Emails", href: "/hub/emails", icon: "mail" },
+      { id: "erd", label: "ERD", href: "/hub/erd", icon: "network", tier: "workstation" },
+      { id: "emails", label: "Emails", href: "/hub/emails", icon: "mail", tier: "workstation" },
       {
         id: "prisma-studio",
         label: "Prisma Studio",
+        // The dev-runner's Prisma Studio on the developer's own machine —
+        // a dead link from any deployed portal, hence workstation tier.
         href: "http://localhost:5555",
         icon: "external-link",
+        tier: "workstation",
       },
     ],
   },
@@ -85,13 +107,20 @@ export const NAV_SECTIONS: readonly AdminNavSection[] = [
         label: "Permission Tester",
         href: "/admin/permissions/test",
         icon: "clipboard",
+        tier: "workstation",
       },
       { id: "rate-limits", label: "Rate Limits", href: "/admin/rate-limits", icon: "gauge" },
       { id: "webhooks", label: "Webhook Inspector", href: "/admin/webhooks", icon: "webhook" },
       { id: "realtime", label: "Realtime Inspector", href: "/admin/realtime", icon: "radio" },
       { id: "audit", label: "Audit Browser", href: "/admin/audit", icon: "list" },
-      { id: "search", label: "Search Tester", href: "/admin/search", icon: "search" },
-      { id: "files", label: "File Manager", href: "/hub/files", icon: "file" },
+      {
+        id: "search",
+        label: "Search Tester",
+        href: "/admin/search",
+        icon: "search",
+        tier: "workstation",
+      },
+      { id: "files", label: "File Manager", href: "/hub/files", icon: "file", tier: "workstation" },
     ],
   },
 ];
@@ -140,6 +169,8 @@ export interface PortalNavAccessInput {
   hub: boolean;
   tenantAdmin: boolean;
   navFeatures: HubPortalNavFeatures;
+  /** `portal-access.json → workstation` — false hides workstation-tier entries. */
+  workstation: boolean;
 }
 
 /** Sidebar sections visible for the signed-in operator and active feature flags. */
@@ -154,7 +185,17 @@ export function navSectionsForPortalAccess(
   } else {
     sections = NAV_SECTIONS;
   }
-  return filterNavSectionsForSnapshot(sections, access.navFeatures);
+  const filtered = filterNavSectionsForSnapshot(sections, access.navFeatures);
+  if (access.workstation) {
+    // Development: byte-identical nav — the tier tags stay invisible.
+    return filtered;
+  }
+  return filtered
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => item.tier !== "workstation"),
+    }))
+    .filter((section) => section.items.length > 0);
 }
 
 export function isSpaRoute(href: string): boolean {

@@ -14,7 +14,9 @@ There is **no** separate Hub operator password or `hub.session` cookie anymore.
 2. Sign in with email + password (`POST /api/auth/sign-in/email`, session cookie).
 3. The SPA calls `bootstrapHubOperatorSession()` (Better-Auth `set-active`
    for the operator's organization) when multi-tenancy is enabled.
-4. The SPA checks `GET /hub/portal-access.json` (`hub` + `tenantAdmin` flags).
+4. The SPA checks `GET /hub/portal-access.json` (`hub` + `tenantAdmin` flags, plus
+   `workstation` — `false` outside development, which hides workstation-tier nav
+   entries such as Files/Migrations/Coverage/Tests/ERD/Emails and the testers).
 5. On success you land on `/hub` (system admin) or `/admin/*` (tenant admin).
 
 **After setup** (`bun run setup` runs migrate + seed by default), demo accounts are

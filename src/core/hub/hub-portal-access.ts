@@ -39,15 +39,24 @@ export interface HubPortalAccessSnapshot {
   hub: boolean;
   tenantAdmin: boolean;
   features: HubPortalNavFeatures;
+  /**
+   * Workstation-tier surfaces servable? `true` exactly in development
+   * (`isHubSurfaceAvailable({tier: "workstation"})`). The SPA's only
+   * environment signal — deliberately a boolean, not the raw NODE_ENV,
+   * so the probe leaks nothing beyond what the 404s already prove.
+   */
+  workstation: boolean;
 }
 
 export function buildHubPortalAccessSnapshot(
   ability: Ability | undefined,
   features: HubPortalNavFeatures,
+  workstation: boolean,
 ): HubPortalAccessSnapshot {
   return {
     hub: canAccessHub(ability),
     tenantAdmin: canAccessTenantAdmin(ability),
     features,
+    workstation,
   };
 }

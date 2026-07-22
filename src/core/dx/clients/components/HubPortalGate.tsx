@@ -9,11 +9,13 @@ import { PageError, PageLoading } from "./PageState.js";
 import { AdminFetchError, fetchJson, signOut } from "../lib/api.js";
 import {
   isSpaPathAllowedByNavSnapshot,
+  isSpaPathWorkstationOnly,
   LEGACY_HUB_NAV_FEATURES_FALLBACK,
 } from "../../hub-nav-planner.js";
 import {
   hasHubPortalAccess,
   hasTenantAdminPortalAccess,
+  hasWorkstationSurfaces,
   type HubPortalAccessPayload,
   type HubPortalNavFeatures,
 } from "../lib/hub-portal-access.js";
@@ -103,6 +105,32 @@ export function HubPortalGate(): ReactNode {
         >
           Sign out and sign in again
         </button>
+      </div>
+    );
+  }
+
+  // Deep links to workstation-tier pages on a deployed server: the nav
+  // hides them, but a bookmarked URL would render a page whose data
+  // endpoints all 404 — show the honest explanation instead.
+  if (
+    (onHub || onAdmin) &&
+    !hasWorkstationSurfaces(data) &&
+    isSpaPathWorkstationOnly(location.pathname)
+  ) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-bg p-8">
+        <PageError>
+          This page is development-workstation tooling and is not available on a deployed server.
+        </PageError>
+        {hasHubPortalAccess(data) ? (
+          <a href="/hub" className="text-sm text-accent underline-offset-2 hover:underline">
+            Back to the Hub
+          </a>
+        ) : hasTenantAdminPortalAccess(data) ? (
+          <a href="/admin/users" className="text-sm text-accent underline-offset-2 hover:underline">
+            Go to admin area
+          </a>
+        ) : null}
       </div>
     );
   }

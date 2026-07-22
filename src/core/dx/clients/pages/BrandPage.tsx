@@ -8,12 +8,15 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
+import { useOutletContext } from "react-router-dom";
 
 import { Button } from "../components/ui/button.js";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
 import { PageError, PageLoading } from "../components/PageState.js";
+import type { HubPortalAccess } from "../components/HubPortalGate.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson } from "../lib/api.js";
+import { hasWorkstationSurfaces } from "../lib/hub-portal-access.js";
 
 interface BrandConfig {
   name: string;
@@ -35,6 +38,10 @@ interface BrandConfig {
 
 export function BrandPage(): ReactNode {
   const queryClient = useQueryClient();
+  const portalAccess = useOutletContext<HubPortalAccess | undefined>();
+  // Reset deletes a repo file — a workstation-tier write that 404s on a
+  // deployed server, so the whole card disappears with the tier.
+  const canWrite = hasWorkstationSurfaces(portalAccess);
   const { data, isLoading, isError } = useQuery<BrandConfig>({
     queryKey: ["brand"],
     queryFn: () => fetchJson<BrandConfig>("/hub/brand.json"),
@@ -73,37 +80,40 @@ export function BrandPage(): ReactNode {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Reset to default</CardTitle>
-            <p className="text-xs text-fg-muted">
-              Deletes <code className="font-mono text-accent">src/modules/branding/brand.json</code>{" "}
-              and falls back to{" "}
-              <code className="font-mono text-accent">src/core/branding/brand.default.json</code>.
-              The dev runner restarts the API automatically.
-            </p>
-          </CardHeader>
-          <CardContent>
-            <Button
-              variant="danger"
-              onClick={() => {
-                if (
-                  window.confirm("Delete src/modules/branding/brand.json and reset to default?")
-                ) {
-                  reset.mutate();
-                }
-              }}
-              disabled={reset.isPending}
-            >
-              {reset.isPending ? "Resetting…" : "Reset brand"}
-            </Button>
-            {reset.isSuccess ? (
-              <p className="mt-2 text-sm text-ok">
-                Brand reset. The dev runner is restarting the API.
+        {canWrite ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Reset to default</CardTitle>
+              <p className="text-xs text-fg-muted">
+                Deletes{" "}
+                <code className="font-mono text-accent">src/modules/branding/brand.json</code> and
+                falls back to{" "}
+                <code className="font-mono text-accent">src/core/branding/brand.default.json</code>.
+                The dev runner restarts the API automatically.
               </p>
-            ) : null}
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  if (
+                    window.confirm("Delete src/modules/branding/brand.json and reset to default?")
+                  ) {
+                    reset.mutate();
+                  }
+                }}
+                disabled={reset.isPending}
+              >
+                {reset.isPending ? "Resetting…" : "Reset brand"}
+              </Button>
+              {reset.isSuccess ? (
+                <p className="mt-2 text-sm text-ok">
+                  Brand reset. The dev runner is restarting the API.
+                </p>
+              ) : null}
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
     </AdminShell>
   );

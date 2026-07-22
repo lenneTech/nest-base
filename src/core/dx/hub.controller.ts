@@ -122,8 +122,15 @@ import { ApiTags } from "@nestjs/swagger";
 import type { Ability } from "../permissions/casl-ability.js";
 import { buildHubPortalAccessSnapshot } from "../hub/hub-portal-access.js";
 import { resolveHubOperatorTenantId, type HubOperatorUser } from "../hub/hub-operator-tenant.js";
-import { assertHubSurfaceAvailable } from "../hub/hub-surface-guard.js";
-import { buildHubNavFeatureSnapshot, filterPalettePagesForNavSnapshot } from "./hub-nav-planner.js";
+import {
+  assertHubSurfaceAvailable,
+  isHubSurfaceAvailableFromEnv,
+} from "../hub/hub-surface-guard.js";
+import {
+  buildHubNavFeatureSnapshot,
+  filterPalettePagesForNavSnapshot,
+  isSpaPathWorkstationOnly,
+} from "./hub-nav-planner.js";
 import { Public } from "../permissions/public.decorator.js";
 import { assertFeatureEnabledFromEnv } from "../features/assert-feature-enabled.js";
 import type { ToggleableFeatureKey } from "../features/features.js";
@@ -230,7 +237,13 @@ export class HubController {
   ): ReturnType<typeof buildHubPortalAccessSnapshot> {
     this.assertOperational();
     const features = this.featuresOnly();
-    return buildHubPortalAccessSnapshot(req.ability, buildHubNavFeatureSnapshot(features));
+    return buildHubPortalAccessSnapshot(
+      req.ability,
+      buildHubNavFeatureSnapshot(features),
+      // Same pure policy that 404s the workstation routes — so the SPA
+      // nav and the server gates can never drift apart.
+      isHubSurfaceAvailableFromEnv("workstation"),
+    );
   }
 
   /**
@@ -1577,7 +1590,12 @@ export class HubController {
     this.assertOperational();
     const query = typeof q === "string" ? q.trim() : "";
     const snapshot = buildHubNavFeatureSnapshot(this.featuresOnly());
-    const pages = filterPalettePagesForNavSnapshot(buildHubPageCatalog(), snapshot);
+    // Outside development the workstation pages 404 — keep Cmd+K in
+    // lock-step with the sidebar instead of offering dead entries.
+    const workstation = isHubSurfaceAvailableFromEnv("workstation");
+    const pages = filterPalettePagesForNavSnapshot(buildHubPageCatalog(), snapshot).filter(
+      (page) => workstation || !isSpaPathWorkstationOnly(page.href),
+    );
     const results = searchPalettePages({ query, pages, maxResults: 30 });
     return { pages: results };
   }

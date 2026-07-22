@@ -9,7 +9,7 @@
  */
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useOutletContext } from "react-router-dom";
 
 import { Badge } from "../components/ui/badge.js";
 import { Button } from "../components/ui/button.js";
@@ -28,10 +28,16 @@ import {
   YAxis,
 } from "../components/ui/chart.js";
 import { PageError, PageLoading, PageEmpty } from "../components/PageState.js";
+import type { HubPortalAccess } from "../components/HubPortalGate.js";
 import { AdminShell } from "../layout/AdminShell.js";
-import { buildHubNavFeatureSnapshot, isHubQuickLinkVisible } from "../../hub-nav-planner.js";
+import {
+  buildHubNavFeatureSnapshot,
+  isHubQuickLinkVisible,
+  isSpaPathWorkstationOnly,
+} from "../../hub-nav-planner.js";
 import type { Features } from "../../../features/features.js";
 import { fetchJson, formatDuration, levelName, stripProto } from "../lib/api.js";
+import { hasWorkstationSurfaces } from "../lib/hub-portal-access.js";
 import { cn } from "../lib/utils.js";
 
 // ---------------------------------------------------------------------------
@@ -234,6 +240,8 @@ export function HubLandingPage(): ReactNode {
 // ---------------------------------------------------------------------------
 
 function DashboardBody({ data }: { data: DashboardJson }): ReactNode {
+  const portalAccess = useOutletContext<HubPortalAccess | undefined>();
+  const workstation = hasWorkstationSurfaces(portalAccess);
   const probesDown = data.probes.filter((p) => p.status === "down").length;
   const probesUp = data.probes.filter((p) => p.status === "up").length;
   const overall = computeOverallHealth(data, probesDown);
@@ -287,7 +295,7 @@ function DashboardBody({ data }: { data: DashboardJson }): ReactNode {
         <FeatureOverview features={data.features} catalog={data.catalog} />
       </div>
 
-      <QuickLinks features={data.features} />
+      <QuickLinks features={data.features} workstation={workstation} />
     </div>
   );
 }
@@ -971,7 +979,13 @@ function FeatureOverview({
   );
 }
 
-function QuickLinks({ features }: { features: DashboardJson["features"] }): ReactNode {
+function QuickLinks({
+  features,
+  workstation,
+}: {
+  features: DashboardJson["features"];
+  workstation: boolean;
+}): ReactNode {
   const navSnapshot = buildHubNavFeatureSnapshot(features as Features);
   const links = [
     { href: "/api/docs", label: "API Reference", hint: "Interactive OpenAPI 3.1 reference" },
@@ -1001,7 +1015,12 @@ function QuickLinks({ features }: { features: DashboardJson["features"] }): Reac
       hint: "Try the WHERE clause parser",
     },
     { href: "/hub/diagnostics", label: "Diagnostics", hint: "Memory, versions, runtime" },
-  ].filter((link) => isHubQuickLinkVisible(link.href, navSnapshot));
+  ].filter(
+    (link) =>
+      isHubQuickLinkVisible(link.href, navSnapshot) &&
+      // Workstation-tier targets vanish with the tier (deployed server).
+      (workstation || !isSpaPathWorkstationOnly(link.href.split("?")[0] ?? link.href)),
+  );
   return (
     <Card>
       <CardHeader>

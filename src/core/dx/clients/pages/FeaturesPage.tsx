@@ -6,6 +6,7 @@
  */
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
+import { useOutletContext } from "react-router-dom";
 
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.js";
 import {
@@ -17,8 +18,10 @@ import {
 } from "../components/ui/dialog.js";
 import { Switch } from "../components/ui/switch.js";
 import { PageError, PageLoading, StatTile } from "../components/PageState.js";
+import type { HubPortalAccess } from "../components/HubPortalGate.js";
 import { AdminShell } from "../layout/AdminShell.js";
 import { fetchJson } from "../lib/api.js";
+import { hasWorkstationSurfaces } from "../lib/hub-portal-access.js";
 import { cn } from "../lib/utils.js";
 
 interface FeatureMeta {
@@ -50,6 +53,10 @@ function isActive(features: FeatureCatalogResponse["features"], key: string): bo
 }
 
 export function FeaturesPage(): ReactNode {
+  const portalAccess = useOutletContext<HubPortalAccess | undefined>();
+  // Toggling writes the workstation's .env — outside development the
+  // POST 404s (workstation tier), so render the switches read-only.
+  const readOnly = !hasWorkstationSurfaces(portalAccess);
   const data = useQuery({
     queryKey: ["hub", "feature-catalog"],
     queryFn: () => fetchJson<FeatureCatalogResponse>("/hub/feature-catalog.json"),
@@ -62,7 +69,7 @@ export function FeaturesPage(): ReactNode {
   return (
     <AdminShell title="Features" subtitle={subtitle} currentNav="features">
       {data.data ? (
-        <FeaturesBody data={data.data} />
+        <FeaturesBody data={data.data} readOnly={readOnly} />
       ) : data.isError ? (
         <PageError>Failed to load feature catalog.</PageError>
       ) : (
@@ -72,7 +79,13 @@ export function FeaturesPage(): ReactNode {
   );
 }
 
-function FeaturesBody({ data }: { data: FeatureCatalogResponse }): ReactNode {
+function FeaturesBody({
+  data,
+  readOnly,
+}: {
+  data: FeatureCatalogResponse;
+  readOnly: boolean;
+}): ReactNode {
   const total = data.catalog.length;
   const active = data.catalog.filter((m) => isActive(data.features, m.key)).length;
   const available = total - active;
@@ -104,6 +117,7 @@ function FeaturesBody({ data }: { data: FeatureCatalogResponse }): ReactNode {
                   key={meta.key}
                   meta={meta}
                   active={isActive(data.features, meta.key)}
+                  readOnly={readOnly}
                 />
               ))}
             </div>
@@ -116,6 +130,13 @@ function FeaturesBody({ data }: { data: FeatureCatalogResponse }): ReactNode {
           <CardTitle>How toggling works</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-fg-muted">
+          {readOnly ? (
+            <p className="mb-3 text-warn">
+              Read-only view: toggling writes the development workstation&apos;s{" "}
+              <code className="font-mono text-accent">.env</code> and is not available on a deployed
+              server — change the environment variables of the deployment instead.
+            </p>
+          ) : null}
           Flipping a switch above writes the matching{" "}
           <code className="font-mono text-accent">FEATURE_*_ENABLED</code> line into{" "}
           <code className="font-mono text-accent">.env</code> and touches{" "}
@@ -134,9 +155,11 @@ function FeaturesBody({ data }: { data: FeatureCatalogResponse }): ReactNode {
 interface FeatureCardProps {
   meta: FeatureMeta;
   active: boolean;
+  /** Workstation surfaces unavailable — render the switch inert. */
+  readOnly: boolean;
 }
 
-function FeatureCard({ meta, active }: FeatureCardProps): ReactNode {
+function FeatureCard({ meta, active, readOnly }: FeatureCardProps): ReactNode {
   const [overlay, setOverlay] = useState<{ visible: boolean; message: string }>({
     visible: false,
     message: "Applying feature change. The page will reload when the API is back.",
@@ -208,7 +231,7 @@ function FeatureCard({ meta, active }: FeatureCardProps): ReactNode {
             data-toggle
             data-key={meta.key}
             checked={checked}
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || readOnly}
             onCheckedChange={(value) => mutation.mutate(value)}
             aria-label={`Toggle ${meta.label}`}
           />
