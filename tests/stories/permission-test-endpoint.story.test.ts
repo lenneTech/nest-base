@@ -7,7 +7,7 @@ import type { DbPermissionRow } from "../../src/core/permissions/db-rule-resolve
 /**
  * Story · Admin Test-Endpunkt für Permissions.
  *
- * `/admin/permissions/test` answers "what can this user do?" by
+ * `/hub/admin/permissions/test` answers "what can this user do?" by
  * combining PermissionService (the cached, resolved Ability) with the
  * `buildPermissionReport()` serializer. The CRUD surfaces for Role /
  * Policy / Permission are handled by the existing BaseRepository

@@ -7,8 +7,8 @@ describe("resolveOperatorLandingPath", () => {
     expect(resolveOperatorLandingPath({ hub: true })).toBe("/hub");
   });
 
-  it("defaults to /admin/users for tenant-admin-only accounts", () => {
-    expect(resolveOperatorLandingPath({ tenantAdmin: true })).toBe("/admin/users");
+  it("defaults to /hub/admin/users for tenant-admin-only accounts", () => {
+    expect(resolveOperatorLandingPath({ tenantAdmin: true })).toBe("/hub/admin/users");
   });
 
   it("returns / when the account has no portal access", () => {
@@ -24,6 +24,6 @@ describe("resolveOperatorLandingPath", () => {
   });
 
   it("falls back when a deep-link exceeds access", () => {
-    expect(resolveOperatorLandingPath({ tenantAdmin: true }, "/hub/logs")).toBe("/admin/users");
+    expect(resolveOperatorLandingPath({ tenantAdmin: true }, "/hub/logs")).toBe("/hub/admin/users");
   });
 });

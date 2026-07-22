@@ -3,11 +3,11 @@
  *
  * Operator surface for inspecting and acting on email-outbox rows.
  * Connects to the admin endpoints:
- *   GET  /admin/email-outbox/list.json
- *   GET  /admin/email-outbox/:id.json
- *   POST /admin/email-outbox/:id/retry
- *   POST /admin/email-outbox/:id/cancel
- *   POST /admin/email-outbox/test-send
+ *   GET  /hub/admin/email-outbox/list.json
+ *   GET  /hub/admin/email-outbox/:id.json
+ *   POST /hub/admin/email-outbox/:id/retry
+ *   POST /hub/admin/email-outbox/:id/cancel
+ *   POST /hub/admin/email-outbox/test-send
  *
  * Features:
  *  - List view with status badges, recipient, template, attempts, next-attempt.
@@ -111,13 +111,14 @@ function DetailPanel({ id, onClose }: { id: string; onClose: () => void }): Reac
 
   const detail = useQuery({
     queryKey: ["admin", "email-outbox", "detail", id],
-    queryFn: () => fetchJson<DetailResponse>(`/admin/email-outbox/${encodeURIComponent(id)}.json`),
+    queryFn: () =>
+      fetchJson<DetailResponse>(`/hub/admin/email-outbox/${encodeURIComponent(id)}.json`),
     staleTime: 0,
   });
 
   const retry = useMutation({
     mutationFn: async () => {
-      const res = await adminFetch(`/admin/email-outbox/${encodeURIComponent(id)}/retry`, {
+      const res = await adminFetch(`/hub/admin/email-outbox/${encodeURIComponent(id)}/retry`, {
         method: "POST",
         headers: { "content-type": "application/json" },
       });
@@ -136,7 +137,7 @@ function DetailPanel({ id, onClose }: { id: string; onClose: () => void }): Reac
 
   const cancel = useMutation({
     mutationFn: async () => {
-      const res = await adminFetch(`/admin/email-outbox/${encodeURIComponent(id)}/cancel`, {
+      const res = await adminFetch(`/hub/admin/email-outbox/${encodeURIComponent(id)}/cancel`, {
         method: "POST",
         headers: { "content-type": "application/json" },
       });
@@ -340,7 +341,7 @@ function TestSendModal(): ReactNode {
       } catch {
         throw new Error("vars must be valid JSON");
       }
-      const res = await adminFetch("/admin/email-outbox/test-send", {
+      const res = await adminFetch("/hub/admin/email-outbox/test-send", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ template, locale, recipient, vars: parsedVars }),
@@ -452,7 +453,8 @@ export function EmailOutboxPage(): ReactNode {
 
   const list = useQuery({
     queryKey: ["admin", "email-outbox", "list", statusFilter, recipientFilter, sortBy],
-    queryFn: () => fetchJson<ListResponse>(`/admin/email-outbox/list.json?${params.toString()}`),
+    queryFn: () =>
+      fetchJson<ListResponse>(`/hub/admin/email-outbox/list.json?${params.toString()}`),
     // 30s auto-refresh so operators see new rows without manual reload
     refetchInterval: 30_000,
   });

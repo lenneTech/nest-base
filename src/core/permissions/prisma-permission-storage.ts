@@ -16,7 +16,7 @@ import type { PermissionStorage } from "./permission.service.js";
  *
  *  1. **Explicit rows** — joined `Role → RolePolicy → Policy →
  *     Permission`, matched by the user's role memberships within the
- *     requested tenant. Authored via the `/admin/*` CRUD UIs.
+ *     requested tenant. Authored via the `/hub/admin/*` CRUD UIs.
  *  2. **Implicit "Member" rules** — synthesized in-memory from
  *     `buildMemberRoleRules()` whenever the user has a `member` row in
  *     the requested organization (BA stores only active members, so

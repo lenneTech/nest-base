@@ -1,5 +1,5 @@
 /**
- * Client-side mirror of `GET /hub/portal-access.json` (includes legacy `devHub`).
+ * Client-side mirror of `GET /hub/portal-access.json`.
  */
 export interface HubPortalNavFeatures {
   multiTenancy: boolean;
@@ -19,13 +19,13 @@ export interface HubPortalAccessPayload {
   features?: HubPortalNavFeatures;
   /** Workstation-tier surfaces servable (true exactly in development). */
   workstation?: boolean;
-  /** @deprecated Pre-rename API field — remove after all clients refresh. */
-  devHub?: boolean;
 }
 
 export function hasHubPortalAccess(data: HubPortalAccessPayload | undefined): boolean {
   if (!data) return false;
-  return data.hub === true || data.devHub === true;
+  // The pre-rename `devHub` compat field is gone: the SPA is served by the
+  // same process that answers the probe, so client/server never skew.
+  return data.hub === true;
 }
 
 export function hasTenantAdminPortalAccess(data: HubPortalAccessPayload | undefined): boolean {
@@ -50,12 +50,20 @@ export function resolveOperatorLandingPath(
   const tenantAdminOk = hasTenantAdminPortalAccess(data);
   const fromRaw = fromState?.trim();
   const from =
-    fromRaw && fromRaw !== "/" ? fromRaw : hubOk ? "/hub" : tenantAdminOk ? "/admin/users" : "/";
-  if (from.startsWith("/hub") && !hubOk) {
-    return tenantAdminOk ? "/admin/users" : "/";
-  }
-  if (from.startsWith("/admin") && !tenantAdminOk) {
+    fromRaw && fromRaw !== "/"
+      ? fromRaw
+      : hubOk
+        ? "/hub"
+        : tenantAdminOk
+          ? "/hub/admin/users"
+          : "/";
+  // `/hub/admin/*` (tenant-admin console) checks FIRST — it lives inside
+  // the `/hub` prefix but is gated by tenantAdmin, not the Hub subject.
+  if (from.startsWith("/hub/admin") && !tenantAdminOk) {
     return hubOk ? "/hub" : "/";
+  }
+  if (from.startsWith("/hub") && !from.startsWith("/hub/admin") && !hubOk) {
+    return tenantAdminOk ? "/hub/admin/users" : "/";
   }
   return from;
 }

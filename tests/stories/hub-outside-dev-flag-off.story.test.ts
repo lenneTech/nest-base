@@ -123,9 +123,14 @@ describe("Story · Hub outside development (production, FEATURE_HUB_ENABLED unse
       expect(res.status).toBe(404);
     });
 
-    it("admin CRUD 404s", async () => {
-      const res = await operator.agent.get("/admin/roles").set("accept", "application/json");
+    it("admin CRUD 404s (through the legacy 308 hop)", async () => {
+      const res = await operator.agent.get("/hub/admin/roles").set("accept", "application/json");
       expect(res.status).toBe(404);
+      // The legacy path redirects for authenticated sessions; the
+      // flag-off gate lives at the target, so the net answer stays 404.
+      const legacy = await operator.agent.get("/admin/roles").set("accept", "application/json");
+      expect(legacy.status).toBe(308);
+      expect(legacy.headers.location).toBe("/hub/admin/roles");
     });
 
     it("workstation surfaces 404 (unchanged)", async () => {
@@ -156,14 +161,25 @@ describe("Story · Hub outside development (production, FEATURE_HUB_ENABLED unse
   describe("pre-existing @Can-gated admin surfaces stay reachable (no silent removals)", () => {
     it("user admin JSON stays 200 for a manage-User grant (today's production behaviour)", async () => {
       const res = await operator.agent
-        .get("/admin/users/list.json")
+        .get("/hub/admin/users/list.json")
         .set("accept", "application/json");
       expect(res.status).toBe(200);
     });
 
     it("admin SPA shells that never had a dev assert stay reachable (users shell)", async () => {
-      const res = await operator.agent.get("/admin/users").set("accept", "text/html");
+      const res = await operator.agent.get("/hub/admin/users").set("accept", "text/html");
       expect(res.status).toBe(200);
+    });
+
+    it("the legacy paths keep working through one 308 hop (deprecation window)", async () => {
+      const legacyJson = await operator.agent
+        .get("/admin/users/list.json")
+        .set("accept", "application/json");
+      expect(legacyJson.status).toBe(308);
+      expect(legacyJson.headers.location).toBe("/hub/admin/users/list.json");
+      const legacyShell = await operator.agent.get("/admin/users").set("accept", "text/html");
+      expect(legacyShell.status).toBe(308);
+      expect(legacyShell.headers.location).toBe("/hub/admin/users");
     });
   });
 });

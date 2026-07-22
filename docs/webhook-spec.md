@@ -68,7 +68,7 @@ with **exponential backoff**:
 
 The dispatcher gives up after 20 consecutive failed attempts and **auto-
 disables the endpoint**. The endpoint owner sees the disable in
-`/admin/webhooks` and must re-enable it manually after fixing the
+`/hub/admin/webhooks` and must re-enable it manually after fixing the
 upstream side.
 
 Successful deliveries reset the failure counter — a flaky endpoint that
@@ -76,7 +76,7 @@ recovers does not stay disabled.
 
 ## Inspecting deliveries
 
-The Webhook-Inspector at `/admin/webhooks` is a three-column React
+The Webhook-Inspector at `/hub/admin/webhooks` is a three-column React
 SPA (issue #19):
 
 - **Endpoint sidebar** — per-endpoint counters (total / delivered /
@@ -95,10 +95,10 @@ JSON sidecars (all gated to `NODE_ENV=development`):
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /admin/webhooks.json` | Filtered + cursor-paged delivery list, ships a per-request CSRF token |
-| `GET /admin/webhooks/aggregates.json` | Per-endpoint aggregates + sparkline |
-| `GET /admin/webhooks/:id.json` | Delivery detail with reconstructed request headers / body and a copy-curl command |
-| `POST /admin/webhooks/:id/redeliver` | Manual re-deliver, requires the CSRF token from the list response |
+| `GET /hub/admin/webhooks.json` | Filtered + cursor-paged delivery list, ships a per-request CSRF token |
+| `GET /hub/admin/webhooks/aggregates.json` | Per-endpoint aggregates + sparkline |
+| `GET /hub/admin/webhooks/:id.json` | Delivery detail with reconstructed request headers / body and a copy-curl command |
+| `POST /hub/admin/webhooks/:id/redeliver` | Manual re-deliver, requires the CSRF token from the list response |
 
 The CSRF token is an HMAC-signed nonce + issuance timestamp; the
 secret is `WEBHOOK_INSPECTOR_CSRF_SECRET` (auto-generated when unset

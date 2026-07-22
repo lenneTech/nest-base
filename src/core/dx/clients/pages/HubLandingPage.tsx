@@ -292,7 +292,11 @@ function DashboardBody({ data }: { data: DashboardJson }): ReactNode {
           errorLogs={errorLogs}
           warnLogs={warnLogs}
         />
-        <FeatureOverview features={data.features} catalog={data.catalog} />
+        <FeatureOverview
+          features={data.features}
+          catalog={data.catalog}
+          workstation={workstation}
+        />
       </div>
 
       <QuickLinks features={data.features} workstation={workstation} />
@@ -935,9 +939,11 @@ function LogPreview({
 function FeatureOverview({
   features,
   catalog,
+  workstation,
 }: {
   features: DashboardJson["features"];
   catalog: FeatureMeta[];
+  workstation: boolean;
 }): ReactNode {
   const total = catalog.length;
   const active = catalog.filter((m) => isFeatureActive(features, m.key)).length;
@@ -948,9 +954,12 @@ function FeatureOverview({
         <span className="text-[0.7rem] uppercase tracking-widest text-fg-dim">
           {active} / {total} active
         </span>
-        <Link to="/hub/features" className="text-xs text-fg-dim hover:text-accent">
-          Manage →
-        </Link>
+        {/* Toggling is workstation tooling — the page is absent on a deployed portal. */}
+        {workstation ? (
+          <Link to="/hub/features" className="text-xs text-fg-dim hover:text-accent">
+            Manage →
+          </Link>
+        ) : null}
       </CardHeader>
       <CardContent>
         <Progress className="mb-3" value={total === 0 ? 0 : (active / total) * 100} />
@@ -995,16 +1004,16 @@ function QuickLinks({
       hint: "JSON viewer + raw download",
     },
     {
-      href: "/admin/permissions/test",
+      href: "/hub/admin/permissions/test",
       label: "Permission Tester",
       hint: "Resolve CASL permission per user",
     },
-    { href: "/admin/webhooks", label: "Webhook Inspector", hint: "Latest deliveries + replay" },
-    { href: "/admin/realtime", label: "Realtime Inspector", hint: "Active sockets + events" },
-    { href: "/admin/audit", label: "Audit Browser", hint: "Filter audit log entries" },
-    { href: "/admin/search", label: "Search Tester", hint: "FTS query + tsquery debug" },
+    { href: "/hub/admin/webhooks", label: "Webhook Inspector", hint: "Latest deliveries + replay" },
+    { href: "/hub/admin/realtime", label: "Realtime Inspector", hint: "Active sockets + events" },
+    { href: "/hub/admin/audit", label: "Audit Browser", hint: "Filter audit log entries" },
+    { href: "/hub/admin/search", label: "Search Tester", hint: "FTS query + tsquery debug" },
     {
-      href: "/admin/tenants",
+      href: "/hub/admin/tenants",
       label: "Tenant management",
       hint: "Create tenants, archive them, and manage members",
     },

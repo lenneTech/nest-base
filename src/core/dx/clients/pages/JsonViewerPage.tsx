@@ -44,7 +44,7 @@ export function JsonViewerPage(): ReactNode {
   return (
     <AdminShell
       title="JSON Viewer"
-      subtitle="Paste JSON text to inspect through the dev-portal viewer (collapse / search / copy)."
+      subtitle="Paste JSON text to inspect through the Hub viewer (collapse / search / copy)."
       currentNav="json-viewer"
     >
       <div className="flex flex-col gap-4">

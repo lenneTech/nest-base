@@ -1,5 +1,5 @@
 /**
- * `/admin/audit` — filter + inspect tenant-scoped audit-log entries
+ * `/hub/admin/audit` — filter + inspect tenant-scoped audit-log entries
  * with before / after diffs.
  */
 import { useQuery } from "@tanstack/react-query";
@@ -73,7 +73,7 @@ export function AuditBrowserPage(): ReactNode {
     };
   }, []);
 
-  const url = `/admin/audit.json?${params.toString()}`;
+  const url = `/hub/admin/audit.json?${params.toString()}`;
   const data = useQuery({
     queryKey: ["admin", "audit", url, tenantId],
     queryFn: () => fetchJson<AuditBrowserResponse>(url),
@@ -95,7 +95,7 @@ export function AuditBrowserPage(): ReactNode {
             <form
               className="grid grid-cols-1 gap-3 md:grid-cols-3 lg:grid-cols-6"
               method="get"
-              action="/admin/audit"
+              action="/hub/admin/audit"
             >
               <FilterField
                 label="Action"

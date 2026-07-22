@@ -28,7 +28,7 @@
  * 3. A reachable Better-Auth sign-up endpoint. The script signs up a
  *    deterministic `screenshot-bot@example.com` account, signs in,
  *    and stores the cookie in the Playwright browser context so the
- *    `/admin/*` routes (which require an authenticated session) render
+ *    `/hub/admin/*` routes (which require an authenticated session) render
  *    instead of redirecting to the unauthorized page.
  * 4. Playwright + Chromium. On first run:
  *
@@ -106,7 +106,7 @@ const PAGES: PageSpec[] = [
   { slug: "hub-queries", path: "/hub/queries", waitFor: ["Queries"] },
   { slug: "hub-migrations", path: "/hub/migrations", waitFor: ["Migrations", "Status"] },
   { slug: "hub-jobs", path: "/hub/jobs", waitFor: ["Jobs", "Queues"] },
-  { slug: "admin-jobs-redirect", path: "/admin/jobs", waitFor: ["Jobs", "Queues"] },
+  { slug: "admin-jobs-redirect", path: "/hub/admin/jobs", waitFor: ["Jobs", "Queues"] },
   { slug: "hub-routes", path: "/hub/routes", waitFor: ["Routes"] },
   { slug: "hub-erd", path: "/hub/erd", waitFor: ["ERD"] },
   { slug: "hub-emails", path: "/hub/emails", waitFor: ["Emails", "Templates"] },
@@ -126,46 +126,46 @@ const PAGES: PageSpec[] = [
   { slug: "hub-cron", path: "/hub/cron", waitFor: ["Cron"] },
   { slug: "hub-email-outbox", path: "/hub/email-outbox", waitFor: ["Email Outbox"] },
   // Admin pages (require auth)
-  { slug: "admin-users", path: "/admin/users", waitFor: ["Benutzer"], requiresAuth: true },
+  { slug: "admin-users", path: "/hub/admin/users", waitFor: ["Benutzer"], requiresAuth: true },
   {
     slug: "admin-tenants",
-    path: "/admin/tenants",
+    path: "/hub/admin/tenants",
     waitFor: ["Mandantenverwaltung"],
     requiresAuth: true,
   },
-  { slug: "admin-roles", path: "/admin/roles", waitFor: ["Roles"], requiresAuth: true },
-  { slug: "admin-policies", path: "/admin/policies", waitFor: ["Policies"], requiresAuth: true },
+  { slug: "admin-roles", path: "/hub/admin/roles", waitFor: ["Roles"], requiresAuth: true },
+  { slug: "admin-policies", path: "/hub/admin/policies", waitFor: ["Policies"], requiresAuth: true },
   {
     slug: "admin-permissions",
-    path: "/admin/permissions",
+    path: "/hub/admin/permissions",
     waitFor: ["Permissions"],
     requiresAuth: true,
   },
   {
     slug: "admin-permissions-test",
-    path: "/admin/permissions/test",
+    path: "/hub/admin/permissions/test",
     waitFor: ["Permission Tester"],
     requiresAuth: true,
   },
-  { slug: "admin-sessions", path: "/admin/sessions", waitFor: ["Sessions"], requiresAuth: true },
+  { slug: "admin-sessions", path: "/hub/admin/sessions", waitFor: ["Sessions"], requiresAuth: true },
   { slug: "jobs", path: "/hub/jobs", waitFor: ["Jobs"], requiresAuth: true },
   {
     slug: "admin-webhooks",
-    path: "/admin/webhooks",
+    path: "/hub/admin/webhooks",
     waitFor: ["Webhook Inspector", "Endpoints"],
     requiresAuth: true,
   },
   {
     slug: "admin-realtime",
-    path: "/admin/realtime",
+    path: "/hub/admin/realtime",
     waitFor: ["Realtime Inspector", "Sockets"],
     requiresAuth: true,
   },
-  { slug: "admin-audit", path: "/admin/audit", waitFor: ["Audit Browser"], requiresAuth: true },
-  { slug: "admin-search", path: "/admin/search", waitFor: ["Search Tester"], requiresAuth: true },
+  { slug: "admin-audit", path: "/hub/admin/audit", waitFor: ["Audit Browser"], requiresAuth: true },
+  { slug: "admin-search", path: "/hub/admin/search", waitFor: ["Search Tester"], requiresAuth: true },
   {
     slug: "admin-rate-limits",
-    path: "/admin/rate-limits",
+    path: "/hub/admin/rate-limits",
     waitFor: ["Inspektor", "Konfiguration"],
     requiresAuth: true,
   },

@@ -2,7 +2,7 @@
  * Prisma-backed `SessionRevokeStorage` for the template dev hub.
  *
  * Users admin reads sessions directly from Prisma; this adapter keeps
- * `/admin/sessions/list.json` on the same data source instead of the
+ * `/hub/admin/sessions/list.json` on the same data source instead of the
  * no-op sentinel that always returned `[]`.
  */
 import type { Prisma } from "@prisma/client";

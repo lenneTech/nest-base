@@ -5,7 +5,7 @@ import { EmailOutboxModule } from "./email-outbox.module.js";
 import { EmailOutboxAdminController } from "./email-outbox-admin.controller.js";
 
 /**
- * EmailOutboxAdminModule — wires the `/admin/email-outbox/*` controller
+ * EmailOutboxAdminModule — wires the `/hub/admin/email-outbox/*` controller
  * (issue #91). Depends on:
  *
  *   - `EmailOutboxModule` (global, exports `EMAIL_OUTBOX_STORAGE`)

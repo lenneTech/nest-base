@@ -17,7 +17,7 @@ describe("Story · User Admin Controller", () => {
   describe("UserAdminController structure", () => {
     it("controller source exists at the expected path", () => {
       const src = readFileSync(resolve(ROOT, "src/core/dx/user-admin.controller.ts"), "utf8");
-      expect(src).toContain('@Controller("admin/users")');
+      expect(src).toContain('@Controller("hub/admin/users")');
     });
 
     it("exposes GET list.json endpoint", () => {
@@ -101,15 +101,15 @@ describe("Story · User Admin Controller", () => {
         resolve(ROOT, "src/core/dx/clients/pages/UsersAdminPage.tsx"),
         "utf8",
       );
-      expect(src).toContain("/admin/users/list.json");
-      expect(src).toContain("/admin/users/roles.json");
-      expect(src).toContain("/admin/users/create");
+      expect(src).toContain("/hub/admin/users/list.json");
+      expect(src).toContain("/hub/admin/users/roles.json");
+      expect(src).toContain("/hub/admin/users/create");
       expect(src).toContain("Create user");
       expect(src).toContain("set-email-verified");
       expect(src).toContain("Mark verified");
       expect(src).toContain("change-user-member-role");
       expect(src).toContain("assign-user-role");
-      expect(src).toContain("/admin/users/");
+      expect(src).toContain("/hub/admin/users/");
       expect(src).toContain("/members/");
       expect(src).toContain("/role");
     });

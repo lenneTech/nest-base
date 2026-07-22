@@ -26,7 +26,7 @@ function withHubTestAbility(test: Test): Test {
   return test.set("x-test-ability", HUB_TEST_ABILITY_HEADER);
 }
 
-/** Supertest wrapper for `/hub/*` and `/admin/*` with the vitest CASL hatch. */
+/** Supertest wrapper for `/hub/*` and `/hub/admin/*` with the vitest CASL hatch. */
 export function hubAgentReq(agent: Agent) {
   return {
     get: (url: string) => withHubTestAbility(agent.get(url)),

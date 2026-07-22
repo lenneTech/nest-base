@@ -1,5 +1,5 @@
 /**
- * `/admin/webhooks` — three-column webhook inspector with virtual
+ * `/hub/admin/webhooks` — three-column webhook inspector with virtual
  * scrolling, sparklines per endpoint, and a CSRF-protected
  * "Re-deliver" action.
  */
@@ -118,12 +118,12 @@ export function WebhookInspectorPage(): ReactNode {
 
   const aggregatesQuery = useQuery({
     queryKey: ["admin", "webhooks", "aggregates"],
-    queryFn: () => fetchJson<AggregatesResponse>("/admin/webhooks/aggregates.json"),
+    queryFn: () => fetchJson<AggregatesResponse>("/hub/admin/webhooks/aggregates.json"),
   });
 
   const eventTypesQuery = useQuery({
     queryKey: ["admin", "webhooks", "event-types"],
-    queryFn: () => fetchJson<EventTypesResponse>("/admin/webhooks/event-types.json"),
+    queryFn: () => fetchJson<EventTypesResponse>("/hub/admin/webhooks/event-types.json"),
   });
 
   const handleSelectEndpoint = useCallback(
@@ -211,7 +211,7 @@ function buildListUrl(filter: FilterState): string {
   if (filter.endpointId) params.set("endpointId", filter.endpointId);
   if (filter.eventType) params.set("eventType", filter.eventType);
   if (filter.search) params.set("search", filter.search);
-  return `/admin/webhooks.json?${params.toString()}`;
+  return `/hub/admin/webhooks.json?${params.toString()}`;
 }
 
 interface EndpointSidebarProps {
@@ -472,14 +472,16 @@ function DetailDrawer({
   const detailQuery = useQuery({
     queryKey: ["admin", "webhooks", "detail", deliveryId],
     queryFn: () =>
-      fetchJson<DeliveryDetailResponse>(`/admin/webhooks/${encodeURIComponent(deliveryId!)}.json`),
+      fetchJson<DeliveryDetailResponse>(
+        `/hub/admin/webhooks/${encodeURIComponent(deliveryId!)}.json`,
+      ),
     enabled: deliveryId !== null,
   });
 
   const queryClient = useQueryClient();
   const redeliverMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/admin/webhooks/${encodeURIComponent(id)}/redeliver`, {
+      const res = await fetch(`/hub/admin/webhooks/${encodeURIComponent(id)}/redeliver`, {
         method: "POST",
         headers: { "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify({ csrfToken: csrfToken ?? "" }),
@@ -662,7 +664,7 @@ function TestEventDialog({
       } catch {
         throw new Error("Payload is not valid JSON");
       }
-      const res = await fetch(`/admin/webhooks/${encodeURIComponent(endpointId)}/test`, {
+      const res = await fetch(`/hub/admin/webhooks/${encodeURIComponent(endpointId)}/test`, {
         method: "POST",
         headers: { "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify({ eventType: selectedEventType, payload }),

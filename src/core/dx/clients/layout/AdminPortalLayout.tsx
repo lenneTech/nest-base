@@ -59,7 +59,7 @@ function AdminPortalLayoutInner(): ReactNode {
   );
 }
 
-/** Wraps all `/hub/*` and `/admin/*` routes under `HubPortalGate`. */
+/** Wraps all `/hub/*` and `/hub/admin/*` routes under `HubPortalGate`. */
 export function AdminPortalLayout(): ReactNode {
   useEffect(() => {
     void bootstrapHubOperatorSession();

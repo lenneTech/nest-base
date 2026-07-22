@@ -8,7 +8,7 @@ import {
 /**
  * Adapted from nest-server `permissions-report.e2e-spec.ts`.
  *
- * The `/admin/permissions/test` endpoint returns the **effective**
+ * The `/hub/admin/permissions/test` endpoint returns the **effective**
  * permission set for a given user. The serializer pinned here is
  * the contract that the (later) controller consumes.
  */

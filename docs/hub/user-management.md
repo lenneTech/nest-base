@@ -1,6 +1,6 @@
 # User Management UI
 
-**Route:** `/admin/users`  
+**Route:** `/hub/admin/users`  
 **Issue:** #86  
 **Backend path:** `src/core/dx/user-admin.controller.ts`  
 **Frontend path:** `src/core/dx/clients/pages/UsersAdminPage.tsx`
@@ -23,7 +23,7 @@ the Better-Auth admin API through NestJS endpoints gated by
 A debounced text input (300 ms) filters by email or name:
 
 ```
-GET /admin/users/list.json?q=<term>
+GET /hub/admin/users/list.json?q=<term>
 ```
 
 Returns a `UsersListResponse` with `users[]` and `total`.
@@ -48,9 +48,9 @@ Available actions depend on the user's current state:
 
 | Action | Available when | Endpoint |
 |--------|---------------|----------|
-| Sperren | not banned | `POST /admin/users/:id/ban` |
-| Entsperren | banned | `POST /admin/users/:id/unban` |
-| Sitzungen widerrufen | always | `POST /admin/users/:id/revoke-sessions` |
+| Sperren | not banned | `POST /hub/admin/users/:id/ban` |
+| Entsperren | banned | `POST /hub/admin/users/:id/unban` |
+| Sitzungen widerrufen | always | `POST /hub/admin/users/:id/revoke-sessions` |
 
 Every destructive action requires a confirmation dialog (`ConfirmDialog`)
 before the mutation fires.
@@ -63,7 +63,7 @@ Clicking a row slides in a right-side sheet panel (480–560 px wide).
 The sheet fetches full user data:
 
 ```
-GET /admin/users/:id.json
+GET /hub/admin/users/:id.json
 ```
 
 ### Action buttons
@@ -114,7 +114,7 @@ Both are disabled while a mutation is in flight.
 3. Click **Sitzungen widerrufen**.
 4. Confirm the dialog.
 
-This calls `POST /admin/users/:id/revoke-sessions`, which proxies to
+This calls `POST /hub/admin/users/:id/revoke-sessions`, which proxies to
 Better-Auth's admin session-revocation API. All in-flight requests with
 that user's session token will receive 401 on the next auth check.
 
@@ -125,16 +125,16 @@ Alternatively, click the three-dot menu in the table row and choose
 
 ## Backend endpoints
 
-All endpoints are mounted at `/admin/users/` and require
+All endpoints are mounted at `/hub/admin/users/` and require
 `@Can("manage", "User")`.
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `GET` | `/admin/users/list.json` | Paginated / filtered user list |
-| `GET` | `/admin/users/:id.json` | Full user detail (sessions + accounts) |
-| `POST` | `/admin/users/:id/ban` | Ban user (disables login) |
-| `POST` | `/admin/users/:id/unban` | Unban user |
-| `POST` | `/admin/users/:id/revoke-sessions` | Revoke all active sessions |
+| `GET` | `/hub/admin/users/list.json` | Paginated / filtered user list |
+| `GET` | `/hub/admin/users/:id.json` | Full user detail (sessions + accounts) |
+| `POST` | `/hub/admin/users/:id/ban` | Ban user (disables login) |
+| `POST` | `/hub/admin/users/:id/unban` | Unban user |
+| `POST` | `/hub/admin/users/:id/revoke-sessions` | Revoke all active sessions |
 
 The ban / unban / revoke-sessions operations delegate to Better-Auth's
 admin plugin so they stay in sync with the BA session store — no manual
@@ -144,7 +144,7 @@ Prisma writes needed.
 
 ## Security notes
 
-- The `/admin/` prefix is 404 outside `NODE_ENV=development`.
+- The `/hub/admin/` prefix is 404 outside `NODE_ENV=development`.
 - Write actions require `@Can("manage", "User")` — by default only the
   `system-admin` role grants this.
 - Banning a user does not delete their data — it sets `banned = true` on

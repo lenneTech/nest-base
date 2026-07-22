@@ -7,7 +7,7 @@ const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {
 const TENANT = "11111111-1111-1111-1111-111111111111";
 
 /**
- * `/admin/*` SPA shell + JSON sidecars.
+ * `/hub/admin/*` SPA shell + JSON sidecars.
  *
  * Every admin page returns the Dev-Portal SPA shell (`<div id="root">`)
  * with a page-specific `<title>`; the React tree on the client fetches
@@ -15,16 +15,16 @@ const TENANT = "11111111-1111-1111-1111-111111111111";
  * `NODE_ENV=development` every route 404s — same gating as the Dev-Hub.
  */
 const SPA_PAGES: Array<{ url: string; title: string }> = [
-  { url: "/admin/permissions/test", title: "Permission Tester" },
-  { url: "/admin/webhooks", title: "Webhook Inspector" },
-  { url: "/admin/realtime", title: "Realtime Inspector" },
-  { url: "/admin/audit", title: "Audit Browser" },
-  { url: "/admin/search", title: "Search Tester" },
+  { url: "/hub/admin/permissions/test", title: "Permission Tester" },
+  { url: "/hub/admin/webhooks", title: "Webhook Inspector" },
+  { url: "/hub/admin/realtime", title: "Realtime Inspector" },
+  { url: "/hub/admin/audit", title: "Audit Browser" },
+  { url: "/hub/admin/search", title: "Search Tester" },
 ];
 
 const JSON_ENDPOINTS: Array<{ url: string; assert: (body: unknown) => void }> = [
   {
-    url: "/admin/permissions/test.json",
+    url: "/hub/admin/permissions/test.json",
     assert: (body) => {
       const b = body as { report: unknown; submitted: { userId: string; tenantId: string } };
       expect(b.submitted).toBeDefined();
@@ -33,7 +33,7 @@ const JSON_ENDPOINTS: Array<{ url: string; assert: (body: unknown) => void }> = 
     },
   },
   {
-    url: "/admin/webhooks.json",
+    url: "/hub/admin/webhooks.json",
     assert: (body) => {
       const b = body as { deliveries: unknown[]; filter?: { status?: string } };
       expect(Array.isArray(b.deliveries)).toBe(true);
@@ -41,7 +41,7 @@ const JSON_ENDPOINTS: Array<{ url: string; assert: (body: unknown) => void }> = 
     },
   },
   {
-    url: "/admin/realtime.json",
+    url: "/hub/admin/realtime.json",
     assert: (body) => {
       const b = body as { sockets: unknown[]; events: unknown[] };
       expect(Array.isArray(b.sockets)).toBe(true);
@@ -49,7 +49,7 @@ const JSON_ENDPOINTS: Array<{ url: string; assert: (body: unknown) => void }> = 
     },
   },
   {
-    url: "/admin/audit.json",
+    url: "/hub/admin/audit.json",
     assert: (body) => {
       const b = body as { entries: unknown[]; filter: Record<string, unknown> };
       expect(Array.isArray(b.entries)).toBe(true);
@@ -57,7 +57,7 @@ const JSON_ENDPOINTS: Array<{ url: string; assert: (body: unknown) => void }> = 
     },
   },
   {
-    url: "/admin/search.json",
+    url: "/hub/admin/search.json",
     assert: (body) => {
       const b = body as { hits: unknown[]; query?: string };
       expect(Array.isArray(b.hits)).toBe(true);
@@ -65,7 +65,7 @@ const JSON_ENDPOINTS: Array<{ url: string; assert: (body: unknown) => void }> = 
   },
 ];
 
-describe("Admin SPA · /admin/* shell + JSON sidecars", () => {
+describe("Admin SPA · /hub/admin/* shell + JSON sidecars", () => {
   describe("in development mode", () => {
     let app: INestApplication;
     let hub: Awaited<ReturnType<typeof hubReqScoped>>;
@@ -106,14 +106,14 @@ describe("Admin SPA · /admin/* shell + JSON sidecars", () => {
       });
     }
 
-    it("GET /admin/permissions/test.json with userId+tenantId returns a report", async () => {
-      const res = await hub.get("/admin/permissions/test.json?userId=u1&tenantId=t1");
+    it("GET /hub/admin/permissions/test.json with userId+tenantId returns a report", async () => {
+      const res = await hub.get("/hub/admin/permissions/test.json?userId=u1&tenantId=t1");
       expect(res.status).toBe(200);
       expect(res.body.report).toMatchObject({ userId: "u1", tenantId: "t1", byResource: {} });
     });
 
-    it("GET /admin/webhooks.json?status=DELIVERED echoes the filter", async () => {
-      const res = await hub.get("/admin/webhooks.json?status=DELIVERED");
+    it("GET /hub/admin/webhooks.json?status=DELIVERED echoes the filter", async () => {
+      const res = await hub.get("/hub/admin/webhooks.json?status=DELIVERED");
       expect(res.status).toBe(200);
       expect(res.body.filter.status).toBe("DELIVERED");
     });
@@ -139,13 +139,13 @@ describe("Admin SPA · /admin/* shell + JSON sidecars", () => {
       else process.env.NODE_ENV = previousNodeEnv;
     });
 
-    it("GET /admin/permissions/test 404s in production", async () => {
-      const res = await hub.get("/admin/permissions/test");
+    it("GET /hub/admin/permissions/test 404s in production", async () => {
+      const res = await hub.get("/hub/admin/permissions/test");
       expect(res.status).toBe(404);
     });
 
-    it("GET /admin/webhooks.json 404s in production", async () => {
-      const res = await hub.get("/admin/webhooks.json");
+    it("GET /hub/admin/webhooks.json 404s in production", async () => {
+      const res = await hub.get("/hub/admin/webhooks.json");
       expect(res.status).toBe(404);
     });
   });

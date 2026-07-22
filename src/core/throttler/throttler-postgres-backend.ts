@@ -106,7 +106,7 @@ interface ThrottlerRecordRow {
 /**
  * List active (non-expired) throttler records.
  *
- * Used by the `/admin/rate-limits/inspector.json` endpoint so operators can
+ * Used by the `/hub/admin/rate-limits/inspector.json` endpoint so operators can
  * see live throttle state without a DB console.
  */
 export async function listActiveThrottlerRecords(

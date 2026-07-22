@@ -1,5 +1,5 @@
 /**
- * `/admin/realtime` — three-tab Realtime Inspector (Sockets · Channels
+ * `/hub/admin/realtime` — three-tab Realtime Inspector (Sockets · Channels
  * · Events) with per-tab filters, drawers, and disconnect / replay
  * actions. Auto-refresh poll at 1.5 s; Space toggles pause on Events.
  */
@@ -96,7 +96,7 @@ export function RealtimeInspectorPage(): ReactNode {
 
   const data = useQuery({
     queryKey: ["admin", "realtime"],
-    queryFn: () => fetchJson<RealtimeInspectorResponse>("/admin/realtime.json"),
+    queryFn: () => fetchJson<RealtimeInspectorResponse>("/hub/admin/realtime.json"),
     refetchInterval: paused ? false : POLL_MS,
   });
 
@@ -324,7 +324,7 @@ function DisconnectButton({ id }: { id: string }): ReactNode {
   const queryClient = useQueryClient();
   const mutation = useMutation({
     mutationFn: () =>
-      fetch(`/admin/realtime/sockets/${encodeURIComponent(id)}/disconnect`, {
+      fetch(`/hub/admin/realtime/sockets/${encodeURIComponent(id)}/disconnect`, {
         method: "POST",
         headers: { "content-type": "application/json" },
       }).then((res) => {
@@ -622,7 +622,7 @@ function ReplayButton({ event }: { event: RealtimeEventDetail }): ReactNode {
   const queryClient = useQueryClient();
   const mutation = useMutation({
     mutationFn: () =>
-      fetch("/admin/realtime/events/replay", {
+      fetch("/hub/admin/realtime/events/replay", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({

@@ -133,7 +133,7 @@ For the user, the slash command [`/add-feature <key> "<description>"`](./.claude
 - **Pure planners over runners** — every `dx/`, `setup/`, error/audit
   helper splits into a pure planner (testable) + thin runner (I/O). When
   you add a new helper, follow this split.
-- **HTML renderers escape everything** — all `/admin/*` and `/hub/*` page
+- **HTML renderers escape everything** — all `/hub/admin/*` and `/hub/*` page
   renderers HTML-escape user-controlled values via the standard 5-char
   table. The Search-Tester is the only renderer that trusts a payload
   fragment (`ts_headline`'s `<b>` tags).

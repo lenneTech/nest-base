@@ -16,7 +16,7 @@ const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {
 const TENANT = crypto.randomUUID();
 
 /**
- * E2E · Audit Browser data source (`/admin/audit.json`).
+ * E2E · Audit Browser data source (`/hub/admin/audit.json`).
  *
  * Iter-66 added the `AuditLog` Prisma model + table; iter-67 added
  * the audit Prisma extension that writes rows on opted-in CUDs;
@@ -30,7 +30,7 @@ const TENANT = crypto.randomUUID();
  * (`[tenantId, createdAt]`, `[targetModel, targetId]`,
  * `[actorUserId, createdAt]`) cover the most common pivots.
  */
-describe("E2E · Audit Browser data source (/admin/audit.json)", () => {
+describe("E2E · Audit Browser data source (/hub/admin/audit.json)", () => {
   let app: INestApplication;
   let hub: Awaited<ReturnType<typeof hubReqScoped>>;
   let prisma: PrismaService;
@@ -90,8 +90,8 @@ describe("E2E · Audit Browser data source (/admin/audit.json)", () => {
     else process.env.NODE_ENV = previousNodeEnv;
   });
 
-  it("GET /admin/audit.json returns all audit rows mapped to the read-model shape", async () => {
-    const res = await hub.get("/admin/audit.json");
+  it("GET /hub/admin/audit.json returns all audit rows mapped to the read-model shape", async () => {
+    const res = await hub.get("/hub/admin/audit.json");
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.entries)).toBe(true);
     expect(res.body.entries.length).toBeGreaterThanOrEqual(3);
@@ -107,7 +107,7 @@ describe("E2E · Audit Browser data source (/admin/audit.json)", () => {
   });
 
   it("?action=create filters to CREATE-action rows (case-insensitive)", async () => {
-    const res = await hub.get("/admin/audit.json?action=create");
+    const res = await hub.get("/hub/admin/audit.json?action=create");
     expect(res.status).toBe(200);
     expect(res.body.filter).toEqual({ action: "create" });
     for (const entry of res.body.entries) {
@@ -117,7 +117,7 @@ describe("E2E · Audit Browser data source (/admin/audit.json)", () => {
   });
 
   it("?resource=Tenant filters to the Tenant target model", async () => {
-    const res = await hub.get("/admin/audit.json?resource=Tenant");
+    const res = await hub.get("/hub/admin/audit.json?resource=Tenant");
     expect(res.status).toBe(200);
     expect(res.body.filter.resource).toBe("Tenant");
     for (const entry of res.body.entries) {
@@ -127,7 +127,7 @@ describe("E2E · Audit Browser data source (/admin/audit.json)", () => {
   });
 
   it("entries carry the `before` / `after` diff payloads from the JSON column", async () => {
-    const res = await hub.get("/admin/audit.json");
+    const res = await hub.get("/hub/admin/audit.json");
     const updateEntry = (
       res.body.entries as Array<{ action: string; before?: object; after?: object }>
     ).find((e) => e.action === "update");
@@ -137,7 +137,7 @@ describe("E2E · Audit Browser data source (/admin/audit.json)", () => {
   });
 
   it("orders rows by createdAt DESC (most recent first)", async () => {
-    const res = await hub.get("/admin/audit.json");
+    const res = await hub.get("/hub/admin/audit.json");
     expect(res.status).toBe(200);
     const occurredAts = (res.body.entries as Array<{ occurredAt: string }>).map((e) =>
       new Date(e.occurredAt).getTime(),
@@ -160,7 +160,7 @@ describe("E2E · Audit Browser data source (/admin/audit.json)", () => {
         name: "Audit No Org",
       });
     expect(signUp.status).toBe(200);
-    const res = await agent.get("/admin/audit.json").set("x-test-ability", "full");
+    const res = await agent.get("/hub/admin/audit.json").set("x-test-ability", "full");
     expect(res.status).toBe(400);
     expect(JSON.stringify(res.body)).toMatch(/tenant/i);
   });
@@ -181,7 +181,7 @@ describe("E2E · Audit Browser data source (/admin/audit.json)", () => {
       },
     });
     try {
-      const res = await hub.get("/admin/audit.json");
+      const res = await hub.get("/hub/admin/audit.json");
       expect(res.status).toBe(200);
       const ids = (res.body.entries as Array<{ id: string }>).map((e) => e.id);
       expect(ids).not.toContain(otherRow.id);
@@ -199,7 +199,7 @@ describe("E2E · Audit Browser data source (/admin/audit.json)", () => {
     const { bootstrap } = await import("../src/core/app/bootstrap.js");
     const prodApp = await bootstrap({ listen: false, logger: SILENT_LOGGER });
     const prodHub = await hubReqScoped(prodApp, TENANT);
-    const res = await prodHub.get("/admin/audit.json");
+    const res = await prodHub.get("/hub/admin/audit.json");
     expect(res.status).toBe(404);
     await prodApp.close();
     process.env.NODE_ENV = "development";

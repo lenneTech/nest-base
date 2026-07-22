@@ -34,10 +34,10 @@ import {
 import { PermissionService } from "./permission.service.js";
 
 /**
- * AdminCrudModule — Prisma-backed CRUD for `/admin/{roles, policies,
- * permissions}` plus `POST /admin/permissions/test` (CF.MTPERM /
+ * AdminCrudModule — Prisma-backed CRUD for `/hub/admin/{roles, policies,
+ * permissions}` plus `POST /hub/admin/permissions/test` (CF.MTPERM /
  * iter-115). The previous in-memory implementation lost rows on
- * restart and made the `/admin/permissions/test.json` endpoint
+ * restart and made the `/hub/admin/permissions/test.json` endpoint
  * always-empty (Issue #51 — admin-spa fake). Iter-115 routes every
  * call through the existing `prisma.role`, `prisma.policy`,
  * `prisma.permission`, `prisma.rolePolicy` Prisma models.
@@ -367,7 +367,7 @@ function assertOperationalAdminSurface(): void {
   assertHubSurfaceAvailable("operational");
 }
 
-@Controller("admin/roles")
+@Controller("hub/admin/roles")
 class RoleAdminController {
   constructor(
     private readonly service: RoleAdminService,
@@ -442,7 +442,7 @@ class RoleAdminController {
   }
 }
 
-@Controller("admin/policies")
+@Controller("hub/admin/policies")
 class PolicyAdminController {
   constructor(
     private readonly service: PolicyAdminService,
@@ -493,7 +493,7 @@ class PolicyAdminController {
   }
 }
 
-@Controller("admin/permissions")
+@Controller("hub/admin/permissions")
 class PermissionAdminController {
   constructor(
     private readonly service: PermissionAdminService,
@@ -571,7 +571,7 @@ class PermissionAdminController {
   }
 
   /**
-   * `POST /admin/permissions/test` — given (userId, tenantId, action,
+   * `POST /hub/admin/permissions/test` — given (userId, tenantId, action,
    * subject), resolve the user's full rule set via the configured
    * PermissionStorage adapter and return the matching rules. When
    * `PermissionService` is available the result also includes the

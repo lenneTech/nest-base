@@ -10,9 +10,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
  * `@Module({ imports })` array.
  *
  * Before the fix the two modules were imported UNCONDITIONALLY, so the
- * tenant routes (`/me/tenants`, `/tenants`, `/admin/tenants`) stayed
+ * tenant routes (`/me/tenants`, `/tenants`, `/hub/admin/tenants`) stayed
  * registered even with `multiTenancy` disabled — inconsistent with the
- * Hub nav planner, which already hides `/admin/tenants` behind the same
+ * Hub nav planner, which already hides `/hub/admin/tenants` behind the same
  * flag.
  *
  * This guard introspects the `@Module()` decorator's `imports` metadata

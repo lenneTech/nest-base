@@ -31,6 +31,8 @@ const _navFeaturesOff = buildHubNavFeatureSnapshot(
  * Outside development the sidebar must not offer them.
  */
 const WORKSTATION_NAV_IDS = [
+  // Features: reclassified to workstation in the consolidation (phase 3).
+  "features",
   "coverage",
   "tests",
   "migrations",
@@ -97,7 +99,6 @@ describe("Story · Hub nav filter", () => {
     for (const id of [
       "hub",
       "diagnostics",
-      "features",
       "brand",
       "logs",
       "traces",

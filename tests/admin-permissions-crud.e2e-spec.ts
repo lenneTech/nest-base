@@ -13,7 +13,7 @@ const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {
 
 /**
  * Admin CRUD persistence (e2e) — iter-115. Validates the
- * `/admin/{roles, policies, permissions}` endpoints round-trip rows
+ * `/hub/admin/{roles, policies, permissions}` endpoints round-trip rows
  * through Prisma (replacing the in-memory implementation that lost
  * everything on restart).
  */
@@ -96,37 +96,37 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     }
   });
 
-  it("persists a Role through POST /admin/roles → GET /admin/roles", async () => {
+  it("persists a Role through POST /hub/admin/roles → GET /hub/admin/roles", async () => {
     const created = await session.agent
-      .post("/admin/roles")
+      .post("/hub/admin/roles")
 
       .set("x-test-ability", "full")
       .send({ name: `role-${Date.now()}`, tenantId, description: "iter-115" });
     expect(created.status).toBe(201);
     expect(typeof created.body.id).toBe("string");
     const list = await session.agent
-      .get("/admin/roles")
+      .get("/hub/admin/roles")
 
       .set("x-test-ability", "full");
     expect(list.status).toBe(200);
     expect(list.body.some((r: { id: string }) => r.id === created.body.id)).toBe(true);
   });
 
-  it("creates a Policy + Permission and links them via /admin/permissions/attach", async () => {
+  it("creates a Policy + Permission and links them via /hub/admin/permissions/attach", async () => {
     const policy = await session.agent
-      .post("/admin/policies")
+      .post("/hub/admin/policies")
 
       .set("x-test-ability", "full")
       .send({ name: policyName(`policy-${Date.now()}`), description: "test policy" });
     expect(policy.status).toBe(201);
     const role = await session.agent
-      .post("/admin/roles")
+      .post("/hub/admin/roles")
 
       .set("x-test-ability", "full")
       .send({ name: `attach-role-${Date.now()}`, tenantId });
     expect(role.status).toBe(201);
     const perm = await session.agent
-      .post("/admin/permissions")
+      .post("/hub/admin/permissions")
 
       .set("x-test-ability", "full")
       .send({
@@ -139,14 +139,14 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     expect(perm.body.resource).toBe("Article");
 
     const link = await session.agent
-      .post("/admin/permissions/attach")
+      .post("/hub/admin/permissions/attach")
 
       .set("x-test-ability", "full")
       .send({ roleId: role.body.id, policyId: policy.body.id });
     expect(link.status).toBe(201);
 
     const matrix = await session.agent
-      .get("/admin/permissions/matrix.json")
+      .get("/hub/admin/permissions/matrix.json")
 
       .set("x-test-ability", "full");
     expect(matrix.status).toBe(200);
@@ -155,7 +155,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     expect(matrix.body.matrix.Article[role.body.id].actions).toContain("READ");
 
     const detach = await session.agent
-      .delete(`/admin/permissions/attach/${role.body.id}/${policy.body.id}`)
+      .delete(`/hub/admin/permissions/attach/${role.body.id}/${policy.body.id}`)
 
       .set("x-test-ability", "full");
     expect(detach.status).toBe(200);
@@ -164,13 +164,13 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
 
   it("rejects an unknown action with 400", async () => {
     const policy = await session.agent
-      .post("/admin/policies")
+      .post("/hub/admin/policies")
 
       .set("x-test-ability", "full")
       .send({ name: policyName(`policy-bad-${Date.now()}`) });
     expect(policy.status).toBe(201);
     const res = await session.agent
-      .post("/admin/permissions")
+      .post("/hub/admin/permissions")
 
       .set("x-test-ability", "full")
       .send({
@@ -181,27 +181,27 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     expect(res.status).toBe(400);
   });
 
-  it("DELETE /admin/roles/:id removes the row", async () => {
+  it("DELETE /hub/admin/roles/:id removes the row", async () => {
     const created = await session.agent
-      .post("/admin/roles")
+      .post("/hub/admin/roles")
 
       .set("x-test-ability", "full")
       .send({ name: `to-delete-${Date.now()}`, tenantId });
     const id = created.body.id as string;
     const removed = await session.agent
-      .delete(`/admin/roles/${id}`)
+      .delete(`/hub/admin/roles/${id}`)
 
       .set("x-test-ability", "full");
     expect(removed.status).toBe(200);
     expect(removed.body.removed).toBe(true);
     const after = await session.agent
-      .get(`/admin/roles/${id}`)
+      .get(`/hub/admin/roles/${id}`)
 
       .set("x-test-ability", "full");
     expect(after.status).toBe(404);
   });
 
-  it("400s on /admin/roles GET when session has no active organization", async () => {
+  it("400s on /hub/admin/roles GET when session has no active organization", async () => {
     const agent = request.agent(app.getHttpServer());
     const signUp = await agent
       .post("/api/auth/sign-up/email")
@@ -212,14 +212,14 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
         name: "No Org",
       });
     expect(signUp.status).toBe(200);
-    const res = await agent.get("/admin/roles").set("x-test-ability", "full");
+    const res = await agent.get("/hub/admin/roles").set("x-test-ability", "full");
     expect(res.status).toBe(400);
     expect(JSON.stringify(res.body)).toMatch(/tenant/i);
   });
 
-  it("GET /admin/roles returns ONLY rows for the active session org — cross-tenant rows do NOT leak", async () => {
+  it("GET /hub/admin/roles returns ONLY rows for the active session org — cross-tenant rows do NOT leak", async () => {
     // Insert a role under a DIFFERENT tenant directly via Prisma. The
-    // GET /admin/roles call (with OUR session tenant) must not
+    // GET /hub/admin/roles call (with OUR session tenant) must not
     // include it, even though the same DB connection sees both rows.
     const otherId = crypto.randomUUID();
     const otherTenant = await prisma.organization.create({
@@ -235,7 +235,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     });
     try {
       const res = await session.agent
-        .get("/admin/roles")
+        .get("/hub/admin/roles")
 
         .set("x-test-ability", "full");
       expect(res.status).toBe(200);
@@ -247,7 +247,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     }
   });
 
-  it("GET /admin/roles/:id from a different tenant 404s instead of leaking the row", async () => {
+  it("GET /hub/admin/roles/:id from a different tenant 404s instead of leaking the row", async () => {
     // Iter-202: the per-id read uses `findFirst({ id, tenantId })` so
     // a probe for another tenant's UUID falls back to NotFound rather
     // than returning the row.
@@ -265,7 +265,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     });
     try {
       const res = await session.agent
-        .get(`/admin/roles/${otherRole.id}`)
+        .get(`/hub/admin/roles/${otherRole.id}`)
 
         .set("x-test-ability", "full");
       expect(res.status).toBe(404);
@@ -275,7 +275,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     }
   });
 
-  it("POST /admin/roles rejects a body.tenantId that does not match the session tenant", async () => {
+  it("POST /hub/admin/roles rejects a body.tenantId that does not match the session tenant", async () => {
     // Defense-in-depth: body.tenantId must match ALS tenant from set-active.
     const otherId3 = crypto.randomUUID();
     const otherTenant = await prisma.organization.create({
@@ -288,7 +288,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     });
     try {
       const res = await session.agent
-        .post("/admin/roles")
+        .post("/hub/admin/roles")
 
         .set("x-test-ability", "full")
         .send({ name: `mismatch-${Date.now()}`, tenantId: otherTenant.id });
@@ -299,7 +299,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     }
   });
 
-  it("DELETE /admin/roles/:id from a different tenant 404s without removing the row", async () => {
+  it("DELETE /hub/admin/roles/:id from a different tenant 404s without removing the row", async () => {
     // Cross-tenant DELETE attempt: must NOT remove the other tenant's
     // role. Iter-202's `deleteMany({id, tenantId})` returns count=0 →
     // 404 instead of touching the row.
@@ -317,7 +317,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     });
     try {
       const res = await session.agent
-        .delete(`/admin/roles/${otherRole.id}`)
+        .delete(`/hub/admin/roles/${otherRole.id}`)
 
         .set("x-test-ability", "full");
       expect(res.status).toBe(404);
@@ -330,15 +330,15 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     }
   });
 
-  it("GET /admin/roles succeeds with session tenant even when a stray x-tenant-id header is malformed", async () => {
+  it("GET /hub/admin/roles succeeds with session tenant even when a stray x-tenant-id header is malformed", async () => {
     const res = await session.agent
-      .get("/admin/roles")
+      .get("/hub/admin/roles")
       .set("x-tenant-id", "not-a-uuid")
       .set("x-test-ability", "full");
     expect(res.status).toBe(200);
   });
 
-  it("/admin/permissions/attach refuses to attach a global Policy to a foreign tenant's Role (404)", async () => {
+  it("/hub/admin/permissions/attach refuses to attach a global Policy to a foreign tenant's Role (404)", async () => {
     // Create a Role in a DIFFERENT tenant directly via Prisma. The
     // attach handler now `findFirst({id: roleId, tenantId: ourTenant})`
     // so it surfaces a 404 instead of silently creating the link.
@@ -355,14 +355,14 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
       data: { name: `attach-foreign-${crypto.randomUUID()}`, tenantId: otherTenant.id },
     });
     const policy = await session.agent
-      .post("/admin/policies")
+      .post("/hub/admin/policies")
 
       .set("x-test-ability", "full")
       .send({ name: policyName(`policy-attach-foreign-${Date.now()}`) });
     expect(policy.status).toBe(201);
     try {
       const attach = await session.agent
-        .post("/admin/permissions/attach")
+        .post("/hub/admin/permissions/attach")
 
         .set("x-test-ability", "full")
         .send({ roleId: otherRole.id, policyId: policy.body.id });
@@ -379,7 +379,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     }
   });
 
-  it("/admin/permissions/attach DELETE refuses to detach a foreign tenant's Role link (404)", async () => {
+  it("/hub/admin/permissions/attach DELETE refuses to detach a foreign tenant's Role link (404)", async () => {
     const otherId6 = crypto.randomUUID();
     const otherTenant = await prisma.organization.create({
       data: {
@@ -400,7 +400,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     });
     try {
       const res = await session.agent
-        .delete(`/admin/permissions/attach/${otherRole.id}/${policy.id}`)
+        .delete(`/hub/admin/permissions/attach/${otherRole.id}/${policy.id}`)
 
         .set("x-test-ability", "full");
       expect(res.status).toBe(404);
@@ -419,7 +419,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     }
   });
 
-  it("POST /admin/permissions/test 400s when session has no active organization", async () => {
+  it("POST /hub/admin/permissions/test 400s when session has no active organization", async () => {
     const agent = request.agent(app.getHttpServer());
     const signUp = await agent
       .post("/api/auth/sign-up/email")
@@ -430,7 +430,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
         name: "Perm Test No Org",
       });
     expect(signUp.status).toBe(200);
-    const res = await agent.post("/admin/permissions/test").set("x-test-ability", "full").send({
+    const res = await agent.post("/hub/admin/permissions/test").set("x-test-ability", "full").send({
       userId: "00000000-0000-0000-0000-000000000099",
       tenantId,
       action: "read",
@@ -439,7 +439,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     expect(res.status).toBe(400);
   });
 
-  it("POST /admin/permissions/test rejects body.tenantId mismatch with session tenant", async () => {
+  it("POST /hub/admin/permissions/test rejects body.tenantId mismatch with session tenant", async () => {
     const otherId7 = crypto.randomUUID();
     const otherTenant = await prisma.organization.create({
       data: {
@@ -451,7 +451,7 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     });
     try {
       const res = await session.agent
-        .post("/admin/permissions/test")
+        .post("/hub/admin/permissions/test")
 
         .set("x-test-ability", "full")
         .send({
@@ -467,9 +467,9 @@ describe("Admin · Roles/Policies/Permissions CRUD persistence", () => {
     }
   });
 
-  it("POST /admin/permissions/test echoes (userId, tenantId, action, subject) + ability decision", async () => {
+  it("POST /hub/admin/permissions/test echoes (userId, tenantId, action, subject) + ability decision", async () => {
     const res = await session.agent
-      .post("/admin/permissions/test")
+      .post("/hub/admin/permissions/test")
 
       .set("x-test-ability", "full")
       .send({

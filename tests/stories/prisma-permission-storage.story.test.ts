@@ -11,7 +11,7 @@ import { uuidV7 } from "../../src/core/uuid/uuid-v7.js";
  *
  * Replaces the no-op stub. Two layers stack:
  *  1. Explicit rows — `Role → RolePolicy → Policy → Permission` that
- *     an admin authored via `/admin/*` CRUD.
+ *     an admin authored via `/hub/admin/*` CRUD.
  *  2. Implicit "Member" rules — synthesized in-memory whenever the
  *     user has a BA `member` row in the requested organization.
  *     BA's member table stores only active members — a found row

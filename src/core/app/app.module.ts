@@ -17,6 +17,7 @@ import { SessionsAdminModule } from "../auth/sessions-admin.module.js";
 import { BetterAuthSessionMiddleware } from "../auth/session-middleware.js";
 import { ConfigModule } from "../config/config.module.js";
 import { DeviceModule } from "../devices/device.module.js";
+import { HubAdminSpaModule } from "../dx/hub-admin-spa.module.js";
 import { HubSpaModule } from "../dx/hub-spa.module.js";
 import { UserAdminModule } from "../dx/user-admin.module.js";
 import { HubModule } from "../hub/hub.module.js";
@@ -138,9 +139,13 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     // every module can inject it without importing RedisModule individually.
     RedisModule,
     HealthModule,
-    // HubModule — CASL gate for `/hub/*` + `/admin/*` (Better-Auth session).
+    // HubModule — CASL gate for `/hub/*` + legacy `/admin/*` (Better-Auth session)
+    // and the legacy `/admin/*` → `/hub/admin/*` 308 bridge.
     HubModule,
-    HubSpaModule,
+    // HubAdminSpaModule registers EARLY on purpose: the admin SPA's
+    // `GET hub/admin/permissions/test(.json)` must beat the admin-CRUD
+    // `GET hub/admin/permissions/:id` param route (registration order).
+    HubAdminSpaModule,
     BetterAuthModule,
     ErrorCodesModule,
     PermissionsModule,
@@ -214,9 +219,16 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
         ]
       : []),
     FilesModule,
-    // Rate-limit admin: /admin/rate-limits inspector, config editor,
+    // Rate-limit admin: /hub/admin/rate-limits inspector, config editor,
     // decision history, key reset, and allowlist management (issue #94).
     ...(features.rateLimit.enabled ? [RateLimitAdminModule] : []),
+    // HubSpaModule registers LAST among the portal modules ON PURPOSE:
+    // `HubController` owns the `GET /hub/*splat` SPA-shell catch-all, and
+    // Express matches routes in registration order. Every `/hub/admin/*`
+    // controller above (user/tenant/sessions/email-outbox admin, admin
+    // CRUD, rate limits) must register BEFORE the catch-all or their
+    // JSON sidecars would answer with the HTML shell.
+    HubSpaModule,
     ...conditionalImport(features, "fieldEncryption", EncryptionModule.forRoot()),
     // Example project-owned module — copy this folder + the test file
     // to scaffold a new resource. Drop the import once you have your
@@ -253,7 +265,7 @@ const features = loadFeatures(process.env as Record<string, string | undefined>)
     // Single-tenant deployments never mount `TenantInterceptor` above, so
     // core Hub/admin routes (`requireTenantContext()`) would have no tenant
     // in the ALS → 400. This Hub-scoped interceptor resolves the operator's
-    // OWN membership tenant for `/hub/*` + `/admin/*` only; all other paths
+    // OWN membership tenant for `/hub/*` (+ legacy `/admin/*`) only; all other paths
     // (the product `/api/*` surface, which pins its own tenant) pass through
     // untouched. Mutually exclusive with `TenantInterceptor` by the flag.
     ...(!features.multiTenancy.enabled

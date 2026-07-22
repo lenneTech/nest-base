@@ -215,8 +215,9 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<INestAp
 
   // Issue #83: all API endpoints live under `/api/*`. Paths excluded
   // from the prefix are those that intentionally sit at root level:
-  //   - `hub`, `hub/(.*)` — Dev-Hub SPA pages (no /api prefix)
-  //   - `admin`, `admin/(.*)` — Admin SPA pages (no /api prefix)
+  //   - `hub`, `hub/(.*)` — Hub SPA pages incl. `/hub/admin/*` (no /api prefix)
+  //   - `admin`, `admin/(.*)` — legacy namespace, 308-bridged to
+  //     `/hub/admin/*` by LegacyAdminRedirectController (no /api prefix)
   //   - `errors`, `errors/(.*)` — Error catalog page (no /api prefix)
   //   - `openapi`             — OpenAPI SPA viewer page (no /api prefix)
   //   - `health/(.*)`  — k8s liveness/readiness probes

@@ -1,7 +1,7 @@
 # Permissions Admin UI
 
-**Route:** `/admin/permissions` (matrix + CRUD)  
-**Tester route:** `/admin/permissions/test`  
+**Route:** `/hub/admin/permissions` (matrix + CRUD)  
+**Tester route:** `/hub/admin/permissions/test`  
 **Issue:** #84  
 **Backend paths:**
 - `src/core/permissions/permissions-admin.controller.ts`
@@ -17,25 +17,25 @@
 
 The Permissions admin UI has two linked pages:
 
-1. **`/admin/permissions`** — edit the Berechtigungsmatrix (checkboxes per
+1. **`/hub/admin/permissions`** — edit the Berechtigungsmatrix (checkboxes per
    role × resource × action).
-2. **`/admin/permissions/test`** — resolve the effective CASL ability
+2. **`/hub/admin/permissions/test`** — resolve the effective CASL ability
    for a given `(userId, tenantId)` pair so operators can diagnose 403s.
 
 Both pages are gated by `@Can("manage", "PermissionsAdmin")` on the
-controller side. The `/admin/` prefix is also in the allowlist that
+controller side. The `/hub/admin/` prefix is also in the allowlist that
 restricts access to `NODE_ENV=development`.
 
 ---
 
-## Permission matrix — `/admin/permissions`
+## Permission matrix — `/hub/admin/permissions`
 
 Single-page **Berechtigungsmatrix** (no separate list or manual create form).
 
 Data from:
 
 ```
-GET /api/admin/permissions/matrix.json
+GET /hub/admin/permissions/matrix.json
 ```
 
 with Better-Auth session cookies and an active organization from
@@ -53,19 +53,19 @@ resolve a default org.
   action: C/R/U/D/S (`CREATE`, `READ`, `UPDATE`, `DELETE`, `SHARE`).
 - **Cells** = checkboxes. Checked when the role’s attached policies grant
   that action on the resource (`MANAGE` checks all five).
-- **Toggle grant** — `POST /admin/permissions` on the role’s primary policy
+- **Toggle grant** — `POST /hub/admin/permissions` on the role’s primary policy
   (first `role_policies` link; auto-creates `Matrix — {role}` policy +
   attach when missing).
-- **Toggle revoke** — `DELETE /admin/permissions/:id` using `grants` metadata
+- **Toggle revoke** — `DELETE /hub/admin/permissions/:id` using `grants` metadata
   in the matrix payload; revoking one action under a `MANAGE` row splits
   into explicit per-action permissions for the remaining actions.
 
 Optional **Ressource filtern** narrows rows client-side. Role names come from
-`GET /api/admin/roles`.
+`GET /hub/admin/roles`.
 
 ---
 
-## Permission tester — `/admin/permissions/test`
+## Permission tester — `/hub/admin/permissions/test`
 
 ### Lookup form
 
@@ -80,7 +80,7 @@ On submit the URL is updated and the React `useLocation` → `useQuery`
 chain fires:
 
 ```
-GET /api/admin/permissions/test.json?userId=<uuid>&tenantId=<uuid>
+GET /hub/admin/permissions/test.json?userId=<uuid>&tenantId=<uuid>
 ```
 
 The URL-driven approach means the back button replays prior lookups.

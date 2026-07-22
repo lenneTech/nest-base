@@ -7,10 +7,10 @@ import { describe, expect, it } from "vitest";
  * Story · Sessions admin + impersonation controllers (CF.AUTH.SESSIONS + CF.AUTH.IMPERSONATION).
  *
  * The PRD requires HTTP surfaces for:
- *   - Single session revoke (`DELETE /admin/sessions/:sessionId`)
- *   - Bulk-by-user revoke (`POST /admin/sessions/revoke-bulk-by-user`)
- *   - "Log out other devices" self-service (`POST /admin/sessions/revoke-others`)
- *   - Impersonation stop (`POST /admin/impersonation/stop`)
+ *   - Single session revoke (`DELETE /hub/admin/sessions/:sessionId`)
+ *   - Bulk-by-user revoke (`POST /hub/admin/sessions/revoke-bulk-by-user`)
+ *   - "Log out other devices" self-service (`POST /hub/admin/sessions/revoke-others`)
+ *   - Impersonation stop (`POST /hub/admin/impersonation/stop`)
  *
  * Data routes are `@Can('delete', 'Session')`; the HTML shell is `@Public()`.
  * Revoke-others requires a Better-Auth session.
@@ -63,9 +63,9 @@ describe("Story · sessions-admin + impersonation controllers", () => {
   });
 
   describe("ImpersonationController", () => {
-    it("source defines POST /admin/impersonation/stop", () => {
+    it("source defines POST /hub/admin/impersonation/stop", () => {
       const src = readFileSync(resolve(ROOT, "src/core/auth/impersonation.controller.ts"), "utf8");
-      expect(src).toContain('@Controller("admin/impersonation")');
+      expect(src).toContain('@Controller("hub/admin/impersonation")');
       expect(src).toMatch(/@Post\(["']stop["']\)/);
     });
 
@@ -89,12 +89,12 @@ describe("Story · sessions-admin + impersonation controllers", () => {
   });
 
   describe("SessionsAdminPage frontend", () => {
-    it("page fetches /admin/sessions/list.json", () => {
+    it("page fetches /hub/admin/sessions/list.json", () => {
       const src = readFileSync(
         resolve(ROOT, "src/core/dx/clients/pages/SessionsAdminPage.tsx"),
         "utf8",
       );
-      expect(src).toContain("/admin/sessions/list.json");
+      expect(src).toContain("/hub/admin/sessions/list.json");
     });
   });
 

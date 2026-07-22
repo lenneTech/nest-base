@@ -2,7 +2,7 @@
  * Story · User admin planner (issue #86).
  *
  * Pure unit tests for `filterUsers()` — the planner that drives the
- * `/admin/users` search logic. No I/O, no NestJS booting.
+ * `/hub/admin/users` search logic. No I/O, no NestJS booting.
  *
  * Covered cases:
  *   - Empty query returns all users (up to limit)

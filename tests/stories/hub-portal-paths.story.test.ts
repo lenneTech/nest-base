@@ -18,12 +18,12 @@ describe("Story · Hub portal paths", () => {
     expect(isPathProtected("/hub/static/main.js")).toBe(false);
   });
 
-  it("requires session for /hub and /admin HTML", () => {
+  it("requires session for /hub and /hub/admin HTML", () => {
     expect(isHubPortalProtectedPath("/hub")).toBe(true);
     expect(isHubPortalProtectedPath("/hub/features")).toBe(true);
-    expect(isHubPortalProtectedPath("/admin/users")).toBe(true);
+    expect(isHubPortalProtectedPath("/hub/admin/users")).toBe(true);
     expect(isPathProtected("/hub")).toBe(true);
-    expect(isPathProtected("/admin/users")).toBe(true);
+    expect(isPathProtected("/hub/admin/users")).toBe(true);
   });
 
   it("keeps / as login path", () => {
@@ -38,8 +38,16 @@ describe("Story · Hub portal paths", () => {
 
   it("splits hub cockpit vs tenant-admin surfaces", () => {
     expect(isHubCockpitPath("/hub/features")).toBe(true);
+    expect(isTenantAdminPortalPath("/hub/admin/users")).toBe(true);
+    expect(isHubCockpitPath("/hub/admin/users")).toBe(false);
+  });
+
+  it("keeps the legacy /admin namespace walled like tenant-admin (308 bridge sits behind it)", () => {
+    expect(isTenantAdminPortalPath("/admin")).toBe(true);
     expect(isTenantAdminPortalPath("/admin/users")).toBe(true);
     expect(isHubCockpitPath("/admin/users")).toBe(false);
+    expect(isHubPortalProtectedPath("/admin/users")).toBe(true);
+    expect(isPathProtected("/admin/users")).toBe(true);
   });
 
   it("prefers HTML redirect for unauthenticated hub navigation", () => {

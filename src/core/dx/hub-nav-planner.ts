@@ -22,12 +22,12 @@ export const SPA_ROUTE_FEATURE_REQUIREMENTS: ReadonlyArray<{
   pathPrefix: string;
   feature: ToggleableFeatureKey;
 }> = [
-  { pathPrefix: "/admin/tenants", feature: "multiTenancy" },
-  { pathPrefix: "/admin/webhooks", feature: "webhooks" },
-  { pathPrefix: "/admin/realtime", feature: "realtime" },
-  { pathPrefix: "/admin/audit", feature: "audit" },
-  { pathPrefix: "/admin/search", feature: "search" },
-  { pathPrefix: "/admin/rate-limits", feature: "rateLimit" },
+  { pathPrefix: "/hub/admin/tenants", feature: "multiTenancy" },
+  { pathPrefix: "/hub/admin/webhooks", feature: "webhooks" },
+  { pathPrefix: "/hub/admin/realtime", feature: "realtime" },
+  { pathPrefix: "/hub/admin/audit", feature: "audit" },
+  { pathPrefix: "/hub/admin/search", feature: "search" },
+  { pathPrefix: "/hub/admin/rate-limits", feature: "rateLimit" },
   { pathPrefix: "/hub/files", feature: "files" },
   { pathPrefix: "/hub/jobs", feature: "jobs" },
   { pathPrefix: "/hub/cron", feature: "jobs" },
@@ -105,11 +105,16 @@ export function isSpaPathAllowedByFeatures(pathname: string, features: Features)
  * SPA paths whose DATA endpoints are workstation-tier (see
  * `hub-surface-policy.ts` — dev-only forever). Outside development the
  * server 404s their JSON, so nav, quick links, the palette, and the
- * client route gate hide them when `portal-access.json` says
- * `workstation: false`. Page-shell tiers do not matter here — this list
- * classifies what the PAGE needs to function.
+ * SPA route table drop them when `portal-access.json` says
+ * `workstation: false` (`App.tsx` registers the matching routes only
+ * behind that flag; the page chunks themselves are refused by the
+ * static handler — `workstation-page-chunks.ts`).
  */
 export const WORKSTATION_SPA_PATH_PREFIXES: readonly string[] = [
+  // Features moved from operational in the consolidation: toggles are
+  // build/runtime configuration reviewed at deploy time, not an
+  // operator surface (consumer request).
+  "/hub/features",
   "/hub/coverage",
   "/hub/tests",
   "/hub/migrations",
@@ -118,8 +123,8 @@ export const WORKSTATION_SPA_PATH_PREFIXES: readonly string[] = [
   "/hub/email-preview",
   "/hub/email-builder",
   "/hub/files",
-  "/admin/permissions/test",
-  "/admin/search",
+  "/hub/admin/permissions/test",
+  "/hub/admin/search",
 ];
 
 /** Prefix match, same semantics as `SPA_ROUTE_FEATURE_REQUIREMENTS`. */
@@ -132,7 +137,7 @@ export function isSpaPathWorkstationOnly(pathname: string): boolean {
 /** Hub landing quick-links: SPA paths respect flags; `/api/docs` and `/errors` stay visible. */
 export function isHubQuickLinkVisible(href: string, snapshot: HubPortalNavFeatures): boolean {
   const path = href.split("?")[0] ?? href;
-  if (path.startsWith("/hub") || path.startsWith("/admin")) {
+  if (path.startsWith("/hub")) {
     return isSpaPathAllowedByNavSnapshot(path, snapshot);
   }
   return true;

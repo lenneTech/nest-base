@@ -43,6 +43,2294 @@
         ]
       }
     },
+    "/hub/admin/permissions/test": {
+      "get": {
+        "operationId": "Admin_permissionsTestPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      },
+      "post": {
+        "operationId": "PermissionAdminController_test",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PermissionAdmin"
+        ]
+      }
+    },
+    "/hub/admin/permissions/test.json": {
+      "get": {
+        "operationId": "Admin_permissionsTestJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/hub/admin/webhooks": {
+      "get": {
+        "operationId": "Admin_webhookInspectorPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/hub/admin/webhooks.json": {
+      "get": {
+        "operationId": "Admin_webhookInspectorJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/hub/admin/webhooks/aggregates.json": {
+      "get": {
+        "operationId": "Admin_webhookAggregatesJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/hub/admin/webhooks/event-types.json": {
+      "get": {
+        "operationId": "Admin_webhookEventTypesJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/hub/admin/webhooks/{id}.json": {
+      "get": {
+        "operationId": "Admin_webhookDeliveryDetailJson",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/hub/admin/webhooks/{id}/test": {
+      "post": {
+        "operationId": "Admin_sendTestEvent",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/hub/admin/webhooks/{id}/redeliver": {
+      "post": {
+        "operationId": "Admin_redeliverWebhook",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/hub/admin/realtime": {
+      "get": {
+        "operationId": "Admin_realtimeInspectorPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/hub/admin/realtime.json": {
+      "get": {
+        "operationId": "Admin_realtimeInspectorJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/hub/admin/realtime/channels.json": {
+      "get": {
+        "operationId": "Admin_realtimeChannelsJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/hub/admin/realtime/sockets/{id}/disconnect": {
+      "post": {
+        "operationId": "Admin_realtimeDisconnectSocket",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/hub/admin/realtime/sockets/{id}/send": {
+      "post": {
+        "operationId": "Admin_realtimeSendToSocket",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/hub/admin/realtime/events/replay": {
+      "post": {
+        "operationId": "Admin_realtimeReplayEvent",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/hub/admin/audit": {
+      "get": {
+        "operationId": "Admin_auditBrowserPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/hub/admin/audit.json": {
+      "get": {
+        "operationId": "Admin_auditBrowserJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/hub/admin/jobs": {
+      "get": {
+        "operationId": "Admin_adminJobsPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/hub/admin/search": {
+      "get": {
+        "operationId": "Admin_searchTesterPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/hub/admin/search.json": {
+      "get": {
+        "operationId": "Admin_searchTesterJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/auth/{splat}": {
+      "get": {
+        "operationId": "BetterAuthController_handle_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BetterAuth"
+        ]
+      },
+      "post": {
+        "operationId": "BetterAuthController_handle_post",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BetterAuth"
+        ]
+      },
+      "put": {
+        "operationId": "BetterAuthController_handle_put",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BetterAuth"
+        ]
+      },
+      "delete": {
+        "operationId": "BetterAuthController_handle_delete",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BetterAuth"
+        ]
+      },
+      "patch": {
+        "operationId": "BetterAuthController_handle_patch",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BetterAuth"
+        ]
+      },
+      "options": {
+        "operationId": "BetterAuthController_handle_options",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BetterAuth"
+        ]
+      },
+      "head": {
+        "operationId": "BetterAuthController_handle_head",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BetterAuth"
+        ]
+      },
+      "search": {
+        "operationId": "BetterAuthController_handle_search",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BetterAuth"
+        ]
+      }
+    },
+    "/errors": {
+      "get": {
+        "operationId": "ErrorCodeController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ErrorCode"
+        ]
+      }
+    },
+    "/errors/{code}": {
+      "get": {
+        "operationId": "ErrorCodeController_resolve",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ErrorCode"
+        ]
+      }
+    },
+    "/api/me/export": {
+      "get": {
+        "operationId": "GdprController_export",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Gdpr"
+        ]
+      }
+    },
+    "/api/me/export/{jobId}": {
+      "get": {
+        "operationId": "GdprController_exportStatus",
+        "parameters": [
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Gdpr"
+        ]
+      }
+    },
+    "/api/me/account": {
+      "delete": {
+        "operationId": "GdprController_deleteAccount",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Gdpr"
+        ]
+      }
+    },
+    "/hub/admin/email-outbox/list.json": {
+      "get": {
+        "operationId": "EmailOutboxAdmin_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/hub/admin/email-outbox/{id}.json": {
+      "get": {
+        "operationId": "EmailOutboxAdmin_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/hub/admin/email-outbox/{id}/retry": {
+      "post": {
+        "operationId": "EmailOutboxAdmin_retry",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/hub/admin/email-outbox/{id}/cancel": {
+      "post": {
+        "operationId": "EmailOutboxAdmin_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/hub/admin/email-outbox/test-send": {
+      "post": {
+        "operationId": "EmailOutboxAdmin_testSend",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/me/tenants": {
+      "get": {
+        "operationId": "MeTenantsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of tenant memberships for the authenticated user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "tenantId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "tenantName": {
+                        "type": "string"
+                      },
+                      "tenantCreatedAt": {
+                        "type": "string"
+                      },
+                      "memberId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "role": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "ACTIVE",
+                          "INVITED",
+                          "SUSPENDED"
+                        ]
+                      },
+                      "invitedAt": {
+                        "type": "string"
+                      },
+                      "joinedAt": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "tenantId",
+                      "tenantName",
+                      "tenantCreatedAt",
+                      "memberId",
+                      "role",
+                      "status"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "MeTenants"
+        ]
+      }
+    },
+    "/api/tenants": {
+      "post": {
+        "operationId": "TenantSelfServiceController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "Self-service tenant creation payload.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 255
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created Tenant + the owner membership stamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "membership": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "role": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "ACTIVE",
+                            "INVITED",
+                            "SUSPENDED"
+                          ]
+                        },
+                        "joinedAt": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "role",
+                        "status"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "createdAt",
+                    "membership"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "TenantSelfService"
+        ]
+      }
+    },
+    "/hub/admin/tenants": {
+      "get": {
+        "operationId": "TenantAdminController_tenantsAdminPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "TenantAdmin"
+        ]
+      },
+      "post": {
+        "operationId": "TenantAdminController_createTenant",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "TenantAdmin"
+        ]
+      }
+    },
+    "/hub/admin/tenants/list.json": {
+      "get": {
+        "operationId": "TenantAdminController_tenantsListJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "TenantAdmin"
+        ]
+      }
+    },
+    "/hub/admin/tenants/{id}.json": {
+      "get": {
+        "operationId": "TenantAdminController_tenantDetailJson",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "TenantAdmin"
+        ]
+      }
+    },
+    "/hub/admin/tenants/{id}": {
+      "patch": {
+        "operationId": "TenantAdminController_updateTenant",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "TenantAdmin"
+        ]
+      }
+    },
+    "/hub/admin/tenants/{id}/soft-delete": {
+      "delete": {
+        "operationId": "TenantAdminController_softDeleteTenant",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "TenantAdmin"
+        ]
+      }
+    },
+    "/hub/admin/tenants/{id}/restore": {
+      "post": {
+        "operationId": "TenantAdminController_restoreTenant",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "TenantAdmin"
+        ]
+      }
+    },
+    "/hub/admin/tenants/{id}/members/invite": {
+      "post": {
+        "operationId": "TenantAdminController_inviteMember",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "TenantAdmin"
+        ]
+      }
+    },
+    "/hub/admin/tenants/{id}/members/{memberId}": {
+      "delete": {
+        "operationId": "TenantAdminController_removeMember",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "memberId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "TenantAdmin"
+        ]
+      }
+    },
+    "/hub/admin/tenants/{id}/members/{memberId}/role": {
+      "patch": {
+        "operationId": "TenantAdminController_updateMemberRole",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "memberId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "TenantAdmin"
+        ]
+      }
+    },
+    "/api/api-keys/{userId}": {
+      "get": {
+        "operationId": "ApiKeyController_list",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ApiKey"
+        ]
+      }
+    },
+    "/api/api-keys": {
+      "post": {
+        "operationId": "ApiKeyController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ApiKey"
+        ]
+      }
+    },
+    "/api/api-keys/{id}/rotate": {
+      "post": {
+        "operationId": "ApiKeyController_rotate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ApiKey"
+        ]
+      }
+    },
+    "/api/api-keys/{id}": {
+      "delete": {
+        "operationId": "ApiKeyController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ApiKey"
+        ]
+      }
+    },
+    "/hub/admin/sessions": {
+      "get": {
+        "operationId": "SessionsAdminController_sessionsAdminPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SessionsAdmin"
+        ]
+      }
+    },
+    "/hub/admin/sessions/list.json": {
+      "get": {
+        "operationId": "SessionsAdminController_sessionsListJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SessionsAdmin"
+        ]
+      }
+    },
+    "/hub/admin/sessions/{sessionId}": {
+      "delete": {
+        "operationId": "SessionsAdminController_revokeSingle",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SessionsAdmin"
+        ]
+      }
+    },
+    "/hub/admin/sessions/revoke-bulk-by-user": {
+      "post": {
+        "operationId": "SessionsAdminController_revokeBulkByUser",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SessionsAdmin"
+        ]
+      }
+    },
+    "/hub/admin/sessions/revoke-others": {
+      "post": {
+        "operationId": "SessionsAdminController_revokeOthers",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SessionsAdmin"
+        ]
+      }
+    },
+    "/hub/admin/impersonation/stop": {
+      "post": {
+        "operationId": "ImpersonationController_stop",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Impersonation"
+        ]
+      }
+    },
+    "/hub/admin/users": {
+      "get": {
+        "operationId": "UserAdminController_usersAdminPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserAdmin"
+        ]
+      }
+    },
+    "/hub/admin/users/list.json": {
+      "get": {
+        "operationId": "UserAdminController_usersListJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserAdmin"
+        ]
+      }
+    },
+    "/hub/admin/users/roles.json": {
+      "get": {
+        "operationId": "UserAdminController_assignableRolesJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserAdmin"
+        ]
+      }
+    },
+    "/hub/admin/users/{id}.json": {
+      "get": {
+        "operationId": "UserAdminController_userDetailJson",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserAdmin"
+        ]
+      }
+    },
+    "/hub/admin/users/{id}/role": {
+      "patch": {
+        "operationId": "UserAdminController_assignUserRole",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserAdmin"
+        ]
+      }
+    },
+    "/hub/admin/users/{id}/members/{memberId}/role": {
+      "patch": {
+        "operationId": "UserAdminController_updateMemberRole",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "memberId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserAdmin"
+        ]
+      }
+    },
+    "/hub/admin/users/create": {
+      "post": {
+        "operationId": "UserAdminController_createUser",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserAdmin"
+        ]
+      }
+    },
+    "/hub/admin/users/{id}/set-email-verified": {
+      "post": {
+        "operationId": "UserAdminController_setEmailVerified",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserAdmin"
+        ]
+      }
+    },
+    "/hub/admin/users/{id}/update": {
+      "post": {
+        "operationId": "UserAdminController_updateUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserAdmin"
+        ]
+      }
+    },
+    "/hub/admin/users/{id}/ban": {
+      "post": {
+        "operationId": "UserAdminController_banUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserAdmin"
+        ]
+      }
+    },
+    "/hub/admin/users/{id}/unban": {
+      "post": {
+        "operationId": "UserAdminController_unbanUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserAdmin"
+        ]
+      }
+    },
+    "/hub/admin/users/{id}/revoke-sessions": {
+      "post": {
+        "operationId": "UserAdminController_revokeUserSessions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserAdmin"
+        ]
+      }
+    },
+    "/hub/admin/roles": {
+      "get": {
+        "operationId": "RoleAdminController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RoleAdmin"
+        ]
+      },
+      "post": {
+        "operationId": "RoleAdminController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RoleAdmin"
+        ]
+      }
+    },
+    "/hub/admin/roles/{id}": {
+      "get": {
+        "operationId": "RoleAdminController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RoleAdmin"
+        ]
+      },
+      "delete": {
+        "operationId": "RoleAdminController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RoleAdmin"
+        ]
+      },
+      "patch": {
+        "operationId": "RoleAdminController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RoleAdmin"
+        ]
+      }
+    },
+    "/hub/admin/roles/{id}/policies": {
+      "get": {
+        "operationId": "RoleAdminController_listPolicies",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RoleAdmin"
+        ]
+      }
+    },
+    "/hub/admin/policies": {
+      "get": {
+        "operationId": "PolicyAdminController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PolicyAdmin"
+        ]
+      },
+      "post": {
+        "operationId": "PolicyAdminController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PolicyAdmin"
+        ]
+      }
+    },
+    "/hub/admin/policies/{id}": {
+      "get": {
+        "operationId": "PolicyAdminController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PolicyAdmin"
+        ]
+      },
+      "delete": {
+        "operationId": "PolicyAdminController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PolicyAdmin"
+        ]
+      }
+    },
+    "/hub/admin/policies/{id}/roles": {
+      "get": {
+        "operationId": "PolicyAdminController_listRoles",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PolicyAdmin"
+        ]
+      }
+    },
+    "/hub/admin/permissions": {
+      "get": {
+        "operationId": "PermissionAdminController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PermissionAdmin"
+        ]
+      },
+      "post": {
+        "operationId": "PermissionAdminController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PermissionAdmin"
+        ]
+      }
+    },
+    "/hub/admin/permissions/matrix.json": {
+      "get": {
+        "operationId": "PermissionAdminController_matrix",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PermissionAdmin"
+        ]
+      }
+    },
+    "/hub/admin/permissions/{id}": {
+      "get": {
+        "operationId": "PermissionAdminController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PermissionAdmin"
+        ]
+      },
+      "delete": {
+        "operationId": "PermissionAdminController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PermissionAdmin"
+        ]
+      }
+    },
+    "/hub/admin/permissions/attach": {
+      "post": {
+        "operationId": "PermissionAdminController_attach",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PermissionAdmin"
+        ]
+      }
+    },
+    "/hub/admin/permissions/attach/{roleId}/{policyId}": {
+      "delete": {
+        "operationId": "PermissionAdminController_detach",
+        "parameters": [
+          {
+            "name": "roleId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "policyId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PermissionAdmin"
+        ]
+      }
+    },
+    "/api/metrics": {
+      "get": {
+        "operationId": "MetricsController_expose",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Metrics"
+        ]
+      }
+    },
+    "/api/files": {
+      "get": {
+        "operationId": "FileController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "File"
+        ]
+      },
+      "post": {
+        "operationId": "FileController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "File"
+        ]
+      }
+    },
+    "/api/files/share/{token}": {
+      "get": {
+        "operationId": "FileController_fetchByShareToken",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "File"
+        ]
+      }
+    },
+    "/api/files/{id}": {
+      "get": {
+        "operationId": "FileController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "File"
+        ]
+      },
+      "delete": {
+        "operationId": "FileController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "File"
+        ]
+      }
+    },
+    "/api/files/upload": {
+      "post": {
+        "operationId": "FileController_upload",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "File"
+        ]
+      }
+    },
+    "/api/files/{id}/visibility": {
+      "patch": {
+        "operationId": "FileController_setVisibility",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "File"
+        ]
+      }
+    },
+    "/api/files/zip": {
+      "post": {
+        "operationId": "FileController_downloadZip",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "File"
+        ]
+      }
+    },
+    "/api/files/{id}/share-link": {
+      "post": {
+        "operationId": "FileController_issueShareLink",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "File"
+        ]
+      }
+    },
+    "/api/folders": {
+      "get": {
+        "operationId": "FolderController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Folder"
+        ]
+      },
+      "post": {
+        "operationId": "FolderController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Folder"
+        ]
+      }
+    },
+    "/api/folders/{id}": {
+      "delete": {
+        "operationId": "FolderController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Folder"
+        ]
+      }
+    },
+    "/api/assets/{key}": {
+      "get": {
+        "operationId": "AssetController_get",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Asset"
+        ]
+      }
+    },
+    "/_ipx/cache/{sourcePath}": {
+      "delete": {
+        "operationId": "IpxCacheController_invalidate",
+        "parameters": [
+          {
+            "name": "sourcePath",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "IpxCache"
+        ]
+      }
+    },
+    "/hub/admin/rate-limits": {
+      "get": {
+        "operationId": "RateLimitAdminController_rateLimitsPage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RateLimitAdmin"
+        ]
+      }
+    },
+    "/hub/admin/rate-limits/inspector.json": {
+      "get": {
+        "operationId": "RateLimitAdminController_inspectorJson",
+        "parameters": [
+          {
+            "name": "scope",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RateLimitAdmin"
+        ]
+      }
+    },
+    "/hub/admin/rate-limits/config.json": {
+      "get": {
+        "operationId": "RateLimitAdminController_configJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RateLimitAdmin"
+        ]
+      }
+    },
+    "/hub/admin/rate-limits/config/{scope}": {
+      "put": {
+        "operationId": "RateLimitAdminController_putConfig",
+        "parameters": [
+          {
+            "name": "scope",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RateLimitAdmin"
+        ]
+      },
+      "delete": {
+        "operationId": "RateLimitAdminController_deleteConfig",
+        "parameters": [
+          {
+            "name": "scope",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RateLimitAdmin"
+        ]
+      }
+    },
+    "/hub/admin/rate-limits/decisions.json": {
+      "get": {
+        "operationId": "RateLimitAdminController_decisionsJson",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endpoint",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decision",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RateLimitAdmin"
+        ]
+      }
+    },
+    "/hub/admin/rate-limits/keys/{key}/reset": {
+      "post": {
+        "operationId": "RateLimitAdminController_resetKey",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RateLimitAdmin"
+        ]
+      }
+    },
+    "/hub/admin/rate-limits/endpoints/{name}/reset-all": {
+      "post": {
+        "operationId": "RateLimitAdminController_resetEndpointAll",
+        "parameters": [
+          {
+            "name": "name",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RateLimitAdmin"
+        ]
+      }
+    },
+    "/hub/admin/rate-limits/allowlist.json": {
+      "get": {
+        "operationId": "RateLimitAdminController_allowlistJson",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RateLimitAdmin"
+        ]
+      }
+    },
+    "/hub/admin/rate-limits/allowlist": {
+      "post": {
+        "operationId": "RateLimitAdminController_addToAllowlist",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RateLimitAdmin"
+        ]
+      }
+    },
+    "/hub/admin/rate-limits/allowlist/{userId}": {
+      "delete": {
+        "operationId": "RateLimitAdminController_removeFromAllowlist",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "RateLimitAdmin"
+        ]
+      }
+    },
     "/hub/files": {
       "get": {
         "operationId": "HubFiles_page",
@@ -96,343 +2384,6 @@
         },
         "tags": [
           "Hub"
-        ]
-      }
-    },
-    "/admin/permissions/test": {
-      "get": {
-        "operationId": "Admin_permissionsTestPage",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Admin"
-        ]
-      },
-      "post": {
-        "operationId": "PermissionAdminController_test",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "PermissionAdmin"
-        ]
-      }
-    },
-    "/admin/permissions/test.json": {
-      "get": {
-        "operationId": "Admin_permissionsTestJson",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Admin"
-        ]
-      }
-    },
-    "/admin/webhooks": {
-      "get": {
-        "operationId": "Admin_webhookInspectorPage",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Admin"
-        ]
-      }
-    },
-    "/admin/webhooks.json": {
-      "get": {
-        "operationId": "Admin_webhookInspectorJson",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Admin"
-        ]
-      }
-    },
-    "/admin/webhooks/aggregates.json": {
-      "get": {
-        "operationId": "Admin_webhookAggregatesJson",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Admin"
-        ]
-      }
-    },
-    "/admin/webhooks/event-types.json": {
-      "get": {
-        "operationId": "Admin_webhookEventTypesJson",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Admin"
-        ]
-      }
-    },
-    "/admin/webhooks/{id}.json": {
-      "get": {
-        "operationId": "Admin_webhookDeliveryDetailJson",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Admin"
-        ]
-      }
-    },
-    "/admin/webhooks/{id}/test": {
-      "post": {
-        "operationId": "Admin_sendTestEvent",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Admin"
-        ]
-      }
-    },
-    "/admin/webhooks/{id}/redeliver": {
-      "post": {
-        "operationId": "Admin_redeliverWebhook",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Admin"
-        ]
-      }
-    },
-    "/admin/realtime": {
-      "get": {
-        "operationId": "Admin_realtimeInspectorPage",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Admin"
-        ]
-      }
-    },
-    "/admin/realtime.json": {
-      "get": {
-        "operationId": "Admin_realtimeInspectorJson",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Admin"
-        ]
-      }
-    },
-    "/admin/realtime/channels.json": {
-      "get": {
-        "operationId": "Admin_realtimeChannelsJson",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Admin"
-        ]
-      }
-    },
-    "/admin/realtime/sockets/{id}/disconnect": {
-      "post": {
-        "operationId": "Admin_realtimeDisconnectSocket",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Admin"
-        ]
-      }
-    },
-    "/admin/realtime/sockets/{id}/send": {
-      "post": {
-        "operationId": "Admin_realtimeSendToSocket",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Admin"
-        ]
-      }
-    },
-    "/admin/realtime/events/replay": {
-      "post": {
-        "operationId": "Admin_realtimeReplayEvent",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Admin"
-        ]
-      }
-    },
-    "/admin/audit": {
-      "get": {
-        "operationId": "Admin_auditBrowserPage",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Admin"
-        ]
-      }
-    },
-    "/admin/audit.json": {
-      "get": {
-        "operationId": "Admin_auditBrowserJson",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Admin"
-        ]
-      }
-    },
-    "/admin/jobs": {
-      "get": {
-        "operationId": "Admin_adminJobsPage",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Admin"
-        ]
-      }
-    },
-    "/admin/search": {
-      "get": {
-        "operationId": "Admin_searchTesterPage",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Admin"
-        ]
-      }
-    },
-    "/admin/search.json": {
-      "get": {
-        "operationId": "Admin_searchTesterJson",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Admin"
         ]
       }
     },
@@ -1595,1957 +3546,6 @@
         },
         "tags": [
           "Hub"
-        ]
-      }
-    },
-    "/api/auth/{splat}": {
-      "get": {
-        "operationId": "BetterAuthController_handle_get",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "BetterAuth"
-        ]
-      },
-      "post": {
-        "operationId": "BetterAuthController_handle_post",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "BetterAuth"
-        ]
-      },
-      "put": {
-        "operationId": "BetterAuthController_handle_put",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "BetterAuth"
-        ]
-      },
-      "delete": {
-        "operationId": "BetterAuthController_handle_delete",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "BetterAuth"
-        ]
-      },
-      "patch": {
-        "operationId": "BetterAuthController_handle_patch",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "BetterAuth"
-        ]
-      },
-      "options": {
-        "operationId": "BetterAuthController_handle_options",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "BetterAuth"
-        ]
-      },
-      "head": {
-        "operationId": "BetterAuthController_handle_head",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "BetterAuth"
-        ]
-      },
-      "search": {
-        "operationId": "BetterAuthController_handle_search",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "BetterAuth"
-        ]
-      }
-    },
-    "/errors": {
-      "get": {
-        "operationId": "ErrorCodeController_list",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "ErrorCode"
-        ]
-      }
-    },
-    "/errors/{code}": {
-      "get": {
-        "operationId": "ErrorCodeController_resolve",
-        "parameters": [
-          {
-            "name": "code",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "locale",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "ErrorCode"
-        ]
-      }
-    },
-    "/api/me/export": {
-      "get": {
-        "operationId": "GdprController_export",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Gdpr"
-        ]
-      }
-    },
-    "/api/me/export/{jobId}": {
-      "get": {
-        "operationId": "GdprController_exportStatus",
-        "parameters": [
-          {
-            "name": "jobId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Gdpr"
-        ]
-      }
-    },
-    "/api/me/account": {
-      "delete": {
-        "operationId": "GdprController_deleteAccount",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Gdpr"
-        ]
-      }
-    },
-    "/admin/email-outbox/list.json": {
-      "get": {
-        "operationId": "EmailOutboxAdmin_list",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Admin"
-        ]
-      }
-    },
-    "/admin/email-outbox/{id}.json": {
-      "get": {
-        "operationId": "EmailOutboxAdmin_detail",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Admin"
-        ]
-      }
-    },
-    "/admin/email-outbox/{id}/retry": {
-      "post": {
-        "operationId": "EmailOutboxAdmin_retry",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Admin"
-        ]
-      }
-    },
-    "/admin/email-outbox/{id}/cancel": {
-      "post": {
-        "operationId": "EmailOutboxAdmin_cancel",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Admin"
-        ]
-      }
-    },
-    "/admin/email-outbox/test-send": {
-      "post": {
-        "operationId": "EmailOutboxAdmin_testSend",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Admin"
-        ]
-      }
-    },
-    "/api/me/tenants": {
-      "get": {
-        "operationId": "MeTenantsController_list",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "List of tenant memberships for the authenticated user.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "tenantId": {
-                        "type": "string",
-                        "format": "uuid",
-                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                      },
-                      "tenantName": {
-                        "type": "string"
-                      },
-                      "tenantCreatedAt": {
-                        "type": "string"
-                      },
-                      "memberId": {
-                        "type": "string",
-                        "format": "uuid",
-                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                      },
-                      "role": {
-                        "type": "string"
-                      },
-                      "status": {
-                        "type": "string",
-                        "enum": [
-                          "ACTIVE",
-                          "INVITED",
-                          "SUSPENDED"
-                        ]
-                      },
-                      "invitedAt": {
-                        "type": "string"
-                      },
-                      "joinedAt": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "tenantId",
-                      "tenantName",
-                      "tenantCreatedAt",
-                      "memberId",
-                      "role",
-                      "status"
-                    ],
-                    "additionalProperties": false
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "MeTenants"
-        ]
-      }
-    },
-    "/api/tenants": {
-      "post": {
-        "operationId": "TenantSelfServiceController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "description": "Self-service tenant creation payload.",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "maxLength": 255
-                  }
-                },
-                "required": [
-                  "name"
-                ],
-                "additionalProperties": false
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "The created Tenant + the owner membership stamp.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "createdAt": {
-                      "type": "string"
-                    },
-                    "membership": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string",
-                          "format": "uuid",
-                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                        },
-                        "role": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "type": "string",
-                          "enum": [
-                            "ACTIVE",
-                            "INVITED",
-                            "SUSPENDED"
-                          ]
-                        },
-                        "joinedAt": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "role",
-                        "status"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "name",
-                    "createdAt",
-                    "membership"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "TenantSelfService"
-        ]
-      }
-    },
-    "/admin/tenants": {
-      "get": {
-        "operationId": "TenantAdminController_tenantsAdminPage",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "TenantAdmin"
-        ]
-      },
-      "post": {
-        "operationId": "TenantAdminController_createTenant",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "TenantAdmin"
-        ]
-      }
-    },
-    "/admin/tenants/list.json": {
-      "get": {
-        "operationId": "TenantAdminController_tenantsListJson",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "TenantAdmin"
-        ]
-      }
-    },
-    "/admin/tenants/{id}.json": {
-      "get": {
-        "operationId": "TenantAdminController_tenantDetailJson",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "TenantAdmin"
-        ]
-      }
-    },
-    "/admin/tenants/{id}": {
-      "patch": {
-        "operationId": "TenantAdminController_updateTenant",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "TenantAdmin"
-        ]
-      }
-    },
-    "/admin/tenants/{id}/soft-delete": {
-      "delete": {
-        "operationId": "TenantAdminController_softDeleteTenant",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "TenantAdmin"
-        ]
-      }
-    },
-    "/admin/tenants/{id}/restore": {
-      "post": {
-        "operationId": "TenantAdminController_restoreTenant",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "TenantAdmin"
-        ]
-      }
-    },
-    "/admin/tenants/{id}/members/invite": {
-      "post": {
-        "operationId": "TenantAdminController_inviteMember",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "TenantAdmin"
-        ]
-      }
-    },
-    "/admin/tenants/{id}/members/{memberId}": {
-      "delete": {
-        "operationId": "TenantAdminController_removeMember",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "memberId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "TenantAdmin"
-        ]
-      }
-    },
-    "/admin/tenants/{id}/members/{memberId}/role": {
-      "patch": {
-        "operationId": "TenantAdminController_updateMemberRole",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "memberId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "TenantAdmin"
-        ]
-      }
-    },
-    "/api/api-keys/{userId}": {
-      "get": {
-        "operationId": "ApiKeyController_list",
-        "parameters": [
-          {
-            "name": "userId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "ApiKey"
-        ]
-      }
-    },
-    "/api/api-keys": {
-      "post": {
-        "operationId": "ApiKeyController_create",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "ApiKey"
-        ]
-      }
-    },
-    "/api/api-keys/{id}/rotate": {
-      "post": {
-        "operationId": "ApiKeyController_rotate",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "ApiKey"
-        ]
-      }
-    },
-    "/api/api-keys/{id}": {
-      "delete": {
-        "operationId": "ApiKeyController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "ApiKey"
-        ]
-      }
-    },
-    "/admin/sessions": {
-      "get": {
-        "operationId": "SessionsAdminController_sessionsAdminPage",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "SessionsAdmin"
-        ]
-      }
-    },
-    "/admin/sessions/list.json": {
-      "get": {
-        "operationId": "SessionsAdminController_sessionsListJson",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "SessionsAdmin"
-        ]
-      }
-    },
-    "/admin/sessions/{sessionId}": {
-      "delete": {
-        "operationId": "SessionsAdminController_revokeSingle",
-        "parameters": [
-          {
-            "name": "sessionId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "SessionsAdmin"
-        ]
-      }
-    },
-    "/admin/sessions/revoke-bulk-by-user": {
-      "post": {
-        "operationId": "SessionsAdminController_revokeBulkByUser",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "SessionsAdmin"
-        ]
-      }
-    },
-    "/admin/sessions/revoke-others": {
-      "post": {
-        "operationId": "SessionsAdminController_revokeOthers",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "SessionsAdmin"
-        ]
-      }
-    },
-    "/admin/impersonation/stop": {
-      "post": {
-        "operationId": "ImpersonationController_stop",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Impersonation"
-        ]
-      }
-    },
-    "/admin/users": {
-      "get": {
-        "operationId": "UserAdminController_usersAdminPage",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "UserAdmin"
-        ]
-      }
-    },
-    "/admin/users/list.json": {
-      "get": {
-        "operationId": "UserAdminController_usersListJson",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "UserAdmin"
-        ]
-      }
-    },
-    "/admin/users/roles.json": {
-      "get": {
-        "operationId": "UserAdminController_assignableRolesJson",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "UserAdmin"
-        ]
-      }
-    },
-    "/admin/users/{id}.json": {
-      "get": {
-        "operationId": "UserAdminController_userDetailJson",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "UserAdmin"
-        ]
-      }
-    },
-    "/admin/users/{id}/role": {
-      "patch": {
-        "operationId": "UserAdminController_assignUserRole",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "UserAdmin"
-        ]
-      }
-    },
-    "/admin/users/{id}/members/{memberId}/role": {
-      "patch": {
-        "operationId": "UserAdminController_updateMemberRole",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "memberId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "UserAdmin"
-        ]
-      }
-    },
-    "/admin/users/create": {
-      "post": {
-        "operationId": "UserAdminController_createUser",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "UserAdmin"
-        ]
-      }
-    },
-    "/admin/users/{id}/set-email-verified": {
-      "post": {
-        "operationId": "UserAdminController_setEmailVerified",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "UserAdmin"
-        ]
-      }
-    },
-    "/admin/users/{id}/update": {
-      "post": {
-        "operationId": "UserAdminController_updateUser",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "UserAdmin"
-        ]
-      }
-    },
-    "/admin/users/{id}/ban": {
-      "post": {
-        "operationId": "UserAdminController_banUser",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "UserAdmin"
-        ]
-      }
-    },
-    "/admin/users/{id}/unban": {
-      "post": {
-        "operationId": "UserAdminController_unbanUser",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "UserAdmin"
-        ]
-      }
-    },
-    "/admin/users/{id}/revoke-sessions": {
-      "post": {
-        "operationId": "UserAdminController_revokeUserSessions",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "UserAdmin"
-        ]
-      }
-    },
-    "/admin/roles": {
-      "get": {
-        "operationId": "RoleAdminController_list",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "RoleAdmin"
-        ]
-      },
-      "post": {
-        "operationId": "RoleAdminController_create",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "RoleAdmin"
-        ]
-      }
-    },
-    "/admin/roles/{id}": {
-      "get": {
-        "operationId": "RoleAdminController_get",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "RoleAdmin"
-        ]
-      },
-      "delete": {
-        "operationId": "RoleAdminController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "RoleAdmin"
-        ]
-      },
-      "patch": {
-        "operationId": "RoleAdminController_update",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "RoleAdmin"
-        ]
-      }
-    },
-    "/admin/roles/{id}/policies": {
-      "get": {
-        "operationId": "RoleAdminController_listPolicies",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "RoleAdmin"
-        ]
-      }
-    },
-    "/admin/policies": {
-      "get": {
-        "operationId": "PolicyAdminController_list",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "PolicyAdmin"
-        ]
-      },
-      "post": {
-        "operationId": "PolicyAdminController_create",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "PolicyAdmin"
-        ]
-      }
-    },
-    "/admin/policies/{id}": {
-      "get": {
-        "operationId": "PolicyAdminController_get",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "PolicyAdmin"
-        ]
-      },
-      "delete": {
-        "operationId": "PolicyAdminController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "PolicyAdmin"
-        ]
-      }
-    },
-    "/admin/policies/{id}/roles": {
-      "get": {
-        "operationId": "PolicyAdminController_listRoles",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "PolicyAdmin"
-        ]
-      }
-    },
-    "/admin/permissions": {
-      "get": {
-        "operationId": "PermissionAdminController_list",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "PermissionAdmin"
-        ]
-      },
-      "post": {
-        "operationId": "PermissionAdminController_create",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "PermissionAdmin"
-        ]
-      }
-    },
-    "/admin/permissions/matrix.json": {
-      "get": {
-        "operationId": "PermissionAdminController_matrix",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "PermissionAdmin"
-        ]
-      }
-    },
-    "/admin/permissions/{id}": {
-      "get": {
-        "operationId": "PermissionAdminController_get",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "PermissionAdmin"
-        ]
-      },
-      "delete": {
-        "operationId": "PermissionAdminController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "PermissionAdmin"
-        ]
-      }
-    },
-    "/admin/permissions/attach": {
-      "post": {
-        "operationId": "PermissionAdminController_attach",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "PermissionAdmin"
-        ]
-      }
-    },
-    "/admin/permissions/attach/{roleId}/{policyId}": {
-      "delete": {
-        "operationId": "PermissionAdminController_detach",
-        "parameters": [
-          {
-            "name": "roleId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "policyId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "PermissionAdmin"
-        ]
-      }
-    },
-    "/api/metrics": {
-      "get": {
-        "operationId": "MetricsController_expose",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Metrics"
-        ]
-      }
-    },
-    "/api/files": {
-      "get": {
-        "operationId": "FileController_list",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "File"
-        ]
-      },
-      "post": {
-        "operationId": "FileController_create",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "File"
-        ]
-      }
-    },
-    "/api/files/share/{token}": {
-      "get": {
-        "operationId": "FileController_fetchByShareToken",
-        "parameters": [
-          {
-            "name": "token",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "File"
-        ]
-      }
-    },
-    "/api/files/{id}": {
-      "get": {
-        "operationId": "FileController_get",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "File"
-        ]
-      },
-      "delete": {
-        "operationId": "FileController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "File"
-        ]
-      }
-    },
-    "/api/files/upload": {
-      "post": {
-        "operationId": "FileController_upload",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "File"
-        ]
-      }
-    },
-    "/api/files/{id}/visibility": {
-      "patch": {
-        "operationId": "FileController_setVisibility",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "File"
-        ]
-      }
-    },
-    "/api/files/zip": {
-      "post": {
-        "operationId": "FileController_downloadZip",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "File"
-        ]
-      }
-    },
-    "/api/files/{id}/share-link": {
-      "post": {
-        "operationId": "FileController_issueShareLink",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "File"
-        ]
-      }
-    },
-    "/api/folders": {
-      "get": {
-        "operationId": "FolderController_list",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Folder"
-        ]
-      },
-      "post": {
-        "operationId": "FolderController_create",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Folder"
-        ]
-      }
-    },
-    "/api/folders/{id}": {
-      "delete": {
-        "operationId": "FolderController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Folder"
-        ]
-      }
-    },
-    "/api/assets/{key}": {
-      "get": {
-        "operationId": "AssetController_get",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Asset"
-        ]
-      }
-    },
-    "/_ipx/cache/{sourcePath}": {
-      "delete": {
-        "operationId": "IpxCacheController_invalidate",
-        "parameters": [
-          {
-            "name": "sourcePath",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "IpxCache"
-        ]
-      }
-    },
-    "/admin/rate-limits": {
-      "get": {
-        "operationId": "RateLimitAdminController_rateLimitsPage",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "RateLimitAdmin"
-        ]
-      }
-    },
-    "/admin/rate-limits/inspector.json": {
-      "get": {
-        "operationId": "RateLimitAdminController_inspectorJson",
-        "parameters": [
-          {
-            "name": "scope",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "RateLimitAdmin"
-        ]
-      }
-    },
-    "/admin/rate-limits/config.json": {
-      "get": {
-        "operationId": "RateLimitAdminController_configJson",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "RateLimitAdmin"
-        ]
-      }
-    },
-    "/admin/rate-limits/config/{scope}": {
-      "put": {
-        "operationId": "RateLimitAdminController_putConfig",
-        "parameters": [
-          {
-            "name": "scope",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "RateLimitAdmin"
-        ]
-      },
-      "delete": {
-        "operationId": "RateLimitAdminController_deleteConfig",
-        "parameters": [
-          {
-            "name": "scope",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "RateLimitAdmin"
-        ]
-      }
-    },
-    "/admin/rate-limits/decisions.json": {
-      "get": {
-        "operationId": "RateLimitAdminController_decisionsJson",
-        "parameters": [
-          {
-            "name": "cursor",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "endpoint",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "decision",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "RateLimitAdmin"
-        ]
-      }
-    },
-    "/admin/rate-limits/keys/{key}/reset": {
-      "post": {
-        "operationId": "RateLimitAdminController_resetKey",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "RateLimitAdmin"
-        ]
-      }
-    },
-    "/admin/rate-limits/endpoints/{name}/reset-all": {
-      "post": {
-        "operationId": "RateLimitAdminController_resetEndpointAll",
-        "parameters": [
-          {
-            "name": "name",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "RateLimitAdmin"
-        ]
-      }
-    },
-    "/admin/rate-limits/allowlist.json": {
-      "get": {
-        "operationId": "RateLimitAdminController_allowlistJson",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "RateLimitAdmin"
-        ]
-      }
-    },
-    "/admin/rate-limits/allowlist": {
-      "post": {
-        "operationId": "RateLimitAdminController_addToAllowlist",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "RateLimitAdmin"
-        ]
-      }
-    },
-    "/admin/rate-limits/allowlist/{userId}": {
-      "delete": {
-        "operationId": "RateLimitAdminController_removeFromAllowlist",
-        "parameters": [
-          {
-            "name": "userId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "RateLimitAdmin"
         ]
       }
     },

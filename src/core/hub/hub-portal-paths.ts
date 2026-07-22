@@ -23,16 +23,44 @@ export function isHubPortalAccessProbePath(path: string): boolean {
   return path === "/hub/portal-access.json";
 }
 
-/** Dev cockpit pages under `/hub/*` (excludes static assets and the access probe). */
+/**
+ * Admin console under `/hub/admin/*` — the canonical home of the former
+ * `/admin/*` surfaces (tenant-admin CRUD, inspectors, session/user
+ * management). Gated by `canAccessTenantAdmin`, not by the cockpit's
+ * `read Hub` subject, so tenant admins without Hub access keep their
+ * console.
+ */
+export function isHubAdminPortalPath(path: string): boolean {
+  return path === "/hub/admin" || path.startsWith("/hub/admin/");
+}
+
+/**
+ * Legacy `/admin/*` namespace — kept classified as a tenant-admin
+ * portal path so the session/ability wall answers BEFORE the 308
+ * redirect layer (`LegacyAdminRedirectController`). Anonymous or
+ * unauthorized requests behave exactly as before the consolidation.
+ */
+export function isLegacyAdminPortalPath(path: string): boolean {
+  return path === "/admin" || path.startsWith("/admin/");
+}
+
+/**
+ * Dev cockpit pages under `/hub/*` (excludes static assets, the access
+ * probe, and the `/hub/admin/*` console which has its own CASL gate).
+ */
 export function isHubCockpitPath(path: string): boolean {
   if (isHubPortalStaticAsset(path)) return false;
   if (isHubPortalAccessProbePath(path)) return false;
+  if (isHubAdminPortalPath(path)) return false;
   return path === "/hub" || path.startsWith("/hub/");
 }
 
-/** Tenant-admin SPA + JSON under `/admin/*`. */
+/**
+ * Tenant-admin SPA + JSON — canonical `/hub/admin/*` plus the legacy
+ * `/admin/*` redirect namespace (both sit behind `canAccessTenantAdmin`).
+ */
 export function isTenantAdminPortalPath(path: string): boolean {
-  return path === "/admin" || path.startsWith("/admin/");
+  return isHubAdminPortalPath(path) || isLegacyAdminPortalPath(path);
 }
 
 /**

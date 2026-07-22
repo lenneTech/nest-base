@@ -1,7 +1,7 @@
 /**
- * `/admin/roles` — Prisma-backed Role CRUD (CF.MTPERM, iter-128 —
+ * `/hub/admin/roles` — Prisma-backed Role CRUD (CF.MTPERM, iter-128 —
  * PRD-reviewer Finding 2). Enhanced in Issue #84 with a role list plus
- * Sheet detail panel for attached policies, parent-role configuration, Reads/writes the `/admin/roles` REST endpoints exposed
+ * Sheet detail panel for attached policies, parent-role configuration, Reads/writes the `/hub/admin/roles` REST endpoints exposed
  * by `AdminCrudModule` (iter-115).
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -107,13 +107,13 @@ export function RolesAdminPage(): ReactNode {
 
   const list = useQuery({
     queryKey: ["admin", "roles", tenantId],
-    queryFn: () => fetchJson<RoleRecord[]>("/admin/roles"),
+    queryFn: () => fetchJson<RoleRecord[]>("/hub/admin/roles"),
     enabled: tenantId.trim().length > 0,
   });
 
   const create = useMutation({
     mutationFn: async (payload: { name: string; description: string }) => {
-      const res = await adminFetch("/admin/roles", {
+      const res = await adminFetch("/hub/admin/roles", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -135,7 +135,7 @@ export function RolesAdminPage(): ReactNode {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const res = await adminFetch(`/admin/roles/${id}`, { method: "DELETE" });
+      const res = await adminFetch(`/hub/admin/roles/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error(`role delete failed (${res.status})`);
       return res.json();
     },
@@ -213,7 +213,7 @@ export function RolesAdminPage(): ReactNode {
                 No active tenant — choose an organization in Better Auth or enter a tenant UUID.
               </PageEmpty>
             ) : list.isError ? (
-              <PageError>Could not load /admin/roles.</PageError>
+              <PageError>Could not load /hub/admin/roles.</PageError>
             ) : filtered.length === 0 ? (
               <PageEmpty>{search.trim() ? "No roles found." : "No roles created yet."}</PageEmpty>
             ) : (
@@ -469,7 +469,7 @@ function RoleDetail({ role, allRoles, tenantId, onClose }: RoleDetailProps): Rea
   const policies = useQuery({
     queryKey: ["admin", "roles", role.id, "policies", tenantId],
     queryFn: async () => {
-      const res = await fetch(`/admin/roles/${role.id}/policies`, {
+      const res = await fetch(`/hub/admin/roles/${role.id}/policies`, {
         headers: { accept: "application/json" },
         cache: "no-store",
       });
@@ -481,12 +481,12 @@ function RoleDetail({ role, allRoles, tenantId, onClose }: RoleDetailProps): Rea
 
   const allPolicies = useQuery({
     queryKey: ["admin", "policies"],
-    queryFn: () => fetchJson<PolicyRecord[]>("/admin/policies"),
+    queryFn: () => fetchJson<PolicyRecord[]>("/hub/admin/policies"),
   });
 
   const attach = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/admin/permissions/attach", {
+      const res = await fetch("/hub/admin/permissions/attach", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ roleId: role.id, policyId: attachPolicyId }),
@@ -505,7 +505,7 @@ function RoleDetail({ role, allRoles, tenantId, onClose }: RoleDetailProps): Rea
   const detach = useMutation({
     mutationFn: async (policyId: string) => {
       const res = await fetch(
-        `/admin/permissions/attach/${encodeURIComponent(role.id)}/${encodeURIComponent(policyId)}`,
+        `/hub/admin/permissions/attach/${encodeURIComponent(role.id)}/${encodeURIComponent(policyId)}`,
         { method: "DELETE" },
       );
       if (!res.ok) throw new Error(`detach failed (${res.status})`);
@@ -520,7 +520,7 @@ function RoleDetail({ role, allRoles, tenantId, onClose }: RoleDetailProps): Rea
 
   const patchParent = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/admin/roles/${role.id}`, {
+      const res = await fetch(`/hub/admin/roles/${role.id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({

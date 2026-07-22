@@ -34,7 +34,7 @@ export class DevPortalRouteError extends Component<Props, State> {
         <div className="flex min-h-[40vh] items-center justify-center p-8">
           <PageError>
             {staleChunk
-              ? "Dev portal bundle is stale (after rebuild). Reload the start page once (Cmd+Shift+R)."
+              ? "Hub bundle is stale (after rebuild). Reload the start page once (Cmd+Shift+R)."
               : "Page could not be loaded."}
           </PageError>
         </div>

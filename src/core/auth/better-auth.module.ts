@@ -228,7 +228,7 @@ import { isBetterAuthRateLimitEnabled } from "./rate-limit-flag.js";
           // `activeOrganizationId` after POST /api/auth/organization/set-active
           // (session-only tenant scope; x-tenant-id is not read).
           ...(features.multiTenancy.enabled ? { organization: {} } : {}),
-          // Admin plugin: ban/unban, create-user, update-user for /admin/users.
+          // Admin plugin: ban/unban, create-user, update-user for /hub/admin/users.
           // Enabled when flagged or in development so the Dev-Hub user UI works.
           ...(features.adminPlugin.enabled ||
           cfg.env === "development" ||

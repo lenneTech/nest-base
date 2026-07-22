@@ -1,5 +1,5 @@
 /**
- * Read-model types for the `/admin/search` page.
+ * Read-model types for the `/hub/admin/search` page.
  *
  * Shared between the JSON sidecar in `admin-spa.controller.ts` and the
  * React page. `snippet` arrives pre-wrapped in `<b>…</b>` markers from

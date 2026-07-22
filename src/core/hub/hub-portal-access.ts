@@ -10,7 +10,7 @@ export function canAccessHub(ability: Ability | undefined): boolean {
   return grantsHubPortalAccess(ability);
 }
 
-/** Tenant admin CRUD + inspectors (`/admin/*` JSON + pages). */
+/** Tenant admin CRUD + inspectors (`/hub/admin/*` JSON + pages, legacy `/admin/*`). */
 export function canAccessTenantAdmin(ability: Ability | undefined): boolean {
   if (!ability) return false;
   if (canManageSubject(ability, "all")) return true;

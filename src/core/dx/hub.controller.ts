@@ -126,6 +126,7 @@ import {
   assertHubSurfaceAvailable,
   isHubSurfaceAvailableFromEnv,
 } from "../hub/hub-surface-guard.js";
+import { isWorkstationPageChunk } from "./workstation-page-chunks.js";
 import {
   buildHubNavFeatureSnapshot,
   filterPalettePagesForNavSnapshot,
@@ -161,9 +162,7 @@ export class HubController {
   @Header("content-type", "text/html; charset=utf-8")
   index(): string {
     this.assertOperational();
-    return renderDevPortalShell(
-      buildDevPortalShellInput({ title: "Dev Portal", brand: "central" }),
-    );
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Hub", brand: "central" }));
   }
 
   /**
@@ -177,6 +176,14 @@ export class HubController {
   serveStatic(@Param("filename") filename: string, @Res() res: Response): void {
     this.assertOperational();
     if (!isSafeStaticName(filename)) {
+      throw new NotFoundException();
+    }
+    // Workstation page chunks never leave the workstation: the build
+    // emits dev-only pages as named entries (workstation-page-chunks.ts),
+    // and outside development they answer the same 404 as their data
+    // endpoints. Shared `chunk-<hash>.js` files and the main entry are
+    // untouched — the opted-in operational SPA keeps working.
+    if (isWorkstationPageChunk(filename) && !isHubSurfaceAvailableFromEnv("workstation")) {
       throw new NotFoundException();
     }
     const filePath = resolve(process.cwd(), "dist/dev-portal", filename);
@@ -501,18 +508,22 @@ export class HubController {
   @Get("features")
   @Header("content-type", "text/html; charset=utf-8")
   features(): string {
-    this.assertOperational();
+    // Tier: WORKSTATION since the consolidation — feature toggles are
+    // build/runtime configuration reviewed at deploy time; on a
+    // deployed operator console the page only invites confusion
+    // (consumer request). The read-only runtime state stays visible
+    // through the cockpit dashboard (`/hub/dashboard.json`).
+    this.assertWorkstation();
     // SPA shell — the React `/hub/features` page fetches
     // `/hub/feature-catalog.json` and renders the same DOM the
-    // legacy `renderFeaturesPage` produced. The legacy renderer
-    // remains available at `/hub/features.html` as the pixel-fidelity
-    // reference but is no longer the canonical surface.
+    // legacy `renderFeaturesPage` produced.
     return renderDevPortalShell(buildDevPortalShellInput({ title: "Features", brand: "central" }));
   }
 
   @Get("features.json")
   featuresJson(): Features {
-    this.assertOperational();
+    // Tier: WORKSTATION — companion data of the dev-only Features page.
+    this.assertWorkstation();
     return this.featuresOnly();
   }
 
@@ -525,7 +536,8 @@ export class HubController {
    */
   @Get("feature-catalog.json")
   featureCatalogJson(): { catalog: typeof FEATURE_CATALOG; features: Features } {
-    this.assertOperational();
+    // Tier: WORKSTATION — see the Features page rationale above.
+    this.assertWorkstation();
     return { catalog: FEATURE_CATALOG, features: this.featuresOnly() };
   }
 
@@ -1614,9 +1626,7 @@ export class HubController {
   @Header("content-type", "text/html; charset=utf-8")
   spaCatchAll(): string {
     this.assertOperational();
-    return renderDevPortalShell(
-      buildDevPortalShellInput({ title: "Dev Portal", brand: "central" }),
-    );
+    return renderDevPortalShell(buildDevPortalShellInput({ title: "Hub", brand: "central" }));
   }
 
   /**
@@ -1900,63 +1910,63 @@ function buildHubPageCatalog(): readonly PalettePageEntry[] {
     {
       id: "roles",
       title: "Roles",
-      href: "/admin/roles",
+      href: "/hub/admin/roles",
       aliases: ["role-management", "rbac"],
       category: "Admin",
     },
     {
       id: "policies",
       title: "Policies",
-      href: "/admin/policies",
+      href: "/hub/admin/policies",
       aliases: ["policy-management", "casl-policies"],
       category: "Admin",
     },
     {
       id: "permissions-crud",
       title: "Permissions",
-      href: "/admin/permissions",
+      href: "/hub/admin/permissions",
       aliases: ["permission-management", "grants"],
       category: "Admin",
     },
     {
       id: "permissions",
       title: "Permission Tester",
-      href: "/admin/permissions/test",
+      href: "/hub/admin/permissions/test",
       aliases: ["casl", "test-permissions", "ability-tester"],
       category: "Admin",
     },
     {
       id: "sessions",
       title: "Sessions",
-      href: "/admin/sessions",
+      href: "/hub/admin/sessions",
       aliases: ["active-sessions", "user-sessions"],
       category: "Admin",
     },
     {
       id: "webhooks",
       title: "Webhook Inspector",
-      href: "/admin/webhooks",
+      href: "/hub/admin/webhooks",
       aliases: ["webhook-events", "webhooks"],
       category: "Admin",
     },
     {
       id: "realtime",
       title: "Realtime Inspector",
-      href: "/admin/realtime",
+      href: "/hub/admin/realtime",
       aliases: ["websocket", "socket-io", "realtime"],
       category: "Admin",
     },
     {
       id: "audit",
       title: "Audit Browser",
-      href: "/admin/audit",
+      href: "/hub/admin/audit",
       aliases: ["audit-log", "activity-log"],
       category: "Admin",
     },
     {
       id: "search",
       title: "Search Tester",
-      href: "/admin/search",
+      href: "/hub/admin/search",
       aliases: ["fulltext-search", "postgres-search", "fts"],
       category: "Admin",
     },

@@ -7,7 +7,7 @@ import { isTenantExempt, requiresTenant } from "../src/core/multi-tenancy/tenant
  *
  * Path-level guard rules:
  *   - public paths (/health/*, /, /api/auth/*) are exempt from tenant scope
- *   - `/hub/*` and `/admin/*` require `session.activeOrganizationId`
+ *   - `/hub/*` and `/hub/admin/*` require `session.activeOrganizationId`
  *   - everything else requires the tenant header to be present + valid
  *
  * Issue #83: all domain API routes are now under `/api/*`. The
@@ -45,13 +45,15 @@ describe("Tenant Guard", () => {
     expect(isTenantExempt(path)).toBe(true);
   });
 
-  it.each(["/hub", "/hub/dashboard.json", "/hub/portal-access.json", "/admin/tenants/list.json"])(
-    "treats %s as tenant-required (session active org)",
-    (path) => {
-      expect(requiresTenant(path)).toBe(true);
-      expect(isTenantExempt(path)).toBe(false);
-    },
-  );
+  it.each([
+    "/hub",
+    "/hub/dashboard.json",
+    "/hub/portal-access.json",
+    "/hub/admin/tenants/list.json",
+  ])("treats %s as tenant-required (session active org)", (path) => {
+    expect(requiresTenant(path)).toBe(true);
+    expect(isTenantExempt(path)).toBe(false);
+  });
 
   // The Hub login SPA bundle is served at /hub/static/* and must load
   // before any tenant exists — otherwise the login page (which is how a

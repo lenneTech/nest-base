@@ -29,7 +29,7 @@ import {
 } from "./sessions-admin.planner.js";
 
 /**
- * SessionsAdminController — `/admin/sessions` (CF.AUTH.SESSIONS).
+ * SessionsAdminController — `/hub/admin/sessions` (CF.AUTH.SESSIONS).
  *
  * Backs the PRD's "Sessions admin (revoke single / bulk-by-user)"
  * surface. The Better-Auth admin plugin (mounted via the JWT
@@ -97,7 +97,7 @@ interface AuthedRequest extends Request {
   readonly headers: Request["headers"] & { readonly "x-session-id"?: string };
 }
 
-@Controller("admin/sessions")
+@Controller("hub/admin/sessions")
 export class SessionsAdminController {
   constructor(
     @Inject(SESSION_REVOKE_STORAGE) private readonly storage: SessionRevokeStorage,
@@ -108,7 +108,7 @@ export class SessionsAdminController {
   ) {}
 
   /**
-   * `GET /admin/sessions` — Sessions admin SPA HTML shell.
+   * `GET /hub/admin/sessions` — Sessions admin SPA HTML shell.
    */
   @Public("dev-portal SPA shell — each JSON sidecar below is gated separately")
   @Get()
@@ -120,7 +120,7 @@ export class SessionsAdminController {
   }
 
   /**
-   * `GET /admin/sessions.json` — list every active session known to
+   * `GET /hub/admin/sessions.json` — list every active session known to
    * the wired storage adapter. Iter-108 surfaces the Better-Auth
    * Prisma adapter's session inventory (or an empty list when the
    * default no-op adapter is in place) so the SPA Sessions page can
@@ -148,7 +148,7 @@ export class SessionsAdminController {
   }
 
   /**
-   * `DELETE /admin/sessions/:sessionId` — single-session revoke.
+   * `DELETE /hub/admin/sessions/:sessionId` — single-session revoke.
    * Used by the user's own "log out this device" UI as well as by
    * admins (the CASL ability layer enforces the role gate).
    */
@@ -162,7 +162,7 @@ export class SessionsAdminController {
   }
 
   /**
-   * `POST /admin/sessions/revoke-bulk-by-user` — admin-only bulk
+   * `POST /hub/admin/sessions/revoke-bulk-by-user` — admin-only bulk
    * tear-down for a single user (security incident response).
    * Body: `{ userId: string }`.
    */
@@ -179,7 +179,7 @@ export class SessionsAdminController {
   }
 
   /**
-   * `POST /admin/sessions/revoke-others` — current-user "log out
+   * `POST /hub/admin/sessions/revoke-others` — current-user "log out
    * all other devices" flow (a self-service action, not an admin
    * action).
    *

@@ -18,7 +18,7 @@ const SESSION_ID = "66666666-6666-6666-6666-666666666666";
  *
  * The PRD pins (SC.SUB.16): "Story test impersonates target user …
  * verifies … INVOKE audit row with kind: IMPERSONATION_START".
- * Iter-76 wired the `/admin/impersonation/stop` controller + the
+ * Iter-76 wired the `/hub/admin/impersonation/stop` controller + the
  * `IMPERSONATION_AUDIT_SINK` token but the default sink was a
  * no-op — projects had to override the binding to get any audit
  * row at all.

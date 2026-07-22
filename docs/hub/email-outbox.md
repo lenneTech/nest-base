@@ -21,10 +21,10 @@ this via `manage all`).
 
 ## Backend API
 
-All endpoints are mounted under `/api/admin/email-outbox/` and
+All endpoints are mounted under `/hub/admin/email-outbox/` and
 require `@Can('manage', 'EmailOutboxAdmin')`.
 
-### `GET /api/admin/email-outbox/list.json`
+### `GET /hub/admin/email-outbox/list.json`
 
 Returns a paginated list of outbox rows with optional filters.
 
@@ -51,25 +51,25 @@ Returns a paginated list of outbox rows with optional filters.
 }
 ```
 
-### `GET /api/admin/email-outbox/:id.json`
+### `GET /hub/admin/email-outbox/:id.json`
 
 Returns full record detail including the raw payload (template vars,
 recipient, locale).
 
-### `POST /api/admin/email-outbox/:id/retry`
+### `POST /hub/admin/email-outbox/:id/retry`
 
 Resets `attemptCount = 0`, `nextAttemptAt = null`, `status = pending`
 so the worker picks the record up on the next tick.
 
 Forbidden when `status = sent | cancelled`.
 
-### `POST /api/admin/email-outbox/:id/cancel`
+### `POST /hub/admin/email-outbox/:id/cancel`
 
 Sets `status = cancelled`. The worker never processes cancelled rows.
 
 Forbidden when `status = sent | cancelled`.
 
-### `POST /api/admin/email-outbox/test-send`
+### `POST /hub/admin/email-outbox/test-send`
 
 Fires a test email through the outbox for end-to-end validation.
 
@@ -132,7 +132,7 @@ with no DB dependency, fully covered by story tests in
 ## Security
 
 Routes are gated by `@Can('manage', 'EmailOutboxAdmin')`.  
-The `/admin/` prefix is also in the hub allowlist (404 in
+The `/hub/admin/` prefix is also in the hub allowlist (404 in
 production outside `NODE_ENV=development`).
 
 The iframe preview uses `sandbox=""` to prevent rendered email

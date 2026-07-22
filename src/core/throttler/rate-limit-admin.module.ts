@@ -1,5 +1,5 @@
 /**
- * RateLimitAdminModule — wires the `/admin/rate-limits/*` controller (issue #94).
+ * RateLimitAdminModule — wires the `/hub/admin/rate-limits/*` controller (issue #94).
  *
  * `RateLimitConfigService` is the memory-cached layer that loads and refreshes
  * operator-edited rate-limit windows from Postgres. The controller uses it

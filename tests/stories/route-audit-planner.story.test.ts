@@ -95,9 +95,9 @@ describe("Story · Route-audit planner — parseControllerSource", () => {
     expect(first?.decorators.allowlistMatch).toBe("/health/");
   });
 
-  it("treats /admin/* and /hub/* as dev-only (public-by-design) by default", () => {
+  it("treats /hub/admin/* and /hub/* as dev-only (public-by-design) by default", () => {
     const source = `
-      @Controller("admin")
+      @Controller("hub/admin")
       class AdminController {
         @Get("widgets")
         listWidgets() {}
@@ -106,7 +106,7 @@ describe("Story · Route-audit planner — parseControllerSource", () => {
     const [first] = parseControllerSource({
       file: "fake.ts",
       source,
-      publicPrefixes: ["/admin/"],
+      publicPrefixes: ["/hub/admin/"],
     });
     expect(first?.classification).toBe("public-by-design");
   });

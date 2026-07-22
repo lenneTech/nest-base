@@ -21,8 +21,8 @@ import {
  *   2. `cacheSize()` — observability surface (used by the Hub portal +
  *      tests).
  *
- * The admin-crud controllers (`/admin/roles`, `/admin/policies`,
- * `/admin/permissions`) call `invalidateAll()` from their create +
+ * The admin-crud controllers (`/hub/admin/roles`, `/hub/admin/policies`,
+ * `/hub/admin/permissions`) call `invalidateAll()` from their create +
  * delete handlers so a fresh request rebuilds without waiting on the
  * 60s TTL.
  */

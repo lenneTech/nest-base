@@ -286,7 +286,7 @@ function renderEnvExample(answers: WizardAnswers): string {
   lines.push("#");
   lines.push("# Operational hub/admin console outside development (staging/production).");
   lines.push("# Requires an authenticated Better-Auth session whose CASL ability grants");
-  lines.push("# `read Hub` (for /hub/*) resp. tenant-admin subjects (for /admin/*).");
+  lines.push("# `read Hub` (for /hub/*) resp. tenant-admin subjects (for /hub/admin/*).");
   lines.push("# Workstation tools (file browser, migrations, .env toggles) stay dev-only.");
   lines.push("# FEATURE_HUB_ENABLED=false");
   lines.push("");

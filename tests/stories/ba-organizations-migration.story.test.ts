@@ -150,14 +150,14 @@ describe("Story · BA Organizations Migration", () => {
       return { ctx, fakePrisma };
     }
 
-    it("session.activeOrganizationId wins over stray x-tenant-id on /admin/*", async () => {
+    it("session.activeOrganizationId wins over stray x-tenant-id on /hub/admin/*", async () => {
       const headerTenant = "00000000-0000-7000-a000-000000000010";
       const sessionTenant = "00000000-0000-7000-a000-000000000020";
 
       const { ctx, fakePrisma } = makeAuthenticatedContext({
         headerTenantId: headerTenant,
         activeOrganizationId: sessionTenant,
-        path: "/admin/users",
+        path: "/hub/admin/users",
       });
 
       const interceptor = new TenantInterceptor(fakePrisma as never);

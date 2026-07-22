@@ -331,7 +331,7 @@ validated twice (planner *and* runner) as defense-in-depth.
 
 ## HTML rendering
 
-`/admin/*` and `/hub/*` page renderers HTML-escape every
+`/hub/admin/*` and `/hub/*` page renderers HTML-escape every
 user-controlled value via the standard 5-character table (`& < > " '`).
 The Search-Tester is the only renderer that trusts a payload fragment
 (`ts_headline`'s `<b>` tags). If you write a new renderer, follow the

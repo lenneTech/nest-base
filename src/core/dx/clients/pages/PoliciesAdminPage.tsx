@@ -1,7 +1,7 @@
 /**
- * `/admin/policies` — Prisma-backed Policy CRUD (CF.MTPERM, iter-128).
+ * `/hub/admin/policies` — Prisma-backed Policy CRUD (CF.MTPERM, iter-128).
  * Enhanced in Issue #84 with a "Usage" column: a "Show roles"
- * button per policy row fetches `GET /admin/policies/:id/roles` on
+ * button per policy row fetches `GET /hub/admin/policies/:id/roles` on
  * demand and shows the results in a Dialog.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -66,12 +66,12 @@ export function PoliciesAdminPage(): ReactNode {
 
   const list = useQuery({
     queryKey: ["admin", "policies"],
-    queryFn: () => fetchJson<PolicyRecord[]>("/admin/policies"),
+    queryFn: () => fetchJson<PolicyRecord[]>("/hub/admin/policies"),
   });
 
   const create = useMutation({
     mutationFn: async (payload: { name: string; description: string }) => {
-      const res = await fetch("/admin/policies", {
+      const res = await fetch("/hub/admin/policies", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ name: payload.name, description: payload.description || null }),
@@ -89,7 +89,7 @@ export function PoliciesAdminPage(): ReactNode {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/admin/policies/${id}`, { method: "DELETE" });
+      const res = await fetch(`/hub/admin/policies/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error(`policy delete failed (${res.status})`);
       return res.json();
     },
@@ -123,7 +123,7 @@ export function PoliciesAdminPage(): ReactNode {
         {list.isPending ? (
           <PageLoading>Loading policies…</PageLoading>
         ) : list.isError ? (
-          <PageError>Could not load /admin/policies.</PageError>
+          <PageError>Could not load /hub/admin/policies.</PageError>
         ) : (
           <Card>
             <CardHeader>
@@ -319,7 +319,7 @@ function CreatePolicyDialog({
 function PolicyRolesPanel({ policyId }: { policyId: string }): ReactNode {
   const roles = useQuery({
     queryKey: ["admin", "policies", policyId, "roles"],
-    queryFn: () => fetchJson<RolePolicyLink[]>(`/admin/policies/${policyId}/roles`),
+    queryFn: () => fetchJson<RolePolicyLink[]>(`/hub/admin/policies/${policyId}/roles`),
   });
   const { sortedRows, sortKey, sortDirection, toggleSort } = useTableSort(roles.data ?? [], {
     getValue: (row, key) => {

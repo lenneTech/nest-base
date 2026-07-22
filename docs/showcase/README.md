@@ -24,14 +24,14 @@ sonner toasts + TanStack Query — vendored under
 | [`/hub/email-builder`](../../src/core/dx/clients/pages/EmailBuilderPage.tsx)        | [![email builder desktop](screenshots/hub-email-builder-desktop.png)](screenshots/hub-email-builder-desktop.png) | [![email builder mobile](screenshots/hub-email-builder-mobile.png)](screenshots/hub-email-builder-mobile.png) |
 | [`/hub/email-preview`](../../src/core/dx/clients/pages/EmailPreviewPage.tsx)        | [![email preview desktop](screenshots/hub-email-preview-desktop.png)](screenshots/hub-email-preview-desktop.png) | [![email preview mobile](screenshots/hub-email-preview-mobile.png)](screenshots/hub-email-preview-mobile.png) |
 
-### `/admin/*` — operator surfaces
+### `/hub/admin/*` — operator surfaces
 
 | Page                                                                                  | Desktop (1440 × 900)                                                                                                   | Mobile (390 × 844)                                                                                                  |
 | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| [`/admin/permissions/test`](../../src/core/dx/clients/pages/PermissionTesterPage.tsx) | [![permission tester desktop](screenshots/admin-permissions-test-desktop.png)](screenshots/admin-permissions-test-desktop.png) | [![permission tester mobile](screenshots/admin-permissions-test-mobile.png)](screenshots/admin-permissions-test-mobile.png) |
-| [`/admin/webhooks`](../../src/core/dx/clients/pages/WebhookInspectorPage.tsx) — 3-col | [![webhooks desktop](screenshots/admin-webhooks-desktop.png)](screenshots/admin-webhooks-desktop.png)                  | [![webhooks mobile](screenshots/admin-webhooks-mobile.png)](screenshots/admin-webhooks-mobile.png)                  |
-| [`/admin/realtime`](../../src/core/dx/clients/pages/RealtimeInspectorPage.tsx) — tabs | [![realtime desktop](screenshots/admin-realtime-desktop.png)](screenshots/admin-realtime-desktop.png)                  | [![realtime mobile](screenshots/admin-realtime-mobile.png)](screenshots/admin-realtime-mobile.png)                  |
-| [`/admin/audit`](../../src/core/dx/clients/pages/AuditBrowserPage.tsx)                | [![audit desktop](screenshots/admin-audit-desktop.png)](screenshots/admin-audit-desktop.png)                           | [![audit mobile](screenshots/admin-audit-mobile.png)](screenshots/admin-audit-mobile.png)                           |
+| [`/hub/admin/permissions/test`](../../src/core/dx/clients/pages/PermissionTesterPage.tsx) | [![permission tester desktop](screenshots/admin-permissions-test-desktop.png)](screenshots/admin-permissions-test-desktop.png) | [![permission tester mobile](screenshots/admin-permissions-test-mobile.png)](screenshots/admin-permissions-test-mobile.png) |
+| [`/hub/admin/webhooks`](../../src/core/dx/clients/pages/WebhookInspectorPage.tsx) — 3-col | [![webhooks desktop](screenshots/admin-webhooks-desktop.png)](screenshots/admin-webhooks-desktop.png)                  | [![webhooks mobile](screenshots/admin-webhooks-mobile.png)](screenshots/admin-webhooks-mobile.png)                  |
+| [`/hub/admin/realtime`](../../src/core/dx/clients/pages/RealtimeInspectorPage.tsx) — tabs | [![realtime desktop](screenshots/admin-realtime-desktop.png)](screenshots/admin-realtime-desktop.png)                  | [![realtime mobile](screenshots/admin-realtime-mobile.png)](screenshots/admin-realtime-mobile.png)                  |
+| [`/hub/admin/audit`](../../src/core/dx/clients/pages/AuditBrowserPage.tsx)                | [![audit desktop](screenshots/admin-audit-desktop.png)](screenshots/admin-audit-desktop.png)                           | [![audit mobile](screenshots/admin-audit-mobile.png)](screenshots/admin-audit-mobile.png)                           |
 
 ### Shared JSON viewer
 
@@ -65,7 +65,7 @@ BASE_URL=http://localhost:4267 bun run docs:screenshots
 
 The script ([`scripts/take-showcase-screenshots.ts`](../../scripts/take-showcase-screenshots.ts))
 signs up a deterministic `screenshot-bot@example.com` account so the
-`/admin/*` surfaces (which require an authenticated session) render
+`/hub/admin/*` surfaces (which require an authenticated session) render
 correctly. The cookie stays inside the Playwright browser context —
 nothing is persisted between runs.
 
@@ -73,7 +73,7 @@ nothing is persisted between runs.
 
 Better-Auth picks `__Secure-`-prefixed cookies whenever `APP_BASE_URL`
 starts with `https://`. Headless Chromium silently drops those on a
-plain-`http://` connection, which surfaces as a 401 from `/admin/*`.
+plain-`http://` connection, which surfaces as a 401 from `/hub/admin/*`.
 
 For a local screenshot pass, set `APP_BASE_URL=http://localhost:<port>`
 in `.env` (matching whatever port the dev runner announced) before you
@@ -92,10 +92,10 @@ because portless terminates TLS on the loopback host.
 | `hub-migrations`           | `/hub/migrations`                                                    |
 | `hub-email-builder`        | `/hub/email-builder` gallery                                         |
 | `hub-email-preview`        | `/hub/email-preview`                                                 |
-| `admin-permissions-test`   | `/admin/permissions/test`                                            |
-| `admin-webhooks`           | `/admin/webhooks` (3-column inspector)                               |
-| `admin-realtime`           | `/admin/realtime` (Sockets/Channels/Events tabs)                     |
-| `admin-audit`              | `/admin/audit`                                                       |
+| `admin-permissions-test`   | `/hub/admin/permissions/test`                                            |
+| `admin-webhooks`           | `/hub/admin/webhooks` (3-column inspector)                               |
+| `admin-realtime`           | `/hub/admin/realtime` (Sockets/Channels/Events tabs)                     |
+| `admin-audit`              | `/hub/admin/audit`                                                       |
 | `errors`                   | `/errors` JSON viewer                                                |
 | `openapi`                  | `/openapi` JSON viewer                                               |
 

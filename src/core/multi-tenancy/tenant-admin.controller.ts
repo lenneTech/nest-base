@@ -1,5 +1,5 @@
 /**
- * TenantAdminController — `/admin/tenants/*` (issue #87).
+ * TenantAdminController — `/hub/admin/tenants/*` (issue #87).
  *
  * Server-side wrappers around Prisma reads + Better-Auth organization
  * write operations. JSON / action routes are gated by
@@ -96,7 +96,7 @@ export interface TenantDetailResponse extends TenantListEntry {
 
 // ── Controller ───────────────────────────────────────────────────────
 
-@Controller("admin/tenants")
+@Controller("hub/admin/tenants")
 export class TenantAdminController {
   private readonly logger = new Logger(TenantAdminController.name);
 
@@ -107,8 +107,8 @@ export class TenantAdminController {
   ) {}
 
   /**
-   * `GET /admin/tenants` — SPA shell for the tenant management page.
-   * Follows the same pattern as `/admin/users`: a `@Public()` HTML
+   * `GET /hub/admin/tenants` — SPA shell for the tenant management page.
+   * Follows the same pattern as `/hub/admin/users`: a `@Public()` HTML
    * shell route whose interactive JSON payloads are each gated
    * individually.
    */
@@ -123,7 +123,7 @@ export class TenantAdminController {
   }
 
   /**
-   * `GET /admin/tenants/list.json` — paginated tenant list.
+   * `GET /hub/admin/tenants/list.json` — paginated tenant list.
    * Supports `?q=` (substring search), `?limit=`, `?offset=`,
    * `?filter=active|deleted|all`.
    */
@@ -187,7 +187,7 @@ export class TenantAdminController {
   }
 
   /**
-   * `GET /admin/tenants/:id.json` — org detail with members,
+   * `GET /hub/admin/tenants/:id.json` — org detail with members,
    * invitations, settings, and stats snapshot.
    */
   @Can("manage", "TenantAdmin")
@@ -266,7 +266,7 @@ export class TenantAdminController {
   }
 
   /**
-   * `POST /admin/tenants` — create a new org via BA + upsert settings.
+   * `POST /hub/admin/tenants` — create a new org via BA + upsert settings.
    */
   @Can("manage", "TenantAdmin")
   @Post()
@@ -321,7 +321,7 @@ export class TenantAdminController {
   }
 
   /**
-   * `PATCH /admin/tenants/:id` — update org name/slug + settings.
+   * `PATCH /hub/admin/tenants/:id` — update org name/slug + settings.
    */
   @Can("manage", "TenantAdmin")
   @Patch(":id")
@@ -373,7 +373,7 @@ export class TenantAdminController {
   }
 
   /**
-   * `DELETE /admin/tenants/:id/soft-delete` — set TenantSettings.deletedAt.
+   * `DELETE /hub/admin/tenants/:id/soft-delete` — set TenantSettings.deletedAt.
    */
   @Can("manage", "TenantAdmin")
   @Delete(":id/soft-delete")
@@ -392,7 +392,7 @@ export class TenantAdminController {
   }
 
   /**
-   * `POST /admin/tenants/:id/restore` — clear TenantSettings.deletedAt.
+   * `POST /hub/admin/tenants/:id/restore` — clear TenantSettings.deletedAt.
    */
   @Can("manage", "TenantAdmin")
   @Post(":id/restore")
@@ -411,7 +411,7 @@ export class TenantAdminController {
   }
 
   /**
-   * `POST /admin/tenants/:id/members/invite` — send a BA invitation.
+   * `POST /hub/admin/tenants/:id/members/invite` — send a BA invitation.
    */
   @Can("manage", "TenantAdmin")
   @Post(":id/members/invite")
@@ -434,7 +434,7 @@ export class TenantAdminController {
   }
 
   /**
-   * `DELETE /admin/tenants/:id/members/:memberId` — remove a member.
+   * `DELETE /hub/admin/tenants/:id/members/:memberId` — remove a member.
    */
   @Can("manage", "TenantAdmin")
   @Delete(":id/members/:memberId")
@@ -449,7 +449,7 @@ export class TenantAdminController {
   }
 
   /**
-   * `PATCH /admin/tenants/:id/members/:memberId/role` — change member role.
+   * `PATCH /hub/admin/tenants/:id/members/:memberId/role` — change member role.
    */
   @Can("manage", "TenantAdmin")
   @Patch(":id/members/:memberId/role")

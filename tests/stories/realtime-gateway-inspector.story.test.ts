@@ -11,7 +11,7 @@ import {
  *
  * The gateway is the runner that turns Socket.IO lifecycle events into
  * `InspectorState` mutations + `InspectorEvents` emissions. The admin
- * live-push namespace and the `/admin/realtime*.json` controllers
+ * live-push namespace and the `/hub/admin/realtime*.json` controllers
  * read from the resulting state.
  *
  * The unit suite drives the gateway via its test-only entry points

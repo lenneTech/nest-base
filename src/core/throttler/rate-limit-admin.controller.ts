@@ -1,5 +1,5 @@
 /**
- * RateLimitAdminController — `/admin/rate-limits` Hub section (issue #94).
+ * RateLimitAdminController — `/hub/admin/rate-limits` Hub section (issue #94).
  *
  * Exposes live throttle state, operator-editable config windows, sampled
  * decision history, manual unblock actions, and an IP/user allowlist —
@@ -13,7 +13,7 @@
  * dev-asserted: the CASL `manage:RateLimitAdmin` gate blocks non-admin
  * users in every environment (pre-existing production behaviour, kept
  * for backward compatibility). When `FEATURE_HUB_ENABLED=true`,
- * `HubPortalMiddleware` additionally walls the whole `/admin/*` prefix
+ * `HubPortalMiddleware` additionally walls the whole `/hub/admin/*` prefix
  * behind `canAccessTenantAdmin`.
  */
 
@@ -42,7 +42,7 @@ import {
 } from "./throttler-postgres-backend.js";
 import { buildDefaultScopeMap, validateRateLimitConfig } from "./rate-limit-config-planner.js";
 
-@Controller("admin/rate-limits")
+@Controller("hub/admin/rate-limits")
 export class RateLimitAdminController {
   constructor(
     private readonly configService: RateLimitConfigService,
@@ -52,7 +52,7 @@ export class RateLimitAdminController {
   // ─── SPA shell ────────────────────────────────────────────────────────────
 
   /**
-   * `GET /admin/rate-limits` — React SPA shell that hosts the Rate-Limits
+   * `GET /hub/admin/rate-limits` — React SPA shell that hosts the Rate-Limits
    * admin section. Interactive payloads use the gated JSON endpoints below;
    * the shell itself is public so the browser can load the React bundle.
    */
@@ -70,7 +70,7 @@ export class RateLimitAdminController {
   // ─── Inspector ────────────────────────────────────────────────────────────
 
   /**
-   * `GET /admin/rate-limits/inspector.json`
+   * `GET /hub/admin/rate-limits/inspector.json`
    * Live throttler records (non-expired rows from `throttler_records`).
    * Optional query params: `scope` (endpoint filter), `limit` (max rows, default 100).
    */
@@ -102,7 +102,7 @@ export class RateLimitAdminController {
   // ─── Config ───────────────────────────────────────────────────────────────
 
   /**
-   * `GET /admin/rate-limits/config.json`
+   * `GET /hub/admin/rate-limits/config.json`
    * All 7 scopes with the currently effective window (DB row or default).
    */
   @Can("manage", "RateLimitAdmin")
@@ -133,7 +133,7 @@ export class RateLimitAdminController {
   }
 
   /**
-   * `PUT /admin/rate-limits/config/:scope`
+   * `PUT /hub/admin/rate-limits/config/:scope`
    * Save (upsert) an operator override for one scope.
    * Body: `{ maxRequests: number; windowSeconds: number }`.
    */
@@ -160,7 +160,7 @@ export class RateLimitAdminController {
   }
 
   /**
-   * `DELETE /admin/rate-limits/config/:scope`
+   * `DELETE /hub/admin/rate-limits/config/:scope`
    * Reset a scope to its hardcoded default by removing the DB override row.
    */
   @Can("manage", "RateLimitAdmin")
@@ -173,7 +173,7 @@ export class RateLimitAdminController {
   // ─── Decision history ─────────────────────────────────────────────────────
 
   /**
-   * `GET /admin/rate-limits/decisions.json`
+   * `GET /hub/admin/rate-limits/decisions.json`
    * Sampled decision history with optional pagination.
    * Query params: `cursor` (ISO date, exclusive upper bound), `limit`, `endpoint`, `decision`.
    */
@@ -245,7 +245,7 @@ export class RateLimitAdminController {
   // ─── Key reset (manual unblock) ──────────────────────────────────────────
 
   /**
-   * `POST /admin/rate-limits/keys/:key/reset`
+   * `POST /hub/admin/rate-limits/keys/:key/reset`
    * Delete a specific throttler row so the bucket is immediately unblocked.
    */
   @Can("manage", "RateLimitAdmin")
@@ -256,7 +256,7 @@ export class RateLimitAdminController {
   }
 
   /**
-   * `POST /admin/rate-limits/endpoints/:name/reset-all`
+   * `POST /hub/admin/rate-limits/endpoints/:name/reset-all`
    * Bulk-delete all throttler rows whose key starts with `name`.
    */
   @Can("manage", "RateLimitAdmin")
@@ -271,7 +271,7 @@ export class RateLimitAdminController {
   // ─── Allowlist ────────────────────────────────────────────────────────────
 
   /**
-   * `GET /admin/rate-limits/allowlist.json`
+   * `GET /hub/admin/rate-limits/allowlist.json`
    * All allowlisted users.
    */
   @Can("manage", "RateLimitAdmin")
@@ -289,7 +289,7 @@ export class RateLimitAdminController {
   }
 
   /**
-   * `POST /admin/rate-limits/allowlist`
+   * `POST /hub/admin/rate-limits/allowlist`
    * Add a user to the allowlist.
    * Body: `{ userId: string; reason: string }`.
    */
@@ -315,7 +315,7 @@ export class RateLimitAdminController {
   }
 
   /**
-   * `DELETE /admin/rate-limits/allowlist/:userId`
+   * `DELETE /hub/admin/rate-limits/allowlist/:userId`
    * Remove a user from the allowlist.
    */
   @Can("manage", "RateLimitAdmin")

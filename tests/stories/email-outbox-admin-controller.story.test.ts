@@ -22,7 +22,7 @@ describe("Story · Email-Outbox Admin Controller", () => {
         resolve(ROOT, "src/core/email/email-outbox-admin.controller.ts"),
         "utf8",
       );
-      expect(src).toContain('@Controller("admin/email-outbox")');
+      expect(src).toContain('@Controller("hub/admin/email-outbox")');
     });
 
     it("exposes GET list endpoint returning paginated rows", () => {

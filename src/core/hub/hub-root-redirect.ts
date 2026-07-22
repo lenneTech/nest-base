@@ -7,11 +7,11 @@ import type { Request } from "express";
 
 import { canAccessHub, canAccessTenantAdmin } from "./hub-portal-access.js";
 
-export type HubRootRedirectTarget = "/hub" | "/admin/users";
+export type HubRootRedirectTarget = "/hub" | "/hub/admin/users";
 
 /**
  * When the caller has a Better-Auth session, return `/hub` (system
- * admin) or `/admin/users` (tenant admin). Otherwise `null` (login shell).
+ * admin) or `/hub/admin/users` (tenant admin). Otherwise `null` (login shell).
  */
 export async function resolveHubRootRedirectTarget(
   app: INestApplication,
@@ -78,7 +78,7 @@ export async function resolveHubRootRedirectTarget(
       return "/hub";
     }
     if (canAccessTenantAdmin(ability)) {
-      return "/admin/users";
+      return "/hub/admin/users";
     }
   } catch {
     return null;

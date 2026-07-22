@@ -1,5 +1,5 @@
 /**
- * `/admin/rate-limits` — Live rate-limit management for operators (issue #94).
+ * `/hub/admin/rate-limits` — Live rate-limit management for operators (issue #94).
  *
  * Four tabs:
  *   - Inspector: live throttle rows with auto-refresh, endpoint filter,
@@ -123,14 +123,14 @@ function InspectorTab(): ReactNode {
     queryKey: ["admin", "rate-limits", "inspector", scopeFilter],
     queryFn: () =>
       fetchJson<{ rows: InspectorRow[]; total: number }>(
-        `/admin/rate-limits/inspector.json${scopeFilter ? `?scope=${encodeURIComponent(scopeFilter)}` : ""}`,
+        `/hub/admin/rate-limits/inspector.json${scopeFilter ? `?scope=${encodeURIComponent(scopeFilter)}` : ""}`,
       ),
     refetchInterval: 5_000,
   });
 
   const resetKey = useMutation({
     mutationFn: async (key: string) => {
-      const res = await adminFetch(`/admin/rate-limits/keys/${encodeURIComponent(key)}/reset`, {
+      const res = await adminFetch(`/hub/admin/rate-limits/keys/${encodeURIComponent(key)}/reset`, {
         method: "POST",
       });
       if (!res.ok) throw new Error(`reset failed (${res.status})`);
@@ -202,7 +202,7 @@ function InspectorTab(): ReactNode {
         <PageLoading>Loading throttle entries…</PageLoading>
       ) : query.isError ? (
         <PageError showAuthHint={needsAdminAuthHint(query.error)}>
-          Error loading /admin/rate-limits/inspector.json
+          Error loading /hub/admin/rate-limits/inspector.json
         </PageError>
       ) : visible.length === 0 ? (
         <PageEmpty>No active throttle entries found.</PageEmpty>
@@ -295,7 +295,7 @@ function ConfigTab(): ReactNode {
 
   const query = useQuery({
     queryKey: ["admin", "rate-limits", "config"],
-    queryFn: () => fetchJson<{ scopes: ConfigScope[] }>("/admin/rate-limits/config.json"),
+    queryFn: () => fetchJson<{ scopes: ConfigScope[] }>("/hub/admin/rate-limits/config.json"),
   });
 
   const globalScopes = (query.data?.scopes ?? []).filter((s) => s.scope.startsWith("global:"));
@@ -307,7 +307,7 @@ function ConfigTab(): ReactNode {
         <PageLoading>Loading configuration…</PageLoading>
       ) : query.isError ? (
         <PageError showAuthHint={needsAdminAuthHint(query.error)}>
-          Error loading /admin/rate-limits/config.json
+          Error loading /hub/admin/rate-limits/config.json
         </PageError>
       ) : (
         <>
@@ -397,14 +397,17 @@ function ConfigRow({ scope, onChanged }: ConfigRowProps): ReactNode {
 
   const save = useMutation({
     mutationFn: async () => {
-      const res = await adminFetch(`/admin/rate-limits/config/${encodeURIComponent(scope.scope)}`, {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          maxRequests: Number(maxRequests),
-          windowSeconds: Number(windowSeconds),
-        }),
-      });
+      const res = await adminFetch(
+        `/hub/admin/rate-limits/config/${encodeURIComponent(scope.scope)}`,
+        {
+          method: "PUT",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            maxRequests: Number(maxRequests),
+            windowSeconds: Number(windowSeconds),
+          }),
+        },
+      );
       if (!res.ok) {
         const body = (await res.json().catch(() => ({}))) as { message?: string };
         throw new Error(body.message ?? `Save failed (${res.status})`);
@@ -420,9 +423,12 @@ function ConfigRow({ scope, onChanged }: ConfigRowProps): ReactNode {
 
   const reset = useMutation({
     mutationFn: async () => {
-      const res = await adminFetch(`/admin/rate-limits/config/${encodeURIComponent(scope.scope)}`, {
-        method: "DELETE",
-      });
+      const res = await adminFetch(
+        `/hub/admin/rate-limits/config/${encodeURIComponent(scope.scope)}`,
+        {
+          method: "DELETE",
+        },
+      );
       if (!res.ok) throw new Error(`Reset failed (${res.status})`);
       return res.json();
     },
@@ -503,7 +509,7 @@ function DecisionsTab(): ReactNode {
         items: DecisionRecord[];
         nextCursor: string | null;
         total: number;
-      }>(`/admin/rate-limits/decisions.json?${params.toString()}`),
+      }>(`/hub/admin/rate-limits/decisions.json?${params.toString()}`),
   });
 
   const decisionItems = query.data?.items ?? [];
@@ -565,7 +571,7 @@ function DecisionsTab(): ReactNode {
         <PageLoading>Loading decisions…</PageLoading>
       ) : query.isError ? (
         <PageError showAuthHint={needsAdminAuthHint(query.error)}>
-          Error loading /admin/rate-limits/decisions.json
+          Error loading /hub/admin/rate-limits/decisions.json
         </PageError>
       ) : (query.data?.items ?? []).length === 0 ? (
         <PageEmpty>No decisions found.</PageEmpty>
@@ -666,7 +672,7 @@ function AllowlistTab(): ReactNode {
 
   const query = useQuery({
     queryKey: ["admin", "rate-limits", "allowlist"],
-    queryFn: () => fetchJson<{ items: AllowlistEntry[] }>("/admin/rate-limits/allowlist.json"),
+    queryFn: () => fetchJson<{ items: AllowlistEntry[] }>("/hub/admin/rate-limits/allowlist.json"),
   });
 
   const allowlistItems = query.data?.items ?? [];
@@ -679,7 +685,7 @@ function AllowlistTab(): ReactNode {
 
   const add = useMutation({
     mutationFn: async () => {
-      const res = await adminFetch("/admin/rate-limits/allowlist", {
+      const res = await adminFetch("/hub/admin/rate-limits/allowlist", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ userId: userId.trim(), reason: reason.trim() }),
@@ -702,7 +708,7 @@ function AllowlistTab(): ReactNode {
 
   const remove = useMutation({
     mutationFn: async (uid: string) => {
-      const res = await adminFetch(`/admin/rate-limits/allowlist/${encodeURIComponent(uid)}`, {
+      const res = await adminFetch(`/hub/admin/rate-limits/allowlist/${encodeURIComponent(uid)}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error(`Remove failed (${res.status})`);
@@ -763,7 +769,7 @@ function AllowlistTab(): ReactNode {
         <PageLoading>Loading allowlist…</PageLoading>
       ) : query.isError ? (
         <PageError showAuthHint={needsAdminAuthHint(query.error)}>
-          Error loading /admin/rate-limits/allowlist.json
+          Error loading /hub/admin/rate-limits/allowlist.json
         </PageError>
       ) : (query.data?.items ?? []).length === 0 ? (
         <PageEmpty>No allowlist entries.</PageEmpty>
