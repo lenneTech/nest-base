@@ -32,6 +32,7 @@ import {
   type PermissionRule,
 } from "./permission-report.js";
 import { PermissionService } from "./permission.service.js";
+import type { AbilityRuleView } from "./casl-ability.js";
 
 /**
  * AdminCrudModule — Prisma-backed CRUD for `/hub/admin/{roles, policies,
@@ -608,7 +609,7 @@ class PermissionAdminController {
     const ability = this.permissions ? await this.permissions.abilityFor(userId, tenantId) : null;
     const can = ability ? ability.can(action, subject) : false;
     const rules: PermissionRule[] = ability
-      ? ability.rulesFor(action, subject).map((r) => ({
+      ? ability.rulesFor(action, subject).map((r: AbilityRuleView) => ({
           action: Array.isArray(r.action) ? r.action.join(",") : String(r.action),
           subject: Array.isArray(r.subject) ? r.subject.join(",") : String(r.subject),
         }))

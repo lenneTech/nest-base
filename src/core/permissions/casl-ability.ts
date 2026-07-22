@@ -1,6 +1,9 @@
 import {
+  // CASL 7 renamed `PureAbility` → `Ability` (the former alias-aware
+  // `Ability` class was dropped). Aliased to avoid clashing with the
+  // local `Ability` type below.
+  Ability as CaslAbility,
   AbilityBuilder,
-  PureAbility,
   type RawRuleOf,
   type Subject,
   fieldPatternMatcher,
@@ -28,7 +31,20 @@ export interface AbilityRule {
   inverted?: boolean;
 }
 
-export type Ability = PureAbility<[AbilityAction, Subject]>;
+export type Ability = CaslAbility<[AbilityAction, Subject]>;
+
+/**
+ * Read-only view of a single rule as exposed by `ability.rules` and
+ * `ability.rulesFor()`. CASL 7's generic rule types don't infer
+ * through the project's `Ability` alias (the element collapses to
+ * `any` under the stricter TS 7 checker), so consumers that only read
+ * `action`/`subject` annotate their callback param with this explicit
+ * shape and narrow via `Array.isArray`.
+ */
+export type AbilityRuleView = {
+  action: unknown;
+  subject?: unknown;
+};
 
 /**
  * Type-erasing wire signature for `builder.can` / `builder.cannot`.
@@ -46,7 +62,7 @@ type AbilityBuilderCmd = (
 type AbilityBuildOptions = NonNullable<Parameters<AbilityBuilder<Ability>["build"]>[0]>;
 
 export function buildAbility(rules: AbilityRule[]): Ability {
-  const builder = new AbilityBuilder<Ability>(PureAbility);
+  const builder = new AbilityBuilder<Ability>(CaslAbility);
   for (const rule of rules) {
     const cmd: AbilityBuilderCmd = (
       rule.inverted ? builder.cannot : builder.can

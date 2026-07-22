@@ -33,8 +33,15 @@ import {
   ApiResponse,
   type ApiResponseOptions,
 } from "@nestjs/swagger";
-import type { SchemaObject } from "@nestjs/swagger/dist/interfaces/open-api-spec.interface.js";
 import type { ZodType, ZodObject } from "zod";
+
+// `@nestjs/swagger` 11.4.6 dropped deep subpath exports, so the
+// `SchemaObject` interface is no longer importable from
+// `dist/interfaces/...`. Derive it from a public decorator-options
+// type instead — `ApiParamOptions`'s schema-host variant carries the
+// pure `schema: SchemaObject` (no `ReferenceObject` union), so the
+// derived type is assignable to every `Api*` schema field below.
+type SchemaObject = NonNullable<Extract<ApiParamOptions, { schema: unknown }>["schema"]>;
 
 import { type OpenApiSchemaObject, zodSchemaToOpenApi } from "./zod-to-openapi.js";
 

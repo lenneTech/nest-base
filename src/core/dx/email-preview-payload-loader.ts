@@ -21,7 +21,7 @@ export function mergePreviewPayload(
   brand: Record<string, string>,
   outbox?: Record<string, string>,
 ): Record<string, string> {
-  return { ...brand, ...(outbox ?? {}) };
+  return { ...brand, ...outbox };
 }
 
 export function stringifyPreviewVars(vars: Record<string, unknown>): Record<string, string> {

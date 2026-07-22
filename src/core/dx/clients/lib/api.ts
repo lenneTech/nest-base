@@ -24,7 +24,7 @@ export async function adminFetch(url: string, init?: RequestInit): Promise<Respo
     ...init,
     headers: {
       accept: "application/json",
-      ...(init?.headers ?? {}),
+      ...init?.headers,
     },
   });
 }

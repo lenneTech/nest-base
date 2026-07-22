@@ -4,6 +4,7 @@ import {
   buildPermissionReport,
 } from "./permission-report.js";
 import { PermissionService } from "./permission.service.js";
+import type { AbilityRuleView } from "./casl-ability.js";
 
 /**
  * Service backing the `/hub/admin/permissions/test` endpoint
@@ -27,7 +28,7 @@ export class PermissionTestService {
 
   async getEffectivePermissions(userId: string, tenantId: string): Promise<PermissionReport> {
     const ability = await this.permissions.abilityFor(userId, tenantId);
-    const rules = ability.rules.flatMap<PermissionRule>((raw) => {
+    const rules = ability.rules.flatMap<PermissionRule>((raw: AbilityRuleView) => {
       const actions = Array.isArray(raw.action) ? raw.action : [raw.action];
       const subjects = Array.isArray(raw.subject) ? raw.subject : [raw.subject];
       const result: PermissionRule[] = [];
