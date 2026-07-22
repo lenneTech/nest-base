@@ -356,12 +356,18 @@ single attempt and let the outbox decide what to do next.
 
 ## Hub (Dev-Portal Frontend)
 
-Every developer-facing HTML surface — `/`, `/hub/*`, `/hub/admin/*`, `/errors`,
-`/openapi` — is served by a single React 19 single-page app.
-The legacy server-rendered `*-ui.ts` renderers were deleted; the SPA
-is the canonical UI for every developer route. `/hub/*` and
-`/hub/admin/*` are developer-only (every route 404s outside
-`NODE_ENV=development`); `/errors` and `/openapi` stay reachable
+Every operator-facing HTML surface — `/`, `/hub/*` (including the
+`/hub/admin/*` console; the legacy `/admin/*` namespace answers 308 to
+it), `/errors`, `/openapi` — is served by a single React 19 single-page
+app. The legacy server-rendered `*-ui.ts` renderers were deleted; the
+SPA is the canonical UI for every operator route. Availability follows
+the two-tier model (`hub-surface-policy.ts`): in development everything
+is on; outside development OPERATIONAL surfaces require
+`FEATURE_HUB_ENABLED=true` plus an authorized Better-Auth session, and
+WORKSTATION surfaces (files, migrations, coverage/tests, ERD, emails
+builder, search/permission testers, **features**) 404 always — their
+SPA routes are not even registered and their page chunks are refused
+(`workstation-page-chunks.ts`). `/errors` and `/openapi` stay reachable
 in any environment because frontends + SDK generators read them.
 
 | Aspect | Path | Purpose |
@@ -382,8 +388,8 @@ in any environment because frontends + SDK generators read them.
 | `/api/hub/email-builder/*` mutating endpoints | `hub.controller.ts` + `src/core/email/email-builder.ts` | `preview.json` (POST — render draft), `save` (POST — codegen `.tsx` to `src/modules/email/templates/`), `templates/:name/override` (DELETE — Issue #49 reset-to-default); defense-in-depth path validation, 404 outside development |
 | `/api/hub/migrations/*` mutating endpoints | `hub.controller.ts` + `migrations/migrations.service.ts` | `deploy`, `apply-one`, `dry-run`, `retry`, `create`, `apply-draft`, `draft/:name` (DELETE) — Postgres advisory-lock-gated, 404 outside development |
 | `/hub/admin/*` JSON sidecars | `admin-spa.controller.ts` | `permissions/test.json`, `webhooks.json`, `realtime.json`, `realtime/channels.json`, `audit.json`, `search.json` |
-| `/hub/admin/*` POST actions | `admin-spa.controller.ts` | `realtime/sockets/:id/disconnect`, `realtime/sockets/:id/send`, `realtime/events/replay` — all dev-only, all 404 in production |
-| Static asset endpoint | `GET /hub/static/:filename` | 404 outside development; allow-list filename, MIME-detect, stream from `dist/dev-portal/` |
+| `/hub/admin/*` POST actions | `admin-spa.controller.ts` | `realtime/sockets/:id/disconnect`, `realtime/sockets/:id/send`, `realtime/events/replay` — operational tier (dev always; outside dev only with FEATURE_HUB_ENABLED + CASL) |
+| Static asset endpoint | `GET /hub/static/:filename` | allow-list filename, MIME-detect, stream from `dist/dev-portal/`; workstation page chunks (CoveragePage.js, …) 404 outside development |
 | Catch-all | `GET /*splat` | Returns the SPA shell so client-side routes work without a server change |
 | Server tsconfig | `tsconfig.json` (excludes `src/core/dx/clients/**`) | Server build never sees browser code |
 | Client tsconfig | `tsconfig.client.json` | `jsx: "react-jsx"`, `lib: ["ES2022","DOM","DOM.Iterable"]`, `types: []` |
