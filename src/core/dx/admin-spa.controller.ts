@@ -55,6 +55,7 @@ import {
   type PermissionRule,
 } from "../permissions/permission-report.js";
 import { PermissionService } from "../permissions/permission.service.js";
+import type { AbilityRuleView } from "../permissions/casl-ability.js";
 import { buildHmacSignatureHeader } from "../webhooks/hmac-signature.js";
 import {
   buildEndpointAggregates,
@@ -228,7 +229,7 @@ export class AdminSpaController {
       return { report: empty, submitted };
     }
     const ability = await this.permissionService.abilityFor(userId, tenantId);
-    const rules: PermissionRule[] = ability.rules.map((r) => ({
+    const rules: PermissionRule[] = ability.rules.map((r: AbilityRuleView) => ({
       action: Array.isArray(r.action) ? r.action.join(",") : String(r.action),
       subject: Array.isArray(r.subject) ? r.subject.join(",") : String(r.subject),
     }));

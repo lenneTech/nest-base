@@ -133,7 +133,7 @@ export function buildPermissionMatrix(input: MatrixInput): MatrixOutput {
 
   const roleIds = input.roles.map((r) => r.id);
   const rolePrimaryPolicyIds: Record<string, string> = {
-    ...(input.rolePrimaryPolicyIds ?? {}),
+    ...input.rolePrimaryPolicyIds,
   };
 
   const matrix: Record<string, Record<string, MatrixCell>> = {};

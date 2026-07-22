@@ -1,7 +1,7 @@
 /**
  * Operator-facing OpenAPI labels for Hub/Admin SPA controllers.
  */
-import type { OpenAPIObject } from "@nestjs/swagger/dist/interfaces/open-api-spec.interface.js";
+import type { OpenAPIObject } from "@nestjs/swagger";
 
 const TAG_ALIASES: Record<string, string> = {
   DevFiles: "Hub",

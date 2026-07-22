@@ -30,9 +30,11 @@ describe("Repo Layout", () => {
       compilerOptions?: { paths?: Record<string, string[]> };
     };
     const paths = tsconfig.compilerOptions?.paths ?? {};
-    expect(paths["@core/*"]).toEqual(["src/core/*"]);
-    expect(paths["@modules/*"]).toEqual(["src/modules/*"]);
-    expect(paths["@shared/*"]).toEqual(["src/shared/*"]);
+    // TypeScript 7 removed `baseUrl` and requires path-mapping targets
+    // to be relative (leading `./`) to the tsconfig directory.
+    expect(paths["@core/*"]).toEqual(["./src/core/*"]);
+    expect(paths["@modules/*"]).toEqual(["./src/modules/*"]);
+    expect(paths["@shared/*"]).toEqual(["./src/shared/*"]);
   });
 
   it("vitest.config.ts mirrors the same aliases for test resolution", () => {
