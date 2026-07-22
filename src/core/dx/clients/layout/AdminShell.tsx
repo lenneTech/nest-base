@@ -12,6 +12,7 @@ import { toast } from "sonner";
 
 import type { HubPortalAccess } from "../components/HubPortalGate.js";
 import { signOut } from "../lib/api.js";
+import { hasWorkstationSurfaces } from "../lib/hub-portal-access.js";
 import { cn } from "../lib/utils.js";
 
 import { pushRecentItem } from "../components/CommandPalette.js";
@@ -65,6 +66,7 @@ export function AdminSidebar({ currentNav }: AdminSidebarProps): ReactNode {
     hub: portalAccess?.hub ?? false,
     tenantAdmin: portalAccess?.tenantAdmin ?? false,
     navFeatures: portalAccess?.features ?? LEGACY_HUB_NAV_FEATURES_FALLBACK,
+    workstation: hasWorkstationSurfaces(portalAccess),
   });
 
   async function onSignOut(): Promise<void> {

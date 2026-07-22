@@ -204,9 +204,7 @@ describe("Story · Hub outside development (production + FEATURE_HUB_ENABLED=tru
     it("palette search omits workstation-tier pages (nav parity)", async () => {
       const migrations = await operator.agent.get("/hub/palette/search.json?q=migrations");
       expect(migrations.status).toBe(200);
-      const migrationHrefs = (migrations.body.pages as Array<{ href: string }>).map(
-        (p) => p.href,
-      );
+      const migrationHrefs = (migrations.body.pages as Array<{ href: string }>).map((p) => p.href);
       expect(migrationHrefs).not.toContain("/hub/migrations");
       const logs = await operator.agent.get("/hub/palette/search.json?q=logs");
       expect(logs.status).toBe(200);
