@@ -1,5 +1,5 @@
 /**
- * `/admin/permissions/test` — resolve effective CASL ability for a
+ * `/hub/admin/permissions/test` — resolve effective CASL ability for a
  * user / tenant pair. URL-driven so back-button replays prior lookups.
  */
 import { useQuery } from "@tanstack/react-query";
@@ -46,7 +46,7 @@ export function PermissionTesterPage(): ReactNode {
   const tenantId = params.get("tenantId") ?? "";
   const hasInputs = userId.length > 0 && tenantId.length > 0;
 
-  const url = `/admin/permissions/test.json?userId=${encodeURIComponent(userId)}&tenantId=${encodeURIComponent(tenantId)}`;
+  const url = `/hub/admin/permissions/test.json?userId=${encodeURIComponent(userId)}&tenantId=${encodeURIComponent(tenantId)}`;
 
   const data = useQuery({
     queryKey: ["admin", "permissions", "test", userId, tenantId],
@@ -72,7 +72,7 @@ export function PermissionTesterPage(): ReactNode {
             */}
             <form
               method="get"
-              action="/admin/permissions/test"
+              action="/hub/admin/permissions/test"
               className="flex flex-wrap items-end gap-3"
             >
               <div className="flex flex-1 min-w-48 flex-col gap-1.5">

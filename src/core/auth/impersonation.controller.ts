@@ -17,7 +17,7 @@ import {
 } from "./impersonation.audit.js";
 
 /**
- * ImpersonationController — `/admin/impersonation/stop` (CF.AUTH.IMPERSONATION).
+ * ImpersonationController — `/hub/admin/impersonation/stop` (CF.AUTH.IMPERSONATION).
  *
  * Backs the PRD's "Impersonation: Session.impersonatedBy +
  * IMPERSONATION_START / STOP audit envelopes" requirement
@@ -58,7 +58,7 @@ interface ImpersonationStopBody {
   readonly ipAddress?: unknown;
 }
 
-@Controller("admin/impersonation")
+@Controller("hub/admin/impersonation")
 export class ImpersonationController {
   constructor(
     @Inject(IMPERSONATION_AUDIT_SINK)
@@ -68,7 +68,7 @@ export class ImpersonationController {
   ) {}
 
   /**
-   * `POST /admin/impersonation/stop` — exit impersonation flow.
+   * `POST /hub/admin/impersonation/stop` — exit impersonation flow.
    *
    * Body: `{ impersonatedUserId: string, sessionId: string,
    * ipAddress?: string }`. Emits the IMPERSONATION_STOP audit row

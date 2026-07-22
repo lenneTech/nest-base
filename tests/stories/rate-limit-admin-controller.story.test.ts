@@ -20,7 +20,7 @@ describe("Story · Rate-Limit Admin Controller", () => {
         resolve(ROOT, "src/core/throttler/rate-limit-admin.controller.ts"),
         "utf8",
       );
-      expect(src).toContain('@Controller("admin/rate-limits")');
+      expect(src).toContain('@Controller("hub/admin/rate-limits")');
     });
 
     it("exposes GET inspector.json endpoint", () => {
@@ -116,7 +116,7 @@ describe("Story · Rate-Limit Admin Controller", () => {
         resolve(ROOT, "src/core/dx/clients/pages/RateLimitsAdminPage.tsx"),
         "utf8",
       );
-      expect(src).toContain("/admin/rate-limits/inspector.json");
+      expect(src).toContain("/hub/admin/rate-limits/inspector.json");
     });
   });
 });

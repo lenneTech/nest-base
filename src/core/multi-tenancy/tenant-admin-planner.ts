@@ -1,7 +1,7 @@
 /**
  * Tenant admin planner (issue #87).
  *
- * Pure functions that drive the `/admin/tenants` search surface and
+ * Pure functions that drive the `/hub/admin/tenants` search surface and
  * the tenant stats snapshot. No I/O — keeps the logic testable in
  * isolation without booting NestJS or hitting Prisma.
  *

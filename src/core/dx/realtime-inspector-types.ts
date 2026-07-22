@@ -1,5 +1,5 @@
 /**
- * Read-model types for the `/admin/realtime*` page.
+ * Read-model types for the `/hub/admin/realtime*` page.
  *
  * Shared between the JSON sidecars in `admin-spa.controller.ts` and the
  * React page. Keeps the contract typed end-to-end.
@@ -63,13 +63,13 @@ export interface RealtimeChannelsPageInput {
   channels: RealtimeChannelEntry[];
 }
 
-/** Body for `POST /admin/realtime/sockets/:id/send`. */
+/** Body for `POST /hub/admin/realtime/sockets/:id/send`. */
 export interface RealtimeSendInput {
   eventType: string;
   payload: unknown;
 }
 
-/** Body for `POST /admin/realtime/events/replay`. */
+/** Body for `POST /hub/admin/realtime/events/replay`. */
 export interface RealtimeReplayInput {
   channel: string;
   eventType: string;

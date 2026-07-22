@@ -116,19 +116,19 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       "/hub/files",
       "/hub/cron",
       "/hub/email-outbox",
-      "/admin/permissions/test",
-      "/admin/sessions",
-      "/admin/jobs",
-      "/admin/users",
-      "/admin/tenants",
-      "/admin/rate-limits",
-      "/admin/roles",
-      "/admin/policies",
-      "/admin/permissions",
-      "/admin/webhooks",
-      "/admin/realtime",
-      "/admin/audit",
-      "/admin/search",
+      "/hub/admin/permissions/test",
+      "/hub/admin/sessions",
+      "/hub/admin/jobs",
+      "/hub/admin/users",
+      "/hub/admin/tenants",
+      "/hub/admin/rate-limits",
+      "/hub/admin/roles",
+      "/hub/admin/policies",
+      "/hub/admin/permissions",
+      "/hub/admin/webhooks",
+      "/hub/admin/realtime",
+      "/hub/admin/audit",
+      "/hub/admin/search",
       "/errors",
       "/openapi",
     ];
@@ -161,18 +161,18 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       "/hub/files",
       "/hub/cron",
       "/hub/email-outbox",
-      "/admin/permissions/test",
-      "/admin/sessions",
-      "/admin/users",
-      "/admin/tenants",
-      "/admin/rate-limits",
-      "/admin/roles",
-      "/admin/policies",
-      "/admin/permissions",
-      "/admin/webhooks",
-      "/admin/realtime",
-      "/admin/audit",
-      "/admin/search",
+      "/hub/admin/permissions/test",
+      "/hub/admin/sessions",
+      "/hub/admin/users",
+      "/hub/admin/tenants",
+      "/hub/admin/rate-limits",
+      "/hub/admin/roles",
+      "/hub/admin/policies",
+      "/hub/admin/permissions",
+      "/hub/admin/webhooks",
+      "/hub/admin/realtime",
+      "/hub/admin/audit",
+      "/hub/admin/search",
       "/errors",
       "/openapi",
     ];
@@ -203,7 +203,7 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
     it("AuditBrowserPage.tsx loads audit via session bootstrap + fetchJson", () => {
       expect(AUDIT_BROWSER_PAGE).toContain("bootstrapHubOperatorSession");
       expect(AUDIT_BROWSER_PAGE).toContain("fetchJson<AuditBrowserResponse>");
-      expect(AUDIT_BROWSER_PAGE).toContain("/admin/audit.json");
+      expect(AUDIT_BROWSER_PAGE).toContain("/hub/admin/audit.json");
       expect(AUDIT_BROWSER_PAGE).not.toContain("x-tenant-id");
     });
 
@@ -473,12 +473,12 @@ describe("Story · Dev-Portal SPA route + nav contract", () => {
       expect(PERMISSION_TESTER_PAGE).toContain('currentNav="permissions"');
     });
 
-    it('nav.ts assigns id "permissions-crud" to the /admin/permissions CRUD entry', () => {
+    it('nav.ts assigns id "permissions-crud" to the /hub/admin/permissions CRUD entry', () => {
       expect(NAV_TS).toContain('id: "permissions-crud"');
     });
 
-    it('nav.ts "permissions-crud" entry has href "/admin/permissions" (exact path)', () => {
-      expect(NAV_TS).toMatch(/id: "permissions-crud"[^}]+href: "\/admin\/permissions"/s);
+    it('nav.ts "permissions-crud" entry has href "/hub/admin/permissions" (exact path)', () => {
+      expect(NAV_TS).toMatch(/id: "permissions-crud"[^}]+href: "\/hub\/admin\/permissions"/s);
     });
   });
 

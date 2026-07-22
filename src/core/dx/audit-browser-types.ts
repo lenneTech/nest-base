@@ -1,5 +1,5 @@
 /**
- * Read-model types for the `/admin/audit` page.
+ * Read-model types for the `/hub/admin/audit` page.
  *
  * Shared between the JSON sidecar in `admin-spa.controller.ts` and the
  * React page. Diffs are rendered as line-prefixed JSON snippets.

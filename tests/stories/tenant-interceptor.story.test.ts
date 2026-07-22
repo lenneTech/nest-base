@@ -70,15 +70,15 @@ describe("Story · Tenant-Interceptor + RLS", () => {
       } as unknown as ExecutionContext;
     }
 
-    it("ignores x-tenant-id on /admin/* when session.activeOrganizationId is set", async () => {
+    it("ignores x-tenant-id on /hub/admin/* when session.activeOrganizationId is set", async () => {
       const sessionTenant = "0af76519-16cd-43dd-8448-eb211c80319c";
       const headerTenant = "11111111-1111-1111-1111-111111111111";
       const fakePrisma = { member: { findFirst: async () => null } };
       const interceptor = new TenantInterceptor(fakePrisma as never);
       const req = {
         headers: { "x-tenant-id": headerTenant },
-        originalUrl: "/admin/users",
-        url: "/admin/users",
+        originalUrl: "/hub/admin/users",
+        url: "/hub/admin/users",
         user: { id: "u1", activeOrganizationId: sessionTenant },
       };
       const ctx = {
@@ -128,8 +128,8 @@ describe("Story · Tenant-Interceptor + RLS", () => {
       const interceptor = new TenantInterceptor(fakePrisma as never);
       const req = {
         headers: { "x-tenant-id": "not-a-uuid" },
-        originalUrl: "/admin/users",
-        url: "/admin/users",
+        originalUrl: "/hub/admin/users",
+        url: "/hub/admin/users",
         user: { id: "u1", activeOrganizationId: null },
       };
       const ctx = {
@@ -194,8 +194,8 @@ describe("Story · Tenant-Interceptor + RLS", () => {
       const interceptor = new TenantInterceptor(fakePrisma as never);
       const req = {
         headers: {},
-        originalUrl: "/admin/users",
-        url: "/admin/users",
+        originalUrl: "/hub/admin/users",
+        url: "/hub/admin/users",
         user: { id: "u1", activeOrganizationId: tenantId },
       };
       const ctx = {

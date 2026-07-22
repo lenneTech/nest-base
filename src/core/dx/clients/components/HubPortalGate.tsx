@@ -1,5 +1,5 @@
 /**
- * Guards `/hub/*` and `/admin/*` client routes after Better-Auth sign-in.
+ * Guards `/hub/*` and `/hub/admin/*` client routes after Better-Auth sign-in.
  */
 import { useQuery } from "@tanstack/react-query";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
@@ -26,12 +26,15 @@ export type HubPortalAccess = HubPortalAccessPayload & {
   features: HubPortalNavFeatures;
 };
 
-function isHubCockpitRoute(pathname: string): boolean {
-  return pathname === "/hub" || pathname.startsWith("/hub/");
+function isTenantAdminRoute(pathname: string): boolean {
+  return pathname === "/hub/admin" || pathname.startsWith("/hub/admin/");
 }
 
-function isTenantAdminRoute(pathname: string): boolean {
-  return pathname === "/admin" || pathname.startsWith("/admin/");
+// Mirrors the server's `isHubCockpitPath`: the `/hub/admin/*` console is
+// gated by tenantAdmin, not by the cockpit's Hub subject.
+function isHubCockpitRoute(pathname: string): boolean {
+  if (isTenantAdminRoute(pathname)) return false;
+  return pathname === "/hub" || pathname.startsWith("/hub/");
 }
 
 export function HubPortalGate(): ReactNode {
@@ -71,7 +74,10 @@ export function HubPortalGate(): ReactNode {
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-bg p-8">
         <PageError>No Hub access for this account.</PageError>
         {hasTenantAdminPortalAccess(data) ? (
-          <a href="/admin/users" className="text-sm text-accent underline-offset-2 hover:underline">
+          <a
+            href="/hub/admin/users"
+            className="text-sm text-accent underline-offset-2 hover:underline"
+          >
             Go to admin area
           </a>
         ) : null}
@@ -127,7 +133,10 @@ export function HubPortalGate(): ReactNode {
             Back to the Hub
           </a>
         ) : hasTenantAdminPortalAccess(data) ? (
-          <a href="/admin/users" className="text-sm text-accent underline-offset-2 hover:underline">
+          <a
+            href="/hub/admin/users"
+            className="text-sm text-accent underline-offset-2 hover:underline"
+          >
             Go to admin area
           </a>
         ) : null}
@@ -149,7 +158,10 @@ export function HubPortalGate(): ReactNode {
             Open feature flags
           </a>
         ) : hasTenantAdminPortalAccess(data) ? (
-          <a href="/admin/users" className="text-sm text-accent underline-offset-2 hover:underline">
+          <a
+            href="/hub/admin/users"
+            className="text-sm text-accent underline-offset-2 hover:underline"
+          >
             Go to admin area
           </a>
         ) : null}

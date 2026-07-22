@@ -1,5 +1,5 @@
 /**
- * UserAdminModule — registers the `/admin/users/*` controller
+ * UserAdminModule — registers the `/hub/admin/users/*` controller
  * (issue #86).
  *
  * Kept as a slim wrapper so AppModule's import list stays symmetrical

@@ -92,7 +92,7 @@ stripe listen --forward-to https://example-cute-name-123.trycloudflare.com/webho
 ```
 
 Trigger a test event with `stripe trigger payment_intent.succeeded`;
-the Webhook-Inspector at `/admin/webhooks` shows the delivery.
+the Webhook-Inspector at `/hub/admin/webhooks` shows the delivery.
 
 ### GitHub
 

@@ -58,7 +58,7 @@ export function planHub(input: HubInput): HubLink[] {
   }
   links.push({
     label: "Permission Tester",
-    url: "/admin/permissions/test",
+    url: "/hub/admin/permissions/test",
     category: "api",
   });
 
@@ -73,7 +73,7 @@ export function planHub(input: HubInput): HubLink[] {
   if (input.features.audit.enabled) {
     links.push({
       label: "Audit Browser",
-      url: "/admin/audit",
+      url: "/hub/admin/audit",
       category: "data",
     });
   }
@@ -82,21 +82,21 @@ export function planHub(input: HubInput): HubLink[] {
   if (input.features.webhooks.enabled) {
     links.push({
       label: "Webhook Inspector",
-      url: "/admin/webhooks",
+      url: "/hub/admin/webhooks",
       category: "async",
     });
   }
   if (input.features.realtime.enabled) {
     links.push({
       label: "Realtime Inspector",
-      url: "/admin/realtime",
+      url: "/hub/admin/realtime",
       category: "async",
     });
   }
   if (input.features.search.enabled) {
     links.push({
       label: "Search Tester",
-      url: "/admin/search",
+      url: "/hub/admin/search",
       category: "async",
     });
   }

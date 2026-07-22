@@ -1,5 +1,5 @@
 /**
- * UserAdminController — `/admin/users/*` (issue #86).
+ * UserAdminController — `/hub/admin/users/*` (issue #86).
  *
  * Server-side wrappers around Prisma reads + Better-Auth admin
  * write operations. JSON / action routes are gated by
@@ -100,7 +100,7 @@ export interface UserDetailResponse extends UserListEntry {
   memberships: UserMembershipEntry[];
 }
 
-@Controller("admin/users")
+@Controller("hub/admin/users")
 export class UserAdminController {
   constructor(
     private readonly prisma: PrismaService,
@@ -110,8 +110,8 @@ export class UserAdminController {
   ) {}
 
   /**
-   * `GET /admin/users` — SPA shell for the user management page.
-   * Follows the same pattern as `/admin/sessions`: a `@Public()` HTML
+   * `GET /hub/admin/users` — SPA shell for the user management page.
+   * Follows the same pattern as `/hub/admin/sessions`: a `@Public()` HTML
    * shell route whose interactive JSON payloads are each gated
    * individually.
    */
@@ -125,7 +125,7 @@ export class UserAdminController {
   }
 
   /**
-   * `GET /admin/users.json` — paginated user list.
+   * `GET /hub/admin/users.json` — paginated user list.
    * Supports `?q=` (substring search), `?limit=`, `?offset=`.
    */
   @Can("manage", "User")
@@ -185,7 +185,7 @@ export class UserAdminController {
   }
 
   /**
-   * `GET /admin/users/roles.json` — assignable CASL roles for the
+   * `GET /hub/admin/users/roles.json` — assignable CASL roles for the
    * operator's organization scope. Works without `x-tenant-id` and when
    * multi-tenancy is disabled (falls back to the operator's membership
    * or the first organization row).
@@ -207,7 +207,7 @@ export class UserAdminController {
   }
 
   /**
-   * `GET /admin/users/:id.json` — user detail with sessions +
+   * `GET /hub/admin/users/:id.json` — user detail with sessions +
    * linked OAuth accounts.
    */
   @Can("manage", "User")
@@ -268,7 +268,7 @@ export class UserAdminController {
   }
 
   /**
-   * `PATCH /admin/users/:id/role` — assign or change the user's CASL
+   * `PATCH /hub/admin/users/:id/role` — assign or change the user's CASL
    * role in the default organization. Creates a membership row when the
    * user has none (single-tenant deployments without the BA org plugin).
    */
@@ -331,9 +331,9 @@ export class UserAdminController {
   }
 
   /**
-   * `PATCH /admin/users/:id/members/:memberId/role` — change the user's
-   * CASL role for an organization. Available from `/admin/users` even when
-   * the multi-tenancy feature flag hides `/admin/tenants`.
+   * `PATCH /hub/admin/users/:id/members/:memberId/role` — change the user's
+   * CASL role for an organization. Available from `/hub/admin/users` even when
+   * the multi-tenancy feature flag hides `/hub/admin/tenants`.
    */
   @Can("manage", "User")
   @Patch(":id/members/:memberId/role")
@@ -365,7 +365,7 @@ export class UserAdminController {
   }
 
   /**
-   * `POST /admin/users/create` — create a user via Better-Auth admin API.
+   * `POST /hub/admin/users/create` — create a user via Better-Auth admin API.
    */
   @Can("manage", "User")
   @Post("create")
@@ -389,7 +389,7 @@ export class UserAdminController {
   }
 
   /**
-   * `POST /admin/users/:id/set-email-verified` — set `emailVerified` directly
+   * `POST /hub/admin/users/:id/set-email-verified` — set `emailVerified` directly
    * in Prisma (dev-operator convenience; BA has no admin toggle for this).
    */
   @Can("manage", "User")
@@ -419,7 +419,7 @@ export class UserAdminController {
   }
 
   /**
-   * `POST /admin/users/:id/update` — update name/email via BA admin API.
+   * `POST /hub/admin/users/:id/update` — update name/email via BA admin API.
    */
   @Can("manage", "User")
   @Post(":id/update")
@@ -439,7 +439,7 @@ export class UserAdminController {
   }
 
   /**
-   * `POST /admin/users/:id/ban` — ban (lock) a user via the BA admin
+   * `POST /hub/admin/users/:id/ban` — ban (lock) a user via the BA admin
    * API. Requires a running BA instance with the admin plugin enabled.
    */
   @Can("manage", "User")
@@ -457,7 +457,7 @@ export class UserAdminController {
   }
 
   /**
-   * `POST /admin/users/:id/unban` — unban (unlock) a user via the BA
+   * `POST /hub/admin/users/:id/unban` — unban (unlock) a user via the BA
    * admin API.
    */
   @Can("manage", "User")
@@ -468,7 +468,7 @@ export class UserAdminController {
   }
 
   /**
-   * `POST /admin/users/:id/revoke-sessions` — revoke all sessions for
+   * `POST /hub/admin/users/:id/revoke-sessions` — revoke all sessions for
    * a user via the BA admin API.
    */
   @Can("manage", "User")
@@ -484,7 +484,7 @@ export class UserAdminController {
   // ── Helpers ───────────────────────────────────────────────────────
 
   /**
-   * Resolves the organization used for role assignment on `/admin/users`.
+   * Resolves the organization used for role assignment on `/hub/admin/users`.
    * Prefers the operator session's active org, then their first membership,
    * then the oldest organization row (single-tenant seed fallback).
    */

@@ -21,7 +21,7 @@ const SILENT_LOGGER: LoggerService = {
  * Before the fix `TenantSelfServiceModule` + `TenantAdminModule` were
  * imported unconditionally, so `POST /tenants` actually created a tenant
  * even with the feature disabled — inconsistent with the Hub nav planner,
- * which already hides `/admin/tenants` behind the same flag.
+ * which already hides `/hub/admin/tenants` behind the same flag.
  *
  * The deterministic flag-state matrix (ENABLED / DISABLED / default) is
  * covered without an app boot in
@@ -69,7 +69,7 @@ describe("E2E · Multi-tenancy module gating — DISABLED", () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication({ logger: SILENT_LOGGER });
     // Mirror bootstrap.ts: `/me/*` + `/tenants` get the global `/api`
-    // prefix; `/admin/*` + health stay at root.
+    // prefix; `/hub/admin/*` + health stay at root.
     app.setGlobalPrefix("api", {
       exclude: ["/", "health", "health/(.*)", "admin", "admin/(.*)"],
     });

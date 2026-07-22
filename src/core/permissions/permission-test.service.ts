@@ -6,7 +6,7 @@ import {
 import { PermissionService } from "./permission.service.js";
 
 /**
- * Service backing the `/admin/permissions/test` endpoint
+ * Service backing the `/hub/admin/permissions/test` endpoint
  *.
  *
  * Combines `PermissionService.abilityFor()` (cached) with the

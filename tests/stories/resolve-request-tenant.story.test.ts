@@ -35,14 +35,14 @@ describe("Story · resolveRequestTenantId", () => {
     expect(prisma.member.findFirst).not.toHaveBeenCalled();
   });
 
-  it("returns session.activeOrganizationId on /admin/* and ignores the header", async () => {
+  it("returns session.activeOrganizationId on /hub/admin/* and ignores the header", async () => {
     const prisma = makePrisma();
     const req: Req = {
       user: { id: "u1", activeOrganizationId: VALID_TENANT_B },
       headers: { "x-tenant-id": VALID_TENANT_A },
     };
     const result = await resolveRequestTenantId(req as never, prisma, {
-      path: "/admin/roles",
+      path: "/hub/admin/roles",
     });
     expect(result).toBe(VALID_TENANT_B);
     expect(prisma.member.findFirst).not.toHaveBeenCalled();
@@ -54,7 +54,9 @@ describe("Story · resolveRequestTenantId", () => {
       user: { id: "u1", activeOrganizationId: null },
       headers: { "x-tenant-id": VALID_TENANT_A },
     };
-    expect(await resolveRequestTenantId(req as never, prisma, { path: "/admin/users" })).toBeNull();
+    expect(
+      await resolveRequestTenantId(req as never, prisma, { path: "/hub/admin/users" }),
+    ).toBeNull();
   });
 
   it("ignores malformed x-tenant-id headers (session is the only source)", async () => {
@@ -63,7 +65,7 @@ describe("Story · resolveRequestTenantId", () => {
       user: { id: "u1", activeOrganizationId: VALID_TENANT_A },
       headers: { "x-tenant-id": "not-a-uuid" },
     };
-    expect(await resolveRequestTenantId(req as never, prisma, { path: "/admin/users" })).toBe(
+    expect(await resolveRequestTenantId(req as never, prisma, { path: "/hub/admin/users" })).toBe(
       VALID_TENANT_A,
     );
     expect(prisma.member.findFirst).not.toHaveBeenCalled();

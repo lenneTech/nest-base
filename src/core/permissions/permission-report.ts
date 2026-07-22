@@ -2,7 +2,7 @@
  * Permission report serializer.
  *
  * Aggregates raw CASL rules into a per-resource summary suitable for
- * the `/admin/permissions/test` endpoint. The `manage` action marks
+ * the `/hub/admin/permissions/test` endpoint. The `manage` action marks
  * the resource as a superset (covers all CRUD verbs).
  */
 

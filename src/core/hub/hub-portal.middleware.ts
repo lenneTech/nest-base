@@ -26,7 +26,7 @@ interface HubPortalRequest extends Request {
 }
 
 /**
- * Enforces CASL on `/hub/*` and `/admin/*` after the session + ability
+ * Enforces CASL on `/hub/*` and legacy `/admin/*` after the session + ability
  * middleware ran. Anonymous requests are already rejected by
  * `BetterAuthSessionMiddleware`; this layer denies authenticated users
  * without Hub (`read Hub` / `manage:all`) or tenant-admin subjects on

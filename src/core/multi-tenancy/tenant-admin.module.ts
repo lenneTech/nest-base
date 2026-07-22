@@ -1,5 +1,5 @@
 /**
- * TenantAdminModule — registers the `/admin/tenants/*` controller
+ * TenantAdminModule — registers the `/hub/admin/tenants/*` controller
  * (issue #87).
  *
  * Kept as a slim wrapper so AppModule's import list stays symmetrical

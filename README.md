@@ -14,7 +14,7 @@ Pure-black dark theme. Electric-lime accent. Live ops health, logs, feature togg
 
 [![Hub](docs/showcase/screenshots/hub-landing-desktop.png)](docs/showcase/README.md)
 
-> The full screenshot index — every Hub page — `/hub`, `/hub/features`, `/hub/email-builder`, `/admin/*`, `/errors`, `/openapi` — at desktop + mobile is in [`docs/showcase/`](docs/showcase/README.md).
+> The full screenshot index — every Hub page — `/hub`, `/hub/features`, `/hub/email-builder`, `/hub/admin/*`, `/errors`, `/openapi` — at desktop + mobile is in [`docs/showcase/`](docs/showcase/README.md).
 
 </div>
 
@@ -87,17 +87,17 @@ The Hub opens automatically at the URL the dev runner prints — `https://api.<p
 
 ## 🎯 The Hub
 
-A black + lime operator console powered by a React 19 SPA (`src/core/dx/clients/`) built on **shadcn/ui (Radix) + Tailwind CSS 4 + lucide-react + sonner + TanStack Query**. Hub pages (`/hub`, `/hub/features`, `/hub/diagnostics`, `/hub/logs`, `/hub/jobs`, …), `/admin/*` CRUD surfaces, `/errors`, and `/openapi` are all rendered by the same SPA shell; the Nest controllers return JSON sidecars + the SPA shell, the SPA decides which page to mount. The sidebar groups pages into **Übersicht**, **Laufzeit**, **API & Docs**, and **Admin**.
+A black + lime operator console powered by a React 19 SPA (`src/core/dx/clients/`) built on **shadcn/ui (Radix) + Tailwind CSS 4 + lucide-react + sonner + TanStack Query**. Hub pages (`/hub`, `/hub/features`, `/hub/diagnostics`, `/hub/logs`, `/hub/jobs`, …), `/hub/admin/*` CRUD surfaces, `/errors`, and `/openapi` are all rendered by the same SPA shell; the Nest controllers return JSON sidecars + the SPA shell, the SPA decides which page to mount. The sidebar groups pages into **Übersicht**, **Laufzeit**, **API & Docs**, and **Admin**.
 
 > Full screenshot gallery: [`docs/showcase/`](docs/showcase/README.md).
 
 ### Sign-in
 
-`/hub/*` and `/admin/*` require a **Better-Auth** session (same as the API). Open `/`
+`/hub/*` and `/hub/admin/*` require a **Better-Auth** session (same as the API). Open `/`
 and sign in with an account that has the right CASL permissions. After a local
 `bun run seed`, demo logins are listed **only in the seed command output** (never in
 the Hub UI). Hub (`/hub/*`) is limited to system-wide operators; tenant admins use
-`/admin/*`.
+`/hub/admin/*`.
 
 Details: [`docs/hub/login.md`](docs/hub/login.md).
 
@@ -221,11 +221,11 @@ The snapshot is refreshed via `bun run dump:openapi`. CI fails on drift (see `te
 
 DTO schemas reach the OpenAPI document via the **Zod → OpenAPI bridge** in `src/core/openapi/`: the `@ApiZodBody` / `@ApiZodResponse` / `@ApiZodQuery` / `@ApiZodParam` decorators feed Zod schemas into `@nestjs/swagger`'s metadata pipeline, and `applyZodSchemaRegistry()` splices any `registerZodSchema('Name', schema)` calls into `components.schemas` at boot. The slim-module reference (`src/modules/example/`) shows the full pattern. Without the bridge the kubb-generated SDK would type every request body as `never` and every response as `unknown`.
 
-### Admin Tools — `/admin/*`
+### Admin Tools — `/hub/admin/*`
 
 Permission tester, audit browser, search tester, webhook inspector, realtime inspector. All in the same dark-mode shell with consistent navigation.
 
-The realtime inspector at `/admin/realtime` ships with three tabs (Sockets / Channels / Events), per-socket disconnect / send-event actions, payload-replay, and a 1.5 s React-Query poll so the live snapshot reflects every gateway lifecycle change without a page reload. Payloads are PII-masked and the surface 404s outside `NODE_ENV=development`.
+The realtime inspector at `/hub/admin/realtime` ships with three tabs (Sockets / Channels / Events), per-socket disconnect / send-event actions, payload-replay, and a 1.5 s React-Query poll so the live snapshot reflects every gateway lifecycle change without a page reload. Payloads are PII-masked and the surface 404s outside `NODE_ENV=development`.
 
 ![Permission Tester](docs/showcase/screenshots/admin-permissions-test-desktop.png)
 ![Webhook Inspector](docs/showcase/screenshots/admin-webhooks-desktop.png)
@@ -265,7 +265,7 @@ src/
 │   ├── app/             ← Bootstrap + AppModule + dev-tab auto-open
 │   ├── auth/            ← Better-Auth wiring + API keys + PowerSync JWT + 24h verifications-cleanup cron
 │   ├── concurrency/     ← ETag + If-Match optimistic concurrency
-│   ├── dx/              ← /hub + /admin + /errors + /openapi (React SPA shell + JSON sidecars)
+│   ├── dx/              ← /hub + /hub/admin + /errors + /openapi (React SPA shell + JSON sidecars)
 │   ├── email/           ← EmailService + React Email .tsx templates
 │   ├── encryption/      ← AES-256-GCM field encryption
 │   ├── errors/          ← CORE_* error codes + RFC 7807 filter
@@ -418,7 +418,7 @@ This project is **optimised for AI-assisted development** with [Claude Code](htt
 # Slash commands ship with the repo
 /add-module <name>              # New project resource (controller / service / DTO / tests)
 /add-feature <key> "<desc>"     # Toggleable feature flag end-to-end
-/add-page <slug> "<title>"      # New /hub or /admin page in the dark-mode shell
+/add-page <slug> "<title>"      # New /hub or /hub/admin page in the dark-mode shell
 /upstream-pr                    # PR a src/core/ fix back to nest-base (downstream projects)
 ```
 
@@ -471,7 +471,7 @@ A fresh agent reads [`.claude/QUICKSTART.md`](./.claude/QUICKSTART.md) (60 sec) 
 - [`docs/template-update-workflow.md`](./docs/template-update-workflow.md) — pulling upstream changes
 - [`docs/customization-guide.md`](./docs/customization-guide.md) — adding domain modules in `src/modules/`
 - [`docs/core-contribution-guide.md`](./docs/core-contribution-guide.md) — contributing back to `src/core/`
-- [`docs/showcase/README.md`](./docs/showcase/README.md) — every `/hub/*`, `/admin/*`, `/errors`, `/openapi` page at desktop + mobile, plus the `bun run docs:screenshots` reproduction command
+- [`docs/showcase/README.md`](./docs/showcase/README.md) — every `/hub/*`, `/hub/admin/*`, `/errors`, `/openapi` page at desktop + mobile, plus the `bun run docs:screenshots` reproduction command
 
 **Community**
 - [`SECURITY.md`](./SECURITY.md) — vulnerability disclosure

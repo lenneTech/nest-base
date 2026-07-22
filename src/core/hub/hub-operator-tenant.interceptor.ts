@@ -45,9 +45,9 @@ import { isHubPortalProtectedPath } from "./hub-portal-paths.js";
  * which decides hub access and MUST answer without a tenant (a
  * membership-less operator gets a "no access" snapshot, not a 400).
  * Throwing here would break those probes. Tenant-REQUIRED handlers
- * (`GET /admin/roles`, …) call `requireTenantContext()` themselves, so
+ * (`GET /hub/admin/roles`, …) call `requireTenantContext()` themselves, so
  * with no tenant in the ALS they still throw their own 400 — the
- * "membership-less → 400 on /admin/roles" behaviour is preserved, just
+ * "membership-less → 400 on /hub/admin/roles" behaviour is preserved, just
  * enforced by the handler rather than the interceptor.
  *
  * Isolation invariant: the fallback resolves ONLY the caller's own
@@ -109,7 +109,7 @@ export class HubOperatorTenantInterceptor implements NestInterceptor {
         // SINGLE_TENANT_ID fallback (that would leak a foreign tenant).
         // Tenant-OPTIONAL hub probes (the @Public /hub/portal-access.json
         // access probe) must answer without a tenant; tenant-REQUIRED
-        // handlers (/admin/roles, …) throw their own requireTenantContext()
+        // handlers (/hub/admin/roles, …) throw their own requireTenantContext()
         // 400, so the membership-less → 400 contract is preserved there.
         return streamToPromise(next.handle());
       }

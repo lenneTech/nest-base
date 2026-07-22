@@ -164,7 +164,7 @@ describe("Story · buildRouteInventory", () => {
   });
 
   describe("Dev-only allowlist (split from `public`)", () => {
-    // Why: routes under /hub and /admin previously got the same
+    // Why: routes under /hub and /hub/admin previously got the same
     // `public` label as /health and /api/openapi, which is misleading
     // — they're not actually public, they 404 in production via
     // `assertDev()`. Splitting the kinds gives a more honest audit:
@@ -173,7 +173,7 @@ describe("Story · buildRouteInventory", () => {
     it("classifies dev-only entries with kind=`dev-only` (not `public`)", () => {
       const stack = [
         { method: "GET", path: "/hub/diagnostics", controller: "D", handler: "d" },
-        { method: "GET", path: "/admin/audit", controller: "A", handler: "a" },
+        { method: "GET", path: "/hub/admin/audit", controller: "A", handler: "a" },
         { method: "GET", path: "/health/live", controller: "H", handler: "h" },
       ];
       const inventory = buildRouteInventory({
@@ -181,20 +181,20 @@ describe("Story · buildRouteInventory", () => {
         publicAllowlist: [
           { prefix: "/health/", kind: "public" },
           { prefix: "/hub", kind: "dev-only" },
-          { prefix: "/admin", kind: "dev-only" },
+          { prefix: "/hub/admin", kind: "dev-only" },
         ],
       });
       const byPath: Record<string, RouteRecord> = {};
       for (const r of inventory.routes) byPath[r.path] = r;
       expect(byPath["/hub/diagnostics"]?.guards).toEqual([{ kind: "dev-only" }]);
-      expect(byPath["/admin/audit"]?.guards).toEqual([{ kind: "dev-only" }]);
+      expect(byPath["/hub/admin/audit"]?.guards).toEqual([{ kind: "dev-only" }]);
       expect(byPath["/health/live"]?.guards).toEqual([{ kind: "public" }]);
     });
 
     it("includes dev-only count in the summary alongside public/guarded/unguarded", () => {
       const stack = [
         { method: "GET", path: "/hub/x", controller: "D", handler: "h" },
-        { method: "GET", path: "/admin/y", controller: "A", handler: "h" },
+        { method: "GET", path: "/hub/admin/y", controller: "A", handler: "h" },
         { method: "GET", path: "/health/live", controller: "H", handler: "h" },
         {
           method: "GET",
@@ -209,7 +209,7 @@ describe("Story · buildRouteInventory", () => {
         routes: stack,
         publicAllowlist: [
           { prefix: "/hub", kind: "dev-only" },
-          { prefix: "/admin", kind: "dev-only" },
+          { prefix: "/hub/admin", kind: "dev-only" },
           { prefix: "/health/", kind: "public" },
         ],
       });
@@ -270,7 +270,7 @@ describe("Story · buildRouteInventory", () => {
       const stack = [
         {
           method: "GET",
-          path: "/admin/audit",
+          path: "/hub/admin/audit",
           controller: "AdminSpaController",
           handler: "audit",
           isPublic: true,
@@ -286,11 +286,11 @@ describe("Story · buildRouteInventory", () => {
       const inventory = buildRouteInventory({
         routes: stack,
         publicAllowlist: [
-          { prefix: "/admin", kind: "dev-only" },
+          { prefix: "/hub/admin", kind: "dev-only" },
           { prefix: "/hub", kind: "dev-only" },
         ],
       });
-      expect(inventory.routes.find((r) => r.path === "/admin/audit")?.guards).toEqual([
+      expect(inventory.routes.find((r) => r.path === "/hub/admin/audit")?.guards).toEqual([
         { kind: "dev-only" },
       ]);
       expect(inventory.routes.find((r) => r.path === "/hub/x")?.guards).toEqual([

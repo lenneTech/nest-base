@@ -90,9 +90,7 @@ describe("Story · legacy /admin/* answers 308 to /hub/admin/*", () => {
     it("PATCH /admin/tenants/:id → 308", async () => {
       const res = await hub.patch("/admin/tenants/00000000-0000-0000-0000-000000000000");
       expect(res.status).toBe(308);
-      expect(res.headers.location).toBe(
-        "/hub/admin/tenants/00000000-0000-0000-0000-000000000000",
-      );
+      expect(res.headers.location).toBe("/hub/admin/tenants/00000000-0000-0000-0000-000000000000");
     });
 
     it("DELETE /admin/sessions/:id → 308", async () => {

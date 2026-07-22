@@ -2,7 +2,7 @@
  * In-memory delivery buffer for the webhook inspector.
  *
  * The dispatcher records into this ring buffer; the React inspector
- * page reads from it via the `/admin/webhooks*.json` endpoints. A
+ * page reads from it via the `/hub/admin/webhooks*.json` endpoints. A
  * bounded buffer is intentional — production webhook deliveries
  * live in Postgres (see `WebhookDelivery` model), but the inspector's
  * dev-mode UX needs predictable, fast in-process lookups without

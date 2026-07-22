@@ -16,7 +16,7 @@ const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {
  * BYND runs `FEATURE_MULTI_TENANCY_ENABLED=false`, so the core
  * `TenantInterceptor` is NOT mounted (app.module.ts:255 gates it on
  * `features.multiTenancy.enabled`). The tenant-scoped admin JSON routes
- * (`GET /admin/roles`, …) still call `requireTenantContext()` — with no
+ * (`GET /hub/admin/roles`, …) still call `requireTenantContext()` — with no
  * interceptor there is no tenant in the ALS, so they threw 400 "tenant
  * context is required" and the Roles page hung in "Loading roles…".
  *
@@ -114,15 +114,15 @@ describe("Hub · single-tenant operator tenant resolution for admin JSON", () =>
     }
   });
 
-  it("GET /admin/roles resolves the operator's membership tenant (was 400)", async () => {
-    const res = await operatorSession.agent.get("/admin/roles").set("x-test-ability", "full");
+  it("GET /hub/admin/roles resolves the operator's membership tenant (was 400)", async () => {
+    const res = await operatorSession.agent.get("/hub/admin/roles").set("x-test-ability", "full");
     expect(res.status).toBe(200);
     const ids = (res.body as Array<{ id: string }>).map((r) => r.id);
     expect(ids).toContain(memberRoleId);
   });
 
   it("does NOT leak a foreign tenant's roles through the membership fallback", async () => {
-    const res = await operatorSession.agent.get("/admin/roles").set("x-test-ability", "full");
+    const res = await operatorSession.agent.get("/hub/admin/roles").set("x-test-ability", "full");
     expect(res.status).toBe(200);
     const ids = (res.body as Array<{ id: string }>).map((r) => r.id);
     expect(ids).not.toContain(foreignRoleId);
@@ -137,7 +137,7 @@ describe("Hub · single-tenant operator tenant resolution for admin JSON", () =>
       email: `hub-single-no-membership-${Date.now()}@example.com`,
       name: "Hub Single No Membership",
     });
-    const res = await stranger.agent.get("/admin/roles").set("x-test-ability", "full");
+    const res = await stranger.agent.get("/hub/admin/roles").set("x-test-ability", "full");
     expect(res.status).toBe(400);
     expect(JSON.stringify(res.body)).toMatch(/tenant/i);
   });

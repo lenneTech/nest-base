@@ -171,16 +171,12 @@ describe("Story · Hub outside development (production + FEATURE_HUB_ENABLED=tru
     });
 
     it("admin CRUD responds 404 (masked)", async () => {
-      const res = await plainMember.agent
-        .get("/hub/admin/roles")
-        .set("accept", "application/json");
+      const res = await plainMember.agent.get("/hub/admin/roles").set("accept", "application/json");
       expect(res.status).toBe(404);
     });
 
     it("previously shell-open admin pages are masked too (rate-limits shell)", async () => {
-      const res = await plainMember.agent
-        .get("/hub/admin/rate-limits")
-        .set("accept", "text/html");
+      const res = await plainMember.agent.get("/hub/admin/rate-limits").set("accept", "text/html");
       expect(res.status).toBe(404);
     });
 

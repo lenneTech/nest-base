@@ -1,6 +1,6 @@
 /**
- * `/admin/permissions` — Permission matrix (roles × resources × actions).
- * Checkbox toggles grant/revoke via existing `/admin/permissions` CRUD.
+ * `/hub/admin/permissions` — Permission matrix (roles × resources × actions).
+ * Checkbox toggles grant/revoke via existing `/hub/admin/permissions` CRUD.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -75,13 +75,13 @@ export function PermissionsAdminPage(): ReactNode {
 
   const matrix = useQuery({
     queryKey: ["admin", "permissions", "matrix", tenantId],
-    queryFn: () => fetchJson<MatrixResponse>("/admin/permissions/matrix.json"),
+    queryFn: () => fetchJson<MatrixResponse>("/hub/admin/permissions/matrix.json"),
     enabled: tenantId.trim().length > 0,
   });
 
   const roles = useQuery({
     queryKey: ["admin", "roles", tenantId],
-    queryFn: () => fetchJson<RoleRecord[]>("/admin/roles"),
+    queryFn: () => fetchJson<RoleRecord[]>("/hub/admin/roles"),
     enabled: tenantId.trim().length > 0,
   });
 
@@ -323,7 +323,7 @@ async function resolvePolicyIdForRole(
   const existing = rolePrimaryPolicyIds[roleId];
   if (existing) return existing;
 
-  const policyRes = await adminFetch("/admin/policies", {
+  const policyRes = await adminFetch("/hub/admin/policies", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
@@ -336,7 +336,7 @@ async function resolvePolicyIdForRole(
   }
   const policy = (await policyRes.json()) as { id: string };
 
-  const attachRes = await adminFetch("/admin/permissions/attach", {
+  const attachRes = await adminFetch("/hub/admin/permissions/attach", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ roleId, policyId: policy.id }),
@@ -367,7 +367,7 @@ async function grantMatrixAction(
     rolePrimaryPolicyIds,
   );
 
-  const res = await adminFetch("/admin/permissions", {
+  const res = await adminFetch("/hub/admin/permissions", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
@@ -419,7 +419,7 @@ async function revokeMatrixAction(
 }
 
 async function deletePermission(_tenantId: string, permissionId: string): Promise<void> {
-  const res = await adminFetch(`/admin/permissions/${permissionId}`, {
+  const res = await adminFetch(`/hub/admin/permissions/${permissionId}`, {
     method: "DELETE",
   });
   if (!res.ok) {
@@ -431,7 +431,7 @@ async function createPermission(
   tenantId: string,
   body: { policyId: string; resource: string; action: MatrixAction },
 ): Promise<void> {
-  const res = await adminFetch("/admin/permissions", {
+  const res = await adminFetch("/hub/admin/permissions", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ ...body, fields: [] }),

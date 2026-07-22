@@ -75,10 +75,10 @@ import { getRegisteredWebhookEvents } from "../webhooks/webhook-event.decorator.
 import { planWebhookTestEvent } from "../webhooks/webhook-test-event-planner.js";
 
 /**
- * `/admin/*` SPA shell + JSON sidecars.
+ * `/hub/admin/*` SPA shell + JSON sidecars.
  *
  * Replaces the legacy `AdminUiController` which returned server-rendered
- * HTML. Every `GET /admin/<page>` now returns the Dev-Portal SPA shell;
+ * HTML. Every `GET /hub/admin/<page>` now returns the Dev-Portal SPA shell;
  * the React tree at `src/core/dx/clients/pages/<Page>Page.tsx` fetches
  * the matching `*.json` sidecar to populate itself. Same DOM, same
  * classnames, same chrome — but the canonical surface is the SPA, not
@@ -173,7 +173,7 @@ function parseIsoQuery(value: string | undefined): Date | null {
   "Dev-Hub admin SPA JSON sidecars — the hub surface guard gates availability; no CASL login required in local development.",
 )
 @ApiTags("Admin")
-@Controller("admin")
+@Controller("hub/admin")
 export class AdminSpaController {
   constructor(
     private readonly realtime: RealtimeGateway,
@@ -199,7 +199,7 @@ export class AdminSpaController {
   }
 
   /**
-   * `/admin/permissions/test.json` — runs the form lookup. The legacy
+   * `/hub/admin/permissions/test.json` — runs the form lookup. The legacy
    * server page never wired the lookup either (it always rendered the
    * empty form), so this returns an empty report with no rules until the
    * Prisma-backed PermissionStorage adapter lands. The shape pins the
@@ -455,7 +455,7 @@ export class AdminSpaController {
 
   /**
    * Manual re-deliver action — gated by a per-request CSRF token issued
-   * via `/admin/webhooks.json`. Idempotent in the sense that a tampered
+   * via `/hub/admin/webhooks.json`. Idempotent in the sense that a tampered
    * or stale token is rejected without touching the buffer.
    */
   @Post("webhooks/:id/redeliver")
@@ -686,7 +686,7 @@ export class AdminSpaController {
   // ── Admin Jobs Dashboard ─────────────────────────────────────────
 
   /**
-   * `/admin/jobs` — Admin SPA shell for the Jobs dashboard. The
+   * `/hub/admin/jobs` — Admin SPA shell for the Jobs dashboard. The
    * React page re-uses the JSON contract under `/hub/jobs/*` so the
    * admin and dev surfaces stay byte-for-byte aligned. Iter-108 ships
    * the shell so site operators (Better-Auth admin role) can see

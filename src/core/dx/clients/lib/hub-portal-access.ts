@@ -50,12 +50,20 @@ export function resolveOperatorLandingPath(
   const tenantAdminOk = hasTenantAdminPortalAccess(data);
   const fromRaw = fromState?.trim();
   const from =
-    fromRaw && fromRaw !== "/" ? fromRaw : hubOk ? "/hub" : tenantAdminOk ? "/admin/users" : "/";
-  if (from.startsWith("/hub") && !hubOk) {
-    return tenantAdminOk ? "/admin/users" : "/";
-  }
-  if (from.startsWith("/admin") && !tenantAdminOk) {
+    fromRaw && fromRaw !== "/"
+      ? fromRaw
+      : hubOk
+        ? "/hub"
+        : tenantAdminOk
+          ? "/hub/admin/users"
+          : "/";
+  // `/hub/admin/*` (tenant-admin console) checks FIRST — it lives inside
+  // the `/hub` prefix but is gated by tenantAdmin, not the Hub subject.
+  if (from.startsWith("/hub/admin") && !tenantAdminOk) {
     return hubOk ? "/hub" : "/";
+  }
+  if (from.startsWith("/hub") && !from.startsWith("/hub/admin") && !hubOk) {
+    return tenantAdminOk ? "/hub/admin/users" : "/";
   }
   return from;
 }

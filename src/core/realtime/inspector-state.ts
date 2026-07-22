@@ -2,7 +2,7 @@
  * Realtime Inspector State.
  *
  * Pure in-memory tracker fed by `RealtimeGateway` (runner) and read by
- * the `/admin/realtime*` JSON sidecars + the admin live-push namespace.
+ * the `/hub/admin/realtime*` JSON sidecars + the admin live-push namespace.
  * No I/O, no NestJS lifecycle — every method is a pure mutation that
  * the unit suite exercises without booting the app.
  *

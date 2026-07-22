@@ -18,7 +18,7 @@ const SILENT_LOGGER = { log() {}, warn() {}, error() {}, debug() {}, verbose() {
  * leaves dev-mode JSON responses carrying `script-src 'unsafe-inline'
  * 'unsafe-eval'`. Iter-89 adds a path-aware override so JSON responses
  * always emit the strict PROD-shape CSP — the lenient DEV CSP only
- * applies to HTML routes (e.g. `/admin/*` Scalar / dev hub).
+ * applies to HTML routes (e.g. `/hub/admin/*` Scalar / dev hub).
  *
  * Tests run against a development bootstrap (NODE_ENV=development) so
  * the dev CSP is the baseline. Production CSP is already strict on
@@ -68,8 +68,8 @@ describe("Story · path-aware CSP (no unsafe-inline on JSON APIs)", () => {
     expect(csp).toMatch(/script-src\s+'self'/);
   });
 
-  it("HTML dev page (/admin/audit) carries the lenient DEV CSP (unsafe-inline allowed)", async () => {
-    const res = await hub.get("/admin/audit").set("Accept", "text/html");
+  it("HTML dev page (/hub/admin/audit) carries the lenient DEV CSP (unsafe-inline allowed)", async () => {
+    const res = await hub.get("/hub/admin/audit").set("Accept", "text/html");
     // The page may 200 or redirect (auth) but the CSP header is always
     // emitted by helmet — that's the contract under test.
     const csp = res.headers["content-security-policy"];

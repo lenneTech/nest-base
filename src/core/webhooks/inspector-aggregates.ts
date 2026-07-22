@@ -1,5 +1,5 @@
 /**
- * Pure planners for the `/admin/webhooks` inspector page.
+ * Pure planners for the `/hub/admin/webhooks` inspector page.
  *
  * Aggregations (count by status, p95 latency, failure rate, sparklines)
  * and the filter-DSL operate on plain delivery records. The dispatcher's

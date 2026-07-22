@@ -63,12 +63,12 @@ describe("Story · Hub nav planner (feature flags)", () => {
     feature: ToggleableFeatureKey;
     path: string;
   }> = [
-    { itemId: "tenants", feature: "multiTenancy", path: "/admin/tenants" },
-    { itemId: "webhooks", feature: "webhooks", path: "/admin/webhooks" },
-    { itemId: "realtime", feature: "realtime", path: "/admin/realtime" },
-    { itemId: "audit", feature: "audit", path: "/admin/audit" },
-    { itemId: "search", feature: "search", path: "/admin/search" },
-    { itemId: "rate-limits", feature: "rateLimit", path: "/admin/rate-limits" },
+    { itemId: "tenants", feature: "multiTenancy", path: "/hub/admin/tenants" },
+    { itemId: "webhooks", feature: "webhooks", path: "/hub/admin/webhooks" },
+    { itemId: "realtime", feature: "realtime", path: "/hub/admin/realtime" },
+    { itemId: "audit", feature: "audit", path: "/hub/admin/audit" },
+    { itemId: "search", feature: "search", path: "/hub/admin/search" },
+    { itemId: "rate-limits", feature: "rateLimit", path: "/hub/admin/rate-limits" },
     { itemId: "files", feature: "files", path: "/hub/files" },
     { itemId: "jobs", feature: "jobs", path: "/hub/jobs" },
     { itemId: "cron", feature: "jobs", path: "/hub/cron" },
@@ -93,7 +93,7 @@ describe("Story · Hub nav planner (feature flags)", () => {
     for (const id of ["hub", "users", "diagnostics", "scalar", "permissions"]) {
       expect(isNavItemVisibleForNavSnapshot(id, off)).toBe(true);
     }
-    expect(isSpaPathAllowedByNavSnapshot("/admin/users", off)).toBe(true);
+    expect(isSpaPathAllowedByNavSnapshot("/hub/admin/users", off)).toBe(true);
     expect(isSpaPathAllowedByNavSnapshot("/hub/diagnostics", off)).toBe(true);
   });
 
@@ -122,8 +122,8 @@ describe("Story · Hub nav planner (feature flags)", () => {
 
   it("isHubQuickLinkVisible hides gated admin links but keeps /api/docs", () => {
     const off = snapshotWith({ webhooks: false, multiTenancy: false });
-    expect(isHubQuickLinkVisible("/admin/webhooks", off)).toBe(false);
-    expect(isHubQuickLinkVisible("/admin/tenants", off)).toBe(false);
+    expect(isHubQuickLinkVisible("/hub/admin/webhooks", off)).toBe(false);
+    expect(isHubQuickLinkVisible("/hub/admin/tenants", off)).toBe(false);
     expect(isHubQuickLinkVisible("/api/docs", off)).toBe(true);
     expect(isHubQuickLinkVisible("/errors", off)).toBe(true);
   });
@@ -133,7 +133,7 @@ describe("Story · Hub nav planner (feature flags)", () => {
       {
         id: "webhooks",
         title: "Webhooks",
-        href: "/admin/webhooks",
+        href: "/hub/admin/webhooks",
         aliases: [],
         category: "Admin",
       },
@@ -165,9 +165,9 @@ describe("Story · Hub nav planner (workstation tier)", () => {
     "/hub/email-builder",
     "/hub/files",
     "/hub/files/nested/dir",
-    "/admin/permissions/test",
-    "/admin/search",
-    "/admin/search/anything",
+    "/hub/admin/permissions/test",
+    "/hub/admin/search",
+    "/hub/admin/search/anything",
   ];
 
   // Operator-console pages: their data endpoints are operational tier
@@ -186,9 +186,9 @@ describe("Story · Hub nav planner (workstation tier)", () => {
     "/hub/routes",
     "/hub/json",
     "/hub/postgrest-parse",
-    "/admin/users",
-    "/admin/permissions",
-    "/admin/rate-limits",
+    "/hub/admin/users",
+    "/hub/admin/permissions",
+    "/hub/admin/rate-limits",
   ];
 
   it.each(workstationPaths.map((path) => ({ path })))(

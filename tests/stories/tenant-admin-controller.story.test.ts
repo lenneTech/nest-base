@@ -20,7 +20,7 @@ describe("Story · Tenant Admin Controller", () => {
         resolve(ROOT, "src/core/multi-tenancy/tenant-admin.controller.ts"),
         "utf8",
       );
-      expect(src).toContain('@Controller("admin/tenants")');
+      expect(src).toContain('@Controller("hub/admin/tenants")');
     });
 
     it("exposes GET list.json endpoint", () => {
@@ -100,7 +100,7 @@ describe("Story · Tenant Admin Controller", () => {
         resolve(ROOT, "src/core/dx/clients/pages/TenantsAdminPage.tsx"),
         "utf8",
       );
-      expect(src).toContain("/admin/tenants/list.json");
+      expect(src).toContain("/hub/admin/tenants/list.json");
     });
 
     it("members tab can change member role via PATCH", () => {

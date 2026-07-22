@@ -40,13 +40,13 @@ describe("resolveRequestTenantId · activeOrganizationId (session-only)", () => 
     expect(await resolveRequestTenantId(req as never, prisma)).toBeNull();
   });
 
-  it("ignores x-tenant-id on /admin/* and keeps activeOrganizationId", async () => {
+  it("ignores x-tenant-id on /hub/admin/* and keeps activeOrganizationId", async () => {
     const prisma = noDbPrisma();
     const req: Req = {
       user: { id: "u1", activeOrganizationId: TENANT_B },
       headers: { "x-tenant-id": TENANT_A },
     };
-    expect(await resolveRequestTenantId(req as never, prisma, { path: "/admin/roles" })).toBe(
+    expect(await resolveRequestTenantId(req as never, prisma, { path: "/hub/admin/roles" })).toBe(
       TENANT_B,
     );
     expect(prisma.member.findFirst).not.toHaveBeenCalled();

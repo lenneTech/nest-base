@@ -34,7 +34,7 @@ export const FEATURE_CATALOG: readonly FeatureMeta[] = [
       "Postgres RLS",
       "GET /me/tenants",
       "POST /tenants",
-      "/admin/tenants",
+      "/hub/admin/tenants",
     ],
   },
   {
@@ -59,7 +59,7 @@ export const FEATURE_CATALOG: readonly FeatureMeta[] = [
     description: "Outbound HMAC-signed webhooks via the Outbox dispatcher with retry + replay.",
     envKey: "FEATURE_WEBHOOKS_ENABLED",
     category: "integration",
-    exposes: ["/admin/webhooks", "WebhookDispatcher", "Outbox-Worker"],
+    exposes: ["/hub/admin/webhooks", "WebhookDispatcher", "Outbox-Worker"],
   },
   {
     key: "search",
@@ -67,7 +67,7 @@ export const FEATURE_CATALOG: readonly FeatureMeta[] = [
     description: "Postgres FTS query parser + cross-resource search across registered tables.",
     envKey: "FEATURE_SEARCH_ENABLED",
     category: "data",
-    exposes: ["/search", "/admin/search", "SearchService"],
+    exposes: ["/search", "/hub/admin/search", "SearchService"],
   },
   {
     key: "realtime",
@@ -75,7 +75,7 @@ export const FEATURE_CATALOG: readonly FeatureMeta[] = [
     description: "Postgres LISTEN/NOTIFY + Socket.IO gateway with channel-filtering.",
     envKey: "FEATURE_REALTIME_ENABLED",
     category: "communication",
-    exposes: ["/admin/realtime", "Socket.IO gateway", "Channel rooms"],
+    exposes: ["/hub/admin/realtime", "Socket.IO gateway", "Channel rooms"],
   },
   {
     key: "powerSync",

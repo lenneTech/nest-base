@@ -6,7 +6,7 @@
  * — it covers diagnostics, the Better-Auth handler, and the docs UI.
  *
  * Issue #83: all API routes are now under `/api/*`. Hub, admin, and
- * errors pages live at root level (`/hub/*`, `/admin/*`, `/errors`).
+ * errors pages live at root level (`/hub/*` incl. `/hub/admin/*`, `/errors`).
  * Health probes remain at `/health/*`. The legacy `/api-docs-json`
  * alias is exempt for SDK backward compatibility.
  *
@@ -47,7 +47,7 @@ function resolveAuthPrefix(): string {
  * the upstream `nuxt-base-starter` fix
  * (lenneTech/nuxt-base-starter#13) has propagated.
  *
- * Hub and admin SPA pages now live at /hub/* and /admin/* (no /api
+ * Hub and admin SPA pages now live at /hub/* incl. /hub/admin/* (no /api; legacy /admin/* 308s there
  * prefix) following the routing fix.
  *
  * MAJ-2: When `OPENAPI_REQUIRE_AUTH=true` is set (default in

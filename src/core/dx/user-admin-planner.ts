@@ -1,7 +1,7 @@
 /**
  * User admin planner (issue #86).
  *
- * Pure functions that drive the `/admin/users` search surface.
+ * Pure functions that drive the `/hub/admin/users` search surface.
  * No I/O — keeps the logic testable in isolation without booting
  * NestJS or hitting Prisma.
  *

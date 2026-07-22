@@ -26,7 +26,7 @@ class TestSessionMiddleware implements NestMiddleware {
   }
 }
 
-@Controller("admin/test-tenant")
+@Controller("hub/admin/test-tenant")
 class TestController {
   @Get("current")
   current(): { tenantId: string | undefined } {
@@ -74,7 +74,7 @@ describe("TenantInterceptor · global registration", () => {
 
   it("attaches the tenant id from session activeOrganizationId", async () => {
     const res = await request(nestApp.getHttpServer())
-      .get("/admin/test-tenant/current")
+      .get("/hub/admin/test-tenant/current")
       .set("x-test-active-org", TENANT);
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ tenantId: TENANT });
@@ -83,7 +83,7 @@ describe("TenantInterceptor · global registration", () => {
   it("ignores stray x-tenant-id when session org is set", async () => {
     const other = "22222222-2222-2222-2222-222222222222";
     const res = await request(nestApp.getHttpServer())
-      .get("/admin/test-tenant/current")
+      .get("/hub/admin/test-tenant/current")
       .set("x-test-active-org", TENANT)
       .set("x-tenant-id", other);
     expect(res.status).toBe(200);
@@ -91,7 +91,7 @@ describe("TenantInterceptor · global registration", () => {
   });
 
   it("rejects unauthenticated requests on non-exempt routes", async () => {
-    const res = await request(nestApp.getHttpServer()).get("/admin/test-tenant/current");
+    const res = await request(nestApp.getHttpServer()).get("/hub/admin/test-tenant/current");
     expect(res.status).not.toBe(200);
   });
 
@@ -103,7 +103,7 @@ describe("TenantInterceptor · global registration", () => {
 
   it("rejects authenticated requests without activeOrganizationId", async () => {
     const res = await request(nestApp.getHttpServer())
-      .get("/admin/test-tenant/current")
+      .get("/hub/admin/test-tenant/current")
       .set("x-tenant-id", TENANT);
     expect(res.status).not.toBe(200);
   });

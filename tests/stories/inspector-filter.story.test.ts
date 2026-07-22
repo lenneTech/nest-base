@@ -11,7 +11,7 @@ import {
  * Story · Realtime Inspector Filter + Payload-Masking.
  *
  * Two pure helpers used by the admin live-push namespace and by the
- * `/admin/realtime*` JSON sidecars:
+ * `/hub/admin/realtime*` JSON sidecars:
  *
  *  - `parseChannelPattern(input)` — turns a user-typed channel pattern
  *    into a RegExp. `*` wildcards become `.*`, the rest is escaped.

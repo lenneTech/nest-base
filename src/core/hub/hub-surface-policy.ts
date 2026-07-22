@@ -56,7 +56,7 @@ export interface HubPortalOutsideDevInput {
   isProbePath: boolean;
   /** `/hub/*` pages + JSON (excluding static assets and the probe). */
   isCockpitPath: boolean;
-  /** `/admin/*` pages + JSON. */
+  /** `/hub/admin/*` pages + JSON (incl. the legacy `/admin/*` redirect namespace). */
   isTenantAdminPath: boolean;
   /** `canAccessHub(req.ability)` result. */
   hubAllowed: boolean;

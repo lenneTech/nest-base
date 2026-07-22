@@ -323,7 +323,7 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
    * room membership. Used by the realtime OutboxDispatcher for
    * `scope: 'global'` broadcasts (system-wide announcements). The
    * inspector mirrors these under a synthetic `*` channel so the
-   * /admin/realtime view still surfaces them.
+   * /hub/admin/realtime view still surfaces them.
    */
   broadcastGlobal(event: string, payload: unknown): void {
     if (this.server) {
@@ -343,7 +343,7 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     return this.state.snapshotSockets().length;
   }
 
-  /** Snapshot used by `GET /admin/realtime*.json`. */
+  /** Snapshot used by `GET /hub/admin/realtime*.json`. */
   inspectorSnapshot(): {
     sockets: ReturnType<InspectorState["snapshotSockets"]>;
     channels: ReturnType<InspectorState["snapshotChannels"]>;

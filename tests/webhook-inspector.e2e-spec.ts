@@ -63,7 +63,7 @@ async function seedWebhookFixture(prisma: PrismaService): Promise<WebhookFixture
 }
 
 /**
- * `/admin/webhooks` — JSON sidecars + re-deliver POST (real Postgres rows only).
+ * `/hub/admin/webhooks` — JSON sidecars + re-deliver POST (real Postgres rows only).
  */
 describe("Webhook Inspector · admin endpoints", () => {
   describe("in development mode", () => {
@@ -105,8 +105,8 @@ describe("Webhook Inspector · admin endpoints", () => {
       else process.env.NODE_ENV = previousNodeEnv;
     });
 
-    it("GET /admin/webhooks.json returns deliveries + a CSRF token", async () => {
-      const res = await hub.get("/admin/webhooks.json");
+    it("GET /hub/admin/webhooks.json returns deliveries + a CSRF token", async () => {
+      const res = await hub.get("/hub/admin/webhooks.json");
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body.deliveries)).toBe(true);
       expect(res.body.deliveries.length).toBeGreaterThan(0);
@@ -115,9 +115,9 @@ describe("Webhook Inspector · admin endpoints", () => {
       expect(res.body.filter.status).toBe("ALL");
     });
 
-    it("GET /admin/webhooks.json honours endpoint and eventType filters", async () => {
+    it("GET /hub/admin/webhooks.json honours endpoint and eventType filters", async () => {
       const res = await hub.get(
-        `/admin/webhooks.json?endpointId=${encodeURIComponent(fixture.endpointId)}&eventType=${encodeURIComponent(fixture.eventType)}`,
+        `/hub/admin/webhooks.json?endpointId=${encodeURIComponent(fixture.endpointId)}&eventType=${encodeURIComponent(fixture.eventType)}`,
       );
       expect(res.status).toBe(200);
       expect(res.body.filter.endpointId).toBe(fixture.endpointId);
@@ -125,15 +125,15 @@ describe("Webhook Inspector · admin endpoints", () => {
       expect(res.body.deliveries.length).toBeGreaterThan(0);
     });
 
-    it("GET /admin/webhooks.json returns a cursor when there are more rows", async () => {
-      const res = await hub.get("/admin/webhooks.json?limit=1");
+    it("GET /hub/admin/webhooks.json returns a cursor when there are more rows", async () => {
+      const res = await hub.get("/hub/admin/webhooks.json?limit=1");
       expect(res.status).toBe(200);
       expect(res.body.deliveries.length).toBeLessThanOrEqual(1);
       expect("nextCursor" in res.body).toBe(true);
     });
 
-    it("GET /admin/webhooks/aggregates.json returns endpoint stats with a sparkline", async () => {
-      const res = await hub.get("/admin/webhooks/aggregates.json");
+    it("GET /hub/admin/webhooks/aggregates.json returns endpoint stats with a sparkline", async () => {
+      const res = await hub.get("/hub/admin/webhooks/aggregates.json");
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body.endpoints)).toBe(true);
       expect(res.body.endpoints.length).toBeGreaterThan(0);
@@ -146,53 +146,55 @@ describe("Webhook Inspector · admin endpoints", () => {
       expect(ep.sparkline.length).toBeGreaterThan(0);
     });
 
-    it("GET /admin/webhooks/event-types.json returns only registered @WebhookEvent names", async () => {
-      const res = await hub.get("/admin/webhooks/event-types.json");
+    it("GET /hub/admin/webhooks/event-types.json returns only registered @WebhookEvent names", async () => {
+      const res = await hub.get("/hub/admin/webhooks/event-types.json");
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body.eventTypes)).toBe(true);
     });
 
-    it("GET /admin/webhooks/:id.json returns a delivery detail or 404", async () => {
-      const res = await hub.get(`/admin/webhooks/${encodeURIComponent(fixture.deliveryId)}.json`);
+    it("GET /hub/admin/webhooks/:id.json returns a delivery detail or 404", async () => {
+      const res = await hub.get(
+        `/hub/admin/webhooks/${encodeURIComponent(fixture.deliveryId)}.json`,
+      );
       expect(res.status).toBe(200);
       expect(res.body.delivery.id).toBe(fixture.deliveryId);
       expect(typeof res.body.curl).toBe("string");
       expect(res.body.curl).toContain("curl ");
 
-      const missing = await hub.get("/admin/webhooks/does-not-exist.json");
+      const missing = await hub.get("/hub/admin/webhooks/does-not-exist.json");
       expect(missing.status).toBe(404);
     });
 
-    it("POST /admin/webhooks/:id/redeliver requires a CSRF token", async () => {
+    it("POST /hub/admin/webhooks/:id/redeliver requires a CSRF token", async () => {
       const res = await hub
-        .post(`/admin/webhooks/${encodeURIComponent(fixture.deliveryId)}/redeliver`)
+        .post(`/hub/admin/webhooks/${encodeURIComponent(fixture.deliveryId)}/redeliver`)
         .send({});
       expect(res.status).toBe(403);
     });
 
-    it("POST /admin/webhooks/:id/redeliver succeeds with a valid CSRF token", async () => {
-      const list = await hub.get("/admin/webhooks.json");
+    it("POST /hub/admin/webhooks/:id/redeliver succeeds with a valid CSRF token", async () => {
+      const list = await hub.get("/hub/admin/webhooks.json");
       const csrf = list.body.csrfToken;
       const res = await hub
-        .post(`/admin/webhooks/${encodeURIComponent(fixture.deliveryId)}/redeliver`)
+        .post(`/hub/admin/webhooks/${encodeURIComponent(fixture.deliveryId)}/redeliver`)
         .send({ csrfToken: csrf });
       expect(res.status).toBe(200);
       expect(res.body.delivery.id).toBe(fixture.deliveryId);
       expect(res.body.delivery.attemptCount).toBeGreaterThanOrEqual(2);
     });
 
-    it("POST /admin/webhooks/:id/redeliver rejects a tampered CSRF token", async () => {
+    it("POST /hub/admin/webhooks/:id/redeliver rejects a tampered CSRF token", async () => {
       const res = await hub
-        .post(`/admin/webhooks/${encodeURIComponent(fixture.deliveryId)}/redeliver`)
+        .post(`/hub/admin/webhooks/${encodeURIComponent(fixture.deliveryId)}/redeliver`)
         .send({ csrfToken: "tampered.signature" });
       expect(res.status).toBe(403);
     });
 
-    it("POST /admin/webhooks/:id/redeliver returns 404 for unknown ids", async () => {
-      const list = await hub.get("/admin/webhooks.json");
+    it("POST /hub/admin/webhooks/:id/redeliver returns 404 for unknown ids", async () => {
+      const list = await hub.get("/hub/admin/webhooks.json");
       const csrf = list.body.csrfToken;
       const res = await hub
-        .post("/admin/webhooks/does-not-exist/redeliver")
+        .post("/hub/admin/webhooks/does-not-exist/redeliver")
         .send({ csrfToken: csrf });
       expect(res.status).toBe(404);
     });
@@ -217,13 +219,13 @@ describe("Webhook Inspector · admin endpoints", () => {
       else process.env.NODE_ENV = previousNodeEnv;
     });
 
-    it("GET /admin/webhooks/aggregates.json 404s in production", async () => {
-      const res = await hub.get("/admin/webhooks/aggregates.json");
+    it("GET /hub/admin/webhooks/aggregates.json 404s in production", async () => {
+      const res = await hub.get("/hub/admin/webhooks/aggregates.json");
       expect(res.status).toBe(404);
     });
 
-    it("POST /admin/webhooks/:id/redeliver 404s in production", async () => {
-      const res = await hub.post("/admin/webhooks/some-id/redeliver").send({});
+    it("POST /hub/admin/webhooks/:id/redeliver 404s in production", async () => {
+      const res = await hub.post("/hub/admin/webhooks/some-id/redeliver").send({});
       expect(res.status).toBe(404);
     });
   });

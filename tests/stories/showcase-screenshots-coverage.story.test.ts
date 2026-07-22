@@ -56,9 +56,9 @@ describe("Story · docs:screenshots covers every App.tsx route", () => {
     const screenshots = parseScreenshotPaths();
     // Allow extra public-catalogue routes (e.g. `/api/openapi`) that
     // ship via Nest controllers, not React routes. Only fail if a
-    // dev-portal /hub/* or /admin/* path is missing from App.tsx.
+    // dev-portal /hub/* or /hub/admin/* path is missing from App.tsx.
     const orphans = screenshots.filter(
-      (s) => (s.startsWith("/hub") || s.startsWith("/admin")) && !routes.includes(s),
+      (s) => (s.startsWith("/hub") || s.startsWith("/hub/admin")) && !routes.includes(s),
     );
     expect(orphans).toEqual([]);
   });

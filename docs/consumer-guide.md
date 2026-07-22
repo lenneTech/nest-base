@@ -95,4 +95,4 @@ and migration guides for every major bump — see
 
 Project-issued webhooks follow the [Webhook-Spec](./webhook-spec.md): HMAC-
 SHA256 signature, exponential-backoff retries, auto-disable after repeated
-failures. Live deliveries are inspectable through `/admin/webhooks`.
+failures. Live deliveries are inspectable through `/hub/admin/webhooks`.

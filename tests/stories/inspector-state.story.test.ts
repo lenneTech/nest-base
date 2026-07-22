@@ -8,7 +8,7 @@ import { InspectorState } from "../../src/core/realtime/inspector-state.js";
  * The inspector tracks three things in memory: connected sockets,
  * channel subscriptions (which sockets are joined to which channel),
  * and a ringbuffer of recently-dispatched events. The state is fed
- * by `RealtimeGateway` (runner) and is read by the `/admin/realtime*`
+ * by `RealtimeGateway` (runner) and is read by the `/hub/admin/realtime*`
  * JSON sidecars and the admin live-push namespace (also runners).
  *
  * The class itself is pure — no NestJS, no I/O — so the unit suite

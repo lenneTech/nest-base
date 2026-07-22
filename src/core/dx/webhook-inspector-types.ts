@@ -1,5 +1,5 @@
 /**
- * Read-model types for the `/admin/webhooks` page.
+ * Read-model types for the `/hub/admin/webhooks` page.
  *
  * The shapes are owned here (not in the dispatcher's persistence layer)
  * so the inspector view can evolve independently of the underlying

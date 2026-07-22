@@ -25,10 +25,10 @@ const noopImpersonationTeardown: ImpersonationSessionTeardown = {
 };
 
 /**
- * SessionsAdminModule — wires the `/admin/sessions/*` and
- * `/admin/impersonation/*` controllers (CF.AUTH.SESSIONS +
+ * SessionsAdminModule — wires the `/hub/admin/sessions/*` and
+ * `/hub/admin/impersonation/*` controllers (CF.AUTH.SESSIONS +
  * CF.AUTH.IMPERSONATION). Session inventory + revoke use Prisma by
- * default (same source as `/admin/users` session counts). Projects
+ * default (same source as `/hub/admin/users` session counts). Projects
  * may override `SESSION_REVOKE_STORAGE` when they bind a remote store.
  */
 

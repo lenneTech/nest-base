@@ -27,20 +27,20 @@ import { EmailService } from "./email.service.js";
 import { PLAN_OK } from "../result/plan-ok.js";
 
 /**
- * EmailOutboxAdminController — `/admin/email-outbox` (issue #91).
+ * EmailOutboxAdminController — `/hub/admin/email-outbox` (issue #91).
  *
  * Operator surface for inspecting and acting on email-outbox rows.
  * All JSON / action routes are gated by `@Can('manage', 'EmailOutboxAdmin')`.
- * The React SPA shell is served separately (public under `/admin/` prefix);
+ * The React SPA shell is served separately (public under `/hub/admin/` prefix);
  * operators sign in via Better-Auth and need `manage:EmailOutboxAdmin` (or
  * `manage:all` on the system-admin role from seed).
  *
  * Routes:
- *   GET  /admin/email-outbox/list.json          — paginated list with filters
- *   GET  /admin/email-outbox/:id.json           — full detail
- *   POST /admin/email-outbox/:id/retry          — reset attempts (pending|dead-letter only)
- *   POST /admin/email-outbox/:id/cancel         — set status=cancelled (pending|dead-letter only)
- *   POST /admin/email-outbox/test-send          — fire a template through outbox mode
+ *   GET  /hub/admin/email-outbox/list.json          — paginated list with filters
+ *   GET  /hub/admin/email-outbox/:id.json           — full detail
+ *   POST /hub/admin/email-outbox/:id/retry          — reset attempts (pending|dead-letter only)
+ *   POST /hub/admin/email-outbox/:id/cancel         — set status=cancelled (pending|dead-letter only)
+ *   POST /hub/admin/email-outbox/test-send          — fire a template through outbox mode
  *
  * State-transition decisions are delegated to `planOutboxAdminAction`
  * (pure planner, no DB) so the policy is story-testable in isolation.
@@ -86,7 +86,7 @@ function toDto(r: EmailOutboxRecord): OutboxRecordDto {
 }
 
 @ApiTags("Admin")
-@Controller("admin/email-outbox")
+@Controller("hub/admin/email-outbox")
 export class EmailOutboxAdminController {
   constructor(
     @Inject(EMAIL_OUTBOX_STORAGE) private readonly storage: EmailOutboxStorage,
@@ -94,7 +94,7 @@ export class EmailOutboxAdminController {
   ) {}
 
   /**
-   * `GET /admin/email-outbox/list.json` — paginated list with filters.
+   * `GET /hub/admin/email-outbox/list.json` — paginated list with filters.
    *
    * Query params: status, recipient, template, dateFrom, dateTo,
    *               sortBy (time|attempts), cursor, limit (1–200, default 50).
@@ -127,7 +127,7 @@ export class EmailOutboxAdminController {
   }
 
   /**
-   * `GET /admin/email-outbox/:id.json` — full record detail.
+   * `GET /hub/admin/email-outbox/:id.json` — full record detail.
    * Returns all fields including the raw payload (template vars, recipient).
    */
   @Can("manage", "EmailOutboxAdmin")
@@ -140,7 +140,7 @@ export class EmailOutboxAdminController {
   }
 
   /**
-   * `POST /admin/email-outbox/:id/retry` — reset attempts so the worker
+   * `POST /hub/admin/email-outbox/:id/retry` — reset attempts so the worker
    * picks the record up again. Forbidden when status is `sent` or `cancelled`.
    */
   @Can("manage", "EmailOutboxAdmin")
@@ -158,7 +158,7 @@ export class EmailOutboxAdminController {
   }
 
   /**
-   * `POST /admin/email-outbox/:id/cancel` — mark the record cancelled.
+   * `POST /hub/admin/email-outbox/:id/cancel` — mark the record cancelled.
    * Forbidden when status is `sent` or already `cancelled`.
    */
   @Can("manage", "EmailOutboxAdmin")
@@ -176,7 +176,7 @@ export class EmailOutboxAdminController {
   }
 
   /**
-   * `POST /admin/email-outbox/test-send` — fire a test email through the
+   * `POST /hub/admin/email-outbox/test-send` — fire a test email through the
    * outbox. Body: `{ template, locale?, vars?, recipient }`. Returns the
    * synthetic outbox message id so the operator can track the row.
    */

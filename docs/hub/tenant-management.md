@@ -1,6 +1,6 @@
 # Tenant Management UI
 
-**Route:** `/admin/tenants`  
+**Route:** `/hub/admin/tenants`  
 **Issue:** #87  
 **Backend path:** `src/core/dx/tenant-admin.controller.ts`  
 **Frontend path:** `src/core/dx/clients/pages/TenantsAdminPage.tsx`
@@ -35,7 +35,7 @@ All write actions are gated by `@Can("manage", "TenantAdmin")`.
 Data is fetched from:
 
 ```
-GET /admin/tenants/list.json?q=<term>&filter=<all|active|deleted>
+GET /hub/admin/tenants/list.json?q=<term>&filter=<all|active|deleted>
 ```
 
 Returns `{ tenants: TenantListEntry[], total: number }`.
@@ -64,7 +64,7 @@ Fields:
 | **Slug** | No | auto-derivable from name; used in URLs |
 | **Kontakt-E-Mail** | No | primary contact address for the organization |
 
-On submit: `POST /admin/tenants` — creates a BA Organization and the
+On submit: `POST /hub/admin/tenants` — creates a BA Organization and the
 initial owner membership. The list refreshes automatically.
 
 ---
@@ -75,15 +75,15 @@ Clicking a row slides in a right-side sheet panel (520–600 px wide).
 Full tenant data is fetched from:
 
 ```
-GET /admin/tenants/:id.json
+GET /hub/admin/tenants/:id.json
 ```
 
 ### Action buttons
 
 | Button | Shown when | Endpoint |
 |--------|-----------|----------|
-| **Archivieren** (destructive) | tenant is active | `DELETE /admin/tenants/:id/soft-delete` |
-| **Wiederherstellen** (outline) | tenant is archived | `POST /admin/tenants/:id/restore` |
+| **Archivieren** (destructive) | tenant is active | `DELETE /hub/admin/tenants/:id/soft-delete` |
+| **Wiederherstellen** (outline) | tenant is archived | `POST /hub/admin/tenants/:id/restore` |
 | **Mitglied einladen** (outline) | always | opens the Invite Member dialog |
 
 Soft-delete and restore both require a confirmation dialog before the
@@ -155,7 +155,7 @@ Fields:
 | **E-Mail** | Yes | recipient address |
 | **Rolle** | No | role to assign (`member` default; other values depend on project config) |
 
-On submit: `POST /admin/tenants/:id/members/invite` — sends a BA
+On submit: `POST /hub/admin/tenants/:id/members/invite` — sends a BA
 invitation email. The invitation appears in the **Übersicht** tab's
 pending invitations sub-table until accepted or expired.
 
@@ -163,7 +163,7 @@ pending invitations sub-table until accepted or expired.
 
 ## Soft-delete and restore
 
-**Soft-delete** (`DELETE /admin/tenants/:id/soft-delete`):
+**Soft-delete** (`DELETE /hub/admin/tenants/:id/soft-delete`):
 
 - Sets `softDeleted = true` on the BA Organization record.
 - The tenant is hidden from active lists by default; still visible under
@@ -172,7 +172,7 @@ pending invitations sub-table until accepted or expired.
   tenant as their active organization.
 - No data is permanently lost.
 
-**Restore** (`POST /admin/tenants/:id/restore`):
+**Restore** (`POST /hub/admin/tenants/:id/restore`):
 
 - Clears `softDeleted = true`, making the tenant active again.
 - Member records are unchanged — the tenant becomes accessible immediately.
@@ -181,17 +181,17 @@ pending invitations sub-table until accepted or expired.
 
 ## Backend endpoints
 
-All endpoints are mounted at `/admin/tenants/` and require
+All endpoints are mounted at `/hub/admin/tenants/` and require
 `@Can("manage", "TenantAdmin")`.
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `GET` | `/admin/tenants/list.json` | Filtered list (name/slug search + active/deleted filter) |
-| `GET` | `/admin/tenants/:id.json` | Full tenant detail (members + invitations + settings + stats) |
-| `POST` | `/admin/tenants` | Create a new BA Organization |
-| `DELETE` | `/admin/tenants/:id/soft-delete` | Soft-delete (archive) a tenant |
-| `POST` | `/admin/tenants/:id/restore` | Restore an archived tenant |
-| `POST` | `/admin/tenants/:id/members/invite` | Invite a new member by email |
+| `GET` | `/hub/admin/tenants/list.json` | Filtered list (name/slug search + active/deleted filter) |
+| `GET` | `/hub/admin/tenants/:id.json` | Full tenant detail (members + invitations + settings + stats) |
+| `POST` | `/hub/admin/tenants` | Create a new BA Organization |
+| `DELETE` | `/hub/admin/tenants/:id/soft-delete` | Soft-delete (archive) a tenant |
+| `POST` | `/hub/admin/tenants/:id/restore` | Restore an archived tenant |
+| `POST` | `/hub/admin/tenants/:id/members/invite` | Invite a new member by email |
 
 ---
 
@@ -217,7 +217,7 @@ is not read on admin routes.
 
 ## Security notes
 
-- `/admin/` prefix is 404 outside `NODE_ENV=development`.
+- `/hub/admin/` prefix is 404 outside `NODE_ENV=development`.
 - `@Can("manage", "TenantAdmin")` — only `system-admin` role grants this
   by default.
 - Soft-delete is non-destructive; a hard delete requires direct DB access

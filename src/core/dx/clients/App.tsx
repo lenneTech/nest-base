@@ -151,19 +151,19 @@ export function App(): ReactNode {
               <Route path="/hub/files" element={<FileManagerPage />} />
               <Route path="/hub/email-outbox" element={<EmailOutboxPage />} />
               <Route path="/hub/cron" element={<CronPage />} />
-              <Route path="/admin/users" element={<UsersAdminPage />} />
-              <Route path="/admin/tenants" element={<TenantsAdminPage />} />
-              <Route path="/admin/sessions" element={<SessionsAdminPage />} />
-              <Route path="/admin/jobs" element={<Navigate to="/hub/jobs" replace />} />
-              <Route path="/admin/roles" element={<RolesAdminPage />} />
-              <Route path="/admin/policies" element={<PoliciesAdminPage />} />
-              <Route path="/admin/permissions" element={<PermissionsAdminPage />} />
-              <Route path="/admin/permissions/test" element={<PermissionTesterPage />} />
-              <Route path="/admin/webhooks" element={<WebhookInspectorPage />} />
-              <Route path="/admin/realtime" element={<RealtimeInspectorPage />} />
-              <Route path="/admin/audit" element={<AuditBrowserPage />} />
-              <Route path="/admin/search" element={<SearchTesterPage />} />
-              <Route path="/admin/rate-limits" element={<RateLimitsAdminPage />} />
+              <Route path="/hub/admin/users" element={<UsersAdminPage />} />
+              <Route path="/hub/admin/tenants" element={<TenantsAdminPage />} />
+              <Route path="/hub/admin/sessions" element={<SessionsAdminPage />} />
+              <Route path="/hub/admin/jobs" element={<Navigate to="/hub/jobs" replace />} />
+              <Route path="/hub/admin/roles" element={<RolesAdminPage />} />
+              <Route path="/hub/admin/policies" element={<PoliciesAdminPage />} />
+              <Route path="/hub/admin/permissions" element={<PermissionsAdminPage />} />
+              <Route path="/hub/admin/permissions/test" element={<PermissionTesterPage />} />
+              <Route path="/hub/admin/webhooks" element={<WebhookInspectorPage />} />
+              <Route path="/hub/admin/realtime" element={<RealtimeInspectorPage />} />
+              <Route path="/hub/admin/audit" element={<AuditBrowserPage />} />
+              <Route path="/hub/admin/search" element={<SearchTesterPage />} />
+              <Route path="/hub/admin/rate-limits" element={<RateLimitsAdminPage />} />
             </Route>
           </Route>
           <Route path="/errors" element={<ErrorsPage />} />

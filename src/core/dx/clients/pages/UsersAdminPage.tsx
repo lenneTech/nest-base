@@ -1,11 +1,11 @@
 /**
- * `/admin/users` — User management (issue #86).
+ * `/hub/admin/users` — User management (issue #86).
  *
  * Lists every user known to the Prisma-backed user store with
  * debounced search, a sheet side-panel for detail + session/account
  * tabs, and action buttons for ban / unban / revoke-sessions.
  *
- * All write actions go through the `/admin/users/:id/*` controller
+ * All write actions go through the `/hub/admin/users/:id/*` controller
  * endpoints (`@Can(manage, User)`) and proxy to the
  * Better-Auth admin API.
  */
@@ -124,7 +124,7 @@ interface UsersListResponse {
 function buildListUrl(q: string): string {
   const params = new URLSearchParams();
   if (q.trim()) params.set("q", q.trim());
-  return `/admin/users/list.json?${params.toString()}`;
+  return `/hub/admin/users/list.json?${params.toString()}`;
 }
 
 async function postAction(path: string, body?: Record<string, string | boolean>): Promise<void> {
@@ -199,7 +199,7 @@ function ConfirmDialog({
 function useAssignableRoles() {
   return useQuery({
     queryKey: ["admin", "users", "assignable-roles"],
-    queryFn: () => fetchJson<AssignableRolesResponse>("/admin/users/roles.json"),
+    queryFn: () => fetchJson<AssignableRolesResponse>("/hub/admin/users/roles.json"),
   });
 }
 
@@ -233,7 +233,7 @@ function UserMembershipRoleEditor({
 
   const update = useMutation({
     mutationFn: async (nextRole: string) => {
-      const path = `/admin/users/${encodeURIComponent(userId)}/members/${encodeURIComponent(membership.id)}/role`;
+      const path = `/hub/admin/users/${encodeURIComponent(userId)}/members/${encodeURIComponent(membership.id)}/role`;
       const res = await adminFetch(path, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
@@ -302,7 +302,7 @@ function UserRoleAssignEditor({
 
   const assign = useMutation({
     mutationFn: async (nextRole: string) => {
-      const path = `/admin/users/${encodeURIComponent(userId)}/role`;
+      const path = `/hub/admin/users/${encodeURIComponent(userId)}/role`;
       const res = await adminFetch(path, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
@@ -444,7 +444,7 @@ function UserEditSection({
 
   const save = useMutation({
     mutationFn: async () => {
-      await postAction(`/admin/users/${encodeURIComponent(user.id)}/update`, {
+      await postAction(`/hub/admin/users/${encodeURIComponent(user.id)}/update`, {
         name: name.trim(),
         email: email.trim(),
       });
@@ -500,7 +500,7 @@ function UserDetailSheet({
 }: UserDetailSheetProps): ReactNode {
   const setEmailVerified = useMutation({
     mutationFn: async ({ id, verified }: { id: string; verified: boolean }) => {
-      await postAction(`/admin/users/${encodeURIComponent(id)}/set-email-verified`, {
+      await postAction(`/hub/admin/users/${encodeURIComponent(id)}/set-email-verified`, {
         verified,
       });
     },
@@ -514,7 +514,7 @@ function UserDetailSheet({
   const query = useQuery({
     queryKey: ["admin", "users", "detail", userId],
     queryFn: () =>
-      fetchJson<UserDetailResponse>(`/admin/users/${encodeURIComponent(userId!)}.json`),
+      fetchJson<UserDetailResponse>(`/hub/admin/users/${encodeURIComponent(userId!)}.json`),
     enabled: userId !== null,
   });
   const assignableRolesQuery = useAssignableRoles();
@@ -827,7 +827,7 @@ export function UsersAdminPage(): ReactNode {
 
   const mutate = useMutation({
     mutationFn: async (action: PendingConfirm) => {
-      const base = `/admin/users/${encodeURIComponent(action.userId)}`;
+      const base = `/hub/admin/users/${encodeURIComponent(action.userId)}`;
       if (action.kind === "ban") await postAction(`${base}/ban`);
       else if (action.kind === "unban") await postAction(`${base}/unban`);
       else await postAction(`${base}/revoke-sessions`);
@@ -847,7 +847,7 @@ export function UsersAdminPage(): ReactNode {
 
   const createUser = useMutation({
     mutationFn: async () => {
-      await postAction("/admin/users/create", {
+      await postAction("/hub/admin/users/create", {
         email: createEmail.trim(),
         name: createName.trim(),
         password: createPassword,

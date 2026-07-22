@@ -14,7 +14,7 @@ import type { PrismaService } from "../../src/core/prisma/prisma.service.js";
  * the ability tenant.
  */
 describe("Story · AbilityMiddleware session tenant resolution", () => {
-  const ADMIN_PATH = "/admin/roles";
+  const ADMIN_PATH = "/hub/admin/roles";
   const API_PATH = "/api/examples";
   const TENANT_HEADER = "x-tenant-id";
   const SESSION_TENANT = "00000000-0000-4000-8000-000000000001";
@@ -51,7 +51,7 @@ describe("Story · AbilityMiddleware session tenant resolution", () => {
 
   const res = {} as Response;
 
-  it("builds ability from activeOrganizationId on /admin/*", async () => {
+  it("builds ability from activeOrganizationId on /hub/admin/*", async () => {
     const ability = buildAbility([{ action: "read", subject: "Example" }]);
     const service = makeService(ability);
     const prisma = makePrisma();
@@ -69,7 +69,7 @@ describe("Story · AbilityMiddleware session tenant resolution", () => {
     expect(next.calls).toBe(1);
   });
 
-  it("ignores x-tenant-id on /admin/* when session org is set", async () => {
+  it("ignores x-tenant-id on /hub/admin/* when session org is set", async () => {
     const ability = buildAbility([{ action: "read", subject: "Example" }]);
     const service = makeService(ability);
     const prisma = makePrisma();

@@ -1,12 +1,12 @@
 /**
- * `/admin/tenants` — Tenant management (issue #87).
+ * `/hub/admin/tenants` — Tenant management (issue #87).
  *
  * Lists every tenant (BA Organization) with debounced search,
  * active/deleted filter toggle, a sheet side-panel for detail with
  * Tabs (Overview | Members | Settings | Statistics), and
  * dialogs for create, invite, confirm soft-delete, and confirm restore.
  *
- * All write actions go through the `/admin/tenants/:id/*` controller
+ * All write actions go through the `/hub/admin/tenants/:id/*` controller
  * endpoints which are gated by `@Can("manage", "TenantAdmin")`.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -116,7 +116,7 @@ function buildListUrl(q: string, filter: string): string {
   const params = new URLSearchParams();
   if (q.trim()) params.set("q", q.trim());
   if (filter !== "all") params.set("filter", filter);
-  return `/admin/tenants/list.json?${params.toString()}`;
+  return `/hub/admin/tenants/list.json?${params.toString()}`;
 }
 
 async function postAction(path: string, body?: Record<string, string | number>): Promise<unknown> {
@@ -180,7 +180,7 @@ function useTenantRoleNames(tenantId: string | null): {
     queryFn: async () => {
       if (!tenantId) return [];
       await activateHubOrganization(tenantId);
-      return fetchJson<RoleRecord[]>("/admin/roles");
+      return fetchJson<RoleRecord[]>("/hub/admin/roles");
     },
     enabled: tenantId !== null && tenantId.length > 0,
   });
@@ -244,7 +244,7 @@ function CreateTenantDialog({ open, onOpenChange, onCreated }: CreateTenantDialo
 
   const create = useMutation({
     mutationFn: async () => {
-      return postAction("/admin/tenants", {
+      return postAction("/hub/admin/tenants", {
         name: name.trim(),
         ...(slug.trim() ? { slug: slug.trim() } : {}),
         ...(contactEmail.trim() ? { contactEmail: contactEmail.trim() } : {}),
@@ -331,7 +331,7 @@ function InviteMemberDialog({ tenantId, onClose, onInvited }: InviteMemberDialog
 
   const invite = useMutation({
     mutationFn: async () => {
-      return postAction(`/admin/tenants/${encodeURIComponent(tenantId!)}/members/invite`, {
+      return postAction(`/hub/admin/tenants/${encodeURIComponent(tenantId!)}/members/invite`, {
         email: email.trim(),
         role: role.trim(),
       } as Record<string, string>);
@@ -429,7 +429,7 @@ function MemberRoleEditor({
 
   const update = useMutation({
     mutationFn: async (nextRole: string) => {
-      const path = `/admin/tenants/${encodeURIComponent(tenantId)}/members/${encodeURIComponent(memberId)}/role`;
+      const path = `/hub/admin/tenants/${encodeURIComponent(tenantId)}/members/${encodeURIComponent(memberId)}/role`;
       const res = await adminFetch(path, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
@@ -503,7 +503,7 @@ function TenantDetailSheet({
   const query = useQuery({
     queryKey: ["admin", "tenants", "detail", tenantId],
     queryFn: () =>
-      fetchJson<TenantDetailResponse>(`/admin/tenants/${encodeURIComponent(tenantId!)}.json`),
+      fetchJson<TenantDetailResponse>(`/hub/admin/tenants/${encodeURIComponent(tenantId!)}.json`),
     enabled: tenantId !== null,
   });
 
@@ -747,7 +747,7 @@ export function TenantsAdminPage(): ReactNode {
 
   const mutate = useMutation({
     mutationFn: async (action: PendingConfirm) => {
-      const base = `/admin/tenants/${encodeURIComponent(action.tenantId)}`;
+      const base = `/hub/admin/tenants/${encodeURIComponent(action.tenantId)}`;
       if (action.kind === "soft-delete") {
         await deleteAction(`${base}/soft-delete`);
       } else {

@@ -14,7 +14,7 @@ import { isPathProtected } from "../../src/core/auth/jwt-middleware.js";
  * OpenAPI spec endpoints are gated — they require a valid JWT session.
  */
 describe("Story · Better-Auth JWT middleware", () => {
-  // Hub and admin SPA pages now live at /hub/* and /admin/* (no /api prefix).
+  // Hub and admin SPA pages now live at /hub/* and /hub/admin/* (no /api prefix).
   // Error catalogue at /errors (no /api prefix); OpenAPI SPA page at /openapi.
   const publicPaths = [
     "/",
@@ -28,7 +28,7 @@ describe("Story · Better-Auth JWT middleware", () => {
     "/api/openapi.json",
   ];
 
-  const hubProtectedPaths = ["/hub", "/hub/features", "/admin/users"];
+  const hubProtectedPaths = ["/hub", "/hub/features", "/hub/admin/users"];
 
   // Tests run with NODE_ENV=test which resolves to "not production", so
   // OPENAPI_REQUIRE_AUTH defaults to false and OpenAPI paths remain public.
